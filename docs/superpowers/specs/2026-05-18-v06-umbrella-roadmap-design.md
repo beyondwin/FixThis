@@ -5,6 +5,27 @@ Status: Ready for user review
 Scope: v0.6 milestone framing across handoff quality, Studio reliability, and
 release-grade evidence
 
+## Change History
+
+- 2026-05-18 — Audit vs source (full repo). Three substantive corrections, see
+  the per-track plan change histories for line-level detail:
+  - Track B "console smoke or harness scenarios" bullet: clarified that this
+    refers to existing `preview` and `session` groups in
+    `scripts/console-tests.json`. The originally-imagined v0.6
+    "reliability harness scenario" (Studio Reliability plan Task 5) was
+    dropped because the existing `scripts/console-harness.mjs` uses
+    Playwright with `apply(fixture, options)` mutators, not a step-DSL
+    scenario object — see the Studio Reliability plan for the rationale.
+  - "Current Baseline" bullet about release readiness: the surfaces exist,
+    but `scripts/verify-ci-local-test.mjs` is currently failing because its
+    `--fast` deep-equal list is missing five commands the script now emits;
+    Track C plan Task 4 reconciles this.
+  - Confirmed against source: persisted JSON fields named in the Non-Goals
+    are all still present in `EditSurfaceCandidateDto`, `AnnotationDto`, and
+    `SourceCandidate`; `AnnotationDto.clientWorkspaceId` and
+    `clientDraftItemId` exist, so the "idempotent draft saves" claim is
+    supported.
+
 ## Summary
 
 v0.6 moves FixThis from "a tool that can get a first agent handoff working" to
@@ -215,8 +236,9 @@ Track B covers:
   server draft conflicts, session deletion, and Save to MCP completion.
 - Idempotent save tests prove retries do not duplicate work and that adding one
   new written item to a retried draft persists only the new item.
-- Console smoke or harness scenarios exercise the user-visible blocked/stale
-  paths that matter for the v0.6 release claim.
+- Existing `preview` and `session` console test groups
+  (`scripts/console-tests.json`) already exercise the user-visible blocked
+  and stale paths; v0.6 does not introduce a new harness scenario.
 - Any reduction in console global projections is guarded by behavior tests, not
   source-shape assertions alone.
 
@@ -340,7 +362,8 @@ Track B:
 - route tests for session, item, preview, and handoff behavior;
 - SSE and polling stale-session tests;
 - duplicate-save/idempotency tests;
-- console smoke or harness scenarios for blocked and stale states.
+- existing console smoke groups (`preview`, `session`) for blocked and stale
+  states; v0.6 does not add a new harness scenario.
 
 Track C:
 

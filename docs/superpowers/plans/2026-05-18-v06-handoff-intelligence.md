@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Change History
+
+- 2026-05-18 — Audit vs source (`fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/*`):
+  - Task 4 Step 3 — when `roleDecision.role ∈ {VISUAL_AREA, INTEROP_RISK}`, force `kind = UNKNOWN` in the empty-source branch. `EditIntentLexicon` matches `gap` / `spacing` and would otherwise leak SPACING into a target that has no code surface to act on; the asserted `kind = UNKNOWN` in `createsVisualAreaRoleCandidateWithoutSourceFile` is the correct contract.
+  - Task 6 Step 1 — confirmed `CopyPromptEditSurfaceRendererTest` exists at `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CopyPromptEditSurfaceRendererTest.kt`.
+  - Confirmed `EditIntent.primaryKind`, `EditIntent.reasons`, `EditIntentAnalyzer.analyze(item, screen)`, `TargetOwnerResolver.resolve(item, screen)`, `EditSurfaceCandidateService.componentNameFrom(testTag)`, and `fixThisJson` (at `io.github.beyondwin.fixthis.cli.BridgeClient.kt`) all resolve as written.
+
 **Goal:** Build measured edit-surface intelligence so FixThis handoffs help agents find the right code surface more often without overclaiming weak evidence.
 
 **Architecture:** Add a deterministic evaluation corpus and baseline gate before changing handoff intelligence. Then add additive edit-surface role metadata, classify it through focused policy objects, and render the role in compact handoffs without renaming persisted MCP JSON fields.
@@ -915,9 +922,16 @@ fun build(
     val intent = EditIntentAnalyzer.analyze(item, screen)
     val roleDecision = EditSurfaceRoleClassifier.classify(item, intent)
     if (item.sourceCandidates.isEmpty()) {
+        // VISUAL_AREA and INTEROP_RISK never identify a precise code surface,
+        // so they must not leak intent.primaryKind (e.g., "gap" -> SPACING)
+        // into the kind field. Other empty-source paths keep the intent kind.
+        val emptySourceKind = when (roleDecision.role) {
+            EditSurfaceRoleDto.VISUAL_AREA, EditSurfaceRoleDto.INTEROP_RISK -> EditSurfaceKindDto.UNKNOWN
+            else -> if (intent.primaryKind == EditSurfaceKindDto.UNKNOWN) EditSurfaceKindDto.UNKNOWN else intent.primaryKind
+        }
         return listOf(
             EditSurfaceCandidateDto(
-                kind = if (intent.primaryKind == EditSurfaceKindDto.UNKNOWN) EditSurfaceKindDto.UNKNOWN else intent.primaryKind,
+                kind = emptySourceKind,
                 role = roleDecision.role,
                 file = "(visual area)",
                 confidence = roleDecision.confidenceCap,

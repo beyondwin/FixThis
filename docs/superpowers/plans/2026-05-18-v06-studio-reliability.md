@@ -2,6 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Change History
+
+- 2026-05-18 — Audit vs source (`fixthis-mcp/src/main/console/*`, `scripts/console-*`):
+  - Task 1 Step 1 — fix backwards regex (`event.workspaceId !== state.workspace.context.workspaceId` is the actual source order) and drop the `deleteRecovery` assertion (that effect lives in `persistDraftWorkspace()`, not in `reduceDraftSaveSucceeded`).
+  - Task 3 Step 2 / Step 4 — drop the `data.sessions?.find()` pattern. The actual polling adapter does `await sessResp.json()` against the by-id session endpoint and returns a single session; the existing fence is already correct (`pollingBrowserAdapter.js:31-44`).
+  - Task 1 Step 3 — register the new group between `session` and `harness`; clarify that `harness` is reserved for the Playwright/scenarios runner.
+  - Task 4 Step 5 — narrow the `git add` to the routes file plus any explicitly touched store/service files; do not stage the whole `fixthis-mcp` tree.
+  - Task 5 — removed. The existing console harness uses `apply(fixture, options)` mutators against a Playwright fake bridge (see `scripts/console-harness.mjs` SCENARIOS table); the proposed `{ name, description, steps: [...] }` shape does not fit. Tasks 1–4 already cover the v0.6 reliability claim via reducer/use-case/route tests, and existing `preview`/`session` groups cover user-visible blocked/stale paths.
+
 **Goal:** Make FixThis Studio preserve, save, recover, and display handoffs correctly through repeated session, draft, retry, stale-preview, and blocked-device flows.
 
 **Architecture:** Strengthen existing console contract tests and add one reliability test group. Keep behavior changes inside existing draft/session/preview boundaries, and prefer reducer/use-case checks over incidental DOM shape assertions.
@@ -24,21 +33,27 @@ It does not change source matching, edit-surface intelligence, release readiness
   - Low-cost source/runtime contract tests for the Studio reliability claim.
 - `scripts/draftRecoveryMatrix-test.mjs`
   - Pure JavaScript tests for browser draft recovery ownership.
-- `scripts/console-fixture/scenarios/reliability.mjs`
-  - Console fixture scenario covering stale preview, retry, and recovery UI flow.
 
 ### Modify
 
 - `scripts/console-tests.json`
-  - Add `reliability` group.
+  - Add `reliability` group between `session` and `harness`.
 - `package.json`
   - Add `console:reliability:test`.
 - `fixthis-mcp/src/main/console/draftUseCases.js`
-  - Clarify recovery outcomes where current behavior is implicit.
+  - Clarify recovery outcomes where current behavior is implicit. As of audit
+    on 2026-05-18, `persistDraftWorkspace()` already calls
+    `ports.storage?.deleteWorkspace?.(...)` before emitting `SAVE_SUCCEEDED`;
+    the pin-only `resolveLifecycleBoundary` path is what may still need fixing.
 - `fixthis-mcp/src/main/console/domain/consoleReducer.js`
-  - Fence stale save/capture/session effects through generation and active session checks.
+  - Fence stale save/capture/session effects through generation and active
+    session checks. As of audit, both `reducePreviewCaptureSucceeded` and
+    `reduceDraftSaveSucceeded` already hold the required generation/session/
+    workspace fences; only re-touch if a contract test below fails.
 - `fixthis-mcp/src/main/console/pollingBrowserAdapter.js`
   - Ensure session polling cannot revive deleted or closed displayed sessions.
+    Already in place via the by-id fetch + `clearDisplayedSessionState()` path;
+    only re-touch if Task 3 contract test fails.
 - `scripts/sessionMismatchIgnore-test.mjs`
   - Add assertions for session polling and saved-item mutation paths.
 - `scripts/draftUseCases-test.mjs`
@@ -95,8 +110,8 @@ test('preview capture success is fenced by generation and active session', () =>
 test('draft save success is fenced by generation and original workspace id', () => {
   const save = body(reducer, 'function reduceDraftSaveSucceeded(state, event)');
   assert.match(save, /event\.generation !== state\.effectsGeneration/);
-  assert.match(save, /state\.workspace\.context\.workspaceId !== event\.workspaceId/);
-  assert.match(save, /deleteRecovery/);
+  assert.match(save, /!isDraftWorkspace\(state\.workspace\)/);
+  assert.match(save, /event\.workspaceId !== state\.workspace\.context\.workspaceId/);
 });
 
 test('Save to MCP completion clears browser recovery for the saved workspace', () => {
@@ -141,7 +156,10 @@ In `scripts/console-tests.json`, add:
 ]
 ```
 
-Place it after the existing `session` group.
+Place it between the existing `session` and `harness` groups. The `harness`
+group is reserved for the Playwright/`scenarios-test.mjs` runner; the new
+`reliability` group is plain `node --test` reducer/use-case coverage and
+should not depend on Playwright.
 
 - [ ] **Step 4: Add the npm script**
 
@@ -419,13 +437,19 @@ test('console reducer drops stale save and capture completions by generation and
   assert.match(capture, /event\.generation !== state\.effectsGeneration/);
   assert.match(capture, /event\.sessionId !== state\.activeSessionId/);
   assert.match(save, /event\.generation !== state\.effectsGeneration/);
-  assert.match(save, /state\.workspace\.context\.workspaceId !== event\.workspaceId/);
+  assert.match(save, /event\.workspaceId !== state\.workspace\.context\.workspaceId/);
 });
 ```
 
 - [ ] **Step 2: Add polling stale-session test**
 
 Append this test to `scripts/sessionMismatchIgnore-test.mjs`:
+
+The polling adapter fetches a single session by id (`/api/sessions/:id`) and
+treats the parsed body as the fresh session, then either merges it or clears
+displayed state when the freshly fetched session is missing or closed. The
+test should pin that contract, not invent a `sessions?.find()` shape that does
+not exist in the source:
 
 ```js
 test('session polling cannot keep a deleted displayed session alive', () => {
@@ -434,7 +458,8 @@ test('session polling cannot keep a deleted displayed session alive', () => {
     'utf8',
   );
   assert.match(pollingSource, /const activeDisplayedSessionId = displayedSessionId\(\);/);
-  assert.match(pollingSource, /const fresh = data\.sessions\?\.find\(\(session\) => session\.sessionId === activeDisplayedSessionId\);/);
+  assert.match(pollingSource, /const fresh = await sessResp\.json\(\);/);
+  assert.match(pollingSource, /fresh && fresh\.sessionId === activeDisplayedSessionId && !isClosedSession\(fresh\)/);
   assert.match(pollingSource, /clearDisplayedSessionState\(\);/);
 });
 ```
@@ -451,23 +476,29 @@ Expected: PASS if existing code already has the fences. If it fails, make the co
 
 - [ ] **Step 4: Fix reducer and polling fences if needed**
 
-If `reduceDraftSaveSucceeded()` lacks a workspace check, add this guard before mutating state:
+If `reduceDraftSaveSucceeded()` lacks a workspace check, add this guard before mutating state. Match the existing source order (`event.workspaceId !== state.workspace.context.workspaceId`); the only-fire-when-non-blank guard keeps older event payloads compatible:
 
 ```js
 if (!isDraftWorkspace(state.workspace)) return { state, effects: [] };
-if (state.workspace.context.workspaceId !== event.workspaceId) return { state, effects: [] };
+if (event.workspaceId && event.workspaceId !== state.workspace.context.workspaceId) {
+  return { state, effects: [] };
+}
 ```
 
-If polling lacks the deleted-session clear, update the refresh path in `pollingBrowserAdapter.js`:
+If polling lacks the deleted-session clear, update the refresh path in `pollingBrowserAdapter.js`. The adapter fetches the displayed session by id (`/api/sessions/:id`), so `fresh` is the parsed body of that response, not a search over a list:
 
 ```js
 const activeDisplayedSessionId = displayedSessionId();
 if (activeDisplayedSessionId) {
-  const fresh = data.sessions?.find((session) => session.sessionId === activeDisplayedSessionId);
-  if (fresh && fresh.sessionId === activeDisplayedSessionId && !isClosedSession(fresh)) {
-    state.session = fresh;
-  } else {
-    clearDisplayedSessionState();
+  const sessResp = await fetch(`/api/sessions/${activeDisplayedSessionId}`);
+  if (sessResp.ok) {
+    const fresh = await sessResp.json();
+    if (fresh && fresh.sessionId === activeDisplayedSessionId && !isClosedSession(fresh)) {
+      mergeSessionIntoState(fresh);
+    } else {
+      clearDisplayedSessionState();
+      if (fresh && !isClosedSession(fresh)) mergeSessionIntoState(fresh);
+    }
   }
 }
 ```
@@ -626,102 +657,36 @@ Expected: PASS.
 Run:
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt \
-  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt
+# If Step 3 was needed, also add only the specific files you edited, e.g.
+#   fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt
+# Do not `git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp` — that stages the whole subtree.
 git commit -m "test: lock duplicate draft save idempotency"
 ```
 
-## Task 5: Add A User-Visible Reliability Harness Scenario
+## Task 5: (removed)
 
-**Files:**
-- Create: `scripts/console-fixture/scenarios/reliability.mjs`
-- Modify: `scripts/console-fixture/scenarios-test.mjs`
-- Modify: `scripts/console-harness.mjs`
+The original Task 5 proposed a step-DSL scenario object
+(`{ name, description, steps: [...] }`) and a `scenarios = { ... }` registry
+that do not exist in the current console harness. The actual
+`scripts/console-harness.mjs` exposes a `SCENARIOS = { 'kebab-case': { apply,
+requiredViewports } }` table whose values are `apply(fixture, options)`
+mutators against a Playwright fake bridge. Forcing a step-DSL on top would
+either duplicate the runtime or require a Playwright assertion harness that is
+out of scope for Track B.
 
-- [ ] **Step 1: Add the scenario module**
+Reliability under repeated Studio use is already covered by:
 
-Create `scripts/console-fixture/scenarios/reliability.mjs`:
+- Tasks 1–3 (reducer/use-case/polling contract tests) for state-pipeline
+  reliability under session switch, stale preview, and recovery.
+- Task 4 (`ConsoleFeedbackItemRoutesTest`) for duplicate-save idempotency.
+- Existing `preview` and `session` test groups in `scripts/console-tests.json`
+  for the user-visible blocked/stale paths called out in the umbrella spec.
 
-```js
-export const reliabilityScenario = {
-  name: 'reliability',
-  description: 'Session switch, stale preview, retry-safe save, and recovery surfaces stay coherent.',
-  steps: [
-    { action: 'openConsole' },
-    { action: 'setConnectionState', state: 'READY' },
-    { action: 'capturePreview', sessionId: 'session-1' },
-    { action: 'enterAnnotateMode' },
-    { action: 'addAreaPin', comment: 'Tighten this empty gap' },
-    { action: 'delayBatchSave', ms: 250 },
-    { action: 'saveToMcp' },
-    { action: 'retryLastBatchSave' },
-    { action: 'assertSavedItemCount', sessionId: 'session-1', count: 1 },
-    { action: 'emitPreviewReady', sessionId: 'session-old' },
-    { action: 'assertActivePreviewSession', sessionId: 'session-1' },
-  ],
-};
-```
-
-- [ ] **Step 2: Register scenario metadata test**
-
-In `scripts/console-fixture/scenarios-test.mjs`, import and assert the scenario:
-
-```js
-import { reliabilityScenario } from './scenarios/reliability.mjs';
-
-test('reliability scenario declares retry and stale-preview assertions', () => {
-  assert.equal(reliabilityScenario.name, 'reliability');
-  assert.ok(reliabilityScenario.steps.some((step) => step.action === 'retryLastBatchSave'));
-  assert.ok(reliabilityScenario.steps.some((step) => step.action === 'assertSavedItemCount'));
-  assert.ok(reliabilityScenario.steps.some((step) => step.action === 'emitPreviewReady'));
-});
-```
-
-- [ ] **Step 3: Wire `console-harness.mjs`**
-
-Add the scenario to the harness scenario registry:
-
-```js
-import { reliabilityScenario } from './console-fixture/scenarios/reliability.mjs';
-
-const scenarios = {
-  multiTab: multiTabScenario,
-  networkOutage: networkOutageScenario,
-  slowHandoff: slowHandoffScenario,
-  reliability: reliabilityScenario,
-};
-```
-
-- [ ] **Step 4: Run harness tests**
-
-Run:
-
-```bash
-node --test scripts/console-fixture/scenarios-test.mjs scripts/console-harness.test.mjs
-```
-
-Expected: PASS.
-
-- [ ] **Step 5: Run the scenario manually**
-
-Run:
-
-```bash
-node scripts/console-harness.mjs reliability
-```
-
-Expected: PASS with no duplicate saved item and no stale-preview state mutation.
-
-- [ ] **Step 6: Commit**
-
-Run:
-
-```bash
-git add scripts/console-fixture/scenarios/reliability.mjs \
-  scripts/console-fixture/scenarios-test.mjs \
-  scripts/console-harness.mjs
-git commit -m "test: add Studio reliability harness scenario"
-```
+If a future plan wants a Playwright scenario for v0.6, it should add an
+`applyReliability(fixture, options)` mutator and register
+`'reliability': { apply: applyReliability, requiredViewports: [...] }` in the
+existing SCENARIOS table — not a parallel scenario object format.
 
 ## Task 6: Run The Track B Verification Set
 
@@ -764,15 +729,12 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 4: Run the user-visible harness scenario**
+- [ ] **Step 4: (removed — see Task 5 note above)**
 
-Run:
-
-```bash
-node scripts/console-harness.mjs reliability
-```
-
-Expected: PASS.
+The original Track B verification ran `node scripts/console-harness.mjs
+reliability`. That scenario no longer exists; the user-visible blocked/stale
+paths are covered by the existing `preview` and `session` groups already
+listed above.
 
 - [ ] **Step 5: Run consistency checks**
 
@@ -796,7 +758,6 @@ Track B verification:
 - `npm run console:draft:test`
 - `npm run console:preview:test`
 - `./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*FeedbackSessionStoreTest" --tests "*FeedbackDraftServiceTest" --no-daemon`
-- `node scripts/console-harness.mjs reliability`
 - `node scripts/check-doc-consistency.mjs`
 - `git diff --check`
 ```

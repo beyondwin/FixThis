@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Change History
+
+- 2026-05-18 — Audit vs source (`scripts/check-release-readiness.mjs`, `scripts/verify-ci-local-test.mjs`, `docs/contributing/release-readiness.md`, `docs/reference/{mcp-tools,output-schema}.md`):
+  - Task 2 Step 4 — append the new `R22.v06-release-claim-manifest` / `R23.v06-release-evidence-command` rules at the tail of `check-release-readiness.mjs` (the existing file currently ends at `R20`/`R21`). The phrase "after `R2d.v05-first-run-smoke`" is misleading; literal placement next to `R2d` would put new rules in the middle of the R3…R21 sequence.
+  - Task 4 Step 2 — `scripts/verify-ci-local-test.mjs` uses `assert.deepEqual` on the `--fast` command list (lines 32–42). The asserted list is already stale (missing `docs:agent-bootstrap:test`, `first-run:smoke:test`, `detekt:baseline:check`, `checks:observation:test`, `perf:test`) and `npm run ci:local:test` is currently failing on `main`; the task must reconcile both that drift and insert `"npm run release:v06:evidence:test"` right after `"node scripts/check-release-readiness.mjs"`.
+  - Confirmed `docs/contributing/release-readiness.md` already has `## v0.5 Trustworthy Onboarding Claim` (line 49); `docs/releases/unreleased.md`, `docs/contributing/release-process.md`, `docs/reference/mcp-tools.md` (all four `fixthis_*` tool names), and `docs/reference/output-schema.md` (all seven protected fields) already exist.
+
 **Goal:** Make every major v0.6 release claim traceable to executable evidence before release notes can claim it.
 
 **Architecture:** Extend the existing release-readiness checker instead of creating a parallel release system. Add a v0.6 claim manifest, deterministic docs/schema/MCP drift checks, observation evidence policy, and artifact integrity evidence requirements.
@@ -268,7 +275,11 @@ Expected: FAIL until `docs/releases/unreleased.md` and the Track A/B scripts exi
 
 - [ ] **Step 4: Add release-readiness delegation rule**
 
-In `scripts/check-release-readiness.mjs`, after `R2d.v05-first-run-smoke`, add:
+In `scripts/check-release-readiness.mjs`, append the new rules at the tail of
+the file (the current tail rules are `R20.github-namespace-paths` and the
+loop that emits `R21.no-stale-prepublication-claims:<file>`). Do not place
+them next to `R2d.v05-first-run-smoke` — that would split the existing
+R3…R21 sequence:
 
 ```js
 requireIncludes(
@@ -430,11 +441,37 @@ run_step "npm run release:v06:evidence:test"
 
 - [ ] **Step 2: Update script contract test**
 
-In `scripts/verify-ci-local-test.mjs`, add this expected command to the list that checks required local steps:
+In `scripts/verify-ci-local-test.mjs`, the `--fast` test asserts the expected
+command list with `assert.deepEqual` (lines 32–42). As of audit, the asserted
+list is already stale — it is missing five commands the script currently
+emits (`docs:agent-bootstrap:test`, `first-run:smoke:test`,
+`detekt:baseline:check`, `checks:observation:test`, `perf:test`), so
+`npm run ci:local:test` is failing on `main`. This task should fix that
+drift while inserting the new entry:
 
 ```js
-"npm run release:v06:evidence:test",
+// inside the --fast test (currently lines 32-42)
+assert.deepEqual(commands, [
+  "node scripts/check-doc-consistency.mjs",
+  "node scripts/check-release-readiness.mjs",
+  "npm run release:v06:evidence:test",
+  "npm run docs:agent-bootstrap:test",
+  "npm run first-run:smoke:test",
+  "npm run detekt:baseline:check",
+  "npm run checks:observation:test",
+  "node scripts/build-console-assets.mjs --check",
+  "node --check fixthis-mcp/src/main/resources/console/app.js",
+  "npm run console:test:all",
+  "node --test scripts/fixthis-smoke-test.mjs",
+  "npm run release:package:test",
+  "npm run perf:test",
+  "git diff --check HEAD..HEAD",
+  "git diff --check",
+]);
 ```
+
+The `--full` test only matches the Gradle line via regex, so it does not need
+to change.
 
 - [ ] **Step 3: Run script contract test**
 
