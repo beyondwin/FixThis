@@ -109,6 +109,19 @@ class DoctorCommandTest {
     }
 
     @Test
+    fun doctorPreservesRawErrorWhenSidekickClassificationFallsBackToNeedsAppLaunch() {
+        val raw = "Bridge: handshake aborted at unexpected_eof (code=7)"
+        val readiness = readinessForDoctorCheck(
+            name = "sidekick_session_found",
+            message = raw,
+            fix = "Launch the debug app and retry.",
+        )
+
+        assertEquals(FirstRunReadinessState.NEEDS_APP_LAUNCH, readiness.state)
+        assertEquals(raw, readiness.details["rawError"])
+    }
+
+    @Test
     fun doctorTextOutputIncludesFixHintAfterFail() {
         val out = java.io.ByteArrayOutputStream()
         val oldOut = System.out

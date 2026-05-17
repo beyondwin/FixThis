@@ -162,8 +162,10 @@ internal fun readinessForDoctorCheck(name: String, message: String?, fix: String
     "sidekick_session_found" -> {
         val classified = classifyBridgeFailure(message)
         if (classified.state == FirstRunReadinessState.UNKNOWN_ERROR) {
+            val raw = message.orEmpty()
             FirstRunReadinessCatalog.needsAppLaunch(
                 cause = message ?: "FixThis sidekick session was not found.",
+                details = if (raw.isBlank()) emptyMap() else mapOf("rawError" to raw),
             )
         } else {
             classified
