@@ -5,7 +5,12 @@
 
             function startAnnotatingButtonHtml() {
               if (toolMode.isAnnotateMode()) return '';
-              return '<button type="button" class="primary" data-start-annotating>Start annotating</button>';
+              const previewReady = Boolean(state.preview);
+              const disabledAttrs = previewReady
+                ? ''
+                : ' disabled aria-disabled="true" title="Open the app first so FixThis can capture a screenshot."';
+              return '<button type="button" class="primary"' + disabledAttrs + ' data-start-annotating>Start annotating</button>'
+                + (previewReady ? '' : '<div class="empty-hint">Open the app to capture a screenshot before annotating.</div>');
             }
 
             function renderPendingItems() {

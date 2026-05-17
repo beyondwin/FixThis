@@ -790,9 +790,34 @@
 	              overflow-wrap: anywhere;
 	            }
 	            .session-boundary-actions {
-	              display: grid;
-	              grid-template-columns: 1fr 1fr;
+	              display: flex;
+	              flex-wrap: wrap;
+	              justify-content: flex-end;
+	              align-items: center;
 	              gap: 8px;
+	            }
+	            .session-boundary-actions [data-boundary-action][hidden] {
+	              display: none;
+	            }
+	            .session-boundary-actions .annotation-danger,
+	            .session-boundary-actions .annotation-done {
+	              margin-left: 0;
+	              min-height: 36px;
+	              padding: 0 14px;
+	              border-color: var(--line);
+	            }
+	            .session-boundary-actions [data-boundary-primary] {
+	              background: var(--accent);
+	              border-color: var(--accent);
+	              color: var(--bg-0);
+	            }
+	            .session-boundary-actions [data-boundary-primary]:hover:not(:disabled),
+	            .session-boundary-actions [data-boundary-primary]:focus-visible {
+	              background: var(--accent);
+	              border-color: var(--accent);
+	              color: var(--bg-0);
+	              filter: brightness(1.06);
+	              outline: none;
 	            }
             .tool-group,
             .zoom-control {
@@ -1525,6 +1550,13 @@
               font-size: 12px;
               line-height: 1.5;
             }
+            .empty-hint {
+              max-width: 240px;
+              font-size: 11px;
+              line-height: 1.4;
+              color: var(--txt-2);
+              opacity: .8;
+            }
             .global-status {
               grid-row: 3;
               min-width: 0;
@@ -1887,7 +1919,12 @@
 	                border-radius: 14px 14px 0 0;
 	              }
 	              .session-boundary-actions {
-	                grid-template-columns: 1fr;
+	                flex-direction: column-reverse;
+	                align-items: stretch;
+	              }
+	              .session-boundary-actions [data-boundary-action] {
+	                width: 100%;
+	                justify-content: center;
 	              }
 	              .tool-status {
                 flex: 1 1 140px;

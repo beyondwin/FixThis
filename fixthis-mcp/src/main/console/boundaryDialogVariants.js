@@ -124,8 +124,10 @@ function renderBoundaryDialog(variantName, ctx = {}) {
   const slots = [variant.cancel, variant.tertiary || null, variant.secondary, variant.primary]
     .map((slot) => resolveBoundarySlot(slot, ctx));
   const buttons = Array.from(root.querySelectorAll('.session-boundary-actions [data-boundary-action]'));
+  const primaryIndex = slots.length - 1;
   buttons.forEach((button, index) => {
     const slot = slots[index];
+    delete button.dataset.boundaryPrimary;
     if (!slot) {
       button.hidden = true;
       button.textContent = '';
@@ -136,6 +138,9 @@ function renderBoundaryDialog(variantName, ctx = {}) {
     button.textContent = slot.label;
     button.dataset.boundaryAction = slot.action;
     button.className = boundarySlotClass(slot);
+    if (index === primaryIndex && slot.action !== 'cancel') {
+      button.dataset.boundaryPrimary = '';
+    }
   });
   if (typeof statusSurfaceRegistry !== 'undefined') {
     statusSurfaceRegistry.show('sessionBoundarySheet', {
