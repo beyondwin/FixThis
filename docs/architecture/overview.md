@@ -266,12 +266,11 @@ Important distinction:
   per-session index at `localStorage["fixthis.workspace.index.<sessionId>"]`.
   The workspace carries immutable freeze context, frozen screen data,
   screenshot URL, pending items, revision, lifecycle, and undo/redo history.
-  Legacy `fixthis.pending.<sessionId>` mirrors are still read and migrated. On
-  reload or session reattach, the user explicitly chooses Recover, Recapture,
-  or Discard before the pending rows are exposed again. Deleting a session
-  clears that session's browser-local DraftWorkspace entries and legacy mirror.
-  The last preview remains visible and is marked stale until the card returns
-  to `Ready`.
+  On reload or session reattach, the user explicitly chooses Recover,
+  Recapture, or Discard before the pending rows are exposed again. Deleting a
+  session clears that session's browser-local DraftWorkspace entries. The last
+  preview remains visible and is marked stale until the card returns to
+  `Ready`.
 - When the device is `Connected` but not interactable (screen off, lock screen, app backgrounded, PiP, unresponsive, no Compose UI), the console renders a cause-specific overlay on the canvas and gates selection input. When the cause clears, the prior tool mode, frozen preview, and pending pins are auto-resumed.
 - Before `Copy Prompt` or `Save to MCP` persists pending annotations, the
   server compares the frozen preview fingerprint with a lightweight current
@@ -296,7 +295,6 @@ Project-local desktop files:
 
 ```text
 .fixthis/project.json
-.fixthis/artifacts/<annotation-id>/
 .fixthis/feedback-sessions/<session-id>/
 .fixthis/feedback-sessions/<session-id>/events/
 .fixthis/feedback-sessions/<session-id>/events/checkpoint.json

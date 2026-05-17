@@ -66,8 +66,10 @@
   per-session index at `localStorage["fixthis.workspace.index.<sessionId>"]`.
   The envelope carries `workspaceId`, `revision`, `lifecycle`, immutable
   `context`, frozen `screen`, `screenshotUrl`, `items`, and `history`.
-- Legacy schema-v1 `localStorage["fixthis.pending.<sessionId>"]` envelopes are
-  migrated into schema-v2 recovery workspaces after explicit user choice.
+- v0.4 supports schema-v2 `fixthis.workspace.*` draft recovery only. Pre-v0.4
+  `fixthis.pending.<sessionId>` mirrors are ignored; use `fixthis clean` or
+  clear browser storage if an old local recovery entry is confusing the
+  console.
 - On browser reload or session reattach, recovered pending work is not exposed
   automatically. The console shows an explicit Recover / Recapture / Discard
   banner; Recover is available only when the frozen preview context is present.
@@ -78,8 +80,7 @@
   `sessionId`. The browser applies them to detail/preview state only when that
   session is currently active, except for the initial `snapshot` event.
 - Deleting a feedback session clears browser-local draft recovery for that
-  session, including schema-v2 workspace entries and the legacy
-  `fixthis.pending.<sessionId>` mirror.
+  session, including schema-v2 workspace entries.
 - `Copy Prompt` / `Save to MCP` can persist the subset of pending annotations
   that have written comments. `Copy Prompt` keeps pin-only residual annotations
   browser-local so the user can resume them later. `Save to MCP` completes the

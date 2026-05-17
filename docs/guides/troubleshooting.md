@@ -169,9 +169,9 @@ Choose:
 - **Recapture** to start from a fresh preview before saving.
 - **Discard** to remove the browser-local mirror.
 
-Legacy `fixthis.pending.<sessionId>` mirrors are migrated when enough frozen
-preview context is present. Older mirrors that contain only item rows cannot
-restore the frozen preview directly; use Recapture or Discard.
+FixThis v0.4 does not migrate pre-v0.4 browser pending mirrors. If stale local
+recovery appears after upgrading, clear browser storage for the FixThis console
+origin and run `fixthis clean --project-dir .` to remove old local artifacts.
 
 ### Save warns that the screen changed
 

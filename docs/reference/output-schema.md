@@ -359,17 +359,11 @@ context.cacheDir/fixthis/<yyyy-MM-dd>/<annotation-id>-crop.png
 
 App-only clipboard exports may include Android-local `fullPath` and `cropPath`. Desktop agents cannot usually read those paths directly.
 
-CLI and MCP flows pull screenshots through the bridge and write desktop-readable artifacts. Annotation captures use the annotation id in the legacy artifact cache:
-
-```text
-.fixthis/artifacts/<annotation-id>/<annotation-id>-full.png
-.fixthis/artifacts/<annotation-id>/<annotation-id>-crop.png
-```
-
-Feedback console evidence snapshots are session-owned workspace artifacts and use a generated screen id:
+CLI and MCP flows pull screenshots through the bridge and write desktop-readable artifacts. Current persisted screen artifacts live under the feedback-session workspace and use a generated screen id:
 
 ```text
 .fixthis/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-full.png
+.fixthis/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-crop.png
 ```
 
 When available, annotation paths appear as `desktopFullPath` and

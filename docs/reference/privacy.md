@@ -21,12 +21,11 @@ DraftWorkspace envelopes under
 `fixthis.workspace.<sessionId>.<workspaceId>`, with a per-session index at
 `fixthis.workspace.index.<sessionId>`. The mirror may contain comments, target
 bounds, frozen screen metadata, the preview id, a local screenshot URL, a
-frozen timestamp, lifecycle/revision state, and undo/redo history. Legacy
-`fixthis.pending.<sessionId>` mirrors may still be read for migration. Browser
-draft mirrors stay local until you recover, recapture, discard, or persist the
-batch. Deleting a feedback session clears that session's browser-local
-DraftWorkspace entries, per-session workspace index, and legacy
-`fixthis.pending.<sessionId>` mirror.
+frozen timestamp, lifecycle/revision state, and undo/redo history. v0.4 does
+not read pre-v0.4 `fixthis.pending.<sessionId>` mirrors. Browser draft mirrors
+stay local until you recover, recapture, discard, or persist the batch.
+Deleting a feedback session clears that session's browser-local DraftWorkspace
+entries and per-session workspace index.
 
 ## Debug Scope
 
@@ -63,7 +62,6 @@ context.cacheDir/fixthis/<yyyy-MM-dd>/
 CLI/MCP flows may copy screenshot artifacts into the project:
 
 ```text
-.fixthis/artifacts/<annotation-id>/
 .fixthis/feedback-sessions/<session-id>/
 .fixthis/feedback-sessions/<session-id>/events/
 .fixthis/preview-cache/<session-id>/
