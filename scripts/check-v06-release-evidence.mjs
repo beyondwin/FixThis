@@ -53,6 +53,33 @@ requireIncludes(
   'docs/reference/mcp-tools.md',
   'fixthis_read_feedback',
 );
+for (const field of [
+  'items',
+  'screens',
+  'itemId',
+  'screenId',
+  'targetEvidence',
+  'targetReliability',
+  'sourceCandidates',
+]) {
+  requireIncludes(
+    `V06.R5.schema-field.${field}`,
+    'docs/reference/output-schema.md',
+    field,
+  );
+}
+for (const tool of [
+  'fixthis_read_feedback',
+  'fixthis_claim_feedback',
+  'fixthis_resolve_feedback',
+  'fixthis_open_feedback_console',
+]) {
+  requireIncludes(
+    `V06.R5.mcp-tool.${tool}`,
+    'docs/reference/mcp-tools.md',
+    tool,
+  );
+}
 requireRegex(
   'V06.R6.release-readiness-claim-table',
   'docs/contributing/release-readiness.md',
