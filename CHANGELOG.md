@@ -126,6 +126,36 @@ Closes the six deferred items from the v0.3 first-run trust program
   is available at `@beyondwin/fixthis`, and the MCP Registry entry is
   `io.github.beyondwin/fixthis`.
 
+### Security
+- Release tarball SHA-256 verification — the `release-cli-mcp` workflow now
+  publishes a `fixthis-cli-mcp-X.Y.Z.tar.gz.sha256` sidecar alongside the
+  tarball. Both `scripts/install-fixthis.sh` and the npm wrapper's
+  `postinstall.js` verify the checksum before extraction, refusing to install
+  when the sidecar is missing or the digest does not match.
+
+### Build / release engineering — project-risk-closure (2026-05-17)
+- `npm run checks:observation` gained `--json` and
+  `--require-ready <check1,check2,…>` flags so the scheduled-gate promotion
+  evidence is machine-readable and CI-enforceable; promotion of connected
+  tests and lower-bound compatibility now requires the corresponding
+  `--require-ready` run to exit zero. See
+  [`docs/contributing/required-checks.md`](docs/contributing/required-checks.md).
+- Detekt baseline ratchet — `config/detekt/baseline-budget.json` caps known
+  baselined issues per module, enforced by
+  `scripts/check-detekt-baseline-budget.mjs` (wired into `verify-ci-local`
+  and the `ci.yml` workflow). Regressions that add new baseline rows fail
+  fast.
+- `perf-report` workflow now preserves the `compare-perf` exit code instead
+  of swallowing regressions in a `continue-on-error` step; the contract is
+  pinned by `scripts/perf/perf-workflow-contract-test.mjs`.
+- `fixthis-gradle-plugin` functional test suite gained a release-consumer
+  minify fixture (`ReleaseConsumerFixtureTest`) that exercises an
+  end-to-end R8/minified consumer build to catch ProGuard/keep-rule
+  regressions before they reach downstream apps.
+- Detekt-clean local CI — refactored CLI readiness, doctor, install-agent,
+  and console preview screenshot paths to remove the issues previously
+  papered over by the baseline, then trimmed the baselines to match.
+
 ### Build / performance
 - Console bundle minified via esbuild + topological-sort source resolution
   (`// @requires` directives). Raw 275 KiB → 160 KiB / gzip 55 KiB → 37 KiB.
