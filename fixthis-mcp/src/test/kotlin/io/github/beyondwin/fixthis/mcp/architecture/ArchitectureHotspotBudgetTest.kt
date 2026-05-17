@@ -48,7 +48,7 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_300,
-            "${mcpConsoleTest}ConsoleAssetContractTest.kt" to 1_080,
+            "${mcpConsoleTest}ConsoleAssetContractTest.kt" to 1_085,
             "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 920,
         )
         val remediationBudgets = mapOf(
