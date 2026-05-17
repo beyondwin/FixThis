@@ -60,23 +60,23 @@ For a new Android app integration, prefer the single agent command:
 
 ```bash
 fixthis install-agent --project-dir . --target all
+fixthis doctor --project-dir . --json
 ```
 
-It applies the published Gradle plugin, writes Claude Code / Codex MCP config,
-and leaves `.fixthis/agent-setup.*` handoff files for follow-up agents.
+Restart Claude Code or Codex after MCP config is written. Then open the
+console with `fixthis_open_feedback_console`.
 
-When the Gradle plugin is applied to the Android app, agents should prefer the
-project-local setup task before `fixthis init`:
+`fixthis install-agent` applies the published Gradle plugin, writes Claude
+Code / Codex MCP config, writes `.fixthis/project.json`, and leaves
+`.fixthis/agent-setup.*` handoff files for follow-up agents. The doctor JSON
+readiness result is the source of truth.
 
-```bash
-./gradlew fixthisSetup
-fixthis init --agent --project-dir . --target all
-fixthis doctor --project-dir .
-```
-
-`fixthisSetup` writes `.fixthis/project.json`, so `init`, `doctor`, `mcp`, and
-`console` can omit `--package` unless the Android project has multiple app ids.
-For pasteable `AGENTS.md` / `CLAUDE.md` instructions, use
+If doctor reports `NEEDS_INSTALL` or generated metadata is missing, run
+`./gradlew fixthisSetup` as a recovery step and rerun
+`fixthis doctor --project-dir . --json`. `fixthisSetup` writes
+`.fixthis/project.json`, so `init`, `doctor`, `mcp`, and `console` can omit
+`--package` unless the Android project has multiple app ids. For pasteable
+`AGENTS.md` / `CLAUDE.md` instructions, use
 [Agent install snippet](agent-install-snippet.md).
 
 ## Claude Code

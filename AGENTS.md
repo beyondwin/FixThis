@@ -54,10 +54,13 @@ MCP bootstrap summary for agents: [`MCP.md`](MCP.md).
 For external Android repos, the intended agent-first sequence is:
 
 ```bash
-./gradlew fixthisSetup
-fixthis init --agent --project-dir . --target all
-fixthis doctor --project-dir .
+fixthis install-agent --project-dir . --target all
+fixthis doctor --project-dir . --json
 ```
+
+`./gradlew fixthisSetup` is a recovery or manual verification command when
+doctor reports missing generated metadata, not the primary README-first
+sequence.
 
 Pasteable instructions for another repo's `AGENTS.md` / `CLAUDE.md` live in
 [`docs/getting-started/agent-install-snippet.md`](docs/getting-started/agent-install-snippet.md).

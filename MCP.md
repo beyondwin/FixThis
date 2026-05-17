@@ -59,8 +59,17 @@ curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/inst
 ```
 
 Use `--target claude` or `--target all` for other MCP clients. For a new
-Android app integration, agents should run `fixthis install-agent --project-dir
-. --target all` so Gradle wiring and MCP config are handled together.
+Android app integration in an external repo, the canonical sequence is:
+
+```bash
+fixthis install-agent --project-dir . --target all
+fixthis doctor --project-dir . --json
+```
+
+`fixthis install-agent` handles Gradle wiring and MCP config together;
+`fixthis doctor --json` is the source of truth for readiness. `./gradlew
+fixthisSetup` is a recovery or manual verification command when doctor
+reports missing generated metadata, not the primary path.
 
 Useful variants:
 
