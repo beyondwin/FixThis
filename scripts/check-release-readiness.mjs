@@ -206,6 +206,17 @@ for (const file of [
   forbidStalePrePublicationClaims(`R21.no-stale-prepublication-claims:${file}`, file);
 }
 
+requireIncludes(
+  'R22.v06-release-claim-manifest',
+  'docs/contributing/release-readiness.md',
+  '## v0.6 Release Claim Manifest',
+);
+requireIncludes(
+  'R23.v06-release-evidence-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run release:v06:evidence:test`',
+);
+
 if (failures.length > 0) {
   for (const failure of failures) {
     console.error(failure);

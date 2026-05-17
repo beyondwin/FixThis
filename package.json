@@ -41,7 +41,8 @@
     "handoff:eval:test": "./gradlew :fixthis-mcp:test --tests \"*HandoffEvaluationCorpusTest\" --tests \"*EditSurfaceRoleClassifierTest\" --tests \"*EditSurfaceCandidateServiceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersEditSurfaceRoleWhenPresent\" --no-daemon",
     "release:package:test": "node --test scripts/package-cli-release-test.mjs && node --test scripts/install-fixthis-test.mjs",
     "release:npm:test": "node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs",
-    "release:v06:claims:test": "node --test scripts/v06-release-claims-test.mjs"
+    "release:v06:claims:test": "node --test scripts/v06-release-claims-test.mjs",
+    "release:v06:evidence:test": "node scripts/check-v06-release-evidence.mjs && npm run release:v06:claims:test"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
