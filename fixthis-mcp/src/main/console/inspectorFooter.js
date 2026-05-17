@@ -12,34 +12,39 @@ function renderInspectorFooter(editorState, ctx = {}) {
     return;
   }
 
-  const cancel = makeInspectorFooterButton({
-    text: 'Cancel',
-    action: 'cancel',
-  });
-  const addAnnotation = makeInspectorFooterButton({
-    text: 'Add annotation',
-    action: 'addAnnotation',
-    className: 'primary',
-  });
-  addAnnotation.disabled = ctx.canAddAnnotation === false;
-  const overflow = makeInspectorFooterButton({
-    text: '...',
-    action: 'overflowToggle',
-    className: 'overflow-toggle',
-    ariaLabel: 'More actions',
-  });
-
   root.hidden = false;
   switch (editorState) {
-    case 'pendingTarget':
+    case 'pendingTarget': {
+      const cancel = makeInspectorFooterButton({ text: 'Cancel', action: 'cancel' });
       root.replaceChildren(cancel);
       return;
-    case 'draft':
+    }
+    case 'draft': {
+      const cancel = makeInspectorFooterButton({ text: 'Cancel', action: 'cancel' });
+      const addAnnotation = makeInspectorFooterButton({
+        text: 'Add annotation',
+        action: 'addAnnotation',
+        className: 'primary',
+      });
+      addAnnotation.disabled = ctx.canAddAnnotation === false;
       root.replaceChildren(cancel, addAnnotation);
       return;
-    case 'saved':
-      root.replaceChildren(overflow);
+    }
+    case 'saved': {
+      const del = makeInspectorFooterButton({
+        text: 'Delete',
+        action: 'delete',
+        className: 'annotation-danger',
+      });
+      del.disabled = ctx.deletable === false;
+      const done = makeInspectorFooterButton({
+        text: 'Done',
+        action: 'done',
+        className: 'primary',
+      });
+      root.replaceChildren(del, done);
       return;
+    }
     default:
       root.hidden = true;
       root.replaceChildren();

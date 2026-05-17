@@ -14,6 +14,7 @@ const renderingSource = [
   'fixthis-mcp/src/main/console/presentation/annotationDetailView.js',
 ].map(file => readFileSync(resolve(root, file), 'utf8')).join('\n');
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+const inspectorFooterActionsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/inspectorFooterActions.js'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 const boundaryVariantsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/boundaryDialogVariants.js'), 'utf8');
@@ -386,19 +387,24 @@ test('annotation detail selection does not steal focus into the comment textarea
   assert.doesNotMatch(renderingSource, /function focusCommentInputAtEnd\(commentInput\)/);
 });
 
-test('saved annotation back navigation does not wait for persistence', () => {
-  const savedDetailBody = extractFunctionBody(renderingSource, 'function renderSavedAnnotationDetail(item, index)');
-  const backBindingIndex = savedDetailBody.indexOf("draftItems.querySelectorAll('[data-back-saved-annotations]')");
-  assert.notEqual(backBindingIndex, -1, 'saved detail back button binding not found');
-  const backHandlerBody = savedDetailBody.slice(backBindingIndex);
-  const goBackCallIndex = backHandlerBody.indexOf('goBack();');
-  const persistCallIndex = backHandlerBody.indexOf('persistSavedEvidenceItem(item, editSessionId)');
-  assert.ok(goBackCallIndex >= 0, 'back handler should leave detail view immediately');
-  assert.ok(persistCallIndex >= 0, 'back handler should still persist editable changes');
-  assert.ok(goBackCallIndex < persistCallIndex, 'navigation must happen before best-effort persistence');
-  assert.match(backHandlerBody, /goBack\(\);\s*if \(editable\) \{\s*persistSavedEvidenceItem\(item, editSessionId\)\.catch\(showError\);/);
-  assert.doesNotMatch(backHandlerBody, /persistSavedEvidenceItem\(item, editSessionId\)[\s\S]*?\.then\(goBack\)/);
-  assert.match(savedDetailBody, /event\.relatedTarget\?\.hasAttribute\?\.\('data-back-saved-annotations'\)/);
+test('saved annotation Done navigation does not wait for persistence', () => {
+  // Done lives in the inspector footer (single source of action chrome).
+  // Navigation (focusSavedItem null + re-render) must complete before the
+  // best-effort persist is awaited, so the back transition is never blocked
+  // by network latency.
+  const doneHandler = extractFunctionBody(
+    inspectorFooterActionsSource,
+    "function handleInspectorFooterAction(action)",
+  );
+  const doneBlockMatch = doneHandler.match(/if \(action === 'done'\)[\s\S]*?\n  \}/);
+  assert.ok(doneBlockMatch, "expected 'done' branch in handleInspectorFooterAction");
+  const doneBlock = doneBlockMatch[0];
+  const navIndex = doneBlock.indexOf('toolMode.focusSavedItem(null');
+  const persistIndex = doneBlock.indexOf('persistSavedEvidenceItem(item, sessionId)');
+  assert.ok(navIndex >= 0, 'done handler should navigate via focusSavedItem(null, ...)');
+  assert.ok(persistIndex >= 0, 'done handler should still persist editable changes');
+  assert.ok(navIndex < persistIndex, 'navigation must happen before best-effort persistence');
+  assert.match(doneBlock, /renderPreviewOnly\(\);\s*renderInspectorRegion\(\);\s*if \(editable\)/);
 });
 
 test('pending detail comments are not overwritten by the hidden composer before persistence', () => {

@@ -519,10 +519,12 @@
             .inspector-body { flex: 1 1 auto; align-content: start; min-height: 0; }
             .inspector-footer {
               flex-wrap: wrap;
+              justify-content: space-between;
               padding: 10px;
               border-top: 1px solid var(--line);
               background: var(--bg-1);
             }
+            .inspector-footer .annotation-danger { margin-left: 0; }
             .editor-back-button {
               align-self: flex-start;
               display: inline-flex;

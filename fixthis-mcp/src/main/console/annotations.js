@@ -157,11 +157,17 @@
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
               const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
-              const editorState = deriveEditorState(currentDraftWorkspace(), draftSelection(), selectedSavedAnnotation());
+              const selectedSaved = selectedSavedAnnotation();
+              const editorState = deriveEditorState(currentDraftWorkspace(), draftSelection(), selectedSaved);
+              const savedPhase = selectedSaved ? lifecyclePhase(selectedSaved) : null;
+              const savedEditable = savedPhase === 'draft' || savedPhase === 'sent' || savedPhase === 'sent_modified' || savedPhase === 'needs_clarification';
+              const savedDeletable = savedPhase !== null && savedPhase !== 'in_progress' && savedPhase !== 'resolved' && savedPhase !== 'wont_fix';
               renderInspectorFooter(editorState, {
                 canAddAnnotation: true,
                 draftCount: draftItemList().length,
                 state,
+                deletable: savedDeletable,
+                editable: savedEditable,
               });
               renderEditorBack({ state: editorState });
               copyPromptButton.disabled = promptDisabled;

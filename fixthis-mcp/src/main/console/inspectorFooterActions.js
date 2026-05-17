@@ -21,8 +21,25 @@ function handleInspectorFooterAction(action) {
     navigateEditorToList();
     return;
   }
-  if (action === 'overflowToggle') {
-    showStatus('More actions are available from the annotation detail.');
+  if (action === 'delete') {
+    const item = selectedSavedAnnotation();
+    if (!item) return;
+    const sessionId = toolMode.getState().focusedSavedSessionId || state.session?.sessionId || null;
+    deleteSavedEvidenceItem(item.itemId, sessionId).catch(showError);
+    return;
+  }
+  if (action === 'done') {
+    const item = selectedSavedAnnotation();
+    if (!item) return;
+    const sessionId = toolMode.getState().focusedSavedSessionId || state.session?.sessionId || null;
+    const phase = lifecyclePhase(item);
+    const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
+    toolMode.focusSavedItem(null, sessionId, item.screenId || null);
+    renderPreviewOnly();
+    renderInspectorRegion();
+    if (editable) {
+      persistSavedEvidenceItem(item, sessionId).catch(showError);
+    }
   }
 }
 

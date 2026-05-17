@@ -295,8 +295,6 @@
               const phase = lifecyclePhase(item);
               const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
               const dis = editable ? '' : ' disabled';
-              const deletable = phase !== 'in_progress' && phase !== 'resolved' && phase !== 'wont_fix';
-              const deleteDis = deletable ? '' : ' disabled';
               const banner = (() => {
                 if (phase === 'sent_modified') {
                   return '<div class="annotation-banner annotation-banner-warn">' +
@@ -344,7 +342,6 @@
               })();
               draftItems.innerHTML =
                 '<div class="annotation-detail" data-phase="' + escapeHtml(phase) + '">' +
-                  '<button type="button" class="annotation-back" data-back-saved-annotations>← All annotations</button>' +
                   banner +
                   '<section class="annotation-section request-section">' +
                     '<h3>Request</h3>' +
@@ -388,10 +385,6 @@
                   '<section class="annotation-section evidence-section">' +
                     evidenceDetailsHtml(item) +
                   '</section>' +
-                  '<div class="annotation-actions">' +
-                    '<button type="button" class="annotation-danger" data-delete-current' + deleteDis + '>Delete</button>' +
-                    '<button type="button" class="annotation-done" data-back-saved-annotations>Done</button>' +
-                  '</div>' +
                 '</div>';
               const labelInput = draftItems.querySelector('#annotationLabelInput');
               const commentInput = draftItems.querySelector('#annotationCommentInput');
@@ -414,9 +407,8 @@
                 if (!editable) return;
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
-              commentInput.addEventListener('blur', event => {
+              commentInput.addEventListener('blur', () => {
                 if (!editable) return;
-                if (event.relatedTarget?.hasAttribute?.('data-back-saved-annotations')) return;
                 persistSavedEvidenceItem(item, editSessionId).catch(showError);
               });
               draftItems.querySelectorAll('[data-set-severity]').forEach(button => {
@@ -457,29 +449,4 @@
                   }
                 });
               });
-              draftItems.querySelectorAll('[data-back-saved-annotations]').forEach(button => {
-                button.addEventListener('click', () => {
-                  // Navigation must always succeed; persist is best-effort.
-                  // Editable phases (draft/sent/sent_modified/needs_clarification) attempt persist;
-                  // non-editable phases (in_progress/resolved/wont_fix) skip persist. The server would
-                  // reject a PATCH on non-editable items with ITEM_NOT_EDITABLE — we should
-                  // still let the user leave the detail view.
-                  const goBack = () => {
-                    toolMode.focusSavedItem(null, editSessionId, item.screenId || null);
-                    renderPreviewOnly();
-                    renderInspectorRegion();
-                  };
-                  goBack();
-                  if (editable) {
-                    persistSavedEvidenceItem(item, editSessionId).catch(showError);
-                  }
-                });
-              });
-              const deleteButton = draftItems.querySelector('[data-delete-current]');
-              if (deleteButton) {
-                deleteButton.addEventListener('click', () => {
-                  if (!deletable) return;
-                  deleteSavedEvidenceItem(item.itemId, editSessionId).catch(showError);
-                });
-              }
             }

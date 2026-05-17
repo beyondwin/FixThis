@@ -76,11 +76,25 @@ test('draft renders cancel and add annotation', () => {
   assert.ok(footer.querySelector('[data-action="addAnnotation"]'));
 });
 
-test('saved renders overflow only', () => {
-  renderInspectorFooter('saved', {});
+test('saved renders delete and done', () => {
+  renderInspectorFooter('saved', { deletable: true, editable: true });
 
   assert.equal(footer.hidden, false);
   assert.equal(footer.querySelector('[data-action="cancel"]'), null);
   assert.equal(footer.querySelector('[data-action="addAnnotation"]'), null);
-  assert.ok(footer.querySelector('[data-action="overflowToggle"]'));
+  assert.equal(footer.querySelector('[data-action="overflowToggle"]'), null);
+  const del = footer.querySelector('[data-action="delete"]');
+  const done = footer.querySelector('[data-action="done"]');
+  assert.ok(del, 'expected delete button');
+  assert.ok(done, 'expected done button');
+  assert.equal(del.disabled, false);
+});
+
+test('saved disables delete when deletable is false', () => {
+  renderInspectorFooter('saved', { deletable: false, editable: false });
+
+  const del = footer.querySelector('[data-action="delete"]');
+  assert.ok(del);
+  assert.equal(del.disabled, true);
+  assert.ok(footer.querySelector('[data-action="done"]'));
 });
