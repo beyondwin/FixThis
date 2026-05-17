@@ -371,6 +371,9 @@
                   setConsolePreview(preview);
                 }
                 if (!previewContextStillCurrent(previewContext) || !state.preview) {
+                  if (!state.preview) {
+                    showStatus('Open the app first to capture a screenshot, then try again.', { variant: 'warn', durationMs: 3500 });
+                  }
                   return;
                 }
                 const ports = createBrowserDraftPorts();

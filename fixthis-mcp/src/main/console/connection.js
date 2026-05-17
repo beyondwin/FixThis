@@ -316,7 +316,10 @@
             }
 
             async function captureScreen() {
-              if (!state.session) return;
+              if (!state.session) {
+                showStatus('Connect to a session before capturing a screen.', { variant: 'warn', durationMs: 3000 });
+                return;
+              }
               await refreshPreview();
             }
 
