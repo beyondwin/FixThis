@@ -146,9 +146,12 @@ internal object AgentSetupFiles {
                 "next",
                 buildJsonArray {
                     add(JsonPrimitive("fixthis doctor --project-dir ${projectRoot.absolutePath} --json"))
-                    add(JsonPrimitive("# Restart Claude Code / Codex to reload MCP config"))
                     add(JsonPrimitive("fixthis_open_feedback_console"))
                 },
+            )
+            put(
+                "restartGuidance",
+                "Restart Claude Code / Codex to reload MCP config before opening the feedback console.",
             )
             put(
                 "recovery",

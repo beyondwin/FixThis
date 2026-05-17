@@ -32,6 +32,21 @@ class AgentSetupFilesTest {
             "next must be a non-empty array of runnable command strings",
             obj.getValue("next").jsonArray.isNotEmpty(),
         )
+        val nextEntries = obj.getValue("next").jsonArray.map { it.jsonPrimitive.content }
+        for (entry in nextEntries) {
+            assertTrue(
+                "next entries must not be shell comments (silently no-op when exec'd): '$entry'",
+                !entry.trimStart().startsWith("#"),
+            )
+        }
+        assertTrue(
+            "missing 'restartGuidance' — restart-required prose must live in its own field, not in next",
+            "restartGuidance" in obj,
+        )
+        assertTrue(
+            "restartGuidance must mention restarting Claude Code / Codex",
+            obj.getValue("restartGuidance").jsonPrimitive.content.contains("Restart Claude Code"),
+        )
         assertTrue("missing 'readiness'", "readiness" in obj)
         assertTrue("missing readiness recovery map", "readinessRecovery" in obj.getValue("recovery").jsonObject)
         val readiness = obj.getValue("readiness").jsonObject
