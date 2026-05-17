@@ -1,5 +1,5 @@
 {
-  "availability": ["scripts/deviceForgetAndCommentClear-test.mjs", "scripts/console-availability-test.mjs"],
+  "availability": ["scripts/deviceForgetAndCommentClear-test.mjs", "scripts/console-availability-test.mjs", "scripts/deviceSelectFeedback-test.mjs"],
   "canonical": [
     "scripts/htmlScaffold-test.mjs",
     "scripts/inspectorFooter-test.mjs",

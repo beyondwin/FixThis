@@ -138,7 +138,11 @@
 
             async function selectDevice() {
               const option = devicePicker.selectedOptions[0];
-              if (!option || !option.value || option.disabled) return;
+              if (!option || !option.value) return;
+              if (option.disabled) {
+                showStatus('That device is not selectable right now. Reconnect or pick another one.', { variant: 'warn', durationMs: 3000 });
+                return;
+              }
               setDeviceUiState(DeviceUiState.CONNECTING, deviceBySerial(state.devices, option.value));
               bumpSessionMutationGeneration();
               clearPreview();
