@@ -52,10 +52,30 @@
               const active = document.activeElement;
               if (matchesUndo(e, active)) {
                 e.preventDefault();
-                store.dispatch({ type: 'UNDO_CLICKED' });
+                const result = undo(undoRedoHistory, { items: draftItemList() }, draftFlow()?.context ?? null);
+                if (result.reason === 'context_mismatch') {
+                  showError('Undo history was cleared because the annotation session changed.');
+                } else if (!result.applied) {
+                  showStatus('Nothing to undo.', { variant: 'info', durationMs: 2000 });
+                } else {
+                  persistCurrentPendingState();
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                  renderCurrentSessionList();
+                }
               } else if (matchesRedo(e, active)) {
                 e.preventDefault();
-                store.dispatch({ type: 'REDO_CLICKED' });
+                const result = redo(undoRedoHistory, { items: draftItemList() }, draftFlow()?.context ?? null);
+                if (result.reason === 'context_mismatch') {
+                  showError('Redo history was cleared because the annotation session changed.');
+                } else if (!result.applied) {
+                  showStatus('Nothing to redo.', { variant: 'info', durationMs: 2000 });
+                } else {
+                  persistCurrentPendingState();
+                  renderPreviewOnly();
+                  renderInspectorRegion();
+                  renderCurrentSessionList();
+                }
               }
             });
             // ALH-1: warn user if they try to leave with unsaved pending items.
@@ -138,6 +158,8 @@
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
+                } else if (result.reason !== 'context_mismatch') {
+                  showStatus('Nothing to undo.', { variant: 'info', durationMs: 2000 });
                 }
                 toast.remove();
               });

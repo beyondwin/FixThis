@@ -26,7 +26,7 @@
   ],
   "pending": ["scripts/pendingRecoveryVariant-test.mjs", "scripts/pendingItemRecovery-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
-  "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs"],
+  "undo": ["scripts/undoRedo-test.mjs", "scripts/undoKeymatch-test.mjs", "scripts/undoRedoKeyboardWiring-test.mjs"],
   "activity": ["scripts/activityDrift-test.mjs"],
   "preview": [
     "scripts/previewStaleness-test.mjs",
