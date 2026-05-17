@@ -63,6 +63,12 @@
     "scripts/sessionMismatchIgnore-test.mjs",
     "scripts/enterAnnotateModeBlockToast-test.mjs"
   ],
+  "reliability": [
+    "scripts/studioReliabilityContract-test.mjs",
+    "scripts/sessionMismatchIgnore-test.mjs",
+    "scripts/draftUseCases-test.mjs",
+    "scripts/draftRecoveryMatrix-test.mjs"
+  ],
   "harness": [
     "scripts/console-fixture/fakeBridgeServer-test.mjs",
     "scripts/console-fixture/scenarios-test.mjs",
