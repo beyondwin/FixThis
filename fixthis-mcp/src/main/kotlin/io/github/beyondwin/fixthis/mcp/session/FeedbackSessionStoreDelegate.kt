@@ -193,10 +193,7 @@ internal class FeedbackSessionStoreDelegate(
     fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto = withEventBackedMutation(sessionId, "addScreen") {
         val session = getSessionLocked(sessionId)
         val (updated, captured) = mutations.addScreen(session, screen)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), captured))
-        } to {
+        SessionEventPayloads.screen(sessionId, captured) to {
             save(updated)
             sessions[sessionId] = updated
             captured
@@ -296,10 +293,7 @@ internal class FeedbackSessionStoreDelegate(
             items = session.items.filter { it.delivery != FeedbackDelivery.DRAFT },
             updatedAtEpochMillis = clock(),
         )
-        buildJsonObject {
-            put("sessionId", sessionId)
-            putItems(updated.items)
-        } to {
+        SessionEventPayloads.items(sessionId, updated.items) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -320,17 +314,7 @@ internal class FeedbackSessionStoreDelegate(
         ) ?: throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
         val batch = prepared.batch
         val updated = prepared.session
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("batch", eventLogJson.encodeToJsonElement(FeedbackHandoffBatch.serializer(), batch))
-            put(
-                "items",
-                eventLogJson.encodeToJsonElement(
-                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    updated.items,
-                ),
-            )
-        } to {
+        SessionEventPayloads.handoff(sessionId, batch, updated.items) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -356,10 +340,7 @@ internal class FeedbackSessionStoreDelegate(
             items = updatedItems,
             updatedAtEpochMillis = now,
         )
-        buildJsonObject {
-            put("sessionId", sessionId)
-            putItems(updatedItems)
-        } to {
+        SessionEventPayloads.items(sessionId, updatedItems) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -381,10 +362,7 @@ internal class FeedbackSessionStoreDelegate(
     ): AnnotationDto = withEventBackedMutation(sessionId, "updateItemStatus") {
         val session = getSessionLocked(sessionId)
         val (updated, item) = mutations.updateItemStatus(session, itemId, status, agentSummary)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            putItems(updated.items)
-        } to {
+        SessionEventPayloads.items(sessionId, updated.items) to {
             commitSessionMutation(session, updated)
             item
         }
@@ -415,10 +393,7 @@ internal class FeedbackSessionStoreDelegate(
         val item = updatedItem
             ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            putItems(updatedItems)
-        } to {
+        SessionEventPayloads.items(sessionId, updatedItems) to {
             commitSessionMutation(session, updated)
             item
         }
