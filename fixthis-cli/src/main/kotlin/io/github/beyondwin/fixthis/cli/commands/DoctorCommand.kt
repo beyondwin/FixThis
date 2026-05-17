@@ -13,7 +13,6 @@ import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessFailureCatalog
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
