@@ -45,6 +45,8 @@ internal object InstallAgentJsonReport {
         skipped: List<Skipped>,
         errors: List<ErrorEntry>,
         next: List<String>,
+        readiness: FirstRunReadiness? = null,
+        restartRequired: Boolean = false,
     ): String {
         val ok = skipped.isEmpty() && errors.isEmpty()
         val obj = buildJsonObject {
@@ -95,6 +97,8 @@ internal object InstallAgentJsonReport {
             )
             put("next", buildJsonArray { next.forEach { add(it) } })
             next.firstOrNull()?.let { put("nextAction", it) }
+            putReadiness(readiness)
+            put("restartRequired", restartRequired)
         }
         return compactJson.encodeToString(obj) + "\n"
     }

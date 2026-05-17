@@ -65,6 +65,30 @@ class InstallAgentJsonReportTest {
     }
 
     @Test
+    fun reportCanCarryTopLevelReadinessAndRestartMetadata() {
+        val rendered = InstallAgentJsonReport.render(
+            applied = listOf(
+                InstallAgentJsonReport.Applied("claude", "/tmp/.claude/settings.json", "project-local"),
+            ),
+            skipped = emptyList(),
+            errors = emptyList(),
+            next = listOf("fixthis doctor --project-dir /repo --json"),
+            readiness = FirstRunReadinessCatalog.configRecoverable(
+                cause = "FixThis setup completed; verify the debug app before opening the console.",
+            ).copy(
+                nextAction = "fixthis doctor --project-dir /repo --json",
+            ),
+            restartRequired = true,
+        )
+
+        val obj = Json.parseToJsonElement(rendered).jsonObject
+        val readiness = obj.getValue("readiness").jsonObject
+        assertEquals("CONFIG_RECOVERABLE", readiness.getValue("state").jsonPrimitive.content)
+        assertEquals("fixthis doctor --project-dir /repo --json", readiness.getValue("nextAction").jsonPrimitive.content)
+        assertEquals("true", obj.getValue("restartRequired").jsonPrimitive.content)
+    }
+
+    @Test
     fun emptyReportIsOk() {
         val rendered = InstallAgentJsonReport.render(
             applied = listOf(

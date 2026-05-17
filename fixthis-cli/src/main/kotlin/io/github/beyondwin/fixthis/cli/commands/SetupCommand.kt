@@ -358,6 +358,34 @@ class InitCommand : CoreCliktCommand(name = "init") {
     }
 }
 
+private fun installAgentTopLevelReadiness(
+    root: File,
+    skipped: List<InstallAgentJsonReport.Skipped>,
+    errors: List<InstallAgentJsonReport.ErrorEntry>,
+) = when {
+    errors.isNotEmpty() -> errors.first().readiness ?: FirstRunReadinessCatalog.configRecoverable(
+        cause = "FixThis setup hit an error; inspect the error entries and rerun setup.",
+    ).copy(
+        verify = "fixthis install-agent --project-dir ${root.absolutePath} --target all --dry-run",
+        fix = "Inspect the dry-run output, fix the reported setup error, then rerun install-agent.",
+        nextAction = "fixthis install-agent --project-dir ${root.absolutePath} --target all --dry-run",
+    )
+    skipped.isNotEmpty() -> skipped.first().readiness ?: FirstRunReadinessCatalog.configRecoverable(
+        cause = "FixThis setup completed with skipped targets.",
+    ).copy(
+        verify = "fixthis install-agent --project-dir ${root.absolutePath} --target all --dry-run",
+        fix = "Review skipped targets and rerun setup with an explicit --target or --allow-global when safe.",
+        nextAction = "fixthis install-agent --project-dir ${root.absolutePath} --target all --dry-run",
+    )
+    else -> FirstRunReadinessCatalog.configRecoverable(
+        cause = "FixThis setup completed; verify the debug app before opening the console.",
+    ).copy(
+        verify = "fixthis doctor --project-dir ${root.absolutePath} --json",
+        fix = "Run doctor, restart Claude Code or Codex if MCP config changed, then open the feedback console.",
+        nextAction = "fixthis doctor --project-dir ${root.absolutePath} --json",
+    )
+}
+
 class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
     private val packageName by option("--package", help = "Android application id for generated MCP config")
     private val projectDir by option("--project-dir", help = "Android project root").default(".")
@@ -466,16 +494,20 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             val skippedAll = SetupRunResults.skipped.get() + earlySkipped
             val applied = SetupRunResults.applied.get()
             val errors = SetupRunResults.errors.get()
+            val reportReadiness = installAgentTopLevelReadiness(root, skippedAll, errors)
+            val restartRequired = applied.any { it.target == "claude" || it.target == "codex" }
             echo(
                 InstallAgentJsonReport.render(
                     applied = applied,
                     skipped = skippedAll,
                     errors = errors,
                     next = listOf(
-                        "./gradlew fixthisSetup",
                         "fixthis doctor --project-dir ${root.absolutePath} --json",
-                        "Restart Claude Code / Codex to reload MCP config",
+                        "# Restart Claude Code / Codex to reload MCP config",
+                        "fixthis_open_feedback_console",
                     ),
+                    readiness = reportReadiness,
+                    restartRequired = restartRequired,
                 ),
             )
         }

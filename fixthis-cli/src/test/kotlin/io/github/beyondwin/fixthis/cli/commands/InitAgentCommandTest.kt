@@ -274,6 +274,21 @@ class InitAgentCommandTest {
                 it.jsonObject.getValue("target").jsonPrimitive.content == "claude"
             },
         )
+        assertEquals("true", obj.getValue("restartRequired").jsonPrimitive.content)
+        assertEquals(
+            "CONFIG_RECOVERABLE",
+            obj.getValue("readiness").jsonObject.getValue("state").jsonPrimitive.content,
+        )
+        assertTrue(
+            obj.getValue("readiness").jsonObject
+                .getValue("nextAction").jsonPrimitive.content
+                .contains("fixthis doctor"),
+        )
+        // Top-level nextAction (derived from next.first() in InstallAgentJsonReport.render)
+        // must agree with the readiness nextAction — no contradictory next steps.
+        assertTrue(
+            obj.getValue("nextAction").jsonPrimitive.content.contains("fixthis doctor"),
+        )
     }
 
     @Test
