@@ -10,6 +10,7 @@ const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/p
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
 const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
+const draftRuntimeSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/draftRuntimeState.js'), 'utf8');
 const pollingBrowserAdapterSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pollingBrowserAdapter.js'), 'utf8');
 const renderingSource = [
   'fixthis-mcp/src/main/console/presentation/previewRegionView.js',
@@ -112,6 +113,6 @@ test('draft command queue fences stale pending save responses', () => {
   // function in state.js for callers.
   assert.match(stateSource, /function bumpSessionMutationGeneration\(\)/);
   assert.match(stateSource, /MUTATION_GENERATION_BUMP/);
-  assert.match(stateSource, /let draftCommandQueue = null;/);
+  assert.match(draftRuntimeSource, /let draftCommandQueue = null;/);
   assert.match(annotationsSource, /expectedRevision:\s*draftWorkspace\.revision/);
 });

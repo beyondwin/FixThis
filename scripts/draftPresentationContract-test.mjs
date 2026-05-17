@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
+const draftRuntimeSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/draftRuntimeState.js'), 'utf8');
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
 const mainSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
@@ -27,9 +28,9 @@ function body(source, signature) {
   assert.fail(`${signature} body did not close`);
 }
 
-test('state owns a draft workspace and command queue', () => {
-  assert.match(stateSource, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
-  assert.match(stateSource, /let draftCommandQueue = null;/);
+test('draft runtime owns a draft workspace and command queue', () => {
+  assert.match(draftRuntimeSource, /let draftWorkspace = createEmptyDraftWorkspace\(\);/);
+  assert.match(draftRuntimeSource, /let draftCommandQueue = null;/);
   assert.match(stateSource, /function replaceDraftWorkspace\(nextWorkspace\)/);
 });
 

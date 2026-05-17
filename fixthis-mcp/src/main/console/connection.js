@@ -18,18 +18,19 @@
             function userConnectionState(status) {
               if (!status) return 'welcome';
               const rawState = String(status.state || 'WELCOME').toLowerCase();
-              if (rawState === 'open_app' && state.connection.hasEverConnected) return 'reconnect';
+              if (rawState === 'open_app' && connectionUseCases.getState().hasEverConnected) return 'reconnect';
               return rawState;
             }
 
             function connectionDetailsText(status) {
               if (!status) return 'No connection check has run yet.';
               const details = status.details || {};
+              const connectionState = connectionUseCases.getState();
               return [
                 'Device: ' + (status.selectedDevice ? deviceLabel(status.selectedDevice) + ' - ' + text(status.selectedDevice.state) : 'none'),
                 'Package: ' + text(status.packageName),
                 'Bridge: ' + text(details.bridgeState),
-                'Last connected: ' + (state.connection.lastReadyAt ? new Date(state.connection.lastReadyAt).toLocaleTimeString() : '-'),
+                'Last connected: ' + (connectionState.lastReadyAt ? new Date(connectionState.lastReadyAt).toLocaleTimeString() : '-'),
                 'Raw error: ' + text(details.rawError)
               ].join('\n');
             }
@@ -177,6 +178,7 @@
               const priorPreviousBlockedReason = connectionUseCases.getState().previousBlockedReason;
 
               connectionUseCases.setStatus(status, newBlockedReason);
+              const currentConnectionState = connectionUseCases.getState();
 
               // success → clear failure streak
               unresponsiveTracker.observeSuccess();
@@ -220,7 +222,7 @@
                 startLivePreviewPolling();
               } else {
                 stopLivePreviewPolling();
-                if (state.connection.hasEverConnected) markPreviewStale(true);
+                if (currentConnectionState.hasEverConnected) markPreviewStale(true);
               }
               renderConnection(status);
               // Re-render the preview region so the canvas blocked-reason overlay and
@@ -229,7 +231,7 @@
               renderPreviewRegion();
               const hasDirtyDraft = draftItemList().length > 0;
               if (viewState === 'ready') {
-                if (hadEverConnected && previousViewState !== 'ready' && !state.connection?.interactionBlockedReason) {
+                if (hadEverConnected && previousViewState !== 'ready' && !currentConnectionState.interactionBlockedReason) {
                   applyReconnect({ targetStale: Boolean(state.preview?.stale) });
                 }
               } else if (shouldShowDisconnectChoreography(viewState) && !state.preview && (hadEverConnected || hasDirtyDraft)) {
@@ -238,7 +240,7 @@
                 // modalCanvas overlay would suspend the badge surface class and
                 // contradict that messaging, so we skip applyDisconnect here.
                 applyDisconnect({ hasDirtyDraft });
-              } else if (!state.connection?.interactionBlockedReason) {
+              } else if (!currentConnectionState.interactionBlockedReason) {
                 statusSurfaceRegistry.hide('canvasBlockedOverlay');
               }
               checkProtocolCompat(status);
@@ -246,9 +248,10 @@
             }
 
             function renderConnection(status) {
+              const connectionState = connectionUseCases.getState();
               const viewState = userConnectionState(status);
               connectionCard.dataset.connectionState = viewState;
-              connectionCard.dataset.reconnectVisible = viewState === 'reconnect' || state.connection.sessionsPollingPaused ? 'true' : 'false';
+              connectionCard.dataset.reconnectVisible = viewState === 'reconnect' || connectionState.sessionsPollingPaused ? 'true' : 'false';
               connectionHeadline.textContent = viewState === 'reconnect'
                 ? 'Reconnect'
                 : (status?.headline || 'Connect to your app');
@@ -259,9 +262,9 @@
                 ? 'RECONNECT'
                 : (status?.primaryAction || (viewState === 'starting' ? 'OPEN_APP' : null));
               connectionPrimaryAction.textContent = connectionActionLabel(action);
-              connectionPrimaryAction.disabled = state.connection.launchInFlight;
+              connectionPrimaryAction.disabled = connectionState.launchInFlight;
               connectionPrimaryAction.dataset.connectionAction = action || 'START';
-              if (state.connection.sessionsPollingPaused) {
+              if (connectionState.sessionsPollingPaused) {
                 // Surface a sub-line indicating sessions polling is paused. The details panel
                 // preserves line breaks and wraps long tokens through .connection-details pre.
                 const baseDetails = connectionDetailsText(status);
@@ -272,8 +275,8 @@
                 connectionDetailsBody.textContent = connectionDetailsText(status);
               }
               connectionDetails.hidden = viewState === 'ready'
-                && !state.connection.hasEverConnected
-                && !state.connection.sessionsPollingPaused;
+                && !connectionState.hasEverConnected
+                && !connectionState.sessionsPollingPaused;
             }
 
             async function refreshConnection(options) {
@@ -301,7 +304,7 @@
 
             async function launchApp() {
               connectionUseCases.launchRequested();
-              renderConnection(state.connection.current);
+              renderConnection(connectionUseCases.getState().current);
               let succeeded = false;
               try {
                 const status = await requestJson('/api/app/launch', { method: 'POST' });
@@ -311,7 +314,7 @@
               } finally {
                 if (succeeded) connectionUseCases.launchSucceeded();
                 else connectionUseCases.launchFailed();
-                renderConnection(state.connection.current);
+                renderConnection(connectionUseCases.getState().current);
               }
             }
 

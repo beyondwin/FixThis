@@ -71,6 +71,17 @@ test('runtime modules do not mutate legacy draft globals', () => {
   }
 });
 
+test('migrated console modules do not read FSM projection slots directly', () => {
+  const migratedFiles = [
+    'fixthis-mcp/src/main/console/connection.js',
+    'fixthis-mcp/src/main/console/sessions-polling.js',
+  ];
+  for (const file of migratedFiles) {
+    const text = source(file);
+    assert.doesNotMatch(text, /state\.(connection|previewFsm|pollingFsm)/, file);
+  }
+});
+
 test('rendering bridge functions accept models and do not read legacy globals', () => {
   const rendering = source('fixthis-mcp/src/main/console/presentation/canonicalRenderingView.js');
   for (const fn of [

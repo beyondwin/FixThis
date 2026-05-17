@@ -7,14 +7,15 @@
             let sessionsPollingTimer = null;
 
             function setSessionsPollingPaused(paused) {
-              if (state.connection.sessionsPollingPaused === paused) return;
+              if (connectionUseCases.getState().sessionsPollingPaused === paused) return;
               connectionUseCases.setSessionsPollingPaused(paused);
               // Mirror into the polling FSM via visibility-style transitions
               // so the lifecycle stays consistent.
               if (paused) pollingUseCases.visibilityHidden();
               else pollingUseCases.visibilityVisible();
               // Re-render the connection card to surface the change.
-              if (state.connection.current) renderConnection(state.connection.current);
+              const connectionState = connectionUseCases.getState();
+              if (connectionState.current) renderConnection(connectionState.current);
             }
 
             function shouldPollSessions() {
@@ -64,7 +65,7 @@
                 return;
               }
               // success path: ensure not paused (drain any stale paused projection)
-              if (state.connection?.sessionsPollingPaused) {
+              if (connectionUseCases.getState().sessionsPollingPaused) {
                 setSessionsPollingPaused(false);
               }
             }

@@ -18,8 +18,15 @@
                 if (state) state[slot] = { ...next };
                 render_();
               };
+              // Remaining projection: annotations.js, devices.js, events.js,
+              // preview.js, presentation views, and state.js still read
+              // state.connection until selector-backed connection models own them.
               const connection = createBrowserConnectionUseCases(project('connection'));
+              // Remaining projection: state.js keeps state.previewFsm mirrored
+              // until preview model construction moves to console selectors.
               const preview = createBrowserPreviewUseCases({ onChange: project('previewFsm') });
+              // Remaining projection: state.js keeps state.pollingFsm mirrored
+              // until polling lifecycle reads move fully behind pollingUseCases.
               const polling = createBrowserPollingUseCases({ onChange: project('pollingFsm') });
               // Tool-mode has no legacy state.* projection (callers go through
               // toolMode.getState() directly), so onChange is only
