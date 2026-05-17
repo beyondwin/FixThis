@@ -9,6 +9,10 @@ GitHub Release page and registry listings as release evidence.
 
 - Post-v0.3.0 development cycle. No user-visible additions yet — see
   `CHANGELOG.md` `## Unreleased` for in-flight entries.
+- v0.6 planning is tracked as an evidence-gated umbrella milestone. Do not
+  claim Handoff Intelligence, Studio Reliability, or Release Grade completion
+  in release notes until the v0.6 evidence commands in
+  `docs/contributing/release-readiness.md` have passed.
 
 ## Compatibility Notes
 

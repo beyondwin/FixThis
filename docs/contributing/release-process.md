@@ -80,6 +80,11 @@ Before tagging:
 
    Edit the copied file so it describes the tagged release, not current `main`.
 
+   For a v0.6 release, copy
+   [`v06-release-evidence-template.md`](v06-release-evidence-template.md) into the
+   release issue and fill every command result before finalizing release notes.
+   Claims without evidence are removed or narrowed before tagging.
+
 3. Run the release-readiness checks:
 
    ```bash
