@@ -47,3 +47,19 @@ keeps the contract-map work traceable.
 | `fixthis-mcp/src/test/kotlin/.../FeedbackSessionStoreTest.kt` | Track 1 / Track 3 | Phase 1 trims the pre-v0.4 fixture cases only. |
 | `fixthis-mcp/src/test/kotlin/.../ConsoleAssetContractTest.kt` | Track 2 plan | Console asset contract curation belongs with the console refactor. |
 | `scripts/console-browser-smoke.mjs` | Track 1 demotion review | Smoke harness demotion is part of the verification-strategy work, not the legacy purge. |
+
+## Phase 1 Completion
+
+| Check | Result |
+| --- | --- |
+| `node --test scripts/v04LegacyPurgeContract-test.mjs` | PASS |
+| `node scripts/run-console-tests.mjs canonical pending draft session` | PASS |
+| `node scripts/build-console-assets.mjs --check` | PASS |
+| `./gradlew :fixthis-mcp:test --tests '*ConsolePreviewRoutesTest' --tests '*ConsoleFeedbackDraftDeduplicationRoutesTest' --tests '*FeedbackDraftServiceTest' --tests '*McpProtocolTest' --no-daemon` | PASS |
+| `./gradlew :fixthis-compose-core:test --tests '*SourceMatcherTest' --tests '*EvidenceProfileTest' --no-daemon` | PASS |
+| `npm run ci:local:fast` | PASS |
+
+Phase 1 removed pre-v0.4 pending mirrors, old screenshot artifact fallback,
+semantic retry dedupe without client draft keys, the no-item handoff service
+overload, and internal source matcher legacy terminology. Current canonical
+contracts remain guarded by focused tests.
