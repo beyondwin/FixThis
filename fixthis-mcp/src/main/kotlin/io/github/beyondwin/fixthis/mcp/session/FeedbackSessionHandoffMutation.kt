@@ -11,7 +11,7 @@ internal object FeedbackSessionHandoffMutation {
         targetItemIds: List<String>?,
         markdownSnapshot: String?,
         now: Long,
-        batchId: String,
+        batchId: () -> String,
     ): PreparedHandoffMutation? {
         val targetSet = targetItemIds?.toSet()
         val candidates = session.items.filter { item ->
@@ -25,7 +25,7 @@ internal object FeedbackSessionHandoffMutation {
         if (candidates.isEmpty()) return null
 
         val batch = FeedbackHandoffBatch(
-            batchId = batchId,
+            batchId = batchId(),
             sequenceNumber = session.handoffBatches.size + 1,
             createdAtEpochMillis = now,
             itemIds = candidates.map { it.itemId },

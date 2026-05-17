@@ -59,3 +59,17 @@ scanner.
 `SourceCandidate.ownerComposable` is populated from `LAMBDA_OWNER_FUNCTION`.
 Markdown handoffs render it as `inside fun <Composable>` in precise/full output
 and as `owner=<Composable>` on the rank-1 compact candidate when available.
+
+## Untyped Fallback Evidence
+
+When an entry matches only through the preserved untyped source-index fields
+and no typed signal supports the selected text, content description, or role,
+the matcher treats the evidence as an untyped fallback. This caps the source
+candidate at low confidence and adds the internal `UNTYPED_FALLBACK` risk.
+
+For compatibility with persisted session JSON and existing agent prompts, the
+current output still serializes that risk as `LEGACY_FALLBACK` and renders the
+match reason string as `"legacy fallback"` in `matchReasons` / compact
+`matched=[legacy]` output. Those labels describe weak untyped source evidence;
+they do not imply support for pre-v0.4 browser recovery mirrors or old local
+artifact roots.

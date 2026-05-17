@@ -95,8 +95,8 @@ class ConsoleConnectionRoutesTest {
         assertTrue(html.contains("/api/app/launch"))
         assertTrue(refreshConnectionBody.contains("requestJson('/api/connection'"))
         assertTrue(renderConnectionBody.contains("connectionCard.dataset.connectionState"))
-        assertTrue(renderConnectionBody.contains("state.connection.hasEverConnected"))
-        assertTrue(renderConnectionBody.contains("connectionPrimaryAction.disabled = state.connection.launchInFlight;"))
+        assertTrue(renderConnectionBody.contains("const connectionState = connectionUseCases.getState();"))
+        assertTrue(renderConnectionBody.contains("connectionPrimaryAction.disabled = connectionState.launchInFlight;"))
         assertFalse(
             renderConnectionBody.contains(
                 "connectionPrimaryAction.disabled = state.connection.launchInFlight || viewState === 'starting';",

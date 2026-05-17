@@ -92,6 +92,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         runWritePlansAtomic(plans)
     }
 
+    @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod", "ThrowsCount")
     private fun runWritePlansAtomic(
         plans: List<SetupWritePlan>,
         move: (java.nio.file.Path, java.nio.file.Path, Array<out java.nio.file.CopyOption>) -> java.nio.file.Path = { source, target, options ->
@@ -278,7 +279,6 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             DryRunDiff.render(before = before, after = plan.content, format = format, byteBudget = budget),
         )
     }
-
 }
 
 class InitCommand : CoreCliktCommand(name = "init") {

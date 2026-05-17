@@ -40,6 +40,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Semantic duplicate detection for items predating `clientWorkspaceId` /
   `clientDraftItemId` is removed from `FeedbackSessionStore`. Retry idempotency
   now requires current client draft keys.
+- Browser history recovery now drops keyless recovered draft items instead of
+  matching them semantically by target/comment. Current recovery dedupe requires
+  `workspaceId` plus per-item `draftItemId`.
 - Deprecated `sendDraftToAgent(sessionId)` service overload removed.
   `CompactHandoffRenderer` is the only path for handoff Markdown; callers must
   pass item IDs explicitly via `sendDraftToAgent(sessionId, itemIds)`.
@@ -49,9 +52,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Internal `SourceMatchReason.LEGACY_FALLBACK` renamed to
   `SourceMatchReason.UNTYPED_FALLBACK`. The wire label `"legacy fallback"` is
   preserved so output Markdown and downstream consumers see no change.
-  The unrelated `SourceCandidateRisk.LEGACY_FALLBACK`,
-  `SourceHint.LEGACY_FALLBACK`, and `SourceHintRisk.LEGACY_FALLBACK` constants
-  are intentionally untouched.
+- Source fallback risk naming now uses internal `UNTYPED_FALLBACK` across
+  core/domain mapping while preserving the serialized risk token
+  `"LEGACY_FALLBACK"` for persisted JSON and agent compatibility.
 
 ### Added — v0.4 maintainability phase 1 legacy purge
 
@@ -60,6 +63,22 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - New work-note `docs/superpowers/work-notes/2026-05-17-v04-test-contract-inventory.md`
   records the contract owner, action, and deletion-gate reason for every test
   curated by this phase.
+
+### Changed — v0.4 follow-up risk burn-down
+
+- Console draft runtime holders moved out of `state.js`, and remaining
+  connection/session polling projection reads were reduced to selector-owned
+  paths with runtime contract tests guarding the migration.
+- MCP session handoff mutation policy and session event-log payload builders
+  were extracted into focused pure collaborators, keeping persisted JSON keys
+  and MCP protocol behavior unchanged.
+- CLI setup writer selection and write-plan construction were extracted into a
+  side-effect-free planner. `setup`, `init`, and `install-agent` keep the same
+  target filtering, dry-run output, global guard, JSON report, and atomic write
+  behavior.
+- The v0.4 curation ledger now records deleted, merged, or demoted tests by
+  contract reason (`No contract`, `Merged into`, `Covered by`, `Demoted to`) so
+  future broad-test reductions require an explicit owner.
 
 ## [0.3.0] - 2026-05-17
 

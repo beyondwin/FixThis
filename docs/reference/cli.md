@@ -165,6 +165,13 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--json` | off | Emit a structured JSON report on stdout (`schemaVersion`, `ok`, `applied[]`, `skipped[]`, `errors[]`, `next[]`) instead of the human-readable summary. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
 
+Target selection is shared with `fixthis setup`: `claude` plans only the
+project-local `.claude/settings.json` write, `codex` plans only the global
+`~/.codex/config.toml` write, and `all` plans both. If the global guard refuses
+a Codex write outside an Android project, `--target all` continues with the
+Claude project-local target and reports Codex as skipped; `--target codex`
+exits PARTIAL without writing.
+
 Writes are transactional: each target is staged to a `*.fixthis-staging`
 sibling, then atomically moved into place with a per-target rollback file so a
 partial failure cannot leave a half-merged config on disk.
@@ -214,6 +221,10 @@ Targets:
 
 - **`claude`** → project-local `.claude/settings.json` (only affects this project).
 - **`codex`** → user-global `~/.codex/config.toml` (affects all Codex sessions).
+
+Dry-run renders the same planned content that `--write` would commit, but does
+not create or modify config files. The dry-run diff remains privacy-preserving
+unless `--full-diff` is explicitly passed.
 
 After `--write`, restart your agent so the new MCP server is picked up.
 

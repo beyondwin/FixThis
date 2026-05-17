@@ -262,8 +262,9 @@ browser `workspaceId` and `draftItemId` values, persisted items retain them as
 append duplicate items or duplicate event-log entries. If a retry contains
 already-saved items plus new items from the same workspace, only the new items
 are appended and they share the already-persisted evidence screen. Older items
-without client draft ids are deduplicated only when they have a non-blank
-comment and match the same screen by target type, node uid, and rounded bounds.
+or browser-local recovery entries without client draft ids are not semantically
+deduplicated. They are unsupported pre-client-key local data and must be
+discarded or recreated with current schema-v2 draft identity.
 
 ## Feedback Handoff Batch
 
@@ -317,7 +318,11 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 - `ranking`: optional 1-based rank within the item's ordered candidate list.
 - `scoreMargin`: optional score gap between this candidate and the next-ranked candidate. Populated for the rank-1 candidate; serialized into compact handoff as `margin=`.
 - `evidenceStrength`: optional `STRONG`, `MEDIUM`, or `WEAK` describing how reliable the underlying evidence is. Used to reserve `confidence=HIGH` for strong evidence with a clear top-vs-next margin.
-- `riskFlags`: optional list of confidence-capping risk tokens (for example `VISUAL_AREA_ONLY`, `TEXT_ONLY`, `NEARBY_ONLY`, `ACTIVITY_ONLY`, `ARBITRARY_LITERAL`, `LEGACY_FALLBACK`).
+- `riskFlags`: optional list of confidence-capping risk tokens (for example `AREA_SELECTION`, `TEXT_ONLY`, `NEARBY_ONLY`, `ACTIVITY_ONLY`, `ARBITRARY_LITERAL`, `LEGACY_FALLBACK`).
+  `LEGACY_FALLBACK` remains the current serialized token for internal
+  untyped-fallback source evidence. It is kept for persisted JSON and agent
+  compatibility; it does not indicate support for pre-v0.4 browser recovery or
+  old local artifact roots.
 - `caution`: optional human-readable caveat. Surfaced on the rank-1 candidate as a `note:` line in compact handoff.
 - `stale`: optional `true`, `false`, or `null`. `true` means the host source line no longer matches the index excerpt (do not edit by file:line); `false` means the line-accurate match was verified; `null` means the candidate could not be verified (no excerpt, no line, or an XML resource entry).
 - `staleReason`: optional string explaining the staleness verdict, e.g. `"excerpt mismatch"`, `"file not found on host"`, `"file not found on host; sourceRoot unresolved"`, `"file not found on host; multiple suffix matches"`, `"line out of range"`, `"path escapes project root"`, or `"file too large to verify"`.

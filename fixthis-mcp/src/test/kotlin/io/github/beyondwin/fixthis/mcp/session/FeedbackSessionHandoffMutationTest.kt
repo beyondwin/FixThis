@@ -18,7 +18,7 @@ class FeedbackSessionHandoffMutationTest {
             targetItemIds = listOf("item-1"),
             markdownSnapshot = "handoff",
             now = 200L,
-            batchId = "batch-1",
+            batchId = { "batch-1" },
         )
 
         val updated = result!!.session
@@ -47,7 +47,7 @@ class FeedbackSessionHandoffMutationTest {
             targetItemIds = listOf("item-1"),
             markdownSnapshot = "handoff-again",
             now = 300L,
-            batchId = "batch-2",
+            batchId = { "batch-2" },
         )
 
         val handedOffAgain = result!!.session.items.single { it.itemId == "item-1" }
@@ -71,7 +71,7 @@ class FeedbackSessionHandoffMutationTest {
             targetItemIds = listOf("missing"),
             markdownSnapshot = "handoff",
             now = 200L,
-            batchId = "batch-1",
+            batchId = { error("batch id should not be generated without candidates") },
         )
 
         assertNull(result)

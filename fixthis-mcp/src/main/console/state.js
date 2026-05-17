@@ -124,9 +124,20 @@
             const draftRuntime = createDraftRuntimeState({
               persistCurrentDraftWorkspaceIfNeeded: () => persistCurrentDraftWorkspaceIfNeeded(),
             });
+            // Compatibility mirrors for legacy renderers that still read these
+            // module-level names directly while draft state ownership migrates
+            // into draftRuntimeState.
+            let draftWorkspace = draftRuntime.currentDraftWorkspace();
+            let undoRedoHistory = draftRuntime.currentUndoRedoHistory();
+
+            function syncDraftRuntimeCompatibility() {
+              draftWorkspace = draftRuntime.currentDraftWorkspace();
+              undoRedoHistory = draftRuntime.currentUndoRedoHistory();
+            }
 
             function currentDraftWorkspace() {
-              return draftRuntime.currentDraftWorkspace();
+              syncDraftRuntimeCompatibility();
+              return draftWorkspace;
             }
 
             function draftFlow() {
@@ -155,6 +166,7 @@
 
             function replaceDraftWorkspace(nextWorkspace) {
               draftRuntime.replaceDraftWorkspace(nextWorkspace);
+              syncDraftRuntimeCompatibility();
             }
 
             function persistCurrentDraftWorkspaceIfNeeded() {

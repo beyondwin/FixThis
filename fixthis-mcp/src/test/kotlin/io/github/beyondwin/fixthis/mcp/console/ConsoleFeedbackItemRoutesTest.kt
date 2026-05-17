@@ -682,7 +682,12 @@ class ConsoleFeedbackItemRoutesTest {
         )
         val session = service.openSession(null, newSession = true)
         val screen = service.captureFakeScreenForTest(session.sessionId)
-        val sentItem = service.addAreaFeedback(session.sessionId, screen.screenId, FixThisRect(0f, 0f, 10f, 10f), "Sent")
+        val sentItem = service.addAreaFeedback(
+            session.sessionId,
+            screen.screenId,
+            FixThisRect(0f, 0f, 10f, 10f),
+            "Sent",
+        )
         service.sendDraftToAgent(session.sessionId, listOf(sentItem.itemId))
         service.addAreaFeedback(session.sessionId, screen.screenId, FixThisRect(10f, 10f, 20f, 20f), "Draft")
         withConsoleServer(service) { server ->

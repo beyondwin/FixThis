@@ -663,7 +663,7 @@ async function runSmoke(baseUrl) {
     const listBackPersistResponse = page.waitForResponse(response =>
       response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
     );
-    await page.click('.annotation-detail .annotation-done');
+    await page.click('#inspectorFooter [data-action="done"]');
     assert.ok((await listBackPersistResponse).ok(), 'Saved annotation back-to-list should persist before leaving detail');
     await page.waitForFunction(expectedSrc => {
       const image = document.getElementById('snapshotImage');
@@ -684,7 +684,7 @@ async function runSmoke(baseUrl) {
     const historyUpdateResponse = page.waitForResponse(response =>
       response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
     );
-    await page.click('.annotation-detail .annotation-done');
+    await page.click('#inspectorFooter [data-action="done"]');
     await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
     assert.ok((await historyUpdateResponse).ok(), 'Saved annotation edit should persist');
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
@@ -800,18 +800,18 @@ async function runSmoke(baseUrl) {
     });
     await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
-    await waitForPendingPins(page, 1, 'Recovered active pending draft should auto-restore after session round-trip');
+    await page.waitForFunction(() => document.getElementById('pendingRecoveryBanner')?.hidden === false);
+    assert.match(await page.locator('#pendingRecoveryBanner').textContent(), /draft comment/);
+    await page.click('#sessionBoundarySheet [data-boundary-action="resume"]');
+    await waitForPendingPins(page, 1, 'Recovered active pending draft should restore after Resume');
     await page.waitForFunction(() => document.getElementById('pendingRecoveryBanner')?.hidden !== false);
     assert.match(await page.locator('#pendingItems').textContent(), new RegExp(firstAnnotationComment));
-    await page.evaluate(() => {
-      window.fixThisPromptPendingBoundary = () => 'cancel';
-    });
     await page.click('#sessions .session-row.is-active [data-delete-session-id]');
+    await page.waitForFunction(() => document.getElementById('sessionBoundarySheet')?.dataset.boundaryVariant === 'sessionDelete');
+    await page.click('#sessionBoundarySheet [data-boundary-action="cancel"]');
+    await page.waitForFunction(() => document.getElementById('sessionBoundarySheet')?.hidden === true);
     await waitForPendingPins(page, 1, 'Pending annotation should remain after Keep editing');
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');
-    await page.evaluate(() => {
-      delete window.fixThisPromptPendingBoundary;
-    });
     await page.evaluate(() => {
       const debug = window.FixThisConsoleDebug;
       const draftWorkspace = debug.getDraftWorkspace();

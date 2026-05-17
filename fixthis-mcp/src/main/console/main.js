@@ -178,7 +178,7 @@
             }
 
             async function resolvePendingBeforeBoundary(action, sessionId = null) {
-              const activeWorkspace = draftWorkspace;
+              const activeWorkspace = currentDraftWorkspace();
               const meta = {
                 kind: 'session-boundary',
               };
@@ -362,9 +362,10 @@
                 ...item,
                 draftItemId: item?.draftItemId || item?.annotationId || ('recovered-' + (index + 1)),
               }));
+              const workspace = currentDraftWorkspace();
               replaceDraftWorkspace({
-                ...draftWorkspace,
-                revision: draftWorkspace.revision + 1,
+                ...workspace,
+                revision: workspace.revision + 1,
                 items: recoveredItems,
                 history: { undoStack: [], redoStack: [] },
               });
@@ -387,7 +388,7 @@
             }
 
             window.FixThisConsoleDebug = Object.freeze({
-              getDraftWorkspace: () => draftWorkspace,
+              getDraftWorkspace: () => currentDraftWorkspace(),
               getState: () => state,
             });
 

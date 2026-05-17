@@ -310,7 +310,7 @@ internal class FeedbackSessionStoreDelegate(
             targetItemIds = targetItemIds,
             markdownSnapshot = markdownSnapshot,
             now = now,
-            batchId = idGenerator(),
+            batchId = idGenerator,
         ) ?: throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
         val batch = prepared.batch
         val updated = prepared.session

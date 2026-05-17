@@ -229,9 +229,8 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             Regex(
-                "const composerSessionId = draftWorkspace\\?\\.context\\?\\.sessionId " +
-                    "\\|\\| state\\.session\\?\\.sessionId;[\\s\\S]*" +
-                    "if \\(clearMirror\\) \\{[\\s\\S]*clearPendingMirror\\(composerSessionId\\);",
+                "if \\(clearFlow && clearMirror\\) deleteCurrentDraftWorkspaceStorage\\(\\);[\\s\\S]*" +
+                    "if \\(clearFlow\\) replaceDraftWorkspace\\(createEmptyDraftWorkspace\\(\\)\\);",
             )
                 .containsMatchIn(html),
         )

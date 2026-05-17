@@ -66,6 +66,9 @@
   per-session index at `localStorage["fixthis.workspace.index.<sessionId>"]`.
   The envelope carries `workspaceId`, `revision`, `lifecycle`, immutable
   `context`, frozen `screen`, `screenshotUrl`, `items`, and `history`.
+  Recoverable draft items are current-schema items and must carry client draft
+  identity (`workspaceId` plus per-item `draftItemId`) before they can be
+  matched to persisted session items.
 - v0.4 supports schema-v2 `fixthis.workspace.*` draft recovery only. Pre-v0.4
   `fixthis.pending.<sessionId>` mirrors are ignored; use `fixthis clean` or
   clear browser storage if an old local recovery entry is confusing the
@@ -93,12 +96,10 @@
   append a new event-log entry. A partial retry must append only the new draft
   items and reuse the already-persisted evidence screen when any incoming item
   matches by client draft key.
-- Legacy persisted draft items that predate client draft keys are protected by
-  a same-screen semantic duplicate key. For those items, a retry with a
-  browser draft key is skipped when target type, node uid, rounded bounds, and
-  non-blank trimmed comment match an existing item on the requested screen or a
-  screen with the same fingerprint. Blank comments do not participate in this
-  legacy semantic dedupe path.
+- Current retry and browser recovery dedupe require client draft keys. Keyless
+  browser-local recovery items are not semantically matched by target/comment;
+  v0.4 drops them instead of promoting or double-counting unsupported
+  pre-client-key local data.
 - History row counts include persisted session items plus browser-local
   draft/recovery items for that session. Completing `Save to MCP` must clear the
   residual local draft state for that action so the history count does not

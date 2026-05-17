@@ -23,6 +23,7 @@ internal object SetupPlanner {
         else -> listOf(CodexConfigWriter(), ClaudeConfigWriter())
     }
 
+    @Suppress("TooGenericExceptionCaught")
     fun buildWritePlans(
         writers: List<AgentConfigWriter>,
         projectRoot: File,
