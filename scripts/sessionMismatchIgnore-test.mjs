@@ -211,3 +211,28 @@ test('preview-poll consumer: preview.js wires dropStalePreviewPoll so mismatched
   assert.equal(calls.applyReadiness, 1);
   assert.equal(calls.setConsolePreview, 1);
 });
+
+test('console reducer drops stale save and capture completions by generation and session', () => {
+  const reducerSource = readFileSync(
+    resolve(root, 'fixthis-mcp/src/main/console/domain/consoleReducer.js'),
+    'utf8',
+  );
+  const capture = extractFunction(reducerSource, 'function reducePreviewCaptureSucceeded');
+  const save = extractFunction(reducerSource, 'function reduceDraftSaveSucceeded');
+
+  assert.match(capture, /event\.generation !== state\.effectsGeneration/);
+  assert.match(capture, /event\.sessionId !== state\.activeSessionId/);
+  assert.match(save, /event\.generation !== state\.effectsGeneration/);
+  assert.match(save, /event\.workspaceId !== state\.workspace\.context\.workspaceId/);
+});
+
+test('session polling cannot keep a deleted displayed session alive', () => {
+  const pollingSource = readFileSync(
+    resolve(root, 'fixthis-mcp/src/main/console/pollingBrowserAdapter.js'),
+    'utf8',
+  );
+  assert.match(pollingSource, /const activeDisplayedSessionId = displayedSessionId\(\);/);
+  assert.match(pollingSource, /const fresh = await sessResp\.json\(\);/);
+  assert.match(pollingSource, /fresh && fresh\.sessionId === activeDisplayedSessionId && !isClosedSession\(fresh\)/);
+  assert.match(pollingSource, /clearDisplayedSessionState\(\);/);
+});
