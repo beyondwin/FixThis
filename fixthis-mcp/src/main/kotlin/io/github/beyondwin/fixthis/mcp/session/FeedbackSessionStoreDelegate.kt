@@ -310,27 +310,16 @@ internal class FeedbackSessionStoreDelegate(
         targetItemIds: List<String>? = null,
     ): SessionDto = withEventBackedMutation(sessionId, "markSent") {
         val session = getSessionLocked(sessionId)
-        val targetSet = targetItemIds?.toSet()
-        val candidates = session.items.filter { item ->
-            val matchesTarget = targetSet == null || item.itemId in targetSet
-            matchesTarget &&
-                (
-                    item.delivery == FeedbackDelivery.DRAFT ||
-                        (item.delivery == FeedbackDelivery.SENT && item.status == AnnotationStatusDto.READY)
-                    )
-        }
-        if (candidates.isEmpty()) {
-            throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
-        }
         val now = clock()
-        val batch = buildHandoffBatch(session, candidates, markdownSnapshot, now)
-        val updatedItems = buildUpdatedItemsForHandoff(session.items, targetSet, batch, now)
-        val updated = session.copy(
-            items = updatedItems,
-            handoffBatches = session.handoffBatches + batch,
-            status = SessionStatusDto.READY_FOR_AGENT,
-            updatedAtEpochMillis = now,
-        )
+        val prepared = FeedbackSessionHandoffMutation.prepare(
+            session = session,
+            targetItemIds = targetItemIds,
+            markdownSnapshot = markdownSnapshot,
+            now = now,
+            batchId = idGenerator(),
+        ) ?: throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
+        val batch = prepared.batch
+        val updated = prepared.session
         buildJsonObject {
             put("sessionId", sessionId)
             put("batch", eventLogJson.encodeToJsonElement(FeedbackHandoffBatch.serializer(), batch))
@@ -338,54 +327,11 @@ internal class FeedbackSessionStoreDelegate(
                 "items",
                 eventLogJson.encodeToJsonElement(
                     kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    updatedItems,
+                    updated.items,
                 ),
             )
         } to {
             commitSessionMutation(session, updated)
-        }
-    }
-
-    private fun buildHandoffBatch(
-        session: SessionDto,
-        candidates: List<AnnotationDto>,
-        markdownSnapshot: String?,
-        now: Long,
-    ): FeedbackHandoffBatch = FeedbackHandoffBatch(
-        batchId = idGenerator(),
-        sequenceNumber = session.handoffBatches.size + 1,
-        createdAtEpochMillis = now,
-        itemIds = candidates.map { it.itemId },
-        markdownSnapshot = markdownSnapshot,
-    )
-
-    private fun buildUpdatedItemsForHandoff(
-        items: List<AnnotationDto>,
-        targetSet: Set<String>?,
-        batch: FeedbackHandoffBatch,
-        now: Long,
-    ): List<AnnotationDto> = items.map { item ->
-        val matchesTarget = targetSet == null || item.itemId in targetSet
-        when {
-            item.delivery == FeedbackDelivery.DRAFT && matchesTarget -> item.copy(
-                delivery = FeedbackDelivery.SENT,
-                handoffBatchId = batch.batchId,
-                sentAtEpochMillis = now,
-                lastHandedOffAtEpochMillis = now,
-                status = AnnotationStatusDto.READY,
-                updatedAtEpochMillis = now,
-            )
-            item.delivery == FeedbackDelivery.SENT &&
-                item.status == AnnotationStatusDto.READY &&
-                matchesTarget -> {
-                // Re-save: preserve sentAt; refresh lastHandedOffAt + handoffBatchId.
-                item.copy(
-                    handoffBatchId = batch.batchId,
-                    lastHandedOffAtEpochMillis = now,
-                    updatedAtEpochMillis = now,
-                )
-            }
-            else -> item
         }
     }
 
