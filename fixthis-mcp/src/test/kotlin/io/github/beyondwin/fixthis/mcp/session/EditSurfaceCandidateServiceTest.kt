@@ -37,7 +37,7 @@ class EditSurfaceCandidateServiceTest {
     }
 
     @Test
-    fun doesNotBuildCandidateForContentOnlyFeedback() {
+    fun attachesCopyOrDataRoleForContentOnlyFeedback() {
         val button = node("checkout-button", text = listOf("Continue"), testTag = "comp:PrimaryButton:default")
         val item = item(
             comment = "Rename this to Checkout",
@@ -53,7 +53,7 @@ class EditSurfaceCandidateServiceTest {
 
         val candidates = EditSurfaceCandidateService.build(item, screenWith(button))
 
-        assertEquals(emptyList<EditSurfaceCandidateDto>(), candidates)
+        assertEquals(EditSurfaceRoleDto.COPY_OR_DATA, candidates.single().role)
     }
 
     @Test
@@ -77,6 +77,46 @@ class EditSurfaceCandidateServiceTest {
         assertEquals(1, candidates.size)
         assertEquals(EditSurfaceKindDto.TEXT_COLOR, candidates.single().kind)
         assertTrue(candidates.single().file.endsWith("MetricCard.kt"))
+    }
+
+    @Test
+    fun assignsCopyOrDataRoleForRenameFeedback() {
+        val button = node("checkout-button", text = listOf("Continue"), testTag = "comp:PrimaryButton:checkout")
+        val item = item(
+            comment = "Rename this button to Checkout",
+            selectedNode = button,
+            sourceCandidates = listOf(
+                sourceCandidate(
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/CheckoutScreen.kt",
+                    matchedTerms = listOf("Continue"),
+                    ownerComposable = "CheckoutScreen",
+                ),
+            ),
+        )
+
+        val candidates = EditSurfaceCandidateService.build(item, screenWith(button))
+
+        assertEquals(EditSurfaceRoleDto.COPY_OR_DATA, candidates.single().role)
+    }
+
+    @Test
+    fun createsVisualAreaRoleCandidateWithoutSourceFile() {
+        val item = AnnotationDto(
+            itemId = "area",
+            screenId = "screen-1",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 80f, 80f)),
+            sourceCandidates = emptyList(),
+            comment = "Tighten this empty gap",
+        )
+
+        val candidates = EditSurfaceCandidateService.build(item, screenWith())
+
+        assertEquals(1, candidates.size)
+        assertEquals(EditSurfaceRoleDto.VISUAL_AREA, candidates.single().role)
+        assertEquals(EditSurfaceKindDto.UNKNOWN, candidates.single().kind)
+        assertEquals(SelectionConfidence.LOW, candidates.single().confidence)
     }
 
     private fun item(

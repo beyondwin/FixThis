@@ -53,8 +53,15 @@ internal object HandoffEvaluationFixtures {
     private val json: Json = fixThisJson
 
     fun loadCorpus(root: File = File("")): HandoffEvaluationCorpus {
-        val file = File(root.absoluteFile, "fixthis-mcp/src/test/resources/handoff-eval/v06-corpus.json")
-        return json.decodeFromString(HandoffEvaluationCorpus.serializer(), file.readText())
+        val text = javaClass.classLoader
+            ?.getResourceAsStream("handoff-eval/v06-corpus.json")
+            ?.bufferedReader()
+            ?.use { it.readText() }
+            ?: run {
+                val file = File(root.absoluteFile, "fixthis-mcp/src/test/resources/handoff-eval/v06-corpus.json")
+                file.readText()
+            }
+        return json.decodeFromString(HandoffEvaluationCorpus.serializer(), text)
     }
 
     fun annotationFor(case: HandoffEvaluationCase): AnnotationDto {
