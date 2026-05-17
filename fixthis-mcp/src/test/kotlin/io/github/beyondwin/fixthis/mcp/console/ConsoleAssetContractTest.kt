@@ -256,7 +256,8 @@ class ConsoleAssetContractTest {
         )
         assertTrue(
             Regex(
-                "async function deleteHistorySession\\(sessionId, options = \\{\\}\\)[\\s\\S]*const isDisplayedSession = " +
+                "async function deleteHistorySession\\(sessionId, options = \\{\\}\\)" +
+                    "[\\s\\S]*const isDisplayedSession = " +
                     "\\(\\) => state\\.session\\?\\.sessionId === sessionId;[\\s\\S]*" +
                     "const hasDisplayedDraftForDeletedSession = " +
                     "\\(\\) => draftWorkspace\\?\\.context\\?\\.sessionId === sessionId;[\\s\\S]*" +
