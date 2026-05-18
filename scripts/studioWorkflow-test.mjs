@@ -66,6 +66,18 @@ test('blocks annotate when device is blocked', () => {
   assert.equal(decision.displaySurface, 'connection-card');
 });
 
+test('blocks annotate with specific reasons for hard connection states', () => {
+  assert.equal(decide(m.StudioWorkflowAction.ANNOTATE_CLICKED, {
+    connection: 'no-device',
+  }).reason, 'connection-no-device');
+  assert.equal(decide(m.StudioWorkflowAction.ANNOTATE_CLICKED, {
+    connection: 'unsupported',
+  }).reason, 'connection-unsupported');
+  assert.equal(decide(m.StudioWorkflowAction.ANNOTATE_CLICKED, {
+    connection: 'reconnecting',
+  }).reason, 'connection-not-ready');
+});
+
 test('confirms Save to MCP from stale preview', () => {
   const decision = decide(m.StudioWorkflowAction.SAVE_TO_MCP_CLICKED, {
     workspace: 'frozen-draft',

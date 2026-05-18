@@ -2,10 +2,11 @@
 function currentStudioWorkflowConnection() {
   const raw = String(state.connection?.current?.state || '').toLowerCase();
   if (raw === 'ready') return 'ready';
-  if (raw === 'check_phone' || raw === 'choose_device') return 'blocked';
+  if (raw === 'no_device') return 'no-device';
   if (raw === 'unsupported_build') return 'unsupported';
   if (raw === 'open_app' || raw === 'reconnect' || raw === 'starting') return 'reconnecting';
   if (!state.selectedDeviceSerial && Array.isArray(state.devices) && state.devices.length === 0) return 'no-device';
+  if (raw === 'check_phone' || raw === 'choose_device') return 'blocked';
   return 'initializing';
 }
 
@@ -56,16 +57,34 @@ function decideCurrentStudioWorkflow(action, patch = {}) {
 
 function studioWorkflowMessage(decision) {
   if (decision.reason === 'operation-in-flight') return 'Finish action first.';
-  if (decision.reason === 'connection-blocked' || decision.reason === 'connection-not-ready') return 'Not ready.';
+  if (decision.reason === 'connection-no-device') return 'Connect a device first.';
+  if (decision.reason === 'connection-unsupported') return 'Install a supported debug build.';
+  if (decision.reason === 'connection-blocked') return 'Check your phone or choose a device.';
+  if (decision.reason === 'connection-not-ready') return 'Open the app first.';
   if (decision.reason === 'closed-session') return 'Open a session first.';
   if (decision.reason === 'missing-item') return 'Item unavailable.';
   return 'Action blocked';
+}
+
+function focusStudioWorkflowSurface(decision) {
+  if (decision.displaySurface !== 'connection-card') return;
+  const raw = String(state.connection?.current?.state || '').toLowerCase();
+  if (raw === 'choose_device') {
+    devicePicker?.focus({ preventScroll: true });
+    return;
+  }
+  if (decision.reason === 'connection-no-device') {
+    document.getElementById('refreshDevicesButton')?.focus({ preventScroll: true });
+    return;
+  }
+  connectionPrimaryAction?.focus({ preventScroll: true });
 }
 
 function surfaceStudioWorkflowDecision(decision) {
   if (!decision || decision.type === StudioWorkflowDecisionType.ALLOW || decision.type === StudioWorkflowDecisionType.IGNORE) return false;
   if (decision.type === StudioWorkflowDecisionType.CONFIRM) return false;
   const message = studioWorkflowMessage(decision);
+  focusStudioWorkflowSurface(decision);
   if (typeof showStatus === 'function') {
     showStatus(message, { variant: 'warn', durationMs: 3500 });
   } else if (typeof showWarning === 'function') {

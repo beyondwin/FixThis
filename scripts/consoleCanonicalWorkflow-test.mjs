@@ -134,7 +134,19 @@ test('workflow blocks annotate when connection is not ready', () => {
   const result = m.reduceConsoleAppState(state, { type: 'ANNOTATE_CLICKED' });
   assert.deepEqual(result.effects, []);
   assert.equal(result.state.status.variant, 'warn');
-  assert.match(result.state.status.message, /Connect the app before annotating/);
+  assert.match(result.state.status.message, /Check the device or choose another device before annotating/);
+});
+
+test('workflow explains no-device annotate block directly', () => {
+  const state = m.createInitialConsoleAppState({
+    activeSessionId: 'session-a',
+    sessions: [{ sessionId: 'session-a' }],
+    connection: { current: { state: 'NO_DEVICE' } },
+    workspace: m.livePreviewWorkspace('session-a', preview(1)),
+  });
+  const result = m.reduceConsoleAppState(state, { type: 'ANNOTATE_CLICKED' });
+  assert.deepEqual(result.effects, []);
+  assert.match(result.state.status.message, /Connect a device before annotating/);
 });
 
 test('workflow blocks session switch while prompt action is in flight', () => {

@@ -288,8 +288,9 @@
               checkProtocolCompat(status);
               checkSidekickBuildEpoch(status);
               if (viewState === 'ready' && annotateIntent && !draftFlow()) {
-                annotateIntent = false;
-                startDraftAnnotationFlow().catch(showError);
+                const shouldResumeAnnotating = annotateIntentMatchesCurrentContext();
+                clearAnnotateIntent();
+                if (shouldResumeAnnotating) startDraftAnnotationFlow().catch(showError);
               }
             }
 

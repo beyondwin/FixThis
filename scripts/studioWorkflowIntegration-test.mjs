@@ -9,6 +9,7 @@ const adapterSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/s
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
 const connectionSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/connection.js'), 'utf8');
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
+const annotationListSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/presentation/annotationListView.js'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 
 function body(source, signature) {
@@ -97,10 +98,27 @@ test('annotate from Open app state launches the app instead of silently blocking
 
 test('ready connection resumes the pending annotate intent after launch', () => {
   const apply = body(connectionSource, 'function applyConnectionStatus(status, options)');
-  assert.match(annotationsSource, /let annotateIntent = false;/);
-  assert.match(annotationsSource, /annotateIntent = true;[\s\S]*?return launchApp\(\);/);
+  assert.match(annotationsSource, /let annotateIntent = null;/);
+  assert.match(annotationsSource, /function rememberAnnotateIntent\(\)/);
+  assert.match(annotationsSource, /function annotateIntentMatchesCurrentContext\(\)/);
+  assert.match(annotationsSource, /rememberAnnotateIntent\(\);[\s\S]*?await launchApp\(\);/);
   assert.match(apply, /if \(viewState === 'ready' && annotateIntent && !draftFlow\(\)\) \{/);
-  assert.match(apply, /annotateIntent = false;[\s\S]*?startDraftAnnotationFlow\(\)\.catch\(showError\)/);
+  assert.match(apply, /const shouldResumeAnnotating = annotateIntentMatchesCurrentContext\(\);[\s\S]*?clearAnnotateIntent\(\);[\s\S]*?if \(shouldResumeAnnotating\)/);
+});
+
+test('right-panel start annotating button stays actionable without a captured preview', () => {
+  const button = body(annotationListSource, 'function startAnnotatingButtonHtml()');
+  assert.match(button, /data-start-annotating/);
+  assert.doesNotMatch(button, /disabled aria-disabled/);
+  assert.match(body(annotationListSource, 'function bindStartAnnotatingButtons(container)'), /enterAnnotateMode\(\)\.catch\(showError\)/);
+});
+
+test('connection workflow feedback distinguishes blocked device states', () => {
+  assert.match(adapterSource, /connection-no-device/);
+  assert.match(adapterSource, /connection-unsupported/);
+  assert.match(adapterSource, /function focusStudioWorkflowSurface\(decision\)/);
+  assert.match(adapterSource, /devicePicker\?\.focus/);
+  assert.match(adapterSource, /refreshDevicesButton[\s\S]*?focus/);
 });
 
 test('composer disables prompt buttons using workflow decisions', () => {

@@ -26,7 +26,6 @@ const durableMutationActions = new Set([
   StudioWorkflowAction.RESOLVE_ITEM_CLICKED,
 ]);
 
-const hardConnectionStates = new Set(['blocked', 'unsupported', 'no-device']);
 const inFlightOperations = new Set([
   'capturing',
   'saving-draft',
@@ -67,6 +66,13 @@ function hasWorkflowRisk(snapshot, risk) {
 
 function connectionReady(snapshot) {
   return (snapshot?.connection || 'initializing') === 'ready';
+}
+
+function annotateConnectionBlockReason(state) {
+  if (state === 'no-device') return 'connection-no-device';
+  if (state === 'unsupported') return 'connection-unsupported';
+  if (state === 'blocked') return 'connection-blocked';
+  return 'connection-not-ready';
 }
 
 function sessionClosed(snapshot) {
@@ -111,10 +117,7 @@ function decideStudioWorkflow(action, snapshot = {}) {
   if (action === StudioWorkflowAction.ANNOTATE_CLICKED) {
     if (!connectionReady(snapshot)) {
       const state = snapshot.connection || 'initializing';
-      return blockStudioWorkflow(
-        hardConnectionStates.has(state) ? 'connection-blocked' : 'connection-not-ready',
-        'connection-card',
-      );
+      return blockStudioWorkflow(annotateConnectionBlockReason(state), 'connection-card');
     }
     const workspace = snapshot.workspace || 'empty';
     const canCapture = (workspace === 'empty' || workspace === 'saved-focus') && Boolean(snapshot.activeSessionId);

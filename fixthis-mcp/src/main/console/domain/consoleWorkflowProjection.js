@@ -2,6 +2,7 @@
 function workflowConnectionFromState(state) {
   const raw = String(state.connection?.current?.state || '').toLowerCase();
   if (raw === 'ready') return 'ready';
+  if (raw === 'no_device') return 'no-device';
   if (raw === 'check_phone' || raw === 'choose_device') return 'blocked';
   if (raw === 'unsupported_build') return 'unsupported';
   if (raw === 'open_app' || raw === 'reconnect' || raw === 'starting') return 'reconnecting';
@@ -42,8 +43,17 @@ function workflowStatus(decision) {
   if (decision.reason === 'operation-in-flight') {
     return Object.freeze({ message: 'Finish the current handoff action before switching sessions.', variant: 'warn', assertive: false });
   }
-  if (decision.reason === 'connection-blocked' || decision.reason === 'connection-not-ready') {
-    return Object.freeze({ message: 'Connect the app before annotating.', variant: 'warn', assertive: false });
+  if (decision.reason === 'connection-no-device') {
+    return Object.freeze({ message: 'Connect a device before annotating.', variant: 'warn', assertive: false });
+  }
+  if (decision.reason === 'connection-unsupported') {
+    return Object.freeze({ message: 'Install a supported debug build before annotating.', variant: 'warn', assertive: false });
+  }
+  if (decision.reason === 'connection-blocked') {
+    return Object.freeze({ message: 'Check the device or choose another device before annotating.', variant: 'warn', assertive: false });
+  }
+  if (decision.reason === 'connection-not-ready') {
+    return Object.freeze({ message: 'Open the app before annotating.', variant: 'warn', assertive: false });
   }
   if (decision.reason === 'closed-session') {
     return Object.freeze({ message: 'Reopen the session or create a new active session before changing feedback.', variant: 'warn', assertive: false });
