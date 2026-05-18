@@ -85,7 +85,7 @@ function forbidTextInRepository(rule, forbiddenText) {
 requireRegex(
   'R1.readme-agent-first-install',
   'README.md',
-  /fixthis\s+install-agent[\s\S]*io\.github\.beyondwin\.fixthis\.compose[\s\S]*version\s+"0\.3\.0"/,
+  /fixthis\s+install-agent[\s\S]*io\.github\.beyondwin\.fixthis\.compose[\s\S]*version\s+"0\.6\.0"/,
   'the published agent-first install path and Gradle Plugin Portal id',
 );
 requireIncludes(
