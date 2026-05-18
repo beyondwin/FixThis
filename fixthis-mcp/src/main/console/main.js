@@ -51,26 +51,20 @@
               const active = document.activeElement;
               if (matchesUndo(e, active)) {
                 e.preventDefault();
-                const result = undo(undoRedoHistory, { items: draftItemList() }, draftFlow()?.context ?? null);
-                if (result.reason === 'context_mismatch') {
-                  showError('Undo history was cleared because the annotation session changed.');
-                } else if (!result.applied) {
+                const result = applyDraftHistoryUndo();
+                if (!result.applied) {
                   showStatus('Nothing to undo.', { variant: 'info', durationMs: 2000 });
                 } else {
-                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
                 }
               } else if (matchesRedo(e, active)) {
                 e.preventDefault();
-                const result = redo(undoRedoHistory, { items: draftItemList() }, draftFlow()?.context ?? null);
-                if (result.reason === 'context_mismatch') {
-                  showError('Redo history was cleared because the annotation session changed.');
-                } else if (!result.applied) {
+                const result = applyDraftHistoryRedo();
+                if (!result.applied) {
                   showStatus('Nothing to redo.', { variant: 'info', durationMs: 2000 });
                 } else {
-                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
@@ -140,6 +134,31 @@
               );
             }
 
+            function applyDraftHistoryChange(direction) {
+              const workspace = currentDraftWorkspace();
+              if (!workspace?.workspaceId) return { applied: false, reason: 'empty' };
+              const result = direction === 'redo'
+                ? redoDraftHistory(workspace.history, workspace.items)
+                : undoDraftHistory(workspace.history, workspace.items);
+              if (!result.applied) return result;
+              replaceDraftWorkspace(reduceDraftWorkspace(workspace, {
+                type: 'APPLY_HISTORY',
+                workspaceId: workspace.workspaceId,
+                expectedRevision: workspace.revision,
+                items: result.items,
+                history: result.history,
+              }));
+              return result;
+            }
+
+            function applyDraftHistoryUndo() {
+              return applyDraftHistoryChange('undo');
+            }
+
+            function applyDraftHistoryRedo() {
+              return applyDraftHistoryChange('redo');
+            }
+
             // ALH-2: 5-second undo toast shown after a pending item is deleted.
             function showUndoToast(itemId) {
               if (typeof document === 'undefined') return;
@@ -154,14 +173,12 @@
               btn.textContent = 'Undo';
               btn.style.cssText = 'background:none;border:none;color:#bb86fc;cursor:pointer;font-size:14px;padding:0;font-weight:500;';
               btn.addEventListener('click', () => {
-                const result = undo(undoRedoHistory, { items: draftItemList() }, draftFlow()?.context ?? null);
-                if (result.reason === 'context_mismatch') showError('Undo history was cleared because the annotation session changed.');
+                const result = applyDraftHistoryUndo();
                 if (result.applied) {
-                  persistCurrentPendingState();
                   renderPreviewOnly();
                   renderInspectorRegion();
                   renderCurrentSessionList();
-                } else if (result.reason !== 'context_mismatch') {
+                } else {
                   showStatus('Nothing to undo.', { variant: 'info', durationMs: 2000 });
                 }
                 toast.remove();
@@ -181,7 +198,8 @@
               return true;
             }
 
-            async function resolvePendingBeforeBoundary(action, sessionId = null) {
+            async function resolvePendingBeforeBoundary(action, sessionId = null, boundaryContext = {}) {
+              flushFocusedPendingComment();
               const activeWorkspace = currentDraftWorkspace();
               const meta = {
                 kind: 'session-boundary',
@@ -194,6 +212,7 @@
                 const boundaryResult = await resolveLifecycleBoundary({
                   action,
                   targetSessionId: sessionId,
+                  boundaryContext,
                   activeWorkspace: workspace,
                   pendingRecovery,
                   ports: createBrowserDraftPorts(),
@@ -231,26 +250,39 @@
               });
             }
 
-            function promptPendingBoundaryChoice(action, count) {
+            function normalizePendingBoundaryChoice(action, choice) {
+              if (action === 'delete-session') {
+                return choice === 'confirm' || choice === 'discard' || choice === 'discardAndProceed' ? 'discard' : 'cancel';
+              }
+              if (choice === 'save' || choice === 'discard' || choice === 'keep' || choice === 'cancel') return choice;
+              return choice === 'saveAndProceed' ? 'save' : choice === 'discardAndProceed' ? 'discard' : 'cancel';
+            }
+
+            function promptPendingBoundaryChoice(action, count, context = {}) {
               if (typeof window !== 'undefined' && typeof window.fixThisPromptPendingBoundary === 'function') {
                 // Override path bypasses promptBoundaryDialogChoice click handlers,
                 // so dismiss the sheet to match real-user dismissal.
-                return Promise.resolve(window.fixThisPromptPendingBoundary({ action, count })).then((choice) => {
+                const payload = Object.keys(context || {}).length ? { action, count, context } : { action, count };
+                return Promise.resolve(window.fixThisPromptPendingBoundary(payload)).then((choice) => {
                   if (typeof statusSurfaceRegistry !== 'undefined') statusSurfaceRegistry.hide('sessionBoundarySheet');
                   else if (typeof document !== 'undefined') { const r = document.getElementById('sessionBoundarySheet'); if (r) r.hidden = true; }
-                  return choice;
+                  return normalizePendingBoundaryChoice(action, choice);
                 });
               }
               if (action === 'delete-session') {
-                return promptBoundaryDialogChoice('sessionDelete', { annotationCount: count, screenCount: 0 })
-                  .then((choice) => choice === 'discardAndProceed' || choice === 'saveAndProceed' ? 'discard' : 'cancel');
+                return promptBoundaryDialogChoice('sessionDelete', {
+                  currentSessionName: context.currentSessionName || 'current session',
+                  annotationCount: context.annotationCount ?? count,
+                  screenCount: context.screenCount ?? 0,
+                })
+                  .then((choice) => normalizePendingBoundaryChoice(action, choice));
               }
               if (action === 'new-session') {
                 return promptBoundaryDialogChoice('sessionCreate', { itemCount: count })
-                  .then((choice) => choice === 'saveAndProceed' ? 'save' : choice === 'discardAndProceed' ? 'discard' : 'cancel');
+                  .then((choice) => normalizePendingBoundaryChoice(action, choice));
               }
               return promptBoundaryDialogChoice('sessionSwitch', { itemCount: count })
-                .then((choice) => choice === 'saveAndProceed' ? 'save' : choice === 'discardAndProceed' ? 'discard' : 'cancel');
+                .then((choice) => normalizePendingBoundaryChoice(action, choice));
             }
 
             function promptPendingRecoveryBoundaryChoice(recovery, action) {

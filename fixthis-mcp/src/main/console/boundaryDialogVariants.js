@@ -22,8 +22,7 @@ const BoundaryDialogVariants = Object.freeze({
   sessionDelete: Object.freeze({
     title: (ctx = {}) => 'Delete ' + (ctx.currentSessionName || 'current session') + '?',
     summary: (ctx = {}) => 'Removes ' + (ctx.annotationCount ?? 0) + ' annotations across ' + (ctx.screenCount ?? 0) + ' screens. Cannot be undone.',
-    primary: Object.freeze({ label: 'Save and delete', action: 'saveAndProceed' }),
-    secondary: Object.freeze({ label: 'Discard', action: 'discardAndProceed' }),
+    primary: Object.freeze({ label: 'Delete session', action: 'confirm' }),
     cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
   }),
   editorBack: Object.freeze({

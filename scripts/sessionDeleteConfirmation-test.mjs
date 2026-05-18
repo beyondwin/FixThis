@@ -16,6 +16,6 @@ test('deleteHistorySession confirms via promptBoundaryDialogChoice before mutati
   assert.match(history, /promptBoundaryDialogChoice\(['"]sessionDelete['"]/);
 });
 
-test('deleteHistorySession aborts when the confirmation returns cancel', () => {
-  assert.match(history, /if \(choice === ['"]cancel['"]\) return/);
+test('deleteHistorySession aborts unless the confirmation returns confirm', () => {
+  assert.match(history, /if \(choice !== ['"]confirm['"]\) return/);
 });

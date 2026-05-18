@@ -87,6 +87,7 @@ test('session delete title and summary include destructive scope', () => {
   assert.match(document.title.textContent, /Settings/);
   assert.match(document.summary.textContent, /5 annotations/);
   assert.match(document.summary.textContent, /3 screens/);
+  assert.deepEqual(visibleLabels(), ['Cancel', 'Delete session']);
 });
 
 test('unknown boundary variants fail loudly', () => {
@@ -97,11 +98,11 @@ test('three-button dialog still renders all buttons after a two-button dialog', 
   // forgetDevice has only cancel + primary, leaving the middle two slots null.
   // Previously the renderer removed [data-boundary-action] from those buttons,
   // so the next render's querySelectorAll returned a shortened button list and
-  // sessionDelete's "Discard" / "Save and delete" never reached the DOM.
+  // sessionSwitch's "Discard" / "Save and switch" never reached the DOM.
   renderBoundaryDialog('forgetDevice', { deviceName: 'Pixel' });
-  renderBoundaryDialog('sessionDelete', { currentSessionName: 'Session 1', annotationCount: 0, screenCount: 0 });
+  renderBoundaryDialog('sessionSwitch', { currentSessionName: 'Session 1', targetSessionName: 'Session 2' });
 
-  assert.deepEqual(visibleLabels(), ['Cancel', 'Discard', 'Save and delete']);
+  assert.deepEqual(visibleLabels(), ['Cancel', 'Discard', 'Save and switch']);
 });
 
 test('destructive utility dialogs label confirm and cancel explicitly', () => {

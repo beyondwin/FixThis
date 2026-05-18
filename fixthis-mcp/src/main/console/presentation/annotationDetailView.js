@@ -170,7 +170,8 @@
               });
               pendingItems.querySelectorAll('[data-back-annotations]').forEach(button => {
                 button.addEventListener('click', () => {
-                  setDraftFocusIndex(null);
+                  clearPendingDraftFocus();
+                  setDraftSelection(null);
                   renderPreviewOnly();
                   renderInspectorRegion();
                 });

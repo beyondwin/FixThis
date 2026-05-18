@@ -307,12 +307,13 @@ async function resolveDraftBoundary(workspace, boundaryAction, ports) {
 async function resolveLifecycleBoundary({
   action,
   targetSessionId = null,
+  boundaryContext = {},
   activeWorkspace,
   pendingRecovery,
   ports,
 }) {
   requireDraftPort(ports, 'storage');
-  const boundaryAction = { kind: action, sessionId: targetSessionId };
+  const boundaryAction = { kind: action, sessionId: targetSessionId, context: boundaryContext || {} };
   let nextWorkspace = activeWorkspace || createEmptyDraftWorkspace();
   let nextPendingRecovery = pendingRecovery || null;
   let savedSession = null;

@@ -294,6 +294,17 @@
               clearDragState();
             }
 
+            function clearPendingDraftFocus() {
+              const workspace = currentDraftWorkspace();
+              if (workspace?.workspaceId && workspace.focusedItemId) {
+                replaceDraftWorkspace(reduceDraftWorkspace(workspace, {
+                  type: 'CLEAR_FOCUS',
+                  workspaceId: workspace.workspaceId,
+                }));
+              }
+              setDraftFocusIndex(null);
+            }
+
             function persistCurrentPendingState() {
               persistCurrentDraftWorkspaceIfNeeded();
             }

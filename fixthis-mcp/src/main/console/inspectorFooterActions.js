@@ -55,7 +55,7 @@ function closeSavedAnnotationDetail(item, sessionId) {
 }
 
 function navigateEditorToList() {
-  setDraftFocusIndex(null);
+  clearPendingDraftFocus();
   setDraftSelection(null);
   toolMode.focusSavedItem(null, null, null);
   comment.value = '';

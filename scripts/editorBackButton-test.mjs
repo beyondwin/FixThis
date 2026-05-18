@@ -39,7 +39,7 @@ function resetEvents() {
   events.length = 0;
 }
 
-test('renderEditorBack hides only none state', () => {
+test('renderEditorBack hides none and draft list states', () => {
   const editorBack = document.getElementById('editorBack');
 
   renderEditorBack({ state: 'none' });
@@ -49,7 +49,7 @@ test('renderEditorBack hides only none state', () => {
   assert.equal(editorBack.hidden, false);
 
   renderEditorBack({ state: 'draft' });
-  assert.equal(editorBack.hidden, false);
+  assert.equal(editorBack.hidden, true);
 
   renderEditorBack({ state: 'saved' });
   assert.equal(editorBack.hidden, false);

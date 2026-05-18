@@ -4,7 +4,7 @@
 function renderEditorBack(ctx = {}) {
   const element = document.getElementById('editorBack');
   if (!element) return;
-  element.hidden = ctx.state === 'none';
+  element.hidden = ctx.state === 'none' || ctx.state === 'draft';
 }
 
 function handleEditorBackClick(ctx = {}, ports = {}) {

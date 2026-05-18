@@ -476,16 +476,21 @@
               error.textContent = '';
               if (!sessionId) return;
               if (sessionNavigationInFlight) return;
-              const choice = await promptBoundaryDialogChoice('sessionDelete', {
+              const deleteContext = {
                 currentSessionName: options.sessionLabel || 'this session',
                 annotationCount: options.annotationCount ?? 0,
                 screenCount: options.screenCount ?? 0,
-              });
-              if (choice === 'cancel') return;
+              };
               const hasDraftForThisSession = draftWorkspace?.context?.sessionId === sessionId
                 && draftItemList().length > 0;
               if (hasDraftForThisSession) {
-                if (await resolvePendingBeforeBoundary('delete-session', sessionId) !== 'continue') return;
+                if (await resolvePendingBeforeBoundary('delete-session', sessionId, {
+                  ...deleteContext,
+                  annotationCount: deleteContext.annotationCount + draftItemList().length,
+                }) !== 'continue') return;
+              } else {
+                const choice = await promptBoundaryDialogChoice('sessionDelete', deleteContext);
+                if (choice !== 'confirm') return;
               }
               const isDisplayedSession = () => state.session?.sessionId === sessionId;
               const hasDisplayedDraftForDeletedSession = () => draftWorkspace?.context?.sessionId === sessionId;

@@ -210,7 +210,11 @@
                 clipboard: { writeText: copyTextToClipboard },
                 boundaryPrompt: {
                   choose: (workspace, boundaryAction) =>
-                    promptPendingBoundaryChoice(boundaryAction?.kind || boundaryAction, draftWorkspaceItems(workspace).length),
+                    promptPendingBoundaryChoice(
+                      boundaryAction?.kind || boundaryAction,
+                      draftWorkspaceItems(workspace).length,
+                      boundaryAction?.context || {},
+                    ),
                 },
                 recoveryPrompt: {
                   choose: (recovery, boundaryAction) =>

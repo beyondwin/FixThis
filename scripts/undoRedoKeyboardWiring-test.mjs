@@ -7,14 +7,16 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const main = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
 
-test('Cmd+Z keyboard handler calls undo() directly, not a no-op dispatch', () => {
+test('Cmd+Z keyboard handler applies DraftWorkspace undo, not a no-op dispatch or direct array mutation', () => {
   assert.doesNotMatch(main, /matchesUndo\(e, active\)[\s\S]{0,80}store\.dispatch\(\{ type: 'UNDO_CLICKED' \}\)/);
-  assert.match(main, /matchesUndo\(e, active\)[\s\S]{0,200}undo\(undoRedoHistory/);
+  assert.match(main, /matchesUndo\(e, active\)[\s\S]{0,240}applyDraftHistoryUndo\(\)/);
+  assert.doesNotMatch(main, /matchesUndo\(e, active\)[\s\S]{0,260}undo\(undoRedoHistory,\s*\{ items: draftItemList\(\) \}/);
 });
 
-test('Cmd+Shift+Z keyboard handler calls redo() directly, not a no-op dispatch', () => {
+test('Cmd+Shift+Z keyboard handler applies DraftWorkspace redo, not a no-op dispatch or direct array mutation', () => {
   assert.doesNotMatch(main, /matchesRedo\(e, active\)[\s\S]{0,80}store\.dispatch\(\{ type: 'REDO_CLICKED' \}\)/);
-  assert.match(main, /matchesRedo\(e, active\)[\s\S]{0,200}redo\(undoRedoHistory/);
+  assert.match(main, /matchesRedo\(e, active\)[\s\S]{0,240}applyDraftHistoryRedo\(\)/);
+  assert.doesNotMatch(main, /matchesRedo\(e, active\)[\s\S]{0,260}redo\(undoRedoHistory,\s*\{ items: draftItemList\(\) \}/);
 });
 
 test('Keyboard undo shows a toast when the stack is empty', () => {

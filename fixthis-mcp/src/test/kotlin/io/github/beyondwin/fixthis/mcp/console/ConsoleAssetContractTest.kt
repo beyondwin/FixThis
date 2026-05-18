@@ -682,10 +682,11 @@ class ConsoleAssetContractTest {
         val openSession = javascriptFunctionBody(html, "openSession")
         val newSession = javascriptFunctionBody(html, "newSession")
 
-        assertTrue(html.contains("async function resolvePendingBeforeBoundary(action, sessionId = null)"))
+        assertTrue(html.contains("async function resolvePendingBeforeBoundary(action, sessionId = null, boundaryContext = {})"))
         assertTrue(
             html.contains("resolveLifecycleBoundary({"),
         )
+        assertTrue(html.contains("boundaryContext,"))
         assertTrue(html.contains("ports: createBrowserDraftPorts(),"))
         assertTrue(html.contains("ensureDraftCommandQueue().enqueue"))
         assertTrue(openSession.contains("await resolvePendingBeforeBoundary('open-session', sessionId)"))

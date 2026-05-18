@@ -120,6 +120,14 @@ function reduceDraftWorkspace(workspace = createEmptyDraftWorkspace(), action = 
         currentSelection: null,
         lastError: null,
       });
+    case 'APPLY_HISTORY':
+      return bumpDraftRevision(workspace, {
+        items: cloneDraftValue(action.items || []),
+        history: cloneDraftValue(action.history || { undoStack: [], redoStack: [] }),
+        focusedItemId: null,
+        currentSelection: null,
+        lastError: null,
+      });
     case 'FOCUS_ITEM':
       return bumpDraftRevision(workspace, { focusedItemId: action.draftItemId || null });
     case 'CLEAR_FOCUS':
