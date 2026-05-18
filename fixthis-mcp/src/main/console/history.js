@@ -187,11 +187,11 @@
                 return;
               }
               await ensureSessionForAnnotating();
-              toolMode.enterAnnotate();
-              renderCurrentSessionList();
               if (!draftFlow()) {
                 await startDraftAnnotationFlow();
               } else {
+                toolMode.enterAnnotate();
+                renderCurrentSessionList();
                 renderPreviewOnly();
                 renderInspectorRegion();
               }
@@ -201,7 +201,6 @@
               if (toolMode.getState().newHistoryAnnotateModeStarting) return;
               const wasAnnotating = toolMode.isAnnotateMode();
               toolMode.setNewHistoryAnnotateModeStarting(true);
-              toolMode.enterAnnotate();
               renderCurrentSessionList();
               try {
                 const openedNewSession = await newSession();

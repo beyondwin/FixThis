@@ -353,11 +353,14 @@
               updateComposerState();
             }
 
-
             async function startDraftAnnotationFlow() {
               if (toolMode.getState().draftFlowStarting) return;
               const decision = decideCurrentStudioWorkflow(StudioWorkflowAction.ANNOTATE_CLICKED);
-              if (surfaceStudioWorkflowDecision(decision)) return;
+              if (surfaceStudioWorkflowDecision(decision)) {
+                resetComposer(false, false);
+                render();
+                return;
+              }
               error.textContent = '';
               toolMode.setAddItemsFlowStarting(true);
               updateComposerState();
