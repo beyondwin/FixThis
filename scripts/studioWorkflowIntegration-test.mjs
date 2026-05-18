@@ -60,3 +60,14 @@ test('copy and Save to MCP consult workflow before durable mutation', () => {
   assert.match(send, /decideCurrentStudioWorkflow\(StudioWorkflowAction\.SAVE_TO_MCP_CLICKED/);
   assert.match(send, /surfaceStudioWorkflowDecision\(decision\)/);
 });
+
+const feedbackConsoleContract = readFileSync(resolve(root, 'docs/reference/feedback-console-contract.md'), 'utf8');
+const troubleshooting = readFileSync(resolve(root, 'docs/guides/troubleshooting.md'), 'utf8');
+
+test('docs describe automatic recovery and confirmation-required mutations', () => {
+  assert.match(feedbackConsoleContract, /Automatic recovery/);
+  assert.match(feedbackConsoleContract, /Confirmation-required mutations/);
+  assert.match(feedbackConsoleContract, /Connection loss never clears a draft workspace/);
+  assert.match(troubleshooting, /Connection paused - draft preserved/);
+  assert.match(troubleshooting, /Reopen the session or create a new active session/);
+});

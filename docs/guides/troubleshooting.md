@@ -232,6 +232,23 @@ Click `Reconnect`. The console will try to open the app and refresh the bridge s
 
 Open `Details` for raw diagnostics such as `Bridge closed before sending a response`.
 
+### Connection paused while work is in progress
+
+If Studio says `Connection paused - draft preserved`, the bridge or foreground
+app state changed while local feedback work still exists. FixThis keeps the
+draft, sent handoff batches, claim state, resolve state, and persisted evidence
+intact.
+
+Safe automatic recovery includes heartbeat retry, reconnect, preview refresh,
+and polling resume. Durable mutations still require a current context or an
+explicit confirmation: Save to MCP from a stale preview, dirty-draft session
+switch, stale force-save, claim, and resolve.
+
+If a closed session blocks work with
+`Reopen the session or create a new active session before changing feedback`,
+open an active session from the history list or create a new session before
+adding, claiming, resolving, or handing off feedback.
+
 ### I reopened the console and do not see my previous feedback
 
 Run `fixthis_list_feedback_sessions` or reopen the console with the exact `sessionId`. If the session was closed, pass `includeClosed` when listing sessions. Verify `.fixthis/feedback-sessions/` exists under the same project root used by the MCP server.
