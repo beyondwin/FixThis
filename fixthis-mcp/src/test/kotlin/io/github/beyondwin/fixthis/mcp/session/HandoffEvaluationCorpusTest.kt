@@ -3,7 +3,6 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class HandoffEvaluationCorpusTest {

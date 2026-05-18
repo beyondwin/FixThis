@@ -153,16 +153,31 @@ npm run console:build:test          # build-console-assets unit tests
 > configurations, switch to the package filter
 > `io.github.beyondwin.fixthis.mcp.console.*`.
 
-Run these before opening a pull request:
+Run this before pushing routine work:
 
 ```bash
-npm run ci:local
+npm run prepush
 ```
 
-`npm run ci:local` mirrors the required CI gates locally. For faster iteration,
-use `npm run ci:local:fast` for the Node/doc/asset/whitespace checks, or
-`npm run ci:local:changed` to run the fast checks and add Gradle only when
-Kotlin, Android, or Gradle files changed.
+`npm run prepush` is the one-shot preparation command. It applies
+Kotlin/Gradle formatting, rebuilds the checked-in console asset bundle with
+reproducible metadata, then runs fast push hygiene. It does not run Gradle
+static analysis, unit tests, sample assemble, installDist, perf, package, or
+release-evidence checks.
+
+Run this before opening a release pull request or cutting a release:
+
+```bash
+npm run release:check
+```
+
+`npm run release:check` mirrors the full required CI gates locally. It includes
+the release-readiness, release-evidence, package, perf, console, Gradle test,
+sample assemble, and installDist checks. `npm run ci:local` is kept as the same
+full gate, while `npm run ci:local:fast` and `npm run ci:local:changed` remain
+available for targeted debugging. Whitespace checks intentionally ignore
+Markdown files under `docs/superpowers/`, because those files are historical
+planning artifacts; all other files remain enforced.
 
 To install the tracked pre-push hook for this checkout:
 
@@ -170,7 +185,7 @@ To install the tracked pre-push hook for this checkout:
 npm run hooks:install
 ```
 
-The hook runs `npm run ci:local:changed` before each push. To bypass it for an
+The hook runs `npm run prepush` before each push. To bypass it for an
 intentional emergency push, run `FIXTHIS_SKIP_PRE_PUSH=1 git push` and follow up
 with the CI result immediately.
 
@@ -198,7 +213,7 @@ npm run release:package:test
 # All console JS tests (single source of truth is scripts/console-tests.json).
 node scripts/run-console-tests.mjs availability canonical pending beforeunload undo activity preview draft session harness
 # Equivalent to `npm run console:test:all`; edit the JSON, not this command line.
-git diff --check
+node scripts/check-whitespace.mjs diff --check
 ```
 
 `check-release-readiness.mjs` protects public release docs from accidentally

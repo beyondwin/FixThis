@@ -8,5 +8,5 @@ if [[ "${FIXTHIS_SKIP_PRE_PUSH:-}" == "1" ]]; then
     exit 0
 fi
 
-echo "[pre-push] running local CI gate; set FIXTHIS_SKIP_PRE_PUSH=1 to bypass intentionally"
-bash scripts/verify-ci-local.sh --changed-only
+echo "[pre-push] running prepush gate; set FIXTHIS_SKIP_PRE_PUSH=1 to bypass intentionally"
+npm run prepush

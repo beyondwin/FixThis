@@ -59,12 +59,11 @@ internal object EditSurfaceRoleClassifier {
         EditSurfaceKindDto.COMPONENT_RENDERER,
     )
 
-    private fun hasComponentSignal(item: AnnotationDto): Boolean =
-        item.selectedNode?.testTag?.startsWith("comp:") == true ||
-            item.sourceCandidates.any { candidate ->
-                candidate.ownerComposable != null ||
-                    candidate.matchReasons.contains("selected testTag convention composable")
-            }
+    private fun hasComponentSignal(item: AnnotationDto): Boolean = item.selectedNode?.testTag?.startsWith("comp:") == true ||
+        item.sourceCandidates.any { candidate ->
+            candidate.ownerComposable != null ||
+                candidate.matchReasons.contains("selected testTag convention composable")
+        }
 
     private fun looksLikeCopyIntent(comment: String): Boolean {
         val normalized = comment.lowercase()

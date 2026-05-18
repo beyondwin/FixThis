@@ -11,4 +11,4 @@ fi
 
 git config core.hooksPath .githooks
 echo "[hooks] configured core.hooksPath=.githooks"
-echo "[hooks] pre-push will run scripts/verify-ci-local.sh --changed-only"
+echo "[hooks] pre-push will run npm run prepush"

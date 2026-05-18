@@ -4,9 +4,10 @@ set -euo pipefail
 
 print_usage() {
     cat <<'USAGE'
-Usage: scripts/verify-ci-local.sh [--changed-only|--fast|--full] [--base <ref>] [--list]
+Usage: scripts/verify-ci-local.sh [--prepush|--changed-only|--fast|--full] [--base <ref>] [--list]
 
 Modes:
+  --prepush      Run fast push hygiene only; skip Gradle, release, package, and perf checks.
   --changed-only  Run fast checks, then run Gradle only for Kotlin/Android/Gradle changes. Default.
   --fast          Run quick CI gates only.
   --full          Run quick CI gates plus the full Gradle verification command.
@@ -30,6 +31,8 @@ LIST_ONLY=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --prepush)
+            MODE="prepush"; shift ;;
         --changed-only)
             MODE="changed-only"; shift ;;
         --fast)
@@ -99,11 +102,21 @@ run_step() {
     bash -lc "$command"
 }
 
+prepush_commit_whitespace_check() {
+    if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+        printf '%s\n' "node scripts/check-whitespace.mjs diff --check HEAD^..HEAD"
+    else
+        printf '%s\n' "node scripts/check-whitespace.mjs diff-tree --check --root -r HEAD"
+    fi
+}
+
 BASE="$(resolve_base)"
 CHANGED_FILES="$(changed_files)"
 RUN_GRADLE=0
 
 case "$MODE" in
+    prepush)
+        RUN_GRADLE=0 ;;
     fast)
         RUN_GRADLE=0 ;;
     full)
@@ -117,24 +130,37 @@ case "$MODE" in
         exit 2 ;;
 esac
 
-run_step "node scripts/check-doc-consistency.mjs"
-run_step "node scripts/check-release-readiness.mjs"
-run_step "npm run release:v06:evidence:test"
-run_step "npm run docs:agent-bootstrap:test"
-run_step "npm run first-run:smoke:test"
-run_step "npm run detekt:baseline:check"
-run_step "npm run checks:observation:test"
-run_step "node scripts/build-console-assets.mjs --check"
-run_step "node --check fixthis-mcp/src/main/resources/console/app.js"
-run_step "npm run console:test:all"
-run_step "node --test scripts/fixthis-smoke-test.mjs"
-run_step "npm run release:package:test"
-run_step "npm run perf:test"
+if [[ "$MODE" == "prepush" ]]; then
+    run_step "node scripts/check-doc-consistency.mjs"
+    run_step "npm run detekt:baseline:check"
+    run_step "node scripts/build-console-assets.mjs --check"
+    run_step "node --check fixthis-mcp/src/main/resources/console/app.js"
+    run_step "npm run console:test:fast"
+else
+    run_step "node scripts/check-doc-consistency.mjs"
+    run_step "node scripts/check-release-readiness.mjs"
+    run_step "npm run release:v06:evidence:test"
+    run_step "npm run docs:agent-bootstrap:test"
+    run_step "npm run first-run:smoke:test"
+    run_step "npm run detekt:baseline:check"
+    run_step "npm run checks:observation:test"
+    run_step "node scripts/build-console-assets.mjs --check"
+    run_step "node --check fixthis-mcp/src/main/resources/console/app.js"
+    run_step "npm run console:test:all"
+    run_step "node --test scripts/fixthis-smoke-test.mjs"
+    run_step "npm run release:package:test"
+    run_step "npm run perf:test"
+fi
 if [[ "$RUN_GRADLE" -eq 1 ]]; then
     run_step "./gradlew spotlessCheck detekt :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist --no-daemon"
 fi
-run_step "git diff --check ${BASE}..HEAD"
-run_step "git diff --check"
+if [[ "$MODE" == "prepush" ]]; then
+    run_step "$(prepush_commit_whitespace_check)"
+    run_step "node scripts/check-whitespace.mjs diff --cached --check"
+else
+    run_step "node scripts/check-whitespace.mjs diff --check ${BASE}..HEAD"
+fi
+run_step "node scripts/check-whitespace.mjs diff --check"
 
 if [[ "$LIST_ONLY" -eq 0 ]]; then
     printf '\n[verify-ci-local] complete\n'

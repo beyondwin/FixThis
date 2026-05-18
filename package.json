@@ -8,9 +8,12 @@
   },
   "scripts": {
     "ci:local": "bash scripts/verify-ci-local.sh --full",
+    "ci:local:prepush": "bash scripts/verify-ci-local.sh --prepush",
     "ci:local:fast": "bash scripts/verify-ci-local.sh --fast",
     "ci:local:changed": "bash scripts/verify-ci-local.sh --changed-only",
     "ci:local:test": "node --test scripts/verify-ci-local-test.mjs",
+    "prepush": "./gradlew spotlessApply --no-daemon && FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs && npm run ci:local:prepush",
+    "release:check": "npm run ci:local",
     "hooks:install": "bash scripts/install-git-hooks.sh",
     "console:smoke": "node scripts/console-browser-smoke.mjs",
     "first-run:smoke": "node scripts/first-run-smoke.mjs",

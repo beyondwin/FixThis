@@ -43,9 +43,40 @@ test("--fast lists the quick CI mirror without Gradle", () => {
     "node --test scripts/fixthis-smoke-test.mjs",
     "npm run release:package:test",
     "npm run perf:test",
-    "git diff --check HEAD..HEAD",
-    "git diff --check",
+    "node scripts/check-whitespace.mjs diff --check HEAD..HEAD",
+    "node scripts/check-whitespace.mjs diff --check",
   ]);
+});
+
+test("--prepush lists only formatting-adjacent and fast hygiene checks", () => {
+  const result = runVerify(["--prepush", "--list"], {
+    FIXTHIS_VERIFY_BASE: "HEAD",
+    FIXTHIS_VERIFY_CHANGED_FILES: "README.md\n",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const commands = commandLines(result.stdout);
+  assert.deepEqual(commands, [
+    "node scripts/check-doc-consistency.mjs",
+    "npm run detekt:baseline:check",
+    "node scripts/build-console-assets.mjs --check",
+    "node --check fixthis-mcp/src/main/resources/console/app.js",
+    "npm run console:test:fast",
+    "node scripts/check-whitespace.mjs diff --check HEAD^..HEAD",
+    "node scripts/check-whitespace.mjs diff --cached --check",
+    "node scripts/check-whitespace.mjs diff --check",
+  ]);
+});
+
+test("--prepush does not add Gradle checks even for Kotlin or Gradle changes", () => {
+  const result = runVerify(["--prepush", "--list"], {
+    FIXTHIS_VERIFY_BASE: "HEAD",
+    FIXTHIS_VERIFY_CHANGED_FILES: "fixthis-mcp/src/main/kotlin/io/beyondwin/Foo.kt\n",
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.doesNotMatch(result.stdout, /RUN \.\/gradlew /);
+  assert.doesNotMatch(result.stdout, /:fixthis-compose-core:test/);
 });
 
 test("--full lists quick checks plus the Gradle CI command", () => {

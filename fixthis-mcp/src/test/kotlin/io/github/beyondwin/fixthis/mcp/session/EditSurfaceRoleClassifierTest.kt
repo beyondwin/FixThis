@@ -77,33 +77,31 @@ class EditSurfaceRoleClassifierTest {
         assertEquals(SelectionConfidence.LOW, role.confidenceCap)
     }
 
-    private fun item(comment: String, selectedNode: FixThisNode, candidates: List<SourceCandidate>): AnnotationDto =
-        AnnotationDto(
-            itemId = "item",
-            screenId = "screen",
-            createdAtEpochMillis = 1L,
-            updatedAtEpochMillis = 1L,
-            target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
-            selectedNode = selectedNode,
-            sourceCandidates = candidates,
-            comment = comment,
-        )
+    private fun item(comment: String, selectedNode: FixThisNode, candidates: List<SourceCandidate>): AnnotationDto = AnnotationDto(
+        itemId = "item",
+        screenId = "screen",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
+        selectedNode = selectedNode,
+        sourceCandidates = candidates,
+        comment = comment,
+    )
 
-    private fun areaItem(comment: String, warnings: List<TargetReliabilityWarning>): AnnotationDto =
-        AnnotationDto(
-            itemId = "item",
-            screenId = "screen",
-            createdAtEpochMillis = 1L,
-            updatedAtEpochMillis = 1L,
-            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 200f, 120f)),
-            sourceCandidates = emptyList(),
-            comment = comment,
-            targetReliability = TargetReliability(
-                confidence = TargetConfidence.LOW,
-                reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
-                warnings = warnings,
-            ),
-        )
+    private fun areaItem(comment: String, warnings: List<TargetReliabilityWarning>): AnnotationDto = AnnotationDto(
+        itemId = "item",
+        screenId = "screen",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 200f, 120f)),
+        sourceCandidates = emptyList(),
+        comment = comment,
+        targetReliability = TargetReliability(
+            confidence = TargetConfidence.LOW,
+            reasons = listOf(TargetReliabilityReason.VISUAL_AREA_SELECTION),
+            warnings = warnings,
+        ),
+    )
 
     private fun node(
         text: List<String> = emptyList(),
