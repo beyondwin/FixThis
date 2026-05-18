@@ -4,6 +4,8 @@
             // rather than in connectionFsm.js or state.js.
             let heartbeatTimer = null;
             let heartbeatPolling = false;
+            const LaunchConnectionRefreshDelaysMs = Object.freeze([800, 1200, 2000, 3000, 5000]);
+            let launchRefreshTimer = null;
 
             function connectionActionLabel(action) {
               if (action === 'START') return 'Start';
@@ -20,6 +22,45 @@
               const rawState = String(status.state || 'WELCOME').toLowerCase();
               if (rawState === 'open_app' && connectionUseCases.getState().hasEverConnected) return 'reconnect';
               return rawState;
+            }
+
+            function shouldContinueLaunchConnectionRefresh(status) {
+              const rawState = String(status?.state || '').toLowerCase();
+              return rawState === 'starting' || rawState === 'open_app' || rawState === 'reconnect';
+            }
+
+            function clearLaunchConnectionRefresh() {
+              if (launchRefreshTimer) clearTimeout(launchRefreshTimer);
+              launchRefreshTimer = null;
+            }
+
+            function scheduleLaunchConnectionRefresh(attempt = 0) {
+              clearLaunchConnectionRefresh();
+              const currentStatus = connectionUseCases.getState().current;
+              if (!shouldContinueLaunchConnectionRefresh(currentStatus)) return;
+              if (attempt >= LaunchConnectionRefreshDelaysMs.length) return;
+              const delayMs = LaunchConnectionRefreshDelaysMs[attempt];
+              launchRefreshTimer = setTimeout(() => {
+                launchRefreshTimer = null;
+                refreshConnection({ preservePreviewStale: true })
+                  .then((status) => {
+                    if (!status) {
+                      scheduleLaunchConnectionRefresh(attempt + 1);
+                      return;
+                    }
+                    if (userConnectionState(status) === 'ready') {
+                      if (state.session && !draftFlow()) refreshPreview().catch(showError);
+                      return;
+                    }
+                    if (shouldContinueLaunchConnectionRefresh(status)) {
+                      scheduleLaunchConnectionRefresh(attempt + 1);
+                    }
+                  })
+                  .catch((cause) => {
+                    console.warn('[fixthis] launch connection refresh failed:', cause);
+                    scheduleLaunchConnectionRefresh(attempt + 1);
+                  });
+              }, delayMs);
             }
 
             function connectionDetailsText(status) {
@@ -216,6 +257,7 @@
 
               syncSelectedDeviceFromConnection(status);
               const viewState = userConnectionState(status);
+              if (!shouldContinueLaunchConnectionRefresh(status)) clearLaunchConnectionRefresh();
               if (viewState === 'ready') {
                 // hasEverConnected and lastReadyAt are set by STATUS_RECEIVED above.
                 if (!connectionOptions.preservePreviewStale && !state.preview?.obstructedBySystemUi) markPreviewStale(false);
@@ -303,13 +345,14 @@
             }
 
             async function launchApp() {
+              clearLaunchConnectionRefresh();
               connectionUseCases.launchRequested();
               renderConnection(connectionUseCases.getState().current);
               let succeeded = false;
               try {
                 const status = await requestJson('/api/app/launch', { method: 'POST' });
                 applyConnectionStatus(status);
-                setTimeout(() => refreshConnection().catch(showError), 800);
+                scheduleLaunchConnectionRefresh();
                 succeeded = true;
               } finally {
                 if (succeeded) connectionUseCases.launchSucceeded();

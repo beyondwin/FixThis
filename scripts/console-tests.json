@@ -33,6 +33,8 @@
     "scripts/previewStaleness-test.mjs",
     "scripts/canvasStatusBadgesLayout-test.mjs",
     "scripts/captureUnavailableRender-test.mjs",
+    "scripts/launchRecoveryPolling-test.mjs",
+    "scripts/promptPreviewRecovery-test.mjs",
     "scripts/markPreviewStale-test.mjs"
   ],
   "draft": [

@@ -1,4 +1,4 @@
-// @requires state.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, annotations.js
+// @requires state.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, annotations.js, preview.js
             function promptUnavailableMessage() {
               if (!state.session) return 'Select a history item before copying or sending annotations.';
               const annotations = toolbarAnnotations();
@@ -67,6 +67,18 @@
                 );
             }
 
+            async function restoreLivePreviewAfterPromptPersistence() {
+                if (draftFlow()) return;
+                if (!state.session) return;
+                startLivePreviewPolling();
+                if (userConnectionState(state.connection?.current) !== 'ready') return;
+                try {
+                    await refreshPreview();
+                } catch (cause) {
+                    console.warn('[fixthis] prompt preview refresh failed:', cause);
+                }
+            }
+
             async function copyPrompt() {
                 store.dispatch({ type: 'COPY_PROMPT_CLICKED' });
                 if (pollingUseCases.getState().promptActionInFlight) return;
@@ -112,6 +124,7 @@
                         }
                     } finally {
                         pollingUseCases.setPromptActionInFlight(false);
+                        if (copied) await restoreLivePreviewAfterPromptPersistence();
                         updateComposerState();
                         if (copied && labelSpan) {
                             labelSpan.textContent = 'Copied ✓';
@@ -152,10 +165,10 @@
                         clearPreview();
                         await refreshSessions();
                         render();
-                        startLivePreviewPolling();
                         sent = true;
                     } finally {
                         pollingUseCases.setPromptActionInFlight(false);
+                        if (sent) await restoreLivePreviewAfterPromptPersistence();
                         updateComposerState();
                         if (sent) showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
                     }
