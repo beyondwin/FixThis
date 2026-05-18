@@ -49,6 +49,34 @@ async function postJson(page, path, body) {
   }, { path, body });
 }
 
+async function createDraftAnnotation(page, comment) {
+  await page.waitForFunction(
+    () => Boolean(window.FixThisConsoleDebug.getState().preview?.screen),
+    null,
+    { timeout: 8000 },
+  );
+  await page.click('#annotateToolButton');
+  await page.waitForSelector('#snapshot[data-tool-mode="annotate"]');
+  await page.waitForSelector('#snapshotImage');
+  await page.waitForFunction(() => {
+    const image = document.getElementById('snapshotImage');
+    return Boolean(image?.complete && image.naturalWidth >= 0);
+  }, null, { timeout: 8000 });
+  const imageBox = await page.locator('#snapshotImage').boundingBox();
+  assert.ok(imageBox, 'expected snapshot image before creating draft annotation');
+  await page.mouse.move(imageBox.x + 40, imageBox.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(imageBox.x + 130, imageBox.y + 110);
+  await page.mouse.up();
+  await page.waitForSelector('#annotationCommentInput');
+  await page.fill('#annotationCommentInput', comment);
+  await page.waitForFunction(
+    () => !document.getElementById('sendAgentButton')?.disabled,
+    null,
+    { timeout: 8000 },
+  );
+}
+
 async function testTwoTabSseSync() {
   await withBrowser(async ({ fixture, context }) => {
     const second = await openConsolePage(context, fixture.url);
@@ -119,6 +147,36 @@ async function testEventSourceReconnectRecovery() {
   });
 }
 
+async function testStalePreviewSaveRequiresConfirmation() {
+  await withBrowser(async ({ fixture, context }) => {
+    const page = await openConsolePage(context, fixture.url);
+    await createDraftAnnotation(page, 'Do not save without confirmation');
+    fixture.rejectNextBatchForFingerprintMismatch({
+      frozenFingerprint: 'frozen-fingerprint',
+      currentFingerprint: 'current-fingerprint',
+    });
+
+    await page.click('#sendAgentButton');
+    await page.waitForFunction(
+      () => {
+        const sheet = document.getElementById('sessionBoundarySheet');
+        return sheet?.dataset.boundaryVariant === 'fingerprintMismatch' && sheet.hidden === false;
+      },
+      null,
+      { timeout: 8000 },
+    );
+    assert.equal(fixture.currentSession().items.length, 0, 'stale save must not persist before confirmation');
+
+    await page.click('#sessionBoundarySheet [data-boundary-action="cancel"]');
+    await page.waitForFunction(
+      () => document.getElementById('sessionBoundarySheet')?.hidden === true,
+      null,
+      { timeout: 8000 },
+    );
+    assert.equal(fixture.currentSession().items.length, 0, 'cancelled stale save must not persist');
+  });
+}
+
 async function testRepeatedSaveToMcpIdempotency() {
   await withBrowser(async ({ fixture, context }) => {
     const page = await openConsolePage(context, fixture.url);
@@ -153,6 +211,7 @@ async function run() {
   await testTwoTabSseSync();
   await testLatePreviewIsolation();
   await testEventSourceReconnectRecovery();
+  await testStalePreviewSaveRequiresConfirmation();
   await testRepeatedSaveToMcpIdempotency();
   console.log('PASS console browser reliability proof');
 }

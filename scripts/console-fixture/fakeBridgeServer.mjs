@@ -151,6 +151,7 @@ export async function startFakeBridge(options = {}) {
   const eventClients = new Set();
   let eventId = 0;
   const savedDraftKeys = new Set();
+  let nextFingerprintMismatch = null;
 
   function createSession({ sessionId, title } = {}) {
     const now = Date.now();
@@ -309,6 +310,16 @@ export async function startFakeBridge(options = {}) {
     }
     if (url.pathname === '/api/items/batch' && req.method === 'POST') {
       const body = await readJson(req);
+      if (nextFingerprintMismatch && body.forceMismatchOverride !== true) {
+        const conflict = nextFingerprintMismatch;
+        nextFingerprintMismatch = null;
+        json(res, {
+          error: 'screen_fingerprint_mismatch',
+          frozenFingerprint: conflict.frozenFingerprint || body.frozenFingerprint || 'frozen-fingerprint',
+          currentFingerprint: conflict.currentFingerprint || 'current-fingerprint',
+        }, 409);
+        return;
+      }
       const now = Date.now();
       const screen = {
         ...(body.screen || fakePreview(session.sessionId).screen),
@@ -455,6 +466,12 @@ export async function startFakeBridge(options = {}) {
       const preview = { ...fakePreview(sessionId), ...overrides };
       emitEvent('preview-ready', { sessionId, preview });
       return preview;
+    },
+    rejectNextBatchForFingerprintMismatch: (conflict = {}) => {
+      nextFingerprintMismatch = {
+        frozenFingerprint: conflict.frozenFingerprint || 'frozen-fingerprint',
+        currentFingerprint: conflict.currentFingerprint || 'current-fingerprint',
+      };
     },
     eventClientCount: () => eventClients.size,
     runScenario: async ({ scenario, overrides = {} } = {}) => {
