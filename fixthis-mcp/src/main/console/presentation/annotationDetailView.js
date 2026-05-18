@@ -174,6 +174,7 @@
                   setDraftSelection(null);
                   renderPreviewOnly();
                   renderInspectorRegion();
+                  renderCurrentSessionList();
                 });
               });
               pendingItems.querySelector('[data-delete-current]').addEventListener('click', () => {

@@ -42,3 +42,17 @@ test('creating an annotation focuses its detail editor immediately', () => {
 
   assert.match(createAnnotation, /setDraftFocusIndex\(nextWorkspace\.items\.length - 1\);/);
 });
+
+test('returning from pending annotation detail refreshes session summary counts', () => {
+  const renderPendingDetail = functionBody(detailSource, 'function renderAnnotationDetail(item, index)');
+  const backAnnotationsStart = renderPendingDetail.indexOf("querySelectorAll('[data-back-annotations]')");
+  assert.notEqual(backAnnotationsStart, -1, 'back annotations handler not found');
+  const deleteStart = renderPendingDetail.indexOf("querySelector('[data-delete-current]')", backAnnotationsStart);
+  assert.notEqual(deleteStart, -1, 'delete handler not found after back annotations handler');
+  const backAnnotationsHandler = renderPendingDetail.slice(backAnnotationsStart, deleteStart);
+
+  assert.match(
+    backAnnotationsHandler,
+    /renderCurrentSessionList\(\);/,
+  );
+});
