@@ -287,7 +287,9 @@
               }
               checkProtocolCompat(status);
               checkSidekickBuildEpoch(status);
-              if (viewState === 'ready' && annotateIntent && !draftFlow()) {
+              if (viewState === 'ready' && typeof hasPendingLatestStaleFrameRefresh === 'function' && hasPendingLatestStaleFrameRefresh()) {
+                resumeLatestStaleFrameRefresh().catch(showError);
+              } else if (viewState === 'ready' && annotateIntent && !draftFlow()) {
                 const shouldResumeAnnotating = annotateIntentMatchesCurrentContext();
                 clearAnnotateIntent();
                 if (shouldResumeAnnotating) startDraftAnnotationFlow().catch(showError);

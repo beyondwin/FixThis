@@ -144,9 +144,14 @@
 	              });
 	            }
 
+            function hasRenderablePreviewImage(screen) {
+              if (draftFlow()?.screenshotUrl) return true;
+              return Boolean(screen?.screenshot?.desktopFullPath);
+            }
+
             function renderPreviewRegion() {
               const screen = latestScreen();
-              const hasScreenshot = Boolean(screen?.screenshot?.desktopFullPath);
+              const hasScreenshot = hasRenderablePreviewImage(screen);
               const mode = draftFlow() ? 'frozen' : (state.preview ? 'live' : (screen ? 'frozen' : 'idle'));
               snapshot.dataset.toolMode = toolMode.isAnnotateMode() ? 'annotate' : 'select';
               if (!hasScreenshot) {

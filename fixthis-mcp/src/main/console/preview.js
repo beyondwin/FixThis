@@ -313,12 +313,75 @@
               });
             }
 
+            let pendingLatestStaleFrameRefresh = null;
+
+            function hasPendingLatestStaleFrameRefresh() {
+              return Boolean(pendingLatestStaleFrameRefresh);
+            }
+
+            function queueLatestStaleFrameRefresh(previousWorkspace, previousPreview, pendingItems) {
+              pendingLatestStaleFrameRefresh = {
+                workspace: cloneDraftValue(previousWorkspace),
+                preview: cloneDraftValue(previousPreview),
+                items: cloneDraftValue(pendingItems || []),
+              };
+              if (typeof clearAnnotateIntent === 'function') clearAnnotateIntent();
+            }
+
+            function restorePendingItemsOntoCurrentDraft(pendingItems) {
+              replaceDraftWorkspace({
+                ...draftWorkspace,
+                revision: draftWorkspace.revision + 1,
+                items: cloneDraftValue(pendingItems || []),
+                history: { undoStack: [], redoStack: [] },
+              });
+              updateAnnotationSequenceFromPendingItems(pendingItems || []);
+              setDraftFocusIndex(null);
+              toolMode.focusSavedItem(null, null);
+              setDraftSelection(null);
+              toolMode.setHoveredTarget(null);
+              persistCurrentPendingState();
+            }
+
+            async function resumeLatestStaleFrameRefresh() {
+              const pending = pendingLatestStaleFrameRefresh;
+              if (!pending) return false;
+              if (pending.workspace?.context?.sessionId !== (state.session?.sessionId || null)) {
+                pendingLatestStaleFrameRefresh = null;
+                return false;
+              }
+              if (userConnectionState(state.connection?.current) !== 'ready') return false;
+              pendingLatestStaleFrameRefresh = null;
+              if (typeof clearAnnotateIntent === 'function') clearAnnotateIntent();
+              clearPreview();
+              replaceDraftWorkspace(createEmptyDraftWorkspace());
+              try {
+                await startDraftAnnotationFlow();
+              } catch (cause) {
+                replaceDraftWorkspace(pending.workspace);
+                setConsolePreview(pending.preview);
+                if (draftFlow()) persistCurrentPendingState();
+                render();
+                throw cause;
+              }
+              if (!draftFlow()) {
+                replaceDraftWorkspace(pending.workspace);
+                setConsolePreview(pending.preview);
+                render();
+                return false;
+              }
+              restorePendingItemsOntoCurrentDraft(pending.items);
+              render();
+              return true;
+            }
+
             async function useLatestStaleFrame() {
+              pendingLatestStaleFrameRefresh = null;
               const wasAnnotating = toolMode.isAnnotateMode() || Boolean(draftFlow());
               flushFocusedPendingComment();
               const pendingItems = draftWorkspaceItems(draftWorkspace).slice();
-              const previousWorkspace = draftWorkspace;
-              const previousPreview = state.preview;
+              const previousWorkspace = cloneDraftValue(draftWorkspace);
+              const previousPreview = cloneDraftValue(state.preview);
               clearPreview();
               if (wasAnnotating) {
                 replaceDraftWorkspace(createEmptyDraftWorkspace());
@@ -332,23 +395,15 @@
                   throw cause;
                 }
                 if (!draftFlow()) {
+                  if (userConnectionState(state.connection?.current) !== 'ready') {
+                    queueLatestStaleFrameRefresh(previousWorkspace, previousPreview, pendingItems);
+                  }
                   replaceDraftWorkspace(previousWorkspace);
                   setConsolePreview(previousPreview);
                   render();
                   return;
                 }
-                replaceDraftWorkspace({
-                  ...draftWorkspace,
-                  revision: draftWorkspace.revision + 1,
-                  items: pendingItems,
-                  history: { undoStack: [], redoStack: [] },
-                });
-                updateAnnotationSequenceFromPendingItems(pendingItems);
-                setDraftFocusIndex(null);
-                toolMode.focusSavedItem(null, null);
-                setDraftSelection(null);
-                toolMode.setHoveredTarget(null);
-                persistCurrentPendingState();
+                restorePendingItemsOntoCurrentDraft(pendingItems);
               } else {
                 await refreshPreview();
               }
