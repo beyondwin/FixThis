@@ -21,15 +21,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
+          cache: 'npm'
       - run: npm ci
+      - name: Resolve Playwright version
+        id: pw-version
+        run: |
+          PW_VERSION=$(node -e "const p=require('./package-lock.json');\
+            const pkg=p.packages && (p.packages['node_modules/playwright']||p.packages['node_modules/playwright-core']);\
+            if(!pkg)throw new Error('playwright not in lockfile');\
+            console.log(pkg.version)")
+          echo "version=$PW_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
       - name: Run harness
         run: |
           if [ -n "${{ github.event.inputs.scenario }}" ]; then
@@ -71,7 +87,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload JSON artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: perf-${{ github.run_id }}
           path: output/perf/
