@@ -64,8 +64,9 @@ release runtime support, or XML/View/WebView exact targeting.
   - Add `release:v07:evidence:test`.
 - Modify `docs/contributing/release-readiness.md`
   - Document v0.7 evidence requirements.
-- Modify `docs/superpowers/specs/2026-05-18-v07-studio-reliability-umbrella-design.md`
-  - Update Open Decisions after choosing the evidence checker shape.
+- (Already updated 2026-05-18) `docs/superpowers/specs/2026-05-18-v07-studio-reliability-umbrella-design.md`
+  - Open Decisions: documents the dedicated `release:v07:evidence:test`
+    choice; Audit Notes section pins the source baseline this plan refactors.
 
 ## Task 1: Add Pure Preview Apply Decision
 
@@ -409,6 +410,7 @@ git commit -m "refactor(console): route preview updates through shared policy"
 - Modify: `fixthis-mcp/src/main/console/pollingBrowserAdapter.js`
 - Modify: `scripts/console-tests.json`
 - Modify: `scripts/consoleEvents-test.mjs`
+- Modify: `scripts/studioReliabilityContract-test.mjs`
 
 - [ ] **Step 1: Write failing session application tests**
 
@@ -585,8 +587,18 @@ if (decision.kind === 'apply') {
     mergeSessionIntoState(fresh);
   }
   render();
+} else if (decision.kind === 'refresh_summaries') {
+  // Stale session response (user switched displayed session mid-poll).
+  // Keep the active detail pane untouched; sessions list refresh happens
+  // through the next sessions ETag tick, so no action is required here.
 }
 ```
+
+The explicit no-op branch is intentional: the existing else branch in the
+previous code would `clearDisplayedSessionState()` and merge the stale `fresh`
+session, switching the user's view to whatever the slow poll returned. The
+v0.7 contract requires that late session responses for a no-longer-displayed
+session do not mutate the active detail pane.
 
 Add the dependency:
 
@@ -603,6 +615,52 @@ In `scripts/console-tests.json`, add:
 ```
 
 to the `session` array.
+
+- [ ] **Step 6.5: Update obsolete source-shape assertions for the new decision path**
+
+The pre-Task-3 source-shape assertions encode literal strings (e.g.
+`data.sessionId === state.session?.sessionId`, `isClosedSession(data.session)`,
+`fresh && fresh.sessionId === activeDisplayedSessionId && !isClosedSession(fresh)`)
+that move into the new decision helpers. Update them so the contract tests stay
+green and still pin the behavior:
+
+In `scripts/consoleEvents-test.mjs`, replace the three legacy tests with:
+
+```js
+test('session-updated event delegates ownership to serverSessionApplyDecision', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  const handler = start.slice(start.indexOf("on('session-updated'"));
+  assert.match(handler, /applyServerSessionDecision\(data\.session, data\.sessionId\)/);
+  assert.doesNotMatch(handler, /setConsoleSession\(/);
+});
+
+test('session-updated closed/deleted event delegates clear to the decision helper', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  assert.match(start, /function applyServerSessionDecision\(/);
+  assert.match(start, /decision\.kind === 'clear'/);
+  assert.match(start, /clearDisplayedSessionState\(\)/);
+});
+
+test('snapshot null session clears active draft and preview state via decision helper', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  const handler = start.slice(start.indexOf("on('snapshot'"));
+  assert.match(handler, /applyServerSessionDecision\(data\.session \|\| null, data\.session\?\.sessionId \|\| null\)/);
+});
+```
+
+In `scripts/studioReliabilityContract-test.mjs`, replace the polling assertion
+block with one that pins the new decision-driven shape:
+
+```js
+test('session polling routes responses through serverSessionApplyDecision', () => {
+  assert.match(polling, /const activeDisplayedSessionId = displayedSessionId\(\);/);
+  assert.match(polling, /serverSessionApplyDecision\(\{/);
+  assert.match(polling, /decision\.kind === 'apply'/);
+  assert.match(polling, /decision\.kind === 'clear'/);
+  assert.match(polling, /decision\.kind === 'refresh_summaries'/);
+  assert.match(polling, /clearDisplayedSessionState\(\);/);
+});
+```
 
 - [ ] **Step 7: Run focused session verification**
 
@@ -630,7 +688,7 @@ Expected: bundle generation succeeds and `--check` PASS.
 - [ ] **Step 9: Commit Task 3**
 
 ```bash
-git add fixthis-mcp/src/main/console/sessionApplication.js fixthis-mcp/src/main/console/events.js fixthis-mcp/src/main/console/pollingBrowserAdapter.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/main/resources/console/console-build-meta.json scripts/sessionApplication-test.mjs scripts/console-tests.json scripts/consoleEvents-test.mjs
+git add fixthis-mcp/src/main/console/sessionApplication.js fixthis-mcp/src/main/console/events.js fixthis-mcp/src/main/console/pollingBrowserAdapter.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/main/resources/console/console-build-meta.json scripts/sessionApplication-test.mjs scripts/console-tests.json scripts/consoleEvents-test.mjs scripts/studioReliabilityContract-test.mjs
 git commit -m "refactor(console): share session apply policy"
 ```
 
@@ -639,6 +697,8 @@ git commit -m "refactor(console): share session apply policy"
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/domain/consoleReducer.js`
 - Modify: `scripts/consoleCanonicalState-test.mjs`
+- Modify: `scripts/sessionMismatchIgnore-test.mjs`
+- Modify: `scripts/studioReliabilityContract-test.mjs`
 
 - [ ] **Step 1: Add failing reducer tests for stale session/workspace responses**
 
@@ -745,6 +805,101 @@ function reduceDraftSaveFailed(state, event) {
 }
 ```
 
+- [ ] **Step 4.5: Fence prompt-copy responses by active session**
+
+The File Structure section promises identity fences for prompt copy responses,
+not only draft save. Update `reducePromptCopySucceeded` and
+`reducePromptCopyFailed` to drop responses for a session/generation that is no
+longer active:
+
+```js
+function reducePromptCopySucceeded(state, event) {
+  if (event.generation !== state.effectsGeneration) return { state, effects: [] };
+  if (event.sessionId && event.sessionId !== state.activeSessionId) return { state, effects: [] };
+  return {
+    state: replaceConsoleState(state, {
+      promptAction: Object.freeze({ inFlight: false }),
+      status: Object.freeze({ message: 'Prompt copied.', variant: 'success', assertive: false }),
+    }),
+    effects: [],
+  };
+}
+
+function reducePromptCopyFailed(state, event) {
+  if (event.generation !== state.effectsGeneration) return { state, effects: [] };
+  if (event.sessionId && event.sessionId !== state.activeSessionId) return { state, effects: [] };
+  return {
+    state: replaceConsoleState(state, {
+      promptAction: Object.freeze({ inFlight: false }),
+      status: Object.freeze({ message: event.error || 'Could not copy prompt.', variant: 'error', assertive: true }),
+    }),
+    effects: [],
+  };
+}
+```
+
+Append a matching reducer test to `scripts/consoleCanonicalState-test.mjs`:
+
+```js
+test('prompt copy success ignores mismatched source session even when generation matches', () => {
+  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [session('session-a')] });
+  state = m.reduceConsoleAppState(state, { type: 'COPY_PROMPT_CLICKED' }).state;
+
+  const result = m.reduceConsoleAppState(state, {
+    type: 'PROMPT_COPY_SUCCEEDED',
+    requestId: 'copy-prompt-1',
+    sessionId: 'session-b',
+    generation: state.effectsGeneration,
+  });
+
+  assert.equal(result.state.promptAction.inFlight, true);
+  assert.equal(result.state.status, null);
+});
+```
+
+- [ ] **Step 4.6: Update obsolete source-shape assertions that pinned inline checks**
+
+Two existing contract tests assert the literal inline workspace fence that
+Task 4 moves into `draftResponseMatchesWorkspace`. Update them to pin the new
+helper-based shape instead of the literal pre-helper expression:
+
+In `scripts/sessionMismatchIgnore-test.mjs` replace:
+
+```js
+assert.match(save, /event\.workspaceId !== state\.workspace\.context\.workspaceId/);
+```
+
+with:
+
+```js
+assert.match(save, /draftResponseMatchesWorkspace\(state, event\)/);
+```
+
+In `scripts/studioReliabilityContract-test.mjs` replace:
+
+```js
+assert.match(save, /!isDraftWorkspace\(state\.workspace\)/);
+assert.match(save, /event\.workspaceId !== state\.workspace\.context\.workspaceId/);
+```
+
+with:
+
+```js
+assert.match(save, /draftResponseMatchesWorkspace\(state, event\)/);
+```
+
+and add a body test for the helper itself so the workspace/session checks
+remain pinned:
+
+```js
+test('draftResponseMatchesWorkspace pins workspace and session identity', () => {
+  const helper = body(reducer, 'function draftResponseMatchesWorkspace(state, event)');
+  assert.match(helper, /isDraftWorkspace\(state\.workspace\)/);
+  assert.match(helper, /event\.workspaceId !== state\.workspace\.context\.workspaceId/);
+  assert.match(helper, /event\.sessionId !== state\.workspace\.context\.sessionId/);
+});
+```
+
 - [ ] **Step 5: Run focused reducer tests**
 
 Run:
@@ -770,14 +925,16 @@ Expected: bundle generation succeeds and `--check` PASS.
 - [ ] **Step 7: Commit Task 4**
 
 ```bash
-git add fixthis-mcp/src/main/console/domain/consoleReducer.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/main/resources/console/console-build-meta.json scripts/consoleCanonicalState-test.mjs
-git commit -m "fix(console): fence draft save responses by session"
+git add fixthis-mcp/src/main/console/domain/consoleReducer.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/main/resources/console/console-build-meta.json scripts/consoleCanonicalState-test.mjs scripts/sessionMismatchIgnore-test.mjs scripts/studioReliabilityContract-test.mjs
+git commit -m "fix(console): fence durable mutation responses by session"
 ```
 
 ## Task 5: Expand Draft Recovery Ownership And Residual Policy Tests
 
 **Files:**
 - Modify: `fixthis-mcp/src/main/console/draftUseCases.js`
+- Modify: `fixthis-mcp/src/main/console/main.js`
+- Modify: `fixthis-mcp/src/main/console/pendingRecoveryUi.js`
 - Modify: `scripts/draftRecoveryMatrix-test.mjs`
 - Modify: `scripts/boundaryDialogVariants-test.mjs`
 
@@ -912,6 +1069,47 @@ ports.storage?.deleteWorkspace?.(started.context.sessionId, started.workspaceId)
 
 If either line is missing, add it exactly.
 
+- [ ] **Step 4.5: Wire active-session context into recovery ownership callers**
+
+The new `mismatched` classification only triggers when callers pass
+`activeSessionId`. Update the two production callers so cross-session recovery
+banners surface the recapture-only state instead of silently auto-restoring
+into the wrong session.
+
+In `fixthis-mcp/src/main/console/main.js`, change:
+
+```js
+const ownership = draftRecoveryOwnership(restored, state.session);
+```
+
+to:
+
+```js
+const ownership = draftRecoveryOwnership(restored, state.session, {
+  activeSessionId: state.session?.sessionId || null,
+});
+```
+
+In `fixthis-mcp/src/main/console/pendingRecoveryUi.js`, change both call sites
+that look like:
+
+```js
+const ownership = pendingRecovery?.recoveryOwnership || draftRecoveryOwnership(pendingRecovery, state.session);
+```
+
+to:
+
+```js
+const ownership = pendingRecovery?.recoveryOwnership || draftRecoveryOwnership(pendingRecovery, state.session, {
+  activeSessionId: state.session?.sessionId || null,
+});
+```
+
+Note: in `main.js` the recovery is loaded for the current session, so the
+`mismatched` branch will not normally fire from that call site; the parameter
+is passed for forward compatibility so future cross-session recovery loaders
+get the correct ownership without further changes.
+
 - [ ] **Step 5: Run draft and boundary tests**
 
 Run:
@@ -937,7 +1135,7 @@ Expected: bundle generation succeeds and `--check` PASS.
 - [ ] **Step 7: Commit Task 5**
 
 ```bash
-git add fixthis-mcp/src/main/console/draftUseCases.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/main/resources/console/console-build-meta.json scripts/draftRecoveryMatrix-test.mjs scripts/boundaryDialogVariants-test.mjs
+git add fixthis-mcp/src/main/console/draftUseCases.js fixthis-mcp/src/main/console/main.js fixthis-mcp/src/main/console/pendingRecoveryUi.js fixthis-mcp/src/main/resources/console/app.js fixthis-mcp/src/main/resources/console/app.js.map fixthis-mcp/src/main/resources/console/console-build-meta.json scripts/draftRecoveryMatrix-test.mjs scripts/boundaryDialogVariants-test.mjs
 git commit -m "fix(console): classify draft recovery ownership"
 ```
 
@@ -1224,24 +1422,13 @@ Required v0.7 evidence before tagging:
 - `npm run release:v07:evidence:test`
 ```
 
-- [ ] **Step 6: Resolve the spec open decision**
+- [ ] **Step 6: Confirm the spec's resolved Open Decision**
 
-In
-`docs/superpowers/specs/2026-05-18-v07-studio-reliability-umbrella-design.md`,
-change:
-
-```markdown
-- Whether to add a dedicated `release:v07:evidence:test` script or extend the
-  existing v0.6 claim checker.
-```
-
-to:
-
-```markdown
-- v0.7 uses a dedicated `release:v07:evidence:test` script so Studio
-  Reliability claims can evolve without weakening the v0.6 release claim
-  checker.
-```
+The spec's Open Decision #2 was already resolved on 2026-05-18 in
+`docs/superpowers/specs/2026-05-18-v07-studio-reliability-umbrella-design.md`
+to use a dedicated `release:v07:evidence:test` script. Verify the wording
+still matches Task 7's package script; if a future spec edit reopens the
+decision, reconcile it here before continuing.
 
 - [ ] **Step 7: Run release evidence verification**
 
@@ -1257,7 +1444,7 @@ Expected: both commands PASS.
 - [ ] **Step 8: Commit Task 7**
 
 ```bash
-git add package.json scripts/check-v07-release-evidence.mjs scripts/v07-release-claims-test.mjs docs/contributing/release-readiness.md docs/superpowers/specs/2026-05-18-v07-studio-reliability-umbrella-design.md
+git add package.json scripts/check-v07-release-evidence.mjs scripts/v07-release-claims-test.mjs docs/contributing/release-readiness.md
 git commit -m "docs: add v0.7 reliability evidence gate"
 ```
 
@@ -1352,9 +1539,49 @@ Expected: no output.
 - Spec coverage: Track A is covered by Tasks 1-3, Track B by Tasks 4-5,
   Track C by Tasks 6-7, and release/final verification by Task 8.
 - Placeholder scan: this plan contains no red-flag placeholder steps.
-- Type/name consistency: new helpers are `livePreviewApplyDecision` and
-  `serverSessionApplyDecision`; tests and implementation snippets use those
-  exact names.
+- Type/name consistency: new helpers are `livePreviewApplyDecision`,
+  `serverSessionApplyDecision`, and `draftResponseMatchesWorkspace`; tests and
+  implementation snippets use those exact names.
 - Scope check: plan does not add visual redesign, new source matching,
   release runtime behavior, XML/View/WebView targeting, or automatic code
   edits.
+- Caller-update sweep: every helper added in this plan (preview decision,
+  session decision, recovery ownership `activeSessionId`) lists the
+  production callers that need wiring in its task's Files section.
+
+## Plan Audit Log (2026-05-18)
+
+Doc-vs-source audit performed against `HEAD` (`af252a03`). Findings folded back
+into the plan:
+
+1. **Task 3 — polling adapter dropped `refresh_summaries`.** The first draft
+   handled only `apply` and `clear`, which silently discarded mid-poll
+   responses for a session the user has navigated away from. Without the
+   guard, the legacy `else` branch in `pollingBrowserAdapter.js` was
+   load-bearing — it kept summaries fresh. The plan now adds an explicit
+   no-op branch with a comment so the contract is visible, and the polling
+   contract test now pins the three decision kinds.
+2. **Task 3 — obsolete source-shape assertions.** Three tests in
+   `consoleEvents-test.mjs` and `studioReliabilityContract-test.mjs` matched
+   literal expressions that the refactor moves into the new decision
+   helpers. Added Step 6.5 to update those assertions to the helper-based
+   shape; both files are now listed.
+3. **Task 4 — `studioReliabilityContract-test.mjs` and
+   `sessionMismatchIgnore-test.mjs` matched the inline workspace fence**
+   (`event.workspaceId !== state.workspace.context.workspaceId`) that moves
+   into the new `draftResponseMatchesWorkspace` helper. Added Step 4.6 to
+   pin the helper-based shape and the helper body's identity checks.
+4. **Task 4 — prompt-copy fence was promised in File Structure but never
+   implemented.** Added Step 4.5 to fence `reducePromptCopySucceeded` and
+   `reducePromptCopyFailed` by `activeSessionId` and append a matching
+   reducer test.
+5. **Task 5 — `draftRecoveryOwnership` callers did not pass
+   `activeSessionId`.** Without wiring `main.js:365`,
+   `pendingRecoveryUi.js:35`, and `pendingRecoveryUi.js:71`, the new
+   `mismatched` classification could never fire. Added Step 4.5 with the
+   exact call-site updates.
+6. **Design spec Open Decisions.** Decision #2 (dedicated
+   `release:v07:evidence:test` script) is resolved by Task 7 Step 6.
+   Decisions #1 (PR-time gating after observation) and #3 (fallback polling
+   filename migration) remain intentionally open and are out of scope for
+   v0.7.

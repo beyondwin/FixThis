@@ -390,11 +390,40 @@ all three tracks or release notes must narrow the claim.
 ## Open Decisions
 
 - Whether v0.7 browser proof remains release-only evidence or graduates to a
-  required PR check after observation.
-- Whether to add a dedicated `release:v07:evidence:test` script or extend the
-  existing v0.6 claim checker.
+  required PR check after observation. (Still open — gate on observed runtime
+  and flake rate after v0.7 ships.)
+- v0.7 uses a dedicated `release:v07:evidence:test` script so Studio
+  Reliability claims can evolve without weakening the v0.6 release claim
+  checker. (Resolved 2026-05-18 — implemented by the plan's Task 7.)
 - Whether fallback polling should keep its current filenames during migration
-  or be renamed after behavior narrows.
+  or be renamed after behavior narrows. (Still open — defer rename until the
+  behavior-narrowing decisions in Tracks A/B settle and there is a clear
+  fallback-only call surface.)
+
+## Audit Notes (2026-05-18)
+
+A doc-vs-source audit at `HEAD` (`af252a03`) confirmed the source baseline
+this spec describes:
+
+- `events.js` `preview-ready` already routes through `applyLivePreview` and
+  drops only inline `setConsolePreview` writes; the residual session/snapshot
+  handlers still inline session-ownership branching that Track A collapses.
+- `applyLivePreview` already gates `previewAvailable: false` against
+  `setConsolePreview`, but the gate is duplicated in the SSE handler and is
+  not yet a named decision; Track A's shared decision helper closes that gap.
+- `pollingBrowserAdapter.js` currently treats a mismatched mid-poll session
+  response by switching the displayed session via the `else` branch. The
+  plan's `serverSessionApplyDecision` adds a `refresh_summaries` outcome with
+  an explicit no-op branch so late polls cannot mutate the active detail
+  pane.
+- `consoleReducer.js` fences draft save success/failure on
+  `effectsGeneration` and `workspaceId`, but does not yet fence
+  `reducePromptCopySucceeded` / `reducePromptCopyFailed`. The plan extends
+  Track B to cover prompt-copy responses, matching this spec's "Durable
+  Mutation Identity" section.
+- `draftRecoveryOwnership` does not yet model a `mismatched` session mode.
+  The plan adds it and wires the two production callers
+  (`main.js`, `pendingRecoveryUi.js`) so the new mode actually surfaces.
 
 ## Approval Notes
 
