@@ -79,13 +79,14 @@ If evidence is missing, narrow or remove the corresponding v0.6 release note cla
 | Claim | Required evidence |
 | --- | --- |
 | Handoff Intelligence improves measured edit-surface usefulness. | `npm run handoff:eval:test` and the Track A corpus summary. |
-| Studio Reliability preserves sessions, drafts, saves, recovery, stale-preview, and blocked-device state under repeated use. | `npm run console:reliability:test`, `npm run console:session:test`, `npm run console:draft:test`, and the reliability harness result. |
+| Studio Reliability preserves sessions, drafts, saves, recovery, stale-preview, blocked-device state, SSE sync, and closed-session mutation fences under repeated use. | `npm run console:reliability:test`, `npm run console:session:test`, `npm run console:draft:test`, and `npm run console:browser:reliability`. |
 | Release Grade keeps docs, CLI, MCP, output schema, artifacts, and release notes aligned. | `npm run release:v06:evidence:test`, `node scripts/check-release-readiness.mjs`, `bash scripts/check-docs-cli-surface.sh`, and `npm run checks:observation -- --json`. |
 
 Required v0.6 evidence before tagging:
 
 - `npm run handoff:eval:test`
 - `npm run console:reliability:test`
+- `npm run console:browser:reliability`
 - `npm run release:v06:evidence:test`
 - `node scripts/check-release-readiness.mjs`
 - `bash scripts/check-docs-cli-surface.sh`
@@ -121,7 +122,8 @@ Required v0.6 evidence before tagging:
 - [ ] v0.6 evidence is captured if release notes claim Handoff Intelligence,
       Studio Reliability, or Release Grade:
       `npm run handoff:eval:test`,
-      `npm run console:reliability:test`, and
+      `npm run console:reliability:test`,
+      `npm run console:browser:reliability`, and
       `npm run release:v06:evidence:test`.
 
 ## Required Before External Artifact Release

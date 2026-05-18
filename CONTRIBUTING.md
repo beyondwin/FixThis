@@ -143,6 +143,7 @@ npm run console:beforeunload:test   # beforeunload guard harness
 npm run console:undo:test           # undo/redo harness
 npm run console:activity:test       # activity-drift harness
 npm run console:preview:test        # preview staleness harness
+npm run console:browser:reliability # browser reliability proof
 npm run console:harness:test        # scenario matrix harness unit tests
 npm run console:fsm:test            # connection FSM harness
 npm run console:build:test          # build-console-assets unit tests
@@ -305,6 +306,7 @@ npm run console:responsive:stress      # narrow-width error/agent-state stress t
 npm run console:availability:test      # availability/blocked-state harness
 npm run console:draft:test             # DraftWorkspace reducer/storage/API/use-case harnesses
 npm run console:reliability:test       # Studio reliability: reducer + use-case + polling + idempotency contract tests
+npm run console:browser:reliability    # browser proof for SSE sync, stale previews, and closed-session fences
 node scripts/console-blocked-harness.mjs # blocked-overlay rendering harness
 ```
 

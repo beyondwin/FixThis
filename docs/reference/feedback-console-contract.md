@@ -82,6 +82,10 @@
 - Server-sent `session-updated` and `preview-ready` events carry top-level
   `sessionId`. The browser applies them to detail/preview state only when that
   session is currently active, except for the initial `snapshot` event.
+- Live preview delivery is push-first. `preview-ready` SSE events and fallback
+  preview polling must route through the same preview-application path and the
+  same active-session fence; polling is a recovery path while `/api/events` is
+  disconnected, not a second source of durable truth.
 - Deleting a feedback session clears browser-local draft recovery for that
   session, including schema-v2 workspace entries.
 - `Copy Prompt` / `Save to MCP` can persist the subset of pending annotations

@@ -135,6 +135,35 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   `node scripts/check-release-readiness.mjs`, and local-check wiring that guard
   CLI/docs/MCP/output-schema drift before tagging the next release.
 
+### Changed — v0.6 Studio workflow reliability hardening
+
+- Studio actions now route through a centralized workflow policy before
+  mutating draft, handoff, claim, or resolve state. Safe automatic recovery
+  paths such as heartbeat retry, app foreground recovery, and preview refresh
+  remain automatic; dirty drafts, stale previews, activity drift, server draft
+  conflicts, and stale force-save require an explicit boundary decision.
+- Durable session mutations are rejected for closed sessions at the MCP server
+  boundary, including screen, item, handoff, claim, resolve, and draft mutation
+  paths. Closed-session API failures now surface as a mapped `session_closed`
+  conflict instead of falling through as an unexpected server error.
+- Live preview delivery is push-first: `preview-ready` SSE events and fallback
+  preview polling share the same preview-application path and session fence, and
+  polling runs only when the event stream is unavailable.
+- Draft recovery now classifies ownership for active, closed, and mismatched
+  sessions so unsupported local recovery asks the user to recapture instead of
+  silently mutating the wrong workspace.
+- Annotate and session navigation edge cases were tightened: annotate can launch
+  the app when needed, preserves valid saved-focus and capture-in-flight cases,
+  refreshes session counts after returning from detail, avoids entry dead ends,
+  and keeps the annotate badge layout stable at zoomed preview sizes.
+
+### Added — v0.6 Studio workflow reliability hardening
+
+- Added `npm run console:browser:reliability`, a Playwright proof for two-tab
+  SSE synchronization, stale preview isolation, EventSource reconnect recovery,
+  stale-save confirmation, repeated Save to MCP idempotency, and closed-session
+  mutation rejection.
+
 ## [0.3.0] - 2026-05-17
 
 ### Added — v0.3 first-run trust follow-up

@@ -21,9 +21,15 @@ GitHub Release page and registry listings as release evidence.
   likely call sites, component definitions, copy/data origins, layout/style
   surfaces, visual-area work, and interop risk.
 - **v0.6 Studio Reliability.** Console reliability coverage now exercises draft
-  recovery, stale-session fences, duplicate save idempotency, session polling,
-  and blocked-device state contracts through `npm run console:reliability:test`
-  plus the existing draft/session harnesses.
+  recovery, stale-session fences, duplicate save idempotency, blocked-device
+  state contracts, and browser-level SSE/preview handoff behavior through
+  `npm run console:reliability:test`, `npm run console:browser:reliability`,
+  and the existing draft/session harnesses.
+- **v0.6 Studio workflow hardening.** Studio action decisions are centralized in
+  a workflow policy: safe connection and preview recovery stays automatic,
+  durable draft/handoff/claim/resolve mutations are fenced by session state, and
+  stale or ambiguous saves require an explicit boundary decision before writing
+  local session data.
 - **v0.6 Release Grade.** Release claims are now evidence-gated. Do not claim
   Handoff Intelligence, Studio Reliability, or Release Grade in a tagged
   release unless the v0.6 evidence commands in
@@ -72,12 +78,14 @@ For console layout or agent-state UI changes, also run:
 npm run console:smoke
 npm run console:responsive:stress
 npm run console:reliability:test
+npm run console:browser:reliability
 ```
 
 For v0.6 release claims, also run and capture:
 
 ```bash
 npm run handoff:eval:test
+npm run console:browser:reliability
 npm run release:v06:evidence:test
 node scripts/check-release-readiness.mjs
 npm run checks:observation -- --json

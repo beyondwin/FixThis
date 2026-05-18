@@ -255,7 +255,7 @@ Run `fixthis_list_feedback_sessions` or reopen the console with the exact `sessi
 
 ### Live preview stopped updating
 
-Preview polling pauses when the browser tab is hidden and while the `Annotate` frozen-preview flow is active. Switch back to the tab, click `Copy Prompt` or `Save to MCP` to persist pending annotations, exit annotate mode, or use `Capture screen`. The preview interval options are Manual, 1s, 2s, and 5s, with 1s as the default.
+Live preview is push-first over `/api/events`. Preview polling is retained as a fallback while the event stream is disconnected, and it pauses when the browser tab is hidden or while the `Annotate` frozen-preview flow is active. Switch back to the tab, click `Copy Prompt` or `Save to MCP` to persist pending annotations, exit annotate mode, or use `Capture screen`. The preview interval options are Manual, 1s, 2s, and 5s, with 1s as the default.
 
 ### Navigation worked but no new screen appeared
 

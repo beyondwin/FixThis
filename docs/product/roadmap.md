@@ -67,11 +67,13 @@ lowering target confidence.
 ### Finish SSE-driven console state sync
 
 Phase 1 pushes session, device, connection, and preview updates over
-`/api/events`, with polling retained as a fallback and session/preview events
-fenced by active `sessionId`.
+`/api/events`, with polling retained only as a fallback while the event stream
+is disconnected. Session and preview events are fenced by active `sessionId`,
+and SSE plus fallback polling share one preview-application path.
 
-Remaining work is to retire the preview polling loop and reduce redundant pull
-refreshes. See [Console state sync](../architecture/console-state-sync-design.md).
+Remaining work is to reduce redundant pull refreshes and eventually retire the
+preview polling fallback once the event stream has enough production evidence.
+See [Console state sync](../architecture/console-state-sync-design.md).
 
 ### Smarter source matching
 

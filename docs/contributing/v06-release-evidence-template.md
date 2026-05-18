@@ -17,7 +17,7 @@ Paste this into the v0.6 release issue before tagging.
 - [ ] `npm run console:session:test`
 - [ ] `npm run console:draft:test`
 - [ ] `npm run console:preview:test`
-- [ ] `node scripts/console-harness.mjs reliability`
+- [ ] `npm run console:browser:reliability`
 
 ## Release Grade
 
