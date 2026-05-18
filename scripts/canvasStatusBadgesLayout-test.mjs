@@ -7,6 +7,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const css = readFileSync(resolve(root, 'fixthis-mcp/src/main/resources/console/styles.css'), 'utf8');
 
+function cssRule(selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = css.match(new RegExp(escaped + '\\s*\\{([^}]*)\\}', 'm'));
+  assert.ok(match, `missing CSS rule: ${selector}`);
+  return match[1];
+}
+
 async function loadPlaywright() {
   try {
     return await import('playwright');
@@ -69,6 +76,9 @@ function canvasFixture() {
           </div>
           <span id="previewStaleBadge" class="preview-stale-badge">Connection paused - showing last preview</span>
           <div id="snapshot" class="snapshot-stage">
+            <div id="annotateHintSlot" class="annotate-hint-slot" aria-live="polite">
+              <div id="annotateHint" class="annotate-hint">Annotate mode</div>
+            </div>
             <div id="snapshotFrame" class="snapshot-frame" data-mode="frozen">
               <span id="previewFrameStatus" class="preview-frame-status" data-state="frozen">Frozen for annotation</span>
               <svg id="snapshotImage" width="300" height="420" viewBox="0 0 300 420" role="img" aria-label="FixThis preview">
@@ -106,6 +116,18 @@ async function measure(page, viewport) {
   });
 }
 
+async function measureAnnotateHintGap(page, zoom) {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setContent(canvasFixture(), { waitUntil: 'domcontentloaded' });
+  return await page.evaluate((value) => {
+    const frame = document.getElementById('snapshotFrame');
+    frame.style.setProperty('--preview-zoom', String(value));
+    const hint = document.getElementById('annotateHint').getBoundingClientRect();
+    const preview = frame.getBoundingClientRect();
+    return Math.round(preview.top - hint.bottom);
+  }, zoom);
+}
+
 test('canvas stale preview badge does not overlap draft lock banner', async () => {
   const { chromium } = await loadPlaywright();
   const browser = await chromium.launch({ headless: true });
@@ -131,6 +153,28 @@ test('canvas stale preview badge does not overlap draft lock banner', async () =
       } finally {
         await page.close();
       }
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test('preview zoom anchors to the top edge so annotate badge gap does not expand', () => {
+  assert.match(cssRule('.snapshot-frame'), /transform-origin:\s*center top;/);
+});
+
+test('annotate mode badge keeps the same visual gap when preview is zoomed out', async () => {
+  const { chromium } = await loadPlaywright();
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    try {
+      const normalGap = await measureAnnotateHintGap(page, 1);
+      const zoomedOutGap = await measureAnnotateHintGap(page, 0.8);
+
+      assert.equal(zoomedOutGap, normalGap);
+    } finally {
+      await page.close();
     }
   } finally {
     await browser.close();

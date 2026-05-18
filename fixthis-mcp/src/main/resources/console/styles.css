@@ -992,7 +992,7 @@
                 0 12px 24px -8px rgba(0, 0, 0, .4),
                 inset 0 1px 0 rgba(255, 255, 255, .06);
               transform: scale(var(--preview-zoom, 1));
-              transform-origin: center center;
+              transform-origin: center top;
               transition: transform 120ms ease;
             }
             .snapshot-frame[data-mode="frozen"] {
