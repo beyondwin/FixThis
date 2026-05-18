@@ -445,13 +445,21 @@ class ConsoleFeedbackItemRoutesTest {
     }
 
     @Test
+    @Suppress("LongMethod")
     fun batchItemsApiDoesNotDuplicateSameWorkspaceDraftItemWhenPreviewFallsBackToScreen() {
         withTempProject("fixthis-console-idempotent-batch") { projectRoot ->
             val service = FeedbackSessionService(
                 bridge = FakeFixThisBridge(),
                 store = FeedbackSessionStore(
                     clock = FakeLongs(100L, 200L, 300L, 400L, 500L, 600L, 700L, 800L).next,
-                    idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1", "item-2", "item-3").next,
+                    idGenerator = FakeIds(
+                        "session-1",
+                        "preview-1",
+                        "preview-screen-1",
+                        "item-1",
+                        "item-2",
+                        "item-3",
+                    ).next,
                 ),
                 projectRoot = projectRoot.absolutePath,
                 defaultPackageName = "io.github.beyondwin.fixthis.sample",

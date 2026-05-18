@@ -23,7 +23,10 @@ class EditSurfaceRoleClassifierTest {
             candidates = listOf(candidate("CheckoutScreen.kt", reasons = listOf("selected text"))),
         )
 
-        val role = EditSurfaceRoleClassifier.classify(item, EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)))
+        val role = EditSurfaceRoleClassifier.classify(
+            item,
+            EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)),
+        )
 
         assertEquals(EditSurfaceRoleDto.COPY_OR_DATA, role.role)
         assertEquals(SelectionConfidence.MEDIUM, role.confidenceCap)
@@ -37,7 +40,10 @@ class EditSurfaceRoleClassifierTest {
             candidates = listOf(candidate("QueueScreen.kt", reasons = listOf("nearby text"))),
         )
 
-        val role = EditSurfaceRoleClassifier.classify(item, EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)))
+        val role = EditSurfaceRoleClassifier.classify(
+            item,
+            EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)),
+        )
 
         assertEquals(EditSurfaceRoleDto.LAYOUT_OR_STYLE, role.role)
         assertEquals(SelectionConfidence.LOW, role.confidenceCap)
@@ -51,7 +57,10 @@ class EditSurfaceRoleClassifierTest {
             candidates = listOf(candidate("MetricCard.kt", owner = "MetricCard", terms = listOf("MetricCard"))),
         )
 
-        val role = EditSurfaceRoleClassifier.classify(item, EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)))
+        val role = EditSurfaceRoleClassifier.classify(
+            item,
+            EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)),
+        )
 
         assertEquals(EditSurfaceRoleDto.COMPONENT_DEFINITION, role.role)
         assertEquals(SelectionConfidence.MEDIUM, role.confidenceCap)
@@ -69,7 +78,10 @@ class EditSurfaceRoleClassifierTest {
 
     @Test
     fun classifiesInteropWarningAsInteropRisk() {
-        val item = areaItem(comment = "Fix the native chart spacing", warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP))
+        val item = areaItem(
+            comment = "Fix the native chart spacing",
+            warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+        )
 
         val role = EditSurfaceRoleClassifier.classify(item, EditIntentAnalyzer.analyze(item, screenWith()))
 
@@ -77,7 +89,11 @@ class EditSurfaceRoleClassifierTest {
         assertEquals(SelectionConfidence.LOW, role.confidenceCap)
     }
 
-    private fun item(comment: String, selectedNode: FixThisNode, candidates: List<SourceCandidate>): AnnotationDto = AnnotationDto(
+    private fun item(
+        comment: String,
+        selectedNode: FixThisNode,
+        candidates: List<SourceCandidate>,
+    ): AnnotationDto = AnnotationDto(
         itemId = "item",
         screenId = "screen",
         createdAtEpochMillis = 1L,

@@ -200,7 +200,9 @@ fake bridge/server fixture rather than relying only on unit tests.
 4. The shared preview reducer action validates `sessionId` and preview context
    generation again.
 5. If `previewAvailable === false`, readiness UI updates and the current live
-   preview is preserved.
+   preview is preserved. The readiness gate runs **before**
+   `previewUseCases.applyReady(...)` so the preview FSM `current` is not
+   overwritten with an unavailable payload.
 6. Otherwise `state.preview` updates and preview UI renders.
 
 Fallback polling uses steps 3 through 5 after fetching preview data. There must
@@ -224,15 +226,31 @@ not be a separate state write path for SSE and polling.
 
 Every durable action follows the same ownership pattern:
 
-1. Capture `sessionId`, relevant item ids, `workspaceId` when present,
-   `generation`, and `expectedRevision` at action start.
+1. Capture `sessionId`, relevant item ids, `workspaceId` when present, and
+   `generation` at action start.
 2. Send explicit identity in the request.
-3. Server validates closed-session state, item existence, duplicate client draft
-   keys, and revision mismatch.
+3. Server validates closed-session state, item existence, and duplicate client
+   draft keys.
 4. Browser receives success or failure and updates visible state only if the
    active session/workspace/generation still matches.
 5. Mismatch is treated as a stale response. The browser may refresh summaries,
    but it must not mutate the active detail pane with another session's result.
+
+`expectedRevision`-style optimistic-concurrency checks are explicitly **out of
+scope** for v2 — current durable mutations are gated by session id, item id,
+and `workspaceId + draftItemId` idempotency. A revision/etag scheme can be
+added in a later iteration if multi-writer conflicts become observable in the
+browser proof suite.
+
+Closed-session rejection applies to **every** mutation that flows through
+`FeedbackSessionStoreDelegate.withEventBackedMutation` /
+`withOptionalEventBackedMutation`: `addScreen`, `addScreenWithItems`,
+`deleteScreen`, `addItem`, `clearDraftItems`, `markSent`,
+`markItemsHandedOff`, `updateItemStatus`, `claimFeedback`, `updateDraftItem`,
+`deleteDraftItem`. `closeSession` and `openExistingSession` use direct locking
+and remain exempt so idempotent close still works. Rejected mutations surface
+as HTTP `409 Conflict` with `errorCode = "session_closed"`, matching the
+existing pattern for `NO_DRAFT_FEEDBACK` / `ITEM_NOT_EDITABLE`.
 
 ### Two-Tab Flow
 
@@ -357,3 +375,11 @@ should avoid unrelated refactoring.
 - The primary architectural choice is push-first SSE with fallback polling.
 - Clean Architecture and SOLID compliance is a hard implementation constraint,
   not a review afterthought.
+- Closed-session mutation rejection is a server-side state-conflict error
+  (`409 / session_closed`), not a client validation error.
+- `expectedRevision` / optimistic-concurrency is **deferred**; v2 relies on
+  session/item identity and `workspaceId + draftItemId` idempotency.
+- `draftRecoveryOwnership` accepts a `deleted` flag and a lowercased
+  `'deleted'`/`'missing'` status as defensive forward-compat slots. No current
+  code path produces them — they are intentionally inert until a deleted-state
+  feature lands.

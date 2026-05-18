@@ -84,7 +84,10 @@ class InstallAgentJsonReportTest {
         val obj = Json.parseToJsonElement(rendered).jsonObject
         val readiness = obj.getValue("readiness").jsonObject
         assertEquals("CONFIG_RECOVERABLE", readiness.getValue("state").jsonPrimitive.content)
-        assertEquals("fixthis doctor --project-dir /repo --json", readiness.getValue("nextAction").jsonPrimitive.content)
+        assertEquals(
+            "fixthis doctor --project-dir /repo --json",
+            readiness.getValue("nextAction").jsonPrimitive.content,
+        )
         assertEquals("true", obj.getValue("restartRequired").jsonPrimitive.content)
     }
 

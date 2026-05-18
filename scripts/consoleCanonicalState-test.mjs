@@ -11,6 +11,7 @@ const sources = [
   'domain/workspaceState.js',
   'domain/consoleAppState.js',
   'domain/consoleInvariants.js',
+  'domain/consoleWorkflowProjection.js',
   'domain/consoleReducer.js',
 ].map((name) => readFileSync(resolve(root, 'fixthis-mcp/src/main/console', name), 'utf8')).join('\n');
 

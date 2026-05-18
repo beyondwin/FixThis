@@ -5,83 +5,117 @@ import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 internal object EditSurfaceCandidateService {
+    private const val TEXT_SOURCE_NOTE =
+        "source candidate identifies data text; editSurface identifies likely rendering code"
+
     fun build(
         item: AnnotationDto,
         screen: SnapshotDto?,
     ): List<EditSurfaceCandidateDto> {
         val intent = EditIntentAnalyzer.analyze(item, screen)
         val roleDecision = EditSurfaceRoleClassifier.classify(item, intent)
-        if (item.sourceCandidates.isEmpty()) {
-            // VISUAL_AREA and INTEROP_RISK never identify a precise code surface,
-            // so they must not leak intent.primaryKind (e.g., "gap" -> SPACING)
-            // into the kind field. Other empty-source paths keep the intent kind.
-            val emptySourceKind = when (roleDecision.role) {
-                EditSurfaceRoleDto.VISUAL_AREA, EditSurfaceRoleDto.INTEROP_RISK -> EditSurfaceKindDto.UNKNOWN
-                else -> if (intent.primaryKind == EditSurfaceKindDto.UNKNOWN) EditSurfaceKindDto.UNKNOWN else intent.primaryKind
-            }
-            return listOf(
-                EditSurfaceCandidateDto(
-                    kind = emptySourceKind,
-                    role = roleDecision.role,
-                    file = "(visual area)",
-                    confidence = roleDecision.confidenceCap,
-                    reasons = intent.reasons,
-                    note = roleDecision.note,
-                ),
-            )
+        val candidates = when {
+            item.sourceCandidates.isEmpty() -> listOf(emptySourceCandidate(intent, roleDecision))
+            intent.primaryKind == EditSurfaceKindDto.UNKNOWN &&
+                roleDecision.role != EditSurfaceRoleDto.COPY_OR_DATA -> emptyList()
+            else -> sourceCandidates(item, screen, intent, roleDecision)
         }
-        if (intent.primaryKind == EditSurfaceKindDto.UNKNOWN && roleDecision.role != EditSurfaceRoleDto.COPY_OR_DATA) {
-            return emptyList()
-        }
+        return candidates.distinctBy { it.file to it.line }.take(2)
+    }
 
-        val owner = TargetOwnerResolver.resolve(item, screen)
-        val ownerComposable = componentNameFrom(item.selectedNode?.testTag)
-            ?: componentNameFrom(owner?.node?.testTag)
+    private fun sourceCandidates(
+        item: AnnotationDto,
+        screen: SnapshotDto?,
+        intent: EditIntent,
+        roleDecision: EditSurfaceRoleDecision,
+    ): List<EditSurfaceCandidateDto> {
         val candidates = mutableListOf<EditSurfaceCandidateDto>()
+        ownerCandidate(item, screen, intent, roleDecision)?.let { candidates += it }
+        selectedTextCandidate(item, intent, roleDecision).takeIf { candidates.isEmpty() }?.let { candidates += it }
+        spacingCandidate(item, intent, roleDecision)?.let { candidates += it }
+        return candidates
+    }
 
-        ownerComposable?.let { composable ->
-            item.sourceCandidates.firstOrNull { candidate ->
-                candidate.file.substringAfterLast('/').removeSuffix(".kt") == composable ||
-                    candidate.matchedTerms.any { it == composable } ||
-                    candidate.ownerComposable == composable
-            }?.let { source ->
-                candidates += source.toEditSurface(
-                    kind = if (intent.primaryKind == EditSurfaceKindDto.UNKNOWN) EditSurfaceKindDto.COMPONENT_RENDERER else intent.primaryKind,
-                    roleDecision = roleDecision,
-                    confidence = SelectionConfidence.MEDIUM,
-                    reasons = intent.reasons +
-                        EditSurfaceReasonDto.TARGET_OWNER +
-                        EditSurfaceReasonDto.COMPONENT_DEFINITION,
-                )
-            }
+    private fun emptySourceCandidate(
+        intent: EditIntent,
+        roleDecision: EditSurfaceRoleDecision,
+    ): EditSurfaceCandidateDto {
+        val kind = when (roleDecision.role) {
+            EditSurfaceRoleDto.VISUAL_AREA, EditSurfaceRoleDto.INTEROP_RISK -> EditSurfaceKindDto.UNKNOWN
+            else -> intent.primaryKind
         }
+        return EditSurfaceCandidateDto(
+            kind = kind,
+            role = roleDecision.role,
+            file = "(visual area)",
+            confidence = roleDecision.confidenceCap,
+            reasons = intent.reasons,
+            note = roleDecision.note,
+        )
+    }
 
-        if (candidates.isEmpty()) {
-            item.sourceCandidates.firstOrNull { it.matchReasons.contains("selected text") }?.let { source ->
-                candidates += source.toEditSurface(
-                    kind = if (intent.primaryKind == EditSurfaceKindDto.UNKNOWN) EditSurfaceKindDto.COMPONENT_RENDERER else intent.primaryKind,
-                    roleDecision = roleDecision,
-                    confidence = SelectionConfidence.MEDIUM,
-                    reasons = intent.reasons + EditSurfaceReasonDto.SELECTED_TEXT_RENDERER,
-                )
-            }
-        }
+    private fun ownerCandidate(
+        item: AnnotationDto,
+        screen: SnapshotDto?,
+        intent: EditIntent,
+        roleDecision: EditSurfaceRoleDecision,
+    ): EditSurfaceCandidateDto? {
+        val owner = TargetOwnerResolver.resolve(item, screen)
+        val ownerComposable = TestTagConvention.parse(item.selectedNode?.testTag)?.composableName
+            ?: TestTagConvention.parse(owner?.node?.testTag)?.composableName
+            ?: return null
+        return item.sourceCandidates.firstOrNull { it.matchesComposable(ownerComposable) }
+            ?.toEditSurface(
+                kind = normalizedKind(intent),
+                roleDecision = roleDecision,
+                confidence = SelectionConfidence.MEDIUM,
+                reasons = intent.reasons +
+                    EditSurfaceReasonDto.TARGET_OWNER +
+                    EditSurfaceReasonDto.COMPONENT_DEFINITION,
+            )
+    }
 
+    private fun SourceCandidate.matchesComposable(composable: String): Boolean {
+        val filenameMatches = file.substringAfterLast('/').removeSuffix(".kt") == composable
+        return filenameMatches ||
+            matchedTerms.any { it == composable } ||
+            ownerComposable == composable
+    }
+
+    private fun selectedTextCandidate(
+        item: AnnotationDto,
+        intent: EditIntent,
+        roleDecision: EditSurfaceRoleDecision,
+    ): EditSurfaceCandidateDto? = item.sourceCandidates
+        .firstOrNull { it.matchReasons.contains("selected text") }
+        ?.toEditSurface(
+            kind = normalizedKind(intent),
+            roleDecision = roleDecision,
+            confidence = SelectionConfidence.MEDIUM,
+            reasons = intent.reasons + EditSurfaceReasonDto.SELECTED_TEXT_RENDERER,
+        )
+
+    private fun spacingCandidate(
+        item: AnnotationDto,
+        intent: EditIntent,
+        roleDecision: EditSurfaceRoleDecision,
+    ): EditSurfaceCandidateDto? {
         if (intent.primaryKind == EditSurfaceKindDto.SPACING) {
-            item.sourceCandidates.firstOrNull()?.let { source ->
-                candidates += source.toEditSurface(
+            return item.sourceCandidates.firstOrNull()
+                ?.toEditSurface(
                     kind = EditSurfaceKindDto.SPACING,
                     roleDecision = roleDecision,
                     confidence = SelectionConfidence.LOW,
                     reasons = intent.reasons + EditSurfaceReasonDto.CALL_SITE,
                 )
-            }
         }
-
-        return candidates.distinctBy { it.file to it.line }.take(2)
+        return null
     }
 
-    private fun componentNameFrom(testTag: String?): String? = TestTagConvention.parse(testTag)?.composableName
+    private fun normalizedKind(intent: EditIntent): EditSurfaceKindDto = when (intent.primaryKind) {
+        EditSurfaceKindDto.UNKNOWN -> EditSurfaceKindDto.COMPONENT_RENDERER
+        else -> intent.primaryKind
+    }
 
     private fun SourceCandidate.toEditSurface(
         kind: EditSurfaceKindDto,
@@ -96,13 +130,18 @@ internal object EditSurfaceCandidateService {
         line = line,
         confidence = minConfidence(confidence, roleDecision.confidenceCap),
         reasons = reasons.distinct(),
-        note = roleDecision.note ?: "source candidate identifies data text; editSurface identifies likely rendering code".takeIf {
+        note = roleDecision.note ?: TEXT_SOURCE_NOTE.takeIf {
             kind == EditSurfaceKindDto.TEXT_COLOR || kind == EditSurfaceKindDto.TYPOGRAPHY
         },
     )
 
     private fun minConfidence(left: SelectionConfidence, right: SelectionConfidence): SelectionConfidence {
-        val order = listOf(SelectionConfidence.NONE, SelectionConfidence.LOW, SelectionConfidence.MEDIUM, SelectionConfidence.HIGH)
+        val order = listOf(
+            SelectionConfidence.NONE,
+            SelectionConfidence.LOW,
+            SelectionConfidence.MEDIUM,
+            SelectionConfidence.HIGH,
+        )
         return if (order.indexOf(left) <= order.indexOf(right)) left else right
     }
 }

@@ -124,4 +124,3 @@ test('loadWorkspacesForSession ignores stored workspaces with no non-empty entri
 
   assert.deepEqual(adapter.loadWorkspacesForSession('session-a'), []);
 });
-

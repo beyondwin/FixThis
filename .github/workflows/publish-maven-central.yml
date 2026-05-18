@@ -89,7 +89,7 @@ jobs:
           set -euo pipefail
           token="$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 -w0)"
           deployment_id="${{ steps.upload.outputs.deployment_id }}"
-          for attempt in {1..60}; do
+          for _ in {1..60}; do
             response="$(
               curl -fsSL \
                 -X POST \

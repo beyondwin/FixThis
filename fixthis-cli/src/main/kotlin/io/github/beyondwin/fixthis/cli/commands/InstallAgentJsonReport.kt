@@ -40,6 +40,7 @@ internal object InstallAgentJsonReport {
         val readiness: FirstRunReadiness? = null,
     )
 
+    @Suppress("LongParameterList")
     fun render(
         applied: List<Applied>,
         skipped: List<Skipped>,

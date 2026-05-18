@@ -50,7 +50,7 @@ This plan was updated after `99acd993` (`fix(console): recover annotation readin
 - `fixthis-mcp/src/main/console/previewUseCases.js`
   - Expose a small `applyReady(preview, options)` use-case method so SSE and fallback code share the same preview state contract.
 - `fixthis-mcp/src/main/console/preview.js`
-  - Add `applyLivePreview(preview, options)` and route `refreshPreview()` through it.
+  - Add `applyLivePreview(preview, options)` and route `refreshPreview()` through it. Add `sse.js` to the `@requires` header so `dropStaleSse` is in scope (current header is `// @requires state.js, api.js, draftWorkspace.js, previewPoll.js`).
 - `fixthis-mcp/src/main/console/events.js`
   - Route `preview-ready` through `applyLivePreview()` and track EventSource open/error state.
 - `fixthis-mcp/src/main/console/sse.js`
@@ -62,7 +62,9 @@ This plan was updated after `99acd993` (`fix(console): recover annotation readin
 - `fixthis-mcp/src/main/console/pendingRecoveryUi.js`
   - Render closed/deleted recovery as recapture/discard instead of automatic resume.
 - `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
-  - Reject event-backed durable mutations when the target session is closed.
+  - Reject event-backed durable mutations when the target session is closed. The guard wraps every `withEventBackedMutation`/`withOptionalEventBackedMutation` call — `addScreen`, `addScreenWithItems`, `deleteScreen`, `addItem`, `clearDraftItems`, `markSent`, `markItemsHandedOff`, `updateItemStatus`, `claimFeedback`, `updateDraftItem`, `deleteDraftItem`. `closeSession`/`openExistingSession` use direct `synchronized(lock)` blocks and stay exempt, so idempotent close still works.
+- `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+  - Add a `SESSION_CLOSED:` prefix to the `FeedbackSessionException.toConsoleHttpException()` mapper. Without it the new guard throws a 500 (the mapper's `else` branch), which would fail the route tests below.
 - `scripts/previewUseCases-test.mjs`
   - Tests for pure external preview application.
 - `scripts/consoleEvents-test.mjs`
@@ -285,6 +287,10 @@ test('applyLivePreview surfaces preview-unavailable readiness without replacing 
     previewApply.indexOf('if (preview?.previewAvailable === false)') < previewApply.indexOf('setConsolePreview({'),
     'preview-unavailable must be gated before state.preview is replaced',
   );
+  assert.ok(
+    previewApply.indexOf('if (preview?.previewAvailable === false)') < previewApply.indexOf('previewUseCases.applyReady('),
+    'preview-unavailable must also be gated before the preview FSM accepts the payload as current',
+  );
 });
 ```
 
@@ -302,7 +308,7 @@ not yet moved from the SSE subscriber into the shared preview path.
 
 - [ ] **Step 3: Add `applyLivePreview()`**
 
-In `fixthis-mcp/src/main/console/preview.js`, insert this function immediately before `refreshPreview()`:
+In `fixthis-mcp/src/main/console/preview.js`, also update the file header from `// @requires state.js, api.js, draftWorkspace.js, previewPoll.js` to `// @requires state.js, api.js, draftWorkspace.js, previewPoll.js, sse.js`, then insert this function immediately before `refreshPreview()`:
 
 ```js
             function applyLivePreview(preview, options = {}) {
@@ -315,9 +321,9 @@ In `fixthis-mcp/src/main/console/preview.js`, insert this function immediately b
                   : dropStalePreviewPoll({ sessionId: ownerSessionId }, activeSessionId);
                 if (dropped) return false;
               }
-              previewUseCases.applyReady(preview, {
-                contextGeneration: previewUseCases.getState().contextGeneration,
-              });
+              // Readiness-only payloads must update the connection card
+              // without mutating preview FSM `current` or `state.preview`
+              // (spec § Data Flow, Preview Push Flow step 5).
               applyPreviewReadinessToConnectionCard(preview);
               if (preview?.previewAvailable === false) {
                 renderPreviewOnly();
@@ -330,6 +336,9 @@ In `fixthis-mcp/src/main/console/preview.js`, insert this function immediately b
                 renderPreviewOnly();
                 return true;
               }
+              previewUseCases.applyReady(preview, {
+                contextGeneration: previewUseCases.getState().contextGeneration,
+              });
               setConsolePreview({
                 ...preview,
                 activity: state.connection?.availability?.activity ?? null,
@@ -794,7 +803,11 @@ git commit -m "feat(console): classify draft recovery ownership"
 **Files:**
 - Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
 - Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleClaimRoutesTest.kt` (or the existing claim/resolve route test class)
 - Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`
+- Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`
+
+**Status code:** Tests assert `409 Conflict` with `errorCode = "session_closed"`. This matches the existing pattern in `FeedbackConsoleServer.toConsoleHttpException()` for state-conflict errors (`NO_DRAFT_FEEDBACK`, `ITEM_NOT_EDITABLE`, `NO_ACTIVE_SESSION`). Without a mapper entry the new exception would fall through to the `else 500 to null` branch.
 
 - [ ] **Step 1: Add closed-session batch/update/delete route tests**
 
@@ -837,8 +850,9 @@ Add these tests to `ConsoleFeedbackItemRoutesTest.kt` near the existing batch id
 
                 val response = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
 
-                assertEquals(400, response.statusCode)
+                assertEquals(409, response.statusCode)
                 assertTrue(response.body.contains("SESSION_CLOSED"), response.body)
+                assertTrue(response.body.contains("session_closed"), response.body)
             }
         }
     }
@@ -885,11 +899,11 @@ Add these tests to `ConsoleFeedbackItemRoutesTest.kt` near the existing batch id
                 method = "DELETE",
             )
 
-            assertEquals(400, update.responseCode)
+            assertEquals(409, update.responseCode)
             assertTrue(
                 update.errorStream.bufferedReader().readText().contains("SESSION_CLOSED"),
             )
-            assertEquals(400, delete.responseCode)
+            assertEquals(409, delete.responseCode)
             assertTrue(
                 delete.errorStream.bufferedReader().readText().contains("SESSION_CLOSED"),
             )
@@ -944,17 +958,29 @@ Add this test to `ConsoleHandoffRoutesTest.kt`:
     }
 ```
 
-- [ ] **Step 3: Run the failing route tests**
+- [ ] **Step 3: Add closed-session claim and resolve route tests**
+
+The spec calls out **Save / Edit / Delete / Claim / Resolve / Handoff** under closed-session rejection. `claimFeedback` and `updateItemStatus` are wrapped by `withEventBackedMutation` in `FeedbackSessionStoreDelegate`, so the new guard will block them — add tests so the behavior is intentional, not incidental.
+
+Locate the existing claim/resolve route test class (e.g., `ConsoleClaimRoutesTest.kt` or whichever currently covers `POST /api/items/{id}/claim` and `POST /api/items/{id}/resolve`). Add tests that:
+
+1. Open a session, add a screen, add an item, then `store.closeSession(...)`.
+2. Issue the claim/resolve route call with the closed session's id.
+3. Assert `409` and a `"SESSION_CLOSED"` / `"session_closed"` response body.
+
+Use the same fixture pattern as the existing item route tests (`newConsoleSessionFixture` / `ConsoleHttpTestClient`).
+
+- [ ] **Step 4: Run the failing route tests**
 
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --tests "*ConsoleClaimRoutesTest" --no-daemon
 ```
 
-Expected: FAIL for at least one closed-session mutation path that currently accepts durable mutation.
+Expected: FAIL for at least one closed-session mutation path that currently accepts durable mutation. (Some failures may also surface as `500` instead of `409` until the mapper is updated in Step 6 — that is the expected order of fixes.)
 
-- [ ] **Step 4: Add a reusable closed-session guard**
+- [ ] **Step 5: Add a reusable closed-session guard**
 
 In `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`, add this helper near the event log helpers:
 
@@ -1009,22 +1035,32 @@ Also update `withOptionalEventBackedMutation()` the same way:
     }
 ```
 
-- [ ] **Step 5: Run route/session tests**
+- [ ] **Step 6: Map `SESSION_CLOSED:` to HTTP 409**
+
+In `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`, add this entry to `FeedbackSessionException.toConsoleHttpException()` alongside the other `409` mappings (e.g., just above `"NO_ACTIVE_SESSION:"`):
+
+```kotlin
+        text.startsWith("SESSION_CLOSED:") -> 409 to "session_closed"
+```
+
+Without this entry the guard throws a `500` and the new route tests fail with the wrong status.
+
+- [ ] **Step 7: Run route/session tests**
 
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --tests "*FeedbackSessionServiceClaimTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --tests "*ConsoleClaimRoutesTest" --tests "*FeedbackSessionServiceClaimTest" --no-daemon
 ```
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 Run:
 
 ```bash
-git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt
+git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleClaimRoutesTest.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt
 git commit -m "fix(mcp): reject closed session durable mutations"
 ```
 
@@ -1398,7 +1434,7 @@ Expected: PASS.
 Run:
 
 ```bash
-./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --tests "*FeedbackSessionServiceClaimTest" --tests "*ConsoleEventsRoutesTest" --no-daemon
+./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --tests "*ConsoleClaimRoutesTest" --tests "*FeedbackSessionServiceClaimTest" --tests "*ConsoleEventsRoutesTest" --no-daemon
 ```
 
 Expected: PASS.

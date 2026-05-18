@@ -89,7 +89,8 @@ class DoctorCommandTest {
     fun doctorMapsAmbiguousPackageToConfigRecoverable() {
         val readiness = readinessForDoctorCheck(
             name = "fixthis_project_metadata_found",
-            message = "Multiple Android applicationId values found in Gradle build files: a, b. Pass --package explicitly.",
+            message = "Multiple Android applicationId values found in Gradle build files: a, b. " +
+                "Pass --package explicitly.",
             fix = "Run `./gradlew fixthisSetup` or pass --package <applicationId>.",
         )
 

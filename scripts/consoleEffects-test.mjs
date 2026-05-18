@@ -10,6 +10,7 @@ const sources = [
   'domain/workspaceState.js',
   'domain/consoleAppState.js',
   'domain/consoleInvariants.js',
+  'domain/consoleWorkflowProjection.js',
   'domain/consoleReducer.js',
   'application/consoleStore.js',
   'application/consoleEffects.js',

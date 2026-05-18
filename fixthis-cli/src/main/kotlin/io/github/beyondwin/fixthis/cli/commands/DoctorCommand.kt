@@ -131,26 +131,16 @@ internal data class DoctorCheckResult(
     val readiness: FirstRunReadiness? = null,
 )
 
-internal fun readinessForDoctorCheck(name: String, message: String?, fix: String): FirstRunReadiness = when (name) {
+internal fun readinessForDoctorCheck(
+    name: String,
+    message: String?,
+    fix: String,
+): FirstRunReadiness = when (name) {
     "android_project_found" -> FirstRunReadinessCatalog.envBlocker(
         cause = message ?: "Android project root was not found.",
         fix = fix,
     )
-    "fixthis_project_metadata_found" -> {
-        val raw = message.orEmpty()
-        if (raw.contains("Multiple Android applicationId", ignoreCase = true) ||
-            raw.contains("Pass --package", ignoreCase = true)
-        ) {
-            FirstRunReadinessCatalog.configRecoverable(
-                cause = raw.ifBlank { "FixThis could not choose a unique Android applicationId." },
-                details = mapOf("check" to name),
-            )
-        } else {
-            FirstRunReadinessCatalog.needsInstall(
-                cause = message ?: "FixThis project metadata was not found.",
-            )
-        }
-    }
+    "fixthis_project_metadata_found" -> readinessForProjectMetadata(name, message)
     "adb_found" -> FirstRunReadinessCatalog.envBlocker(
         cause = message ?: "ADB is unavailable.",
         fix = fix,
@@ -159,21 +149,43 @@ internal fun readinessForDoctorCheck(name: String, message: String?, fix: String
         cause = message ?: "No ready Android device or emulator is connected.",
         fix = fix,
     )
-    "sidekick_session_found" -> {
-        val classified = classifyBridgeFailure(message)
-        if (classified.state == FirstRunReadinessState.UNKNOWN_ERROR) {
-            val raw = message.orEmpty()
-            FirstRunReadinessCatalog.needsAppLaunch(
-                cause = message ?: "FixThis sidekick session was not found.",
-                details = if (raw.isBlank()) emptyMap() else mapOf("rawError" to raw),
-            )
-        } else {
-            classified
-        }
-    }
+    "sidekick_session_found" -> readinessForSidekickSession(message)
     else -> FirstRunReadinessFailureCatalog.unknown(
         cause = "Doctor check failed: $name",
         details = mapOf("check" to name),
+    )
+}
+
+private fun readinessForProjectMetadata(name: String, message: String?): FirstRunReadiness {
+    val raw = message.orEmpty()
+    return if (isAmbiguousPackageMessage(raw)) {
+        FirstRunReadinessCatalog.configRecoverable(
+            cause = raw.ifBlank { "FixThis could not choose a unique Android applicationId." },
+            details = mapOf("check" to name),
+        )
+    } else {
+        FirstRunReadinessCatalog.needsInstall(
+            cause = message ?: "FixThis project metadata was not found.",
+        )
+    }
+}
+
+private fun isAmbiguousPackageMessage(message: String): Boolean {
+    val hasMultiplePackageIds = message.contains("Multiple Android applicationId", ignoreCase = true)
+    val asksForExplicitPackage = message.contains("Pass --package", ignoreCase = true)
+    return hasMultiplePackageIds || asksForExplicitPackage
+}
+
+private fun readinessForSidekickSession(message: String?): FirstRunReadiness {
+    val classified = classifyBridgeFailure(message)
+    if (classified.state != FirstRunReadinessState.UNKNOWN_ERROR) {
+        return classified
+    }
+
+    val raw = message.orEmpty()
+    return FirstRunReadinessCatalog.needsAppLaunch(
+        cause = message ?: "FixThis sidekick session was not found.",
+        details = if (raw.isBlank()) emptyMap() else mapOf("rawError" to raw),
     )
 }
 

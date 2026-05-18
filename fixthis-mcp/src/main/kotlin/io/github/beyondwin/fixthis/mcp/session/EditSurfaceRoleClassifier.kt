@@ -10,46 +10,45 @@ internal data class EditSurfaceRoleDecision(
 )
 
 internal object EditSurfaceRoleClassifier {
-    fun classify(item: AnnotationDto, intent: EditIntent): EditSurfaceRoleDecision {
-        val interop = item.targetReliability?.warnings.orEmpty()
-            .any { it == TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP }
-        if (interop) {
-            return EditSurfaceRoleDecision(
-                role = EditSurfaceRoleDto.INTEROP_RISK,
-                confidenceCap = SelectionConfidence.LOW,
-                note = "possible AndroidView/WebView area; verify runtime target before editing",
-            )
-        }
-        if (item.target is AnnotationTargetDto.Area) {
-            return EditSurfaceRoleDecision(
-                role = EditSurfaceRoleDto.VISUAL_AREA,
-                confidenceCap = SelectionConfidence.LOW,
-                note = "visual area selection has no precise semantics node",
-            )
-        }
-        if (intent.primaryKind == EditSurfaceKindDto.SPACING) {
-            return EditSurfaceRoleDecision(
-                role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
-                confidenceCap = SelectionConfidence.LOW,
-            )
-        }
-        if (intent.primaryKind in styleKinds() && hasComponentSignal(item)) {
-            return EditSurfaceRoleDecision(
-                role = EditSurfaceRoleDto.COMPONENT_DEFINITION,
-                confidenceCap = SelectionConfidence.MEDIUM,
-            )
-        }
-        if (looksLikeCopyIntent(item.comment)) {
-            return EditSurfaceRoleDecision(
-                role = EditSurfaceRoleDto.COPY_OR_DATA,
-                confidenceCap = SelectionConfidence.MEDIUM,
-            )
-        }
-        return EditSurfaceRoleDecision(
+    fun classify(item: AnnotationDto, intent: EditIntent): EditSurfaceRoleDecision = when {
+        hasInteropRisk(item) -> decision(
+            role = EditSurfaceRoleDto.INTEROP_RISK,
+            confidenceCap = SelectionConfidence.LOW,
+            note = "possible AndroidView/WebView area; verify runtime target before editing",
+        )
+        item.target is AnnotationTargetDto.Area -> decision(
+            role = EditSurfaceRoleDto.VISUAL_AREA,
+            confidenceCap = SelectionConfidence.LOW,
+            note = "visual area selection has no precise semantics node",
+        )
+        intent.primaryKind == EditSurfaceKindDto.SPACING -> decision(
+            role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
+            confidenceCap = SelectionConfidence.LOW,
+        )
+        intent.primaryKind in styleKinds() && hasComponentSignal(item) -> decision(
+            role = EditSurfaceRoleDto.COMPONENT_DEFINITION,
+            confidenceCap = SelectionConfidence.MEDIUM,
+        )
+        looksLikeCopyIntent(item.comment) -> decision(
+            role = EditSurfaceRoleDto.COPY_OR_DATA,
+            confidenceCap = SelectionConfidence.MEDIUM,
+        )
+        else -> decision(
             role = EditSurfaceRoleDto.CALL_SITE,
             confidenceCap = SelectionConfidence.MEDIUM,
         )
     }
+
+    private fun decision(
+        role: EditSurfaceRoleDto,
+        confidenceCap: SelectionConfidence,
+        note: String? = null,
+    ): EditSurfaceRoleDecision = EditSurfaceRoleDecision(role, confidenceCap, note)
+
+    private fun hasInteropRisk(item: AnnotationDto): Boolean = item.targetReliability
+        ?.warnings
+        .orEmpty()
+        .any { it == TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP }
 
     private fun styleKinds(): Set<EditSurfaceKindDto> = setOf(
         EditSurfaceKindDto.CONTAINER_COLOR,
@@ -59,11 +58,14 @@ internal object EditSurfaceRoleClassifier {
         EditSurfaceKindDto.COMPONENT_RENDERER,
     )
 
-    private fun hasComponentSignal(item: AnnotationDto): Boolean = item.selectedNode?.testTag?.startsWith("comp:") == true ||
-        item.sourceCandidates.any { candidate ->
-            candidate.ownerComposable != null ||
-                candidate.matchReasons.contains("selected testTag convention composable")
-        }
+    private fun hasComponentSignal(item: AnnotationDto): Boolean {
+        val selectedNodeHasComponentTag = item.selectedNode?.testTag?.startsWith("comp:") == true
+        return selectedNodeHasComponentTag ||
+            item.sourceCandidates.any { candidate ->
+                candidate.ownerComposable != null ||
+                    candidate.matchReasons.contains("selected testTag convention composable")
+            }
+    }
 
     private fun looksLikeCopyIntent(comment: String): Boolean {
         val normalized = comment.lowercase()
