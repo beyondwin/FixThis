@@ -100,7 +100,7 @@ function decideStudioWorkflow(action, snapshot = {}) {
     return decideAsyncResponse(snapshot);
   }
 
-  if (durableMutationInFlight(snapshot)) {
+  if (durableMutationInFlight(snapshot) && !(action === StudioWorkflowAction.ANNOTATE_CLICKED && snapshot?.operation === 'capturing')) {
     return blockStudioWorkflow('operation-in-flight', 'prompt-readiness');
   }
 
@@ -116,7 +116,9 @@ function decideStudioWorkflow(action, snapshot = {}) {
         'connection-card',
       );
     }
-    if ((snapshot.workspace || 'empty') !== 'live-preview') {
+    const workspace = snapshot.workspace || 'empty';
+    const canCapture = (workspace === 'empty' || workspace === 'saved-focus') && Boolean(snapshot.activeSessionId);
+    if (workspace !== 'live-preview' && !canCapture) {
       return blockStudioWorkflow('no-live-preview', 'preview-frame');
     }
     return allowStudioWorkflow('capture-preview');

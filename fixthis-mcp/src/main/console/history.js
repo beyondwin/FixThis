@@ -199,11 +199,17 @@
 
             async function enterNewHistoryAnnotateMode() {
               if (toolMode.getState().newHistoryAnnotateModeStarting) return;
+              const wasAnnotating = toolMode.isAnnotateMode();
               toolMode.setNewHistoryAnnotateModeStarting(true);
               toolMode.enterAnnotate();
               renderCurrentSessionList();
               try {
-                await newSession();
+                const openedNewSession = await newSession();
+                if (!openedNewSession) {
+                  if (!wasAnnotating) toolMode.enterSelect();
+                  render();
+                  return;
+                }
                 scrollActiveHistoryItemIntoView();
                 await enterAnnotateMode();
                 scrollActiveHistoryItemIntoView();
@@ -433,8 +439,8 @@
 
             async function newSession() {
               error.textContent = '';
-              if (sessionNavigationInFlight) return;
-              if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return;
+              if (sessionNavigationInFlight) return false;
+              if (await resolvePendingBeforeBoundary('new-session') !== 'continue') return false;
               bumpSessionMutationGeneration();
               resetComposer();
               clearPreview();
@@ -445,6 +451,7 @@
 	              })));
               await refresh();
               startLivePreviewPolling();
+              return true;
             }
 
             async function closeSession() {

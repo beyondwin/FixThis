@@ -61,6 +61,11 @@
                     clearSelection();
                     return;
                   }
+                  if (toolMode.isAnnotateMode() && !draftFlow()) {
+                    event.preventDefault();
+                    startDraftAnnotationFlow().catch(showError);
+                    return;
+                  }
                   if (!draftFlow()) {
                     const point = naturalPointFromEvent(event, image);
                     navigate('tap', { x: point.x, y: point.y }).catch(showError);

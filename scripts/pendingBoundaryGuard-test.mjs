@@ -135,6 +135,17 @@ test('openSession and newSession use boundary resolver instead of immediate flus
   assert.doesNotMatch(newBody, /flushPendingAnnotationsBeforeSessionChange\(\)/);
 });
 
+test('new history annotate stops when new session creation is cancelled', () => {
+  const enterBody = body(historySource, 'async function enterNewHistoryAnnotateMode()');
+  const newBody = body(historySource, 'async function newSession()');
+
+  assert.match(newBody, /return false;/);
+  assert.match(newBody, /return true;/);
+  assert.match(enterBody, /const openedNewSession = await newSession\(\);/);
+  assert.match(enterBody, /if \(!openedNewSession\) \{[\s\S]*?return;[\s\S]*?\}/);
+  assert.match(enterBody, /if \(!wasAnnotating\) toolMode\.enterSelect\(\);/);
+});
+
 test('session navigation exposes in-flight state instead of silently racing clicks', () => {
   const openBody = body(historySource, 'async function openSession(sessionId)');
   assert.match(historySource, /let sessionNavigationInFlight = false;/);

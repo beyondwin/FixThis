@@ -44,6 +44,11 @@
               on('preview-ready', (data) => {
                 if (!data.preview || draftFlow()) return;
                 if (dropStaleSse(data, state.session?.sessionId || null)) return;
+                applyPreviewReadinessToConnectionCard(data.preview);
+                if (data.preview?.previewAvailable === false) {
+                  renderPreviewOnly();
+                  return;
+                }
                 setConsolePreview({
                   ...data.preview,
                   activity: state.connection?.availability?.activity ?? null,

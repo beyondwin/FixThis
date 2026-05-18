@@ -159,6 +159,18 @@ test('legacy annotate flow does not dispatch duplicate canonical preview capture
   assert.match(enterBody, /await startDraftAnnotationFlow\(\)/);
 });
 
+test('annotate-mode canvas click without an active draft retries draft freeze instead of navigating', () => {
+  const rendering = source('fixthis-mcp/src/main/console/presentation/canonicalRenderingView.js');
+  assert.match(
+    rendering,
+    /if \(toolMode\.isAnnotateMode\(\) && !draftFlow\(\)\) \{[\s\S]*?event\.preventDefault\(\);[\s\S]*?startDraftAnnotationFlow\(\)\.catch\(showError\);[\s\S]*?return;[\s\S]*?\}/,
+  );
+  assert.ok(
+    rendering.indexOf('if (toolMode.isAnnotateMode() && !draftFlow())') < rendering.indexOf("navigate('tap'"),
+    'annotate-mode recovery must run before the navigation fallback',
+  );
+});
+
 test('browser console ports do not reference dead draft endpoints or obsolete recovery namespaces', () => {
   const ports = source('fixthis-mcp/src/main/console/adapters/browserPorts.js');
   assert.doesNotMatch(ports, /\/api\/feedback\/items/);

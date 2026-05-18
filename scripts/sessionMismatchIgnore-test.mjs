@@ -168,6 +168,84 @@ test('SSE consumer: events.js wires dropStaleSse so mismatched preview-ready is 
   assert.equal(calls.notify, 0);
 });
 
+test('SSE consumer: preview-unavailable readiness does not replace the live preview state', () => {
+  const applyReadiness = eventsSource.match(/applyPreviewReadinessToConnectionCard\(data\.preview\);/);
+  assert.ok(applyReadiness, 'preview-ready must update readiness UI before mutating preview state');
+  const unavailableGate = eventsSource.match(
+    /if \(data\.preview\?\.previewAvailable === false\) \{\s+renderPreviewOnly\(\);\s+return;\s+\}/,
+  );
+  assert.ok(unavailableGate, 'preview-ready must stop before setConsolePreview when previewAvailable is false');
+  assert.ok(
+    eventsSource.indexOf(applyReadiness[0]) < eventsSource.indexOf('setConsolePreview({'),
+    'readiness handling must run before setConsolePreview',
+  );
+  assert.ok(
+    eventsSource.indexOf(unavailableGate[0]) < eventsSource.indexOf('setConsolePreview({'),
+    'preview-unavailable gate must run before setConsolePreview',
+  );
+
+  const handlerSource = `
+    on('preview-ready', (data) => {
+      if (!data.preview || draftFlow()) return;
+      ${(() => {
+        const m = eventsSource.match(/if \(dropStaleSse\(data, state\.session\?\.sessionId \|\| null\)\) return;/);
+        assert.ok(m, 'events.js must guard preview-ready via dropStaleSse');
+        return m[0];
+      })()}
+      ${applyReadiness[0]}
+      ${unavailableGate[0]}
+      setConsolePreview({ ...data.preview });
+      renderPreviewOnly();
+    });
+  `;
+  const calls = { applyReadiness: 0, setConsolePreview: 0, renderPreviewOnly: 0, warnings: 0 };
+  const handlers = {};
+  const fakeOn = (name, fn) => { handlers[name] = fn; };
+  const fakeDraftFlow = () => null;
+  const fakeApplyReadiness = () => { calls.applyReadiness += 1; };
+  const fakeSetConsolePreview = () => { calls.setConsolePreview += 1; };
+  const fakeRenderPreviewOnly = () => { calls.renderPreviewOnly += 1; };
+  const fakeConsoleObj = { warn: () => { calls.warnings += 1; } };
+  const fakeState = { session: { sessionId: 'active' } };
+  const dropStaleSseSource = extractFunction(sseSource, 'function dropStaleSse');
+
+  const factory = new Function(
+    'on',
+    'draftFlow',
+    'applyPreviewReadinessToConnectionCard',
+    'setConsolePreview',
+    'renderPreviewOnly',
+    'state',
+    'console',
+    `${dropStaleSseSource}\n${handlerSource}`,
+  );
+  factory(
+    fakeOn,
+    fakeDraftFlow,
+    fakeApplyReadiness,
+    fakeSetConsolePreview,
+    fakeRenderPreviewOnly,
+    fakeState,
+    fakeConsoleObj,
+  );
+
+  handlers['preview-ready']({
+    sessionId: 'active',
+    preview: { previewId: 'p-unavailable', previewAvailable: false, readiness: { state: 'CAPTURE_UNAVAILABLE' } },
+  });
+  assert.equal(calls.applyReadiness, 1);
+  assert.equal(calls.setConsolePreview, 0, 'preview-unavailable SSE must not replace state.preview');
+  assert.equal(calls.renderPreviewOnly, 1);
+
+  handlers['preview-ready']({
+    sessionId: 'active',
+    preview: { previewId: 'p-ready', previewAvailable: true },
+  });
+  assert.equal(calls.applyReadiness, 2);
+  assert.equal(calls.setConsolePreview, 1);
+  assert.equal(calls.renderPreviewOnly, 2);
+});
+
 test('preview-poll consumer: preview.js wires dropStalePreviewPoll so mismatched response is silently dropped before setConsolePreview', () => {
   // preview.js refreshPreview: the gate must precede applyPreviewReadinessToConnectionCard / setConsolePreview.
   const m = previewSource.match(/if \(dropStalePreviewPoll\(preview, state\.session\?\.sessionId \|\| null\)\) return;/);

@@ -31,6 +31,32 @@ test('allows annotate when connection is ready and workspace is live preview', (
   assert.equal(decision.effect, 'capture-preview');
 });
 
+test('allows annotate from an empty active session so the first preview can be captured', () => {
+  const decision = decide(m.StudioWorkflowAction.ANNOTATE_CLICKED, {
+    workspace: 'empty',
+    activeSessionId: 'session-new',
+  });
+  assert.equal(decision.type, m.StudioWorkflowDecisionType.ALLOW);
+  assert.equal(decision.effect, 'capture-preview');
+});
+
+test('allows annotate while a preview capture is already in flight', () => {
+  const decision = decide(m.StudioWorkflowAction.ANNOTATE_CLICKED, {
+    operation: 'capturing',
+  });
+  assert.equal(decision.type, m.StudioWorkflowDecisionType.ALLOW);
+  assert.equal(decision.effect, 'capture-preview');
+});
+
+test('allows annotate from a saved-focus view when an active session can capture the current screen', () => {
+  const decision = decide(m.StudioWorkflowAction.ANNOTATE_CLICKED, {
+    workspace: 'saved-focus',
+    activeSessionId: 'session-active',
+  });
+  assert.equal(decision.type, m.StudioWorkflowDecisionType.ALLOW);
+  assert.equal(decision.effect, 'capture-preview');
+});
+
 test('blocks annotate when device is blocked', () => {
   const decision = decide(m.StudioWorkflowAction.ANNOTATE_CLICKED, {
     connection: 'blocked',

@@ -371,6 +371,12 @@
                     showStatus('Annotation start cancelled because the device or session changed.', { variant: 'warn', durationMs: 3500 });
                     return;
                   }
+                  applyPreviewReadinessToConnectionCard(preview);
+                  if (preview?.previewAvailable === false) {
+                    renderPreviewOnly();
+                    showStatus(preview.readiness?.verify || 'Open the app first to capture a screenshot, then try again.', { variant: 'warn', durationMs: 3500 });
+                    return;
+                  }
                   preview = {
                     ...preview,
                     activity: state.connection?.availability?.activity ?? null,
