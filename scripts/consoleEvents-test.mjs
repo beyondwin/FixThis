@@ -63,10 +63,20 @@ test('snapshot null session clears active draft and preview state', () => {
   assert.match(start, /if \(!data\.session && previousDisplayedSessionId\) clearDisplayedSessionState\(\);/);
 });
 
-test('preview-ready event is ignored when its session does not match active session', () => {
+test('preview-ready event routes through shared live preview application', () => {
   const start = body(source, 'function startConsoleEvents()');
-  assert.match(start, /on\('preview-ready'/);
-  // session-mismatch gate moved from inline check to sse.js dropStaleSse()
-  assert.match(start, /dropStaleSse\(data, state\.session\?\.sessionId \|\| null\)/);
-  assert.match(start, /return;/);
+  const previewReady = start.slice(start.indexOf("on('preview-ready'"));
+
+  assert.match(previewReady, /applyLivePreview\(data\.preview,\s*\{/);
+  assert.match(previewReady, /source:\s*['"]sse['"]/);
+  assert.match(previewReady, /sessionId:\s*data\.sessionId/);
+  assert.doesNotMatch(previewReady, /setConsolePreview\(\{/);
+});
+
+test('preview-ready event delegates stale-session ownership to shared preview path', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  const previewReady = start.slice(start.indexOf("on('preview-ready'"));
+
+  assert.match(previewReady, /applyLivePreview\(data\.preview/);
+  assert.doesNotMatch(previewReady, /dropStaleSse\(/);
 });

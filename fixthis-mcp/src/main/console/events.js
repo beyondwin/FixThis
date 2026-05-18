@@ -43,19 +43,10 @@
               on('sessions-updated', (data) => data.sessions?.sessions ? renderSessionsListFromPayload(data.sessions.sessions) : refreshSessions().catch(showError));
               on('preview-ready', (data) => {
                 if (!data.preview || draftFlow()) return;
-                if (dropStaleSse(data, state.session?.sessionId || null)) return;
-                applyPreviewReadinessToConnectionCard(data.preview);
-                if (data.preview?.previewAvailable === false) {
-                  renderPreviewOnly();
-                  return;
-                }
-                setConsolePreview({
-                  ...data.preview,
-                  activity: state.connection?.availability?.activity ?? null,
-                  frozenAtEpochMillis: Date.now(),
-                  stale: false
+                applyLivePreview(data.preview, {
+                  source: 'sse',
+                  sessionId: data.sessionId,
                 });
-                renderPreviewOnly();
               });
               on('devices-updated', (data) => renderDeviceList(data.devices || data));
               on('connection-updated', (data) => data.connection && applyConnectionStatus(data.connection));

@@ -1,4 +1,4 @@
-// @requires state.js, api.js, draftWorkspace.js, previewPoll.js
+// @requires state.js, api.js, draftWorkspace.js, previewPoll.js, sse.js
             // Raw HTTP fetch — the previewUseCases layer provides dedup and
             // race-fence via the FSM. Cross-caller dedup (across draft port
             // and FSM) is achieved by routing all callers through
@@ -184,6 +184,37 @@
               }
             }
 
+            function applyLivePreview(preview, options = {}) {
+              if (!preview || draftFlow()) return false;
+              const activeSessionId = state.session?.sessionId || null;
+              const ownerSessionId = options.sessionId || preview.sessionId || null;
+              if (ownerSessionId && (options.source === 'sse'
+                ? dropStaleSse({ sessionId: ownerSessionId }, activeSessionId)
+                : dropStalePreviewPoll({ sessionId: ownerSessionId }, activeSessionId))) return false;
+              applyPreviewReadinessToConnectionCard(preview);
+              if (preview?.previewAvailable === false) {
+                renderPreviewOnly();
+                return true;
+              }
+              if (preview.screen?.systemUiVisible && state.preview) {
+                state.preview.stale = true;
+                state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';
+                markPreviewStale(true);
+                renderPreviewOnly();
+                return true;
+              }
+              previewUseCases.applyReady(preview);
+              setConsolePreview({
+                ...preview,
+                activity: state.connection?.availability?.activity ?? null,
+                frozenAtEpochMillis: Date.now(),
+                stale: false,
+              });
+              if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
+              renderPreviewOnly();
+              return true;
+            }
+
             async function refreshPreview() {
               error.textContent = '';
               if (!state.session || draftFlow()) return;
@@ -191,27 +222,10 @@
               try {
                 const preview = await previewUseCases.request();
                 if (draftFlow() || !previewContextStillCurrent(previewContext)) return;
-                if (dropStalePreviewPoll(preview, state.session?.sessionId || null)) return;
-                applyPreviewReadinessToConnectionCard(preview);
-                if (preview?.previewAvailable === false) {
-                  renderPreviewOnly();
-                  return;
-                }
-                if (preview?.screen?.systemUiVisible && state.preview) {
-                  state.preview.stale = true;
-                  state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';
-                  markPreviewStale(true);
-                  renderPreviewOnly();
-                  return;
-                }
-                setConsolePreview({
-                  ...preview,
-                  activity: state.connection?.availability?.activity ?? null,
-                  frozenAtEpochMillis: Date.now(),
-                  stale: false,
+                applyLivePreview(preview, {
+                  source: 'poll',
+                  sessionId: preview?.sessionId || state.session?.sessionId || null,
                 });
-                if (userConnectionState(state.connection.current) === 'ready') markPreviewStale(false);
-                renderPreviewOnly();
               } catch (cause) {
                 markPreviewStale(true);
                 refreshConnection({ preservePreviewStale: true }).catch((err) => console.warn('[fixthis] background connection refresh failed:', err));
