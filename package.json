@@ -16,6 +16,7 @@
     "release:check": "npm run ci:local",
     "hooks:install": "bash scripts/install-git-hooks.sh",
     "console:smoke": "node scripts/console-browser-smoke.mjs",
+    "console:browser:reliability": "node scripts/console-browser-reliability.mjs",
     "first-run:smoke": "node scripts/first-run-smoke.mjs",
     "first-run:smoke:test": "node --test scripts/first-run-smoke-contract-test.mjs",
     "console:harness": "node scripts/console-harness.mjs",

@@ -118,6 +118,10 @@ function json(res, body, status = 200) {
   res.end(JSON.stringify(body));
 }
 
+function sseFrame(name, data, id) {
+  return `id: ${id}\nevent: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
 function readJson(req) {
   return new Promise((resolveRead) => {
     let body = '';
@@ -144,6 +148,9 @@ export async function startFakeBridge(options = {}) {
   const sessionsById = new Map([[session.sessionId, session]]);
   const previewDelays = new Map();
   const requestLog = [];
+  const eventClients = new Set();
+  let eventId = 0;
+  const savedDraftKeys = new Set();
 
   function createSession({ sessionId, title } = {}) {
     const now = Date.now();
@@ -181,6 +188,14 @@ export async function startFakeBridge(options = {}) {
     if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
+  function emitEvent(name, data) {
+    eventId += 1;
+    const frame = sseFrame(name, data, eventId);
+    for (const client of eventClients) {
+      client.write(frame);
+    }
+  }
+
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     const entry = { method: req.method, path: url.pathname, time: Date.now() };
@@ -196,8 +211,22 @@ export async function startFakeBridge(options = {}) {
       return;
     }
     if (url.pathname === '/api/events' && req.method === 'GET') {
-      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store' });
-      res.end('event: snapshot\ndata: {}\n\n');
+      res.writeHead(200, {
+        'content-type': 'text/event-stream; charset=utf-8',
+        'cache-control': 'no-store',
+        connection: 'keep-alive',
+      });
+      eventClients.add(res);
+      res.write(sseFrame('snapshot', {
+        session,
+        sessions: { sessions: Array.from(sessionsById.values()).map(sessionSummary) },
+        connection: {
+          state: scenarioState.forceState || 'READY',
+          connection: 'connected',
+          selectedDevice: { serial: 'fake-device', label: 'Fake Device', state: 'device', selected: true },
+        },
+      }, ++eventId));
+      req.on('close', () => eventClients.delete(res));
       return;
     }
     if (url.pathname.endsWith('/screenshot/full') && req.method === 'GET') {
@@ -225,6 +254,8 @@ export async function startFakeBridge(options = {}) {
         openSession(body.sessionId);
       }
       session.updatedAtEpochMillis = Date.now();
+      emitEvent('session-updated', { sessionId: session.sessionId, session });
+      emitEvent('sessions-updated', { sessionId: session.sessionId, sessions: { sessions: Array.from(sessionsById.values()).map(sessionSummary) } });
       json(res, session);
       return;
     }
@@ -271,7 +302,9 @@ export async function startFakeBridge(options = {}) {
     if (url.pathname === '/api/preview' && req.method === 'GET') {
       const previewSessionId = url.searchParams.get('sessionId') || session.sessionId;
       await maybeDelayPreview(previewSessionId);
-      json(res, fakePreview(previewSessionId));
+      const preview = fakePreview(previewSessionId);
+      emitEvent('preview-ready', { sessionId: previewSessionId, preview });
+      json(res, preview);
       return;
     }
     if (url.pathname === '/api/items/batch' && req.method === 'POST') {
@@ -286,6 +319,9 @@ export async function startFakeBridge(options = {}) {
       }
       const items = Array.isArray(body.items) ? body.items : [];
       for (const draft of items) {
+        const draftKey = body.workspaceId && draft.draftItemId ? `${body.workspaceId}\u0000${draft.draftItemId}` : null;
+        if (draftKey && savedDraftKeys.has(draftKey)) continue;
+        if (draftKey) savedDraftKeys.add(draftKey);
         session.items.push({
           itemId: `item-${session.items.length + 1}`,
           screenId: screen.screenId,
@@ -301,10 +337,14 @@ export async function startFakeBridge(options = {}) {
           sequenceNumber: session.items.length + 1,
           delivery: 'draft',
           status: 'open',
+          clientWorkspaceId: body.workspaceId || null,
+          clientDraftItemId: draft.draftItemId || null,
         });
       }
       session.updatedAtEpochMillis = now;
       session.nextItemSequenceNumber = session.items.length + 1;
+      emitEvent('session-updated', { sessionId: session.sessionId, session });
+      emitEvent('sessions-updated', { sessionId: session.sessionId, sessions: { sessions: Array.from(sessionsById.values()).map(sessionSummary) } });
       json(res, session);
       return;
     }
@@ -323,6 +363,8 @@ export async function startFakeBridge(options = {}) {
       session.items = session.items.map((item) => itemIds.includes(item.itemId)
         ? { ...item, delivery: 'sent', sentAtEpochMillis: now, lastHandedOffAtEpochMillis: now }
         : item);
+      emitEvent('session-updated', { sessionId: session.sessionId, session });
+      emitEvent('sessions-updated', { sessionId: session.sessionId, sessions: { sessions: Array.from(sessionsById.values()).map(sessionSummary) } });
       json(res, { session, prompt: 'Fake handoff prompt' });
       return;
     }
@@ -359,11 +401,13 @@ export async function startFakeBridge(options = {}) {
   const address = server.address();
   const url = `http://127.0.0.1:${address.port}`;
 
-    const fixture = {
+  const fixture = {
     url,
     consoleUrl: url,
     getRequestLog: () => requestLog.slice(),
     createSession,
+    openSession,
+    currentSession: () => session,
     delayPreviewForSession,
     seedAnnotation: (overrides = {}) => {
       const now = Date.now();
@@ -398,6 +442,21 @@ export async function startFakeBridge(options = {}) {
       session.nextItemSequenceNumber = session.items.length + 1;
       return item;
     },
+    closeEventClients: () => {
+      for (const client of Array.from(eventClients)) client.end();
+      eventClients.clear();
+    },
+    emitSessionUpdated: () => {
+      emitEvent('session-updated', { sessionId: session.sessionId, session });
+      emitEvent('sessions-updated', { sessionId: session.sessionId, sessions: { sessions: Array.from(sessionsById.values()).map(sessionSummary) } });
+      return session;
+    },
+    emitPreviewReady: (sessionId = session.sessionId, overrides = {}) => {
+      const preview = { ...fakePreview(sessionId), ...overrides };
+      emitEvent('preview-ready', { sessionId, preview });
+      return preview;
+    },
+    eventClientCount: () => eventClients.size,
     runScenario: async ({ scenario, overrides = {} } = {}) => {
       if (!SCENARIOS[scenario]) {
         throw new Error(`unknown scenario: ${scenario}`);
@@ -407,6 +466,8 @@ export async function startFakeBridge(options = {}) {
     },
     applyScenario: async (name) => fixture.runScenario({ scenario: name }),
     close: async () => {
+      for (const client of Array.from(eventClients)) client.end();
+      eventClients.clear();
       await new Promise((resolveClose) => server.close(resolveClose));
     },
   };
