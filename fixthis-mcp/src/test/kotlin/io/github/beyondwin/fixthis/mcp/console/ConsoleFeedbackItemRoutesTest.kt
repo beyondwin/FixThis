@@ -531,6 +531,102 @@ class ConsoleFeedbackItemRoutesTest {
     }
 
     @Test
+    fun batchItemsApiRejectsClosedSession() {
+        withTempProject("fixthis-console-closed-batch") { projectRoot ->
+            val store = FeedbackSessionStore(
+                clock = FakeLongs(100L, 200L, 300L, 400L).next,
+                idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1", "item-1").next,
+            )
+            val service = FeedbackSessionService(
+                bridge = FakeFixThisBridge(),
+                store = store,
+                projectRoot = projectRoot.absolutePath,
+                defaultPackageName = "io.github.beyondwin.fixthis.sample",
+            )
+            val session = service.openSession(null, newSession = true)
+            val preview = runBlocking { service.capturePreview(session.sessionId) }
+            store.closeSession(session.sessionId)
+
+            withConsoleServer(service) { server ->
+                val body = """
+                    {
+                      "sessionId": "${session.sessionId}",
+                      "previewId": "${preview.previewId}",
+                      "workspaceId": "workspace-closed",
+                      "items": [
+                        {
+                          "draftItemId": "draft-closed",
+                          "targetType": "area",
+                          "bounds": { "left": 1, "top": 2, "right": 3, "bottom": 4 },
+                          "comment": "must reject"
+                        }
+                      ]
+                    }
+                """.trimIndent()
+
+                val response = ConsoleHttpTestClient(server.url).postJson("/api/items/batch", body)
+
+                assertEquals(409, response.statusCode)
+                assertTrue(response.body.contains("SESSION_CLOSED"), response.body)
+                assertTrue(response.body.contains("session_closed"), response.body)
+            }
+        }
+    }
+
+    @Test
+    fun updateAndDeleteItemRoutesRejectClosedSession() {
+        val fixture = newConsoleSessionFixture(
+            clock = FakeLongs(100L, 200L, 300L, 400L, 500L).next,
+            idGenerator = FakeIds("session-1", "screen-1", "item-1").next,
+        )
+        fixture.use { context ->
+            val service = context.service
+            val store = context.store
+            val server = context.server
+            val session = service.openSession(null, newSession = true)
+            store.addScreen(
+                session.sessionId,
+                SnapshotDto(
+                    screenId = "screen-1",
+                    capturedAtEpochMillis = 100L,
+                    displayName = "Screen 1",
+                ),
+            )
+            val item = store.addItem(
+                session.sessionId,
+                AnnotationDto(
+                    itemId = "pending",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 0L,
+                    updatedAtEpochMillis = 0L,
+                    target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                    comment = "before close",
+                ),
+            )
+            store.closeSession(session.sessionId)
+
+            val update = ConsoleHttpTestClient(server.url).connection(
+                "/api/items/${item.itemId}",
+                method = "PUT",
+                body = """{"sessionId":"${session.sessionId}","comment":"after close"}""",
+            )
+            val delete = ConsoleHttpTestClient(server.url).connection(
+                "/api/items/${item.itemId}?sessionId=${session.sessionId}",
+                method = "DELETE",
+            )
+
+            assertEquals(409, update.responseCode)
+            val updateBody = update.errorStream.bufferedReader().readText()
+            assertTrue(updateBody.contains("SESSION_CLOSED"), updateBody)
+            assertTrue(updateBody.contains("session_closed"), updateBody)
+            assertEquals(409, delete.responseCode)
+            val deleteBody = delete.errorStream.bufferedReader().readText()
+            assertTrue(deleteBody.contains("SESSION_CLOSED"), deleteBody)
+            assertTrue(deleteBody.contains("session_closed"), deleteBody)
+        }
+    }
+
+    @Test
     fun batchItemsApiReturnsBadRequestForEmptyItemList() {
         val bridge = FakeFixThisBridge()
         val service = FeedbackSessionService(

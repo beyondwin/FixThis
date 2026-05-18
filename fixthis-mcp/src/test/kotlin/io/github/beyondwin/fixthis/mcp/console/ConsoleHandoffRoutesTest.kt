@@ -126,6 +126,48 @@ class ConsoleHandoffRoutesTest {
     }
 
     @Test
+    fun agentHandoffRejectsClosedSession() {
+        val store = FeedbackSessionStore(
+            clock = FakeLongs(100L, 200L, 300L, 400L, 500L).next,
+            idGenerator = FakeIds("session-1", "screen-1", "item-1", "batch-1").next,
+        )
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = "/repo",
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        store.addScreen(session.sessionId, SnapshotDto("screen-1", 100L, displayName = "Screen 1"))
+        val item = store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = "screen-1",
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                comment = "handoff me",
+            ),
+        )
+        store.closeSession(session.sessionId)
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                "/api/agent-handoffs",
+                """{"sessionId":"${session.sessionId}","itemIds":["${item.itemId}"]}""",
+            )
+
+            assertEquals(409, response.statusCode)
+            assertTrue(response.body.contains("SESSION_CLOSED"), response.body)
+            assertTrue(response.body.contains("session_closed"), response.body)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun saveToMcpToastMentionsAgentPickup() {
         val html = ConsoleSourceFixtures.readAll()
         assertTrue(html.contains("Saved to MCP ✓ — agent will pick up"))

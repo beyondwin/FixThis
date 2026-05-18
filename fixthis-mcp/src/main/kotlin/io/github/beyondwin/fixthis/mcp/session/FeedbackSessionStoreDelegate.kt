@@ -477,6 +477,7 @@ internal class FeedbackSessionStoreDelegate(
         prepare: () -> Pair<JsonObject, () -> T>,
     ): T {
         val result = synchronized(lock) {
+            requireOpenSessionForMutation(sessionId, type)
             val (payload, mutate) = prepare()
             // Throws EventLogException on failure, so mutate() is never reached.
             journal.append(sessionId = sessionId, type = type, payload = payload)
@@ -493,12 +494,22 @@ internal class FeedbackSessionStoreDelegate(
         noop: () -> T,
     ): T {
         val result = synchronized(lock) {
+            requireOpenSessionForMutation(sessionId, type)
             val (payload, mutate) = prepare() ?: return@synchronized noop()
             journal.append(sessionId = sessionId, type = type, payload = payload)
             mutate()
         }
         compactEventLogAfterMutation(sessionId)
         return result
+    }
+
+    private fun requireOpenSessionForMutation(sessionId: String, type: String) {
+        val session = getSessionLocked(sessionId)
+        if (session.status == SessionStatusDto.CLOSED) {
+            throw FeedbackSessionException(
+                "SESSION_CLOSED: Cannot run $type on a closed feedback session.",
+            )
+        }
     }
 
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
