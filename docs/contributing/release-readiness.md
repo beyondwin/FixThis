@@ -118,6 +118,11 @@ Required v0.6 evidence before tagging:
       the release claims.
 - [ ] v0.5 Trustworthy Onboarding evidence is captured if the release notes
       claim README-first Claude Code / Codex bootstrap.
+- [ ] v0.6 evidence is captured if release notes claim Handoff Intelligence,
+      Studio Reliability, or Release Grade:
+      `npm run handoff:eval:test`,
+      `npm run console:reliability:test`, and
+      `npm run release:v06:evidence:test`.
 
 ## Required Before External Artifact Release
 

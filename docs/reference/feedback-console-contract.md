@@ -222,6 +222,9 @@ When no source candidates are available for the item, the source block consists 
   It is derived from the user comment, selected target, target owner, and source
   candidates. It does not replace source candidates and is not an auto-edit
   instruction.
+- `editSurface role=` — optional role for the edit-surface hint:
+  `call-site`, `component-definition`, `copy-or-data`, `layout-or-style`,
+  `visual-area`, or `interop-risk`.
 - `sourceCandidates` identify where selected or nearby strings came from.
   `editSurface` identifies where a style/layout change is likely rendered.
 - candidate lines — up to 3 in score order. Rank 1 includes optional `owner=<Composable>` when the source index knows the enclosing `@Composable fun`, `margin=` (score gap to rank 2, formatted to 2 decimal places), and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.

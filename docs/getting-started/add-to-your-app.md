@@ -26,8 +26,9 @@ fixthis install-agent --project-dir . --target all
 ```
 
 `fixthis install-agent` detects the Android app module by `applicationId`,
-writes Claude Code / Codex MCP config, creates `.fixthis/agent-setup.*`
-handoff files, and applies the published Gradle plugin.
+writes Claude Code / Codex MCP config, creates `.fixthis/project.json` plus
+`.fixthis/agent-setup.*` handoff files, and applies the published Gradle
+plugin.
 
 Manual equivalent in your app module `build.gradle.kts`:
 
@@ -52,18 +53,18 @@ design.
 
 ## 2. Configure your AI agent
 
-After the plugin is applied, refresh project metadata and verify:
+After `fixthis install-agent` completes, verify the setup:
 
 ```bash
-./gradlew fixthisSetup
 fixthis doctor --project-dir . --json
 ```
 
 Use `fixthis install-agent --dry-run` to preview the Gradle patch and config
 writes, or `--skip-gradle-plugin` if the plugin is already applied.
 
-`fixthisSetup` writes `.fixthis/project.json` with the detected application id
-and refreshes project metadata after Gradle sync. If the project has flavored
+Run `./gradlew fixthisSetup` only when doctor reports `NEEDS_INSTALL`, generated
+metadata is missing, or you intentionally want Gradle to refresh project
+metadata after a manual plugin or variant change. If the project has flavored
 debug variants, use the variant-specific task, for example
 `./gradlew :app:fixthisSetupStagingDebug`.
 

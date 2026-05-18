@@ -42,6 +42,8 @@ pitch, scope, and sample-to-agent Quick Start.
 ## Reference Contracts
 
 - [CLI reference](reference/cli.md) — command flags and setup modes.
+- [Agent setup handoff schema](reference/agent-setup-schema.md) —
+  `.fixthis/agent-setup.json` fields written by `fixthis install-agent`.
 - [MCP tools reference](reference/mcp-tools.md) — tool signatures and return shapes.
 - [Output schema](reference/output-schema.md) — persisted JSON fields and handoff shape.
 - [Feedback console contract](reference/feedback-console-contract.md) — console behavior and compact prompt grammar.

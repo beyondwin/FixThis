@@ -80,6 +80,61 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   contract reason (`No contract`, `Merged into`, `Covered by`, `Demoted to`) so
   future broad-test reductions require an explicit owner.
 
+### Added — v0.5 trustworthy onboarding
+
+- README-first Claude Code / Codex bootstrap is now the canonical external-app
+  path: `fixthis install-agent --project-dir . --target all`, then
+  `fixthis doctor --project-dir . --json`, then restart the agent before
+  calling `fixthis_open_feedback_console`.
+- `fixthis install-agent` now writes `.fixthis/project.json`,
+  `.fixthis/agent-setup.md`, `.fixthis/agent-setup.json`, and
+  `.fixthis/mcp.json.template` as setup handoff artifacts while applying the
+  published Gradle plugin and writing MCP config.
+- `install-agent --json` reports `readiness`, `nextAction`, and
+  `restartRequired` alongside `applied`, `skipped`, `errors`, and `next`, so
+  agents can continue from a machine-readable setup result.
+- `fixthis doctor --json`, `.fixthis/agent-setup.json`, and the feedback
+  console share the first-run readiness vocabulary. Doctor fallback paths now
+  preserve raw bridge errors when the app needs launch, and generated
+  `agent-setup.json` `next` entries stay shell-safe.
+- New first-run evidence commands guard the path:
+  `npm run docs:agent-bootstrap:test`, `npm run first-run:smoke`, and
+  `npm run first-run:smoke:test`.
+
+### Added — v0.6 handoff intelligence
+
+- Saved feedback items may now include `editSurfaceCandidates[].role`, an
+  optional role token that distinguishes likely call sites, reusable component
+  definitions, copy/data origins, layout/style surfaces, visual-area targets,
+  and interop-risk targets.
+- Compact handoff Markdown renders edit-surface role tokens as
+  `editSurface: <kind>  role=<role> -> <file>:<line> ...`, so agents can
+  inspect the likely edit surface before following source-origin candidates for
+  visual, spacing, typography, or component-renderer requests.
+- Added a v0.6 handoff evaluation corpus and regression gate
+  (`npm run handoff:eval:test`) covering copy button call sites, reusable card
+  color, spacing/layout, visual-area gaps, interop risk, and ambiguous repeated
+  text.
+
+### Added — v0.6 Studio reliability
+
+- Added `npm run console:reliability:test` as a grouped Studio reliability
+  harness for reducer, use-case, polling, stale-session fencing, and idempotency
+  contracts.
+- Strengthened duplicate draft save idempotency, Studio stale-session fences,
+  and the draft recovery matrix so repeated saves, reload recovery, session
+  switching, and blocked-device states stay tied to the correct feedback
+  workspace.
+
+### Added — v0.6 release grade
+
+- Added a v0.6 release claim manifest and evidence template. Release notes may
+  claim Handoff Intelligence, Studio Reliability, or Release Grade only when
+  the matching evidence commands are captured.
+- Added `npm run release:v06:evidence:test`,
+  `node scripts/check-release-readiness.mjs`, and local-check wiring that guard
+  CLI/docs/MCP/output-schema drift before tagging the next release.
+
 ## [0.3.0] - 2026-05-17
 
 ### Added — v0.3 first-run trust follow-up

@@ -21,6 +21,10 @@ broader Android UI stacks or additional package channels.
 - **Best-effort source candidates.** Handoffs include up to three ranked
   candidates plus confidence, margin, and warning signals so agents can verify
   before editing.
+- **Best-effort edit surfaces.** Visual, style, typography, spacing, and
+  component-renderer feedback can include role-tagged edit-surface hints that
+  distinguish call sites, reusable component definitions, copy/data origins,
+  layout/style surfaces, visual areas, and interop risk.
 - **Pixel screenshots.** Editable and password text is redacted from semantics,
   but screenshots can still contain sensitive pixels.
 
@@ -77,8 +81,8 @@ of source patterns FixThis recognizes:
 - `Layout` and `SubcomposeLayout` wrappers
 - more composable-name conventions
 - richer handling for shared reusable components
-- clearer distinction between call sites, component definitions, and copy/data
-  sources
+- richer confidence scoring for the current call-site, component-definition,
+  copy/data, layout/style, visual-area, and interop-risk edit-surface roles
 
 ### More agents out of the box
 

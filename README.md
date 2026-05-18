@@ -129,9 +129,14 @@ copied compact Markdown or saved a local MCP handoff.
 
 ## Why FixThis vs. just sending a screenshot?
 
-Modern coding agents already accept screenshots and accessibility trees. FixThis differs in three ways:
+Modern coding agents already accept screenshots and accessibility trees.
+FixThis adds the missing handoff structure:
 
 - **Pin to source, not pixels.** Top-3 ranked source-file candidates with line numbers, match reasons, and a margin score — the agent edits the right call site instead of guessing which composable rendered which pixel.
+- **Route visual edits to the likely surface.** `editSurface` hints carry role
+  tokens for call sites, component definitions, copy/data, layout/style,
+  visual-area work, and interop risk, so a style request is not forced through
+  the same path as a text-source match.
 - **Stable target identity.** Instance grouping (`instance i/N`), duplicate-marker detection, and overlap-group hints keep N visually identical cards distinguishable.
 - **Screen integrity checks.** Frozen previews carry a screen fingerprint; if the app rotates, changes window mode, or otherwise moves to a different screen before saving, FixThis asks you to re-capture, force-save, or cancel.
 - **Honest target confidence.** Handoffs can mark visual-only, stale, or

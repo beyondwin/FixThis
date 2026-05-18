@@ -42,6 +42,8 @@ FixThis adds runtime evidence around the human selection:
 - screenshot bounds and optional crop artifacts
 - Compose semantics for the selected target and nearby context
 - source candidates ranked from the Gradle source index
+- edit-surface hints that distinguish call sites, component definitions,
+  copy/data, layout/style surfaces, visual-area work, and interop risk
 - target confidence and warning signals
 - stable item IDs for MCP claim/resolve workflows
 - browser draft ids that make retried handoff saves idempotent

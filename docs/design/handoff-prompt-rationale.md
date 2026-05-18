@@ -111,6 +111,12 @@ to a string source, while the requested spacing change belongs in the card
 container composable. `editSurface:` is an inspection hint, not an automatic
 edit instruction.
 
+The optional `role=` token explains what kind of surface the hint represents:
+call site, reusable component definition, copy/data source, layout/style
+surface, visual-area work, or interop risk. That distinction keeps an agent
+from treating a text-origin candidate as the right place for every color,
+spacing, or typography change.
+
 ## Why Instance And Duplicate Signals Exist
 
 Repeated UI is common in Compose: list rows, metric cards, tabs, and reusable
@@ -163,5 +169,5 @@ The v2 prompt removed several noisy tokens after real agent use:
 - size suffixes were dropped because they are derivable from `box=`
 
 The result is shorter but not less informative. The migration table in the
-[feedback console contract](../reference/feedback-console-contract.md#v1-v2-token-migration)
+[feedback console contract](../reference/feedback-console-contract.md#v1--v2-token-migration)
 documents exact token changes.

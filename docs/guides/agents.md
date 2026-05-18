@@ -84,6 +84,8 @@ For agents without first-class MCP support, use **Copy Prompt** in the console:
    - the user comment(s)
    - target evidence (bounds, semantics path, instance index)
    - top-3 source-file candidates with line numbers and match reasons
+   - optional `editSurface` hints with role tokens for likely visual/style edit
+     locations
    - severity / status
 
 The agent can start editing immediately — no MCP setup, no restart, no extra
@@ -108,6 +110,11 @@ tools.
   browser draft ids and avoids duplicate saved items. Agents should still work
   from `itemId` values returned by `fixthis_read_feedback`, not browser
   `draftItemId` values.
+- **Edit-surface hints are routing evidence.** For visual, spacing,
+  typography, or component-renderer requests, inspect `editSurface` lines before
+  assuming the top source candidate is the edit location. `role=` tells you
+  whether the hint points at a call site, component definition, copy/data,
+  layout/style surface, visual area, or interop risk.
 - **Screen mismatch is guarded.** If the frozen preview fingerprint differs
   from the current app screen when you save, the console asks whether to
   re-capture, force-save, or cancel.

@@ -90,9 +90,10 @@ Batch persistence is retry-safe. The browser includes a DraftWorkspace
 `workspaceId` and per-item `draftItemId`; persisted items retain those as
 `clientWorkspaceId` and `clientDraftItemId`. Reposting the same batch is a
 server no-op, and reposting a superset appends only new draft items while
-reusing the original evidence screen. Legacy saved items without these client
-ids are deduplicated on the same screen by semantic target key plus non-blank
-comment.
+reusing the original evidence screen. Older browser-local recovery entries or
+saved items without these client ids are no longer semantically deduplicated;
+current retry idempotency requires `workspaceId` plus `draftItemId`. Recreate
+unsupported keyless local work with the current schema-v2 draft flow.
 
 The History row count is a console view count: it can include browser-local
 draft/recovery items in addition to persisted session items. After `Save to MCP`
@@ -284,9 +285,12 @@ Source candidates remain hints; the target line and screenshot are the primary
 evidence for what the user meant.
 
 Compact Markdown may also include up to two `editSurface:` lines before source
-candidate lines. For style/layout requests, agents should inspect `editSurface`
-before editing a source-origin data candidate. Source candidates remain useful
-for identifying which repeated item or data value the user selected.
+candidate lines. These lines can include `role=<role>` tokens such as
+`call-site`, `component-definition`, `copy-or-data`, `layout-or-style`,
+`visual-area`, or `interop-risk`. For style/layout requests, agents should
+inspect `editSurface` before editing a source-origin data candidate. Source
+candidates remain useful for identifying which repeated item or data value the
+user selected.
 
 The compact Markdown handoff also emits a per-item `id:` token (the feedback item id) and ends with an `agent_protocol:` footer that documents the claim/resolve contract inline. The same compact text is what the `Copy Prompt` button puts on the clipboard, so an agent that only sees the pasted prompt can still reference items by id and call `fixthis_claim_feedback` / `fixthis_resolve_feedback` over MCP.
 
@@ -320,7 +324,10 @@ Arguments:
 Saved feedback items may also include `editSurfaceCandidates`, an optional
 additive list of likely rendering/edit surfaces for visual, typography, spacing,
 or component-renderer feedback. These entries are MCP/session hints, not bridge
-protocol fields and not automatic edit instructions.
+protocol fields and not automatic edit instructions. When present, each entry's
+optional `role` classifies the hint as a likely call site, component
+definition, copy/data source, layout/style surface, visual-area target, or
+interop-risk target.
 
 | Field | Type | Description |
 | --- | --- | --- |

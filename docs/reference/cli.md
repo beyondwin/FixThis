@@ -14,7 +14,7 @@ Subcommands:
   run         Install the debug app, launch it, attach the bridge, open the console
   doctor      Diagnose ADB / JDK / device / package wiring
   init        Agent-first setup: write Claude Code / Codex MCP config
-  install-agent  Patch the app Gradle file, write MCP config, and create agent handoff files
+  install-agent  Patch the app Gradle file, write MCP config, and create .fixthis handoff files
   setup       Generate or write MCP config for Claude Code / Codex
   mcp         Run the FixThis MCP server (stdio JSON-RPC, used by agents)
   console     Open the local feedback console without launching anything else
@@ -128,18 +128,19 @@ curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/inst
 
 Then run `fixthis init` from the Android app repository.
 
-If the FixThis Gradle plugin is already applied to the Android app, run the
-project-local setup task first:
+If the FixThis Gradle plugin is already applied to the Android app, `init
+--agent` can usually infer the package from Gradle build files and write the
+project-scoped handoff files directly:
 
 ```bash
-./gradlew fixthisSetup
 fixthis init --agent --project-dir .
 fixthis doctor --project-dir .
 ```
 
-The task writes `.fixthis/project.json`, `.fixthis/agent-setup.md`, and
-`.fixthis/mcp.json.template`. For flavored debug variants, use the
-variant-specific task name such as `:app:fixthisSetupStagingDebug`.
+Run `./gradlew fixthisSetup` only when doctor reports missing generated
+metadata, or when you intentionally want Gradle to refresh the project metadata
+after changing variants. For flavored debug variants, use the variant-specific
+task name such as `:app:fixthisSetupStagingDebug`.
 
 ## `fixthis install-agent`
 
@@ -180,8 +181,16 @@ Exit codes follow [`docs/reference/cli-exit-codes.md`](cli-exit-codes.md):
 `0` OK, `1` PARTIAL (some targets skipped — e.g. global write refused without
 `--allow-global`), `4` INTERNAL_ERROR (one or more writes failed).
 
-After it patches the Gradle file, run `./gradlew fixthisSetup` to generate
-`.fixthis/project.json`, then run `fixthis doctor --project-dir . --json`.
+`install-agent` writes `.fixthis/project.json`, `.fixthis/agent-setup.md`,
+`.fixthis/agent-setup.json`, and `.fixthis/mcp.json.template` as part of the
+agent setup. The primary next step is:
+
+```bash
+fixthis doctor --project-dir . --json
+```
+
+Run `./gradlew fixthisSetup` only as a recovery or manual refresh command when
+doctor reports `NEEDS_INSTALL` or missing generated metadata.
 
 ## `fixthis setup`
 

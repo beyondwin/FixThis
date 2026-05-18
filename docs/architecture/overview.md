@@ -121,7 +121,7 @@ CLI that runs as a desktop process. Builds the `fixthis` application distributio
 - `fixthis run`: runs the default `:app:installDebug`, launches the app, and waits for sidekick status.
 - `fixthis doctor`: diagnoses project, package metadata, ADB, device, and sidekick session step by step. `--json` emits a structured report with stable check names, status, message, and fix fields for agent consumption.
 - `fixthis init`: agent-first setup that writes Claude Code / Codex MCP config and optionally applies the published Gradle plugin via `--apply-gradle-plugin`.
-- `fixthis install-agent`: agent-first installer for external Android repos. Patches the detected app module's Gradle build, writes MCP config, and creates `.fixthis/agent-setup.*` handoff files.
+- `fixthis install-agent`: agent-first installer for external Android repos. Patches the detected app module's Gradle build, writes MCP config, and creates `.fixthis/project.json`, `.fixthis/agent-setup.*`, and `.fixthis/mcp.json.template` handoff files.
 - `fixthis setup`: prints the command/args JSON for MCP client configuration. With `--write`, merges into Claude Code / Codex settings files.
 - `fixthis mcp`: runs the stdio server via the sibling or PATH `fixthis-mcp` executable.
 - `fixthis console`: runs `fixthis-mcp --console` to open the local feedback console.
@@ -149,6 +149,11 @@ MCP stdio server and local feedback console server.
   preview capture, persisted evidence capture, navigation, annotation save,
   target evidence derivation, handoff, and resolve through focused
   collaborators.
+- `session/EditSurfaceCandidateService.kt`,
+  `session/EditSurfaceRoleClassifier.kt`, and
+  `session/CompactHandoffRenderer.kt`: derive likely visual/style edit
+  surfaces, classify each candidate's role, and render the compact handoff
+  lines consumed by Copy Prompt and MCP agents.
 - `session/AnnotationWorkflow.kt`: annotation workflow boundary, including
   frozen-preview save, live fingerprint comparison, handoff, claim, and resolve
   operations.
