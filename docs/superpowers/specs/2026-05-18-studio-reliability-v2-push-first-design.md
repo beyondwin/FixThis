@@ -1,7 +1,7 @@
 # Studio Reliability v2 Push-First Design
 
 Date: 2026-05-18
-Status: Ready for user review
+Status: Ready for implementation; updated after post-plan console fixes
 Scope: Follow-up hardening for FixThis Studio preview, recovery, durable
 mutation, and browser proof reliability
 
@@ -17,6 +17,14 @@ idempotency, and release evidence gates. This follow-up narrows the remaining
 risk: Studio still has redundant preview pull paths, several recovery ownership
 cases are easy to regress, and browser-level multi-tab/reconnect behavior is
 not yet proven as an end-to-end user contract.
+
+Update after commits `99acd993` and `a51cf230`: the current baseline already
+adds bounded launch recovery polling, restores live preview after prompt
+persistence, prevents capture-unavailable preview payloads from replacing the
+live preview, allows first-capture annotation edge states, and stops new-history
+annotation when new-session creation is cancelled. Studio Reliability v2 must
+preserve these fixes while moving preview delivery behind the shared push-first
+state path.
 
 The preferred approach is **Push-First Studio Reliability**:
 
@@ -38,6 +46,9 @@ The preferred approach is **Push-First Studio Reliability**:
   wrong visible session or duplicate durable state.
 - Prove the behavior in a browser, not only through source-shape and route
   tests.
+- Preserve the post-plan annotation readiness fixes: launch recovery polling,
+  prompt preview recovery, capture-unavailable readiness display, and cancelled
+  new-session annotation handling.
 - Preserve Clean Architecture and SOLID boundaries while making the state
   pipeline simpler.
 
@@ -97,6 +108,11 @@ handling. Server routes and session services remain the final durable-state
 guard for closed sessions, missing items, duplicate draft keys, and revision
 mismatches.
 
+The shared preview path must also own readiness-only preview payloads. When a
+preview reports `previewAvailable: false`, the console updates the connection
+readiness UI and does not replace `state.preview` or freeze an unavailable
+screen. SSE and polling must preserve that behavior through the same function.
+
 The design is intentionally incremental. It should allow an implementation to
 first add tests around the current behavior, then route preview updates through
 one state path, then shrink polling scope, then add browser proof scenarios.
@@ -122,6 +138,11 @@ state application path.
 It may trigger fallback refresh on disconnect, replay overflow, or invalid
 payloads. It must not directly clear drafts, handoff batches, claim state, or
 resolve state.
+
+The existing `preview-ready` capture-unavailable guard should move into the
+shared preview application path when `events.js` stops writing preview state
+directly. The guard is a user-visible readiness contract, not an implementation
+detail of the SSE subscriber.
 
 ### Preview fallback polling
 
@@ -178,7 +199,9 @@ fake bridge/server fixture rather than relying only on unit tests.
    blocked by draft mode or workflow policy.
 4. The shared preview reducer action validates `sessionId` and preview context
    generation again.
-5. `state.preview` updates and preview UI renders.
+5. If `previewAvailable === false`, readiness UI updates and the current live
+   preview is preserved.
+6. Otherwise `state.preview` updates and preview UI renders.
 
 Fallback polling uses steps 3 through 5 after fetching preview data. There must
 not be a separate state write path for SSE and polling.
@@ -223,10 +246,19 @@ snapshot or full refresh.
 - **SSE disconnect or EventSource unsupported:** show reconnecting state and
   start fallback polling. Do not clear drafts, handoff batches, claim state, or
   resolve state.
+- **Launch transient states after opening the app:** use bounded connection
+  refresh retry while the state remains `STARTING`, `OPEN_APP`, or `RECONNECT`.
+  Stop the retry once the connection becomes ready or leaves launch-transient
+  states.
 - **Replay overflow:** recover through snapshot or full refresh. Intermediate
   visual transitions may be skipped, but final state must match server truth.
 - **Late preview event or late polling response:** discard when `sessionId`,
   context generation, or draft state no longer matches.
+- **Capture unavailable preview:** update the readiness slot and Capture action,
+  but do not replace the existing preview or begin draft freeze.
+- **Prompt persistence completion:** after Copy Prompt or Save to MCP clears or
+  changes draft state, restart preview recovery only when the session is live
+  and no draft flow is active.
 - **Dirty draft during session switch:** keep the existing confirmation
   boundary. Do not discard draft workspace on session switch without consent.
 - **Deleted session with local recovery:** do not auto-recover. Offer discard
@@ -249,6 +281,14 @@ snapshot or full refresh.
   action.
 - Mismatched `sessionId`, stale generation, and active draft state prevent
   preview updates.
+- Capture-unavailable readiness does not replace `state.preview` for either SSE
+  or fallback polling.
+- Launch recovery polling and prompt preview recovery remain covered by
+  `scripts/launchRecoveryPolling-test.mjs` and
+  `scripts/promptPreviewRecovery-test.mjs`.
+- Annotation edge cases remain covered by `scripts/silentReturnFeedback-test.mjs`,
+  `scripts/pendingBoundaryGuard-test.mjs`, `scripts/studioWorkflow-test.mjs`,
+  and `scripts/consoleCanonicalRuntimeContract-test.mjs`.
 - Recovery matrix covers written draft, pin-only residual, deleted session,
   closed session, saved completion, and stale conflict.
 - Durable mutation success/failure does not change visible state when active
@@ -284,6 +324,8 @@ snapshot or full refresh.
   applicable.
 - Browser proof covers two-tab sync, reconnect recovery, repeated save
   idempotency, stale preview confirmation, and late-response isolation.
+- Existing post-plan console edge tests still pass after the shared preview path
+  refactor.
 - `npm run console:reliability:test` passes.
 - Relevant `:fixthis-mcp` route/session tests pass.
 - Browser reliability proof passes in the local console harness.

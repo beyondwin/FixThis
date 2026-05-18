@@ -25,6 +25,17 @@ The spec covers four Studio reliability risks, but they are not independent prod
 
 No task changes handoff intelligence, visual design, release-build behavior, XML/View targeting, or persisted MCP JSON field names.
 
+## Recent Commit Baseline
+
+This plan was updated after `99acd993` (`fix(console): recover annotation readiness after app launch`) and `a51cf230` (`fix(console): handle annotation edge states`). Treat these as already-shipped baseline behavior:
+
+- `connection.js` now uses bounded launch connection refresh instead of one delayed refresh. Preserve `scripts/launchRecoveryPolling-test.mjs`.
+- `prompt.js` now restores live preview after Copy Prompt and Save to MCP when no draft flow is active. Preserve `scripts/promptPreviewRecovery-test.mjs`.
+- `events.js`, `preview.js`, and `annotations.js` now surface `previewAvailable === false` readiness without replacing `state.preview` or freezing an unavailable screen. When Task 2 introduces `applyLivePreview()`, move this contract into the shared preview path instead of deleting it.
+- `studioWorkflow.js` now allows annotate from empty and saved-focus active sessions, and while capture is already in flight. Preserve those cases in `scripts/studioWorkflow-test.mjs`.
+- `history.js` now stops new-history annotate when new-session creation is cancelled. Preserve `scripts/pendingBoundaryGuard-test.mjs`.
+- `canonicalRenderingView.js` now disables annotate while draft flow startup is in flight. Preserve `scripts/consoleCanonicalRuntimeContract-test.mjs`.
+
 ## File Structure
 
 ### Create
@@ -32,7 +43,7 @@ No task changes handoff intelligence, visual design, release-build behavior, XML
 - `scripts/console-browser-reliability.mjs`
   - Playwright proof suite for two-tab SSE sync, EventSource reconnect recovery, repeated Save to MCP idempotency, and late preview isolation. Stale preview Save confirmation remains covered by `scripts/studioWorkflow-test.mjs` and `scripts/studioWorkflowIntegration-test.mjs`.
 
-### Modify
+### Modify / Preserve
 
 - `fixthis-mcp/src/main/console/previewFsm.js`
   - Add a reducer action for externally delivered ready previews.
@@ -57,7 +68,17 @@ No task changes handoff intelligence, visual design, release-build behavior, XML
 - `scripts/consoleEvents-test.mjs`
   - Source contract for `preview-ready` using `applyLivePreview`.
 - `scripts/sessionMismatchIgnore-test.mjs`
-  - Runtime/source tests for shared preview stale-session fencing.
+  - Runtime/source tests for shared preview stale-session fencing and capture-unavailable readiness preservation.
+- `scripts/launchRecoveryPolling-test.mjs`
+  - Existing baseline test for bounded app-launch connection recovery.
+- `scripts/promptPreviewRecovery-test.mjs`
+  - Existing baseline test for restoring preview after prompt persistence.
+- `scripts/silentReturnFeedback-test.mjs`
+  - Existing baseline test for capture-unavailable annotation start handling.
+- `scripts/pendingBoundaryGuard-test.mjs`
+  - Existing baseline test for cancelled new-history annotation.
+- `scripts/consoleCanonicalRuntimeContract-test.mjs`
+  - Existing baseline test for disabling annotate during draft startup.
 - `scripts/draftRecoveryMatrix-test.mjs`
   - Recovery ownership matrix.
 - `scripts/studioReliabilityContract-test.mjs`
@@ -215,7 +236,7 @@ git commit -m "feat(console): add external preview apply contract"
 - Modify: `fixthis-mcp/src/main/console/preview.js`
 - Modify: `fixthis-mcp/src/main/console/events.js`
 
-- [ ] **Step 1: Add failing source contract tests**
+- [ ] **Step 1: Add failing source contract tests and move the readiness contract**
 
 Append this test to `scripts/consoleEvents-test.mjs`:
 
@@ -231,7 +252,20 @@ test('preview-ready event routes through shared live preview application', () =>
 });
 ```
 
-Append this test to `scripts/sessionMismatchIgnore-test.mjs`:
+Also update the existing `preview-ready event is ignored when its session does
+not match active session` test in `scripts/consoleEvents-test.mjs`. It should
+stop asserting that `events.js` directly calls `dropStaleSse`; after this task,
+the stale-session gate is owned by `applyLivePreview()` and covered in
+`scripts/sessionMismatchIgnore-test.mjs`. Keep the event-level contract focused
+on passing `source: 'sse'` and `sessionId: data.sessionId` into the shared
+preview path.
+
+In `scripts/sessionMismatchIgnore-test.mjs`, replace the current direct-SSE
+`preview-unavailable` test with an `applyLivePreview()` contract. The existing
+test added by `a51cf230` currently checks that `events.js` calls
+`applyPreviewReadinessToConnectionCard(data.preview)` before `setConsolePreview`.
+After this task, that behavior must live in `preview.js` so both SSE and polling
+use the same readiness gate:
 
 ```js
 test('SSE and preview polling share applyLivePreview stale-session gate', () => {
@@ -241,6 +275,16 @@ test('SSE and preview polling share applyLivePreview stale-session gate', () => 
   assert.match(previewApply, /dropStalePreviewPoll\(\{ sessionId: ownerSessionId \}, activeSessionId\)/);
   assert.match(previewApply, /previewUseCases\.applyReady\(/);
   assert.match(previewApply, /setConsolePreview\(\{/);
+});
+
+test('applyLivePreview surfaces preview-unavailable readiness without replacing preview state', () => {
+  const previewApply = extractFunction(previewSource, 'function applyLivePreview');
+  assert.match(previewApply, /applyPreviewReadinessToConnectionCard\(preview\);/);
+  assert.match(previewApply, /if \(preview\?\.previewAvailable === false\) \{[\s\S]*?renderPreviewOnly\(\);[\s\S]*?return true;[\s\S]*?\}/);
+  assert.ok(
+    previewApply.indexOf('if (preview?.previewAvailable === false)') < previewApply.indexOf('setConsolePreview({'),
+    'preview-unavailable must be gated before state.preview is replaced',
+  );
 });
 ```
 
@@ -252,7 +296,9 @@ Run:
 node --test scripts/consoleEvents-test.mjs scripts/sessionMismatchIgnore-test.mjs
 ```
 
-Expected: FAIL because `events.js` still calls `setConsolePreview` directly and `applyLivePreview` does not exist.
+Expected: FAIL because `events.js` still calls `setConsolePreview` directly,
+`applyLivePreview` does not exist, and the `a51cf230` readiness contract has
+not yet moved from the SSE subscriber into the shared preview path.
 
 - [ ] **Step 3: Add `applyLivePreview()`**
 
@@ -273,7 +319,7 @@ In `fixthis-mcp/src/main/console/preview.js`, insert this function immediately b
                 contextGeneration: previewUseCases.getState().contextGeneration,
               });
               applyPreviewReadinessToConnectionCard(preview);
-              if (preview.previewAvailable === false) {
+              if (preview?.previewAvailable === false) {
                 renderPreviewOnly();
                 return true;
               }
@@ -339,10 +385,11 @@ In `fixthis-mcp/src/main/console/events.js`, replace the `preview-ready` handler
 Run:
 
 ```bash
-node --test scripts/previewUseCases-test.mjs scripts/consoleEvents-test.mjs scripts/sessionMismatchIgnore-test.mjs
+node --test scripts/previewUseCases-test.mjs scripts/consoleEvents-test.mjs scripts/sessionMismatchIgnore-test.mjs scripts/silentReturnFeedback-test.mjs
 ```
 
-Expected: PASS.
+Expected: PASS, including the capture-unavailable readiness baseline from
+`a51cf230`.
 
 - [ ] **Step 7: Rebuild console assets**
 
@@ -480,10 +527,11 @@ Then replace the current `source.onerror` assignment with:
 Run:
 
 ```bash
-node --test scripts/studioReliabilityContract-test.mjs scripts/consoleEvents-test.mjs
+node --test scripts/studioReliabilityContract-test.mjs scripts/consoleEvents-test.mjs scripts/launchRecoveryPolling-test.mjs scripts/promptPreviewRecovery-test.mjs
 ```
 
-Expected: PASS.
+Expected: PASS, including the launch and prompt preview recovery tests added
+after the original plan.
 
 - [ ] **Step 7: Run Studio workflow policy tests**
 
@@ -715,10 +763,11 @@ In `handlePendingRecoveryBoundaryAction(action)`, update the `recapture` branch 
 Run:
 
 ```bash
-node --test scripts/draftRecoveryMatrix-test.mjs scripts/draftUseCases-test.mjs
+node --test scripts/draftRecoveryMatrix-test.mjs scripts/draftUseCases-test.mjs scripts/pendingBoundaryGuard-test.mjs
 ```
 
-Expected: PASS.
+Expected: PASS, including the cancelled new-history annotation boundary
+baseline from `a51cf230`.
 
 - [ ] **Step 7: Rebuild console assets**
 
@@ -1329,7 +1378,7 @@ Expected: PASS.
 Run:
 
 ```bash
-node --test scripts/previewUseCases-test.mjs scripts/consoleEvents-test.mjs scripts/sessionMismatchIgnore-test.mjs scripts/draftRecoveryMatrix-test.mjs scripts/draftUseCases-test.mjs scripts/studioReliabilityContract-test.mjs scripts/studioWorkflow-test.mjs scripts/studioWorkflowIntegration-test.mjs
+node --test scripts/previewUseCases-test.mjs scripts/consoleEvents-test.mjs scripts/sessionMismatchIgnore-test.mjs scripts/silentReturnFeedback-test.mjs scripts/launchRecoveryPolling-test.mjs scripts/promptPreviewRecovery-test.mjs scripts/pendingBoundaryGuard-test.mjs scripts/consoleCanonicalRuntimeContract-test.mjs scripts/draftRecoveryMatrix-test.mjs scripts/draftUseCases-test.mjs scripts/studioReliabilityContract-test.mjs scripts/studioWorkflow-test.mjs scripts/studioWorkflowIntegration-test.mjs
 ```
 
 Expected: PASS.
