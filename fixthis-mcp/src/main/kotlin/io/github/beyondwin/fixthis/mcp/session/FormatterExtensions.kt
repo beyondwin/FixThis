@@ -15,7 +15,6 @@ internal fun SourceCandidate.fileWithLineAndOwner(): String {
     return "${fileWithLine()}$ownerSegment"
 }
 
-@Suppress("MaxLineLength")
 internal fun SourceCandidate.staleMarkerSuffix(): String = if (stale == true) " ⚠ stale: ${staleReason ?: "unspecified"}" else ""
 
 internal fun FixThisRect.formatBounds(): String = "$left,$top,$right,$bottom"

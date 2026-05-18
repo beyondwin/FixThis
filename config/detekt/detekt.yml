@@ -13,6 +13,15 @@ config:
   warningsAsErrors: false
   excludes: ''
 
+# `.editorconfig` sets `max_line_length = off` for *.{kt,kts}, so ktlint / spotless
+# never auto-wraps. Align detekt's MaxLineLength threshold with that policy at a
+# generous ceiling (200) instead of detekt's stricter default of 120, so spotless
+# and detekt never disagree on the same line. Existing pre-200 violations remain
+# in the per-module baselines until they are cleaned up.
+style:
+  MaxLineLength:
+    maxLineLength: 200
+
 # Exclude generated and build outputs from all rule sets.
 processors:
   active: true
