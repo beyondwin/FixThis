@@ -205,6 +205,62 @@ test('resolveLifecycleBoundary save conflict cancels and keeps active workspace'
   assert.equal(result.nextWorkspace.items.length, 1);
 });
 
+test('resolveLifecycleBoundary save persists written items without sending blank pins', async () => {
+  const savedRequests = [];
+  const savedRecovery = [];
+  const workspace = {
+    workspaceId: 'ws-a',
+    revision: 2,
+    lifecycle: 'editing',
+    context: { sessionId: 'session-a', previewId: 'preview-a', screenFingerprint: 'fp-a' },
+    screen: { screenId: 'screen-a' },
+    screenshotUrl: '/shot.png',
+    items: [
+      {
+        draftItemId: 'draft-written',
+        targetType: 'area',
+        bounds: { left: 1, top: 1, right: 2, bottom: 2 },
+        comment: 'save me',
+      },
+      {
+        draftItemId: 'draft-blank',
+        targetType: 'area',
+        bounds: { left: 3, top: 3, right: 4, bottom: 4 },
+        comment: '',
+      },
+    ],
+  };
+  const ports = m.createFakeDraftPorts({
+    boundaryPrompt: { choose: async () => 'save' },
+    feedbackApi: {
+      saveDraftWorkspace: async (request) => {
+        savedRequests.push(request);
+        if (request.items.some((item) => !String(item.comment || '').trim())) {
+          throw new Error('server rejected blank comments');
+        }
+        return { sessionId: 'session-a', items: [{ itemId: 'item-1' }] };
+      },
+    },
+    storage: {
+      saveWorkspace: (value) => savedRecovery.push(value),
+      deleteWorkspace: () => {},
+    },
+  });
+
+  const result = await m.resolveLifecycleBoundary({
+    action: 'open-session',
+    targetSessionId: 'session-b',
+    activeWorkspace: workspace,
+    pendingRecovery: null,
+    ports,
+  });
+
+  assert.equal(result.outcome, 'continue');
+  assert.equal(result.nextWorkspace.lifecycle, 'empty');
+  assert.deepEqual(savedRequests[0].items.map((item) => item.draftItemId), ['draft-written']);
+  assert.deepEqual(savedRecovery, []);
+});
+
 test('resolveLifecycleBoundary keep stores active draft and clears active workspace projection', async () => {
   const saved = [];
   const workspace = {

@@ -11,6 +11,7 @@ const factory = new Function(`${fsmSrc}\n${ucSrc}; return {
   createEmptyToolMode,
   reduceToolMode,
   createToolModeUseCases,
+  nextAnnotationSequenceFromPendingItems,
   ToolMode,
 };`);
 const m = factory();
@@ -120,4 +121,35 @@ test('onChange fires on dispatched action', () => {
   uc.enterAnnotate();
   uc.startDrag({ x: 1, y: 1 });
   assert.equal(count >= 2, true);
+});
+
+test('recovered draft item ids advance annotation sequence', () => {
+  const next = m.nextAnnotationSequenceFromPendingItems([
+    { draftItemId: 'draft-1' },
+    { draftItemId: 'draft-2' },
+    { draftItemId: 'draft-3' },
+  ], 1);
+
+  assert.equal(next, 4);
+});
+
+test('legacy local annotation ids also advance annotation sequence', () => {
+  const next = m.nextAnnotationSequenceFromPendingItems([
+    { annotationId: 'local-8' },
+    { draftItemId: 'draft-3' },
+  ], 2);
+
+  assert.equal(next, 9);
+});
+
+test('tool mode can be raised after recovering draft ids', () => {
+  const uc = make();
+  uc.setAnnotationSequenceAtLeast(m.nextAnnotationSequenceFromPendingItems([
+    { draftItemId: 'draft-1' },
+    { draftItemId: 'draft-2' },
+    { draftItemId: 'draft-3' },
+  ], uc.getState().annotationSequence));
+
+  assert.equal(uc.nextAnnotationSeq(), 4);
+  assert.equal(uc.nextAnnotationSeq(), 5);
 });

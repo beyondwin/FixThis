@@ -8,7 +8,7 @@ function renderInspectorFooter(editorState, ctx = {}) {
 
   if (editorState === 'none') {
     root.hidden = true;
-    root.replaceChildren();
+    replaceFooterChildren(root);
     return;
   }
 
@@ -16,7 +16,7 @@ function renderInspectorFooter(editorState, ctx = {}) {
   switch (editorState) {
     case 'pendingTarget': {
       const cancel = makeInspectorFooterButton({ text: 'Cancel', action: 'cancel' });
-      root.replaceChildren(cancel);
+      replaceFooterChildren(root, cancel);
       return;
     }
     case 'draft': {
@@ -27,7 +27,7 @@ function renderInspectorFooter(editorState, ctx = {}) {
         className: 'primary',
       });
       addAnnotation.disabled = ctx.canAddAnnotation === false;
-      root.replaceChildren(cancel, addAnnotation);
+      replaceFooterChildren(root, cancel, addAnnotation);
       return;
     }
     case 'saved': {
@@ -42,21 +42,33 @@ function renderInspectorFooter(editorState, ctx = {}) {
         action: 'done',
         className: 'primary',
       });
-      root.replaceChildren(del, done);
+      replaceFooterChildren(root, del, done);
       return;
     }
     default:
       root.hidden = true;
-      root.replaceChildren();
+      replaceFooterChildren(root);
   }
 }
 
-function makeInspectorFooterButton({ text, action, className, ariaLabel }) {
+function replaceFooterChildren(root, ...next) {
+  const current = [...root.children];
+  const sameActions = current.length === next.length &&
+    next.every((button, index) => current[index]?.dataset?.action === button.dataset?.action);
+  if (!sameActions) {
+    root.replaceChildren(...next);
+    return;
+  }
+  next.forEach((button, index) => {
+    current[index].disabled = button.disabled;
+  });
+}
+
+function makeInspectorFooterButton({ text, action, className }) {
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = text;
   button.dataset.action = action;
   if (className) button.className = className;
-  if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
   return button;
 }

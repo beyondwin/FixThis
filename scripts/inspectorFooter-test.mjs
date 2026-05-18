@@ -76,6 +76,16 @@ test('draft renders cancel and add annotation', () => {
   assert.ok(footer.querySelector('[data-action="addAnnotation"]'));
 });
 
+test('draft rerender preserves add annotation button node', () => {
+  renderInspectorFooter('draft', {});
+  const first = footer.querySelector('[data-action="addAnnotation"]');
+
+  renderInspectorFooter('draft', {});
+  const second = footer.querySelector('[data-action="addAnnotation"]');
+
+  assert.equal(second, first);
+});
+
 test('saved renders delete and done', () => {
   renderInspectorFooter('saved', { deletable: true, editable: true });
 

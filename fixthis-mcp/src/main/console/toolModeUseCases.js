@@ -24,6 +24,24 @@
 // `annotationSequence = Math.max(annotationSequence, next)` pattern used
 // when recovering items from persisted drafts.
 
+function annotationSequenceValueFromItemId(value) {
+  const match = String(value || '').match(/^(?:draft|local)-(\d+)$/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function nextAnnotationSequenceFromPendingItems(items, currentSequence = 1) {
+  const current = Number(currentSequence);
+  return (items || []).reduce((max, item) => {
+    const ids = [item?.draftItemId, item?.annotationId];
+    return ids.reduce((innerMax, id) => {
+      const value = annotationSequenceValueFromItemId(id);
+      return value == null ? innerMax : Math.max(innerMax, value + 1);
+    }, max);
+  }, Number.isFinite(current) ? current : 1);
+}
+
 function createToolModeUseCases(options = {}) {
   const onChange = typeof options.onChange === 'function' ? options.onChange : () => {};
   let current = options.initialState ?? createEmptyToolMode();

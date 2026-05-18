@@ -277,12 +277,7 @@
 
             function updateAnnotationSequenceFromPendingItems(items) {
               const current = toolMode.getState().annotationSequence;
-              const next = (items || [])
-                .map(item => String(item?.annotationId || '').match(/^local-(\d+)$/))
-                .filter(Boolean)
-                .map(match => Number(match[1]))
-                .filter(Number.isFinite)
-                .reduce((max, value) => Math.max(max, value + 1), current);
+              const next = nextAnnotationSequenceFromPendingItems(items, current);
               toolMode.setAnnotationSequenceAtLeast(next);
             }
 

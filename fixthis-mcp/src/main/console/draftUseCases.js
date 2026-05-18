@@ -66,6 +66,17 @@ function maybeFreeWorkspaceOnEmpty(workspace, draftItemId) {
   return null;
 }
 
+function draftItemHasWrittenComment(item) {
+  return String(item?.comment || '').trim().length > 0;
+}
+
+function draftWorkspaceWithItems(workspace, items) {
+  return {
+    ...workspace,
+    items: cloneDraftValue(items || []),
+  };
+}
+
 function resolveTrigger(trigger, context, ports = {}) {
   const verdict = boundaryPolicy(trigger, context?.state || 'none', context || {});
   switch (verdict) {
@@ -161,6 +172,26 @@ async function persistDraftWorkspace(workspace, ports, options = {}) {
     session: response,
     itemIds: (response?.items || []).map((item) => item.itemId),
   };
+}
+
+async function persistDraftWorkspaceForBoundary(workspace, ports) {
+  const items = workspace?.items || [];
+  const writtenItems = items.filter(draftItemHasWrittenComment);
+  if (!writtenItems.length) {
+    ports.storage?.saveWorkspace?.(draftWorkspaceRecoveryEnvelope(workspace));
+    return {
+      workspace: reduceDraftWorkspace(workspace, { type: 'DISCARD', workspaceId: workspace.workspaceId }),
+      session: null,
+      itemIds: [],
+    };
+  }
+
+  const result = await persistDraftWorkspace(
+    draftWorkspaceWithItems(workspace, writtenItems),
+    ports,
+    { allowBlankComments: false },
+  );
+  return result;
 }
 
 function draftWorkspaceRecoveryEnvelope(workspace) {
@@ -267,7 +298,7 @@ async function resolveDraftBoundary(workspace, boundaryAction, ports) {
     return { choice, workspace: reduceDraftWorkspace(workspace, { type: 'DISCARD', workspaceId: workspace.workspaceId }) };
   }
   if (choice === 'save') {
-    const result = await persistDraftWorkspace(workspace, ports, { allowBlankComments: true });
+    const result = await persistDraftWorkspaceForBoundary(workspace, ports);
     return { choice, ...result };
   }
   return { choice: 'cancel', workspace };

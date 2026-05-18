@@ -48,6 +48,7 @@
     "scripts/draftApiAdapter-test.mjs",
     "scripts/draftUseCases-test.mjs",
     "scripts/draftCommandQueue-test.mjs",
+    "scripts/toolModeUseCases-test.mjs",
     "scripts/draftPresentationContract-test.mjs",
     "scripts/draftWorkflowInvariant-test.mjs",
     "scripts/staleDraftConflict-test.mjs",
