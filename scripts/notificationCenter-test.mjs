@@ -39,6 +39,27 @@ test('NotificationCenter routes recoverable errors to banner, not toast', () => 
   assert.equal(show.opts.content.detail, 'Draft preserved locally.');
 });
 
+test('NotificationCenter forwards a caller-owned banner element to the registry', () => {
+  const registry = createRegistry();
+  const element = { hidden: true };
+  const { createNotificationCenter } = loadConsoleSymbols({
+    modules: ['notificationCenter.js'],
+    symbols: ['createNotificationCenter'],
+  });
+  const center = createNotificationCenter({ registry });
+
+  center.notify({
+    severity: 'error',
+    surface: 'banner',
+    message: 'Failed to fetch',
+    dedupeKey: 'global-error',
+    element,
+  });
+
+  const show = registry.calls.find((call) => call.kind === 'show');
+  assert.equal(show.opts.element, element);
+});
+
 test('NotificationCenter dedupes repeated polling failures', () => {
   const registry = createRegistry();
   const { createNotificationCenter } = loadConsoleSymbols({

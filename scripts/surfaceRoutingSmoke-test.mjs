@@ -43,6 +43,7 @@ test('surface modules route named status surfaces through the registry', () => {
   assert.match(pendingRecoveryUi, /statusSurfaceRegistry\.hide\('sessionBoundarySheet'\)/);
 
   assert.match(state, /notificationCenter\.notify\(\{[\s\S]*?dedupeKey: 'global-error'/);
+  assert.match(state, /notificationCenter\.notify\(\{[\s\S]*?element: variant === 'success' \? null : error/);
   assert.match(state, /notificationCenter\.hide\('global-error'\)/);
 });
 

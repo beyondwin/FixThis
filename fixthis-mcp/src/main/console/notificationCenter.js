@@ -43,6 +43,7 @@
                   surfaceClass,
                   priority: input.severity === 'error' ? 1 : input.severity === 'warning' ? 2 : 3,
                   content: surfaceClass === 'toast' ? (input.message || input.title || '') : notificationContent(input),
+                  element: input.element || null,
                   autoDismissMs,
                 };
                 // Track the entry, and release it once the surface auto-dismisses so a

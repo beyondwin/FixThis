@@ -405,6 +405,7 @@
                     // `statusSurfaceRegistry.hide('global-error')` to clear the
                     // singleton status line. Changing this key strands those hides.
                     dedupeKey: 'global-error',
+                    element: variant === 'success' ? null : error,
                     ttlMs: durationMs,
                   });
                 } else {
