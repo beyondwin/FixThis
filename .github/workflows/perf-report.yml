@@ -73,7 +73,7 @@ jobs:
             '
           )"
           compare_status=0
-          node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$latest" \
+          node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-18-linux.json "$latest" \
             | tee /tmp/perf-report.md || compare_status=$?
           echo "exit=$compare_status" >> "$GITHUB_OUTPUT"
         continue-on-error: true

@@ -14,7 +14,7 @@ npm run perf:bench
 npm run perf:bench -- --scenario warm-mcp-test --iterations 3
 
 # Compare against the committed baseline
-npm run perf:compare -- docs/perf/baseline-2026-05-16.json output/perf/run-<timestamp>.json
+npm run perf:compare -- docs/perf/baseline-2026-05-18-linux.json output/perf/run-<timestamp>.json
 ```
 
 ## Output

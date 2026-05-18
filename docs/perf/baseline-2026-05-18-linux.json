@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "started_at": "2026-05-18T11:09:03.944Z",
+  "git_sha": "1858c7f",
+  "env": {
+    "os": "linux",
+    "arch": "x64",
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "cpu_count": 4,
+    "ram_mb": 15990,
+    "jdk": "openjdk version \"21.0.11\" 2026-04-21 LTS",
+    "node": "v20.20.2"
+  },
+  "results": [
+    {
+      "key": "cold-mcp-test",
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        34525,
+        37018,
+        39502
+      ],
+      "mean_ms": 37015,
+      "median_ms": 37018,
+      "p95_ms": 39253.6,
+      "stddev_ms": 2488.5,
+      "dropped": [
+        "warmup:60000"
+      ]
+    },
+    {
+      "key": "warm-mcp-test",
+      "regress_threshold_pct": 8,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        11691,
+        11756,
+        11856
+      ],
+      "mean_ms": 11767.67,
+      "median_ms": 11756,
+      "p95_ms": 11846,
+      "stddev_ms": 83.12,
+      "dropped": [
+        "warmup:12036",
+        "min:11607",
+        "max:12087"
+      ]
+    },
+    {
+      "key": "cold-assemble",
+      "regress_threshold_pct": 100,
+      "improve_threshold_pct": 100,
+      "n": 3,
+      "samples_ms": [
+        35700,
+        36287,
+        37600
+      ],
+      "mean_ms": 36529,
+      "median_ms": 36287,
+      "p95_ms": 37468.7,
+      "stddev_ms": 972.84,
+      "dropped": [
+        "warmup:60000"
+      ]
+    },
+    {
+      "key": "warm-assemble",
+      "regress_threshold_pct": 100,
+      "improve_threshold_pct": 100,
+      "n": 3,
+      "samples_ms": [
+        13532,
+        13555,
+        13563
+      ],
+      "mean_ms": 13550,
+      "median_ms": 13555,
+      "p95_ms": 13562.2,
+      "stddev_ms": 16.09,
+      "dropped": [
+        "warmup:13541",
+        "min:13493",
+        "max:13874"
+      ]
+    },
+    {
+      "key": "installdist-mcp",
+      "regress_threshold_pct": 8,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        11710,
+        11752,
+        11806
+      ],
+      "mean_ms": 11756,
+      "median_ms": 11752,
+      "p95_ms": 11800.6,
+      "stddev_ms": 48.12,
+      "dropped": [
+        "warmup:18576",
+        "min:11659",
+        "max:14114"
+      ]
+    },
+    {
+      "key": "console-test-fast",
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        1582,
+        1603,
+        1611
+      ],
+      "mean_ms": 1598.67,
+      "median_ms": 1603,
+      "p95_ms": 1610.2,
+      "stddev_ms": 14.98,
+      "dropped": [
+        "warmup:2916",
+        "min:1581",
+        "max:1619"
+      ]
+    },
+    {
+      "key": "console-test-all",
+      "regress_threshold_pct": 10,
+      "improve_threshold_pct": 5,
+      "n": 3,
+      "samples_ms": [
+        3035,
+        3043,
+        3045
+      ],
+      "mean_ms": 3041,
+      "median_ms": 3043,
+      "p95_ms": 3044.8,
+      "stddev_ms": 5.29,
+      "dropped": [
+        "warmup:3021",
+        "min:3029",
+        "max:3112"
+      ]
+    }
+  ]
+}

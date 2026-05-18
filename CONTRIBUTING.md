@@ -351,19 +351,22 @@ Typical loop when proposing a build/test config change:
 ```bash
 # 1. Confirm main is clean on your machine (no rogue REGRESS/IMPROVE).
 node scripts/perf/bench.mjs
-node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$(ls -t output/perf/run-*.json | head -1)"
+node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-18-linux.json "$(ls -t output/perf/run-*.json | head -1)"
 
 # 2. Apply your change, then re-measure.
 node scripts/perf/bench.mjs
-node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-16.json "$(ls -t output/perf/run-*.json | head -1)"
+node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-18-linux.json "$(ls -t output/perf/run-*.json | head -1)"
 
 # 3. Attach the comparator output to the PR description.
 ```
 
-Re-baseline (`docs/perf/baseline-2026-05-16.json`) only when adopting a
-deliberate, reviewed change. Hardware variance between contributors is
-expected and the comparator warns rather than fails on environment
-mismatch — CI uses its own nightly run as the authoritative baseline.
+Re-baseline (`docs/perf/baseline-2026-05-18-linux.json`) only when adopting
+a deliberate, reviewed change. The active baseline is captured on the
+GitHub Actions Ubuntu runner (linux/x64, AMD EPYC, 16 GB RAM, JDK 21,
+Node 20) so the nightly `perf-report` gate compares apples to apples.
+Local Mac runs will diverge from the Linux baseline; the comparator warns
+rather than fails on environment mismatch, so contributor numbers stay
+informational while CI remains the authoritative gate.
 
 ## Local Artifacts
 
