@@ -1802,6 +1802,8 @@ class CompactHandoffRendererTest {
         ),
     )
 
+    // Stale-marker formatting is exhaustively covered by FormatterExtensionsTest.staleMarkerSuffix*;
+    // this smoke check only verifies that the rank-1 candidate line wires the suffix through.
     @Test
     fun `render emits stale marker on rank 1 when candidate is stale`() {
         val markdown = CompactHandoffRenderer.render(
@@ -1810,28 +1812,6 @@ class CompactHandoffRendererTest {
         assertTrue(
             markdown.contains("⚠ stale: excerpt mismatch"),
             "Expected stale marker '⚠ stale: excerpt mismatch' in:\n$markdown",
-        )
-    }
-
-    @Test
-    fun `render omits stale marker when candidate is fresh`() {
-        val markdown = CompactHandoffRenderer.render(
-            sessionWithStaleCandidate(stale = false, staleReason = null),
-        )
-        assertTrue(
-            !markdown.contains("⚠ stale"),
-            "Expected no stale marker when stale=false, but got:\n$markdown",
-        )
-    }
-
-    @Test
-    fun `render omits stale marker when candidate stale is null`() {
-        val markdown = CompactHandoffRenderer.render(
-            sessionWithStaleCandidate(stale = null, staleReason = null),
-        )
-        assertTrue(
-            !markdown.contains("⚠ stale"),
-            "Expected no stale marker when stale=null, but got:\n$markdown",
         )
     }
 

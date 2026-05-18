@@ -843,6 +843,8 @@ class FeedbackQueueFormatterTest {
         )
     }
 
+    // Stale-marker formatting is exhaustively covered by FormatterExtensionsTest.staleMarkerSuffix*;
+    // this smoke check only verifies that the queue line wires the suffix through.
     @Test
     fun `render emits stale marker on rank 1 when candidate is stale`() {
         val markdown = FeedbackQueueFormatter.toMarkdown(
@@ -851,28 +853,6 @@ class FeedbackQueueFormatterTest {
         assertTrue(
             markdown.contains("⚠ stale: excerpt mismatch"),
             "Expected stale marker '⚠ stale: excerpt mismatch' in:\n$markdown",
-        )
-    }
-
-    @Test
-    fun `render omits stale marker when candidate is fresh`() {
-        val markdown = FeedbackQueueFormatter.toMarkdown(
-            sessionWithStaleCandidate(stale = false, staleReason = null),
-        )
-        assertFalse(
-            markdown.contains("⚠ stale"),
-            "Expected no stale marker when stale=false, but got:\n$markdown",
-        )
-    }
-
-    @Test
-    fun `render omits stale marker when candidate stale is null`() {
-        val markdown = FeedbackQueueFormatter.toMarkdown(
-            sessionWithStaleCandidate(stale = null, staleReason = null),
-        )
-        assertFalse(
-            markdown.contains("⚠ stale"),
-            "Expected no stale marker when stale=null, but got:\n$markdown",
         )
     }
 }

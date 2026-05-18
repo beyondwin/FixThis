@@ -119,14 +119,9 @@ object FeedbackQueueFormatter {
             return
         }
         sourceCandidates.take(maxCandidates).forEachIndexed { index, candidate ->
-            val staleSuffix = if (candidate.stale == true) {
-                " ⚠ stale: ${candidate.staleReason ?: "unspecified"}"
-            } else {
-                ""
-            }
             appendLine(
                 "${index + 1}. `${candidate.fileWithLineAndOwner()}` " +
-                    "${candidate.markdownConfidence(target)} confidence$staleSuffix",
+                    "${candidate.markdownConfidence(target)} confidence${candidate.staleMarkerSuffix()}",
             )
             if (candidate.matchedTerms.isNotEmpty()) {
                 appendLine("   - matched: ${candidate.matchedTerms.joinToString(", ") { "`${it.inlineSafe()}`" }}")

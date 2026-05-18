@@ -291,9 +291,7 @@ object CompactHandoffRenderer {
                 sb.append("  matched=[${tokens.joinToString(", ")}]")
             }
         }
-        if (candidate.stale == true) {
-            sb.append(" ⚠ stale: ${candidate.staleReason ?: "unspecified"}")
-        }
+        sb.append(candidate.staleMarkerSuffix())
         return sb.toString()
     }
 
