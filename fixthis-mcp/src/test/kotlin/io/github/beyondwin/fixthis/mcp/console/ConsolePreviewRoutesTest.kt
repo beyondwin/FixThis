@@ -68,13 +68,16 @@ class ConsolePreviewRoutesTest {
     fun consoleHtmlRefreshPreviewOnlyRendersPreviewRegion() {
         val html = ConsoleSourceFixtures.readAll()
         val refreshPreviewBody = javascriptFunctionBody(html, "refreshPreview")
+        val applyLivePreviewBody = javascriptFunctionBody(html, "applyLivePreview")
 
         assertTrue(html.contains("function renderPreviewRegion"))
         assertTrue(html.contains("function renderSessionRegions"))
         assertTrue(html.contains("function renderInspectorRegion"))
         assertTrue(html.contains("function renderPreviewOnly"))
-        assertTrue(refreshPreviewBody.contains("renderPreviewOnly();"))
+        assertTrue(refreshPreviewBody.contains("applyLivePreview(preview, {"))
+        assertTrue(applyLivePreviewBody.contains("renderPreviewOnly();"))
         assertFalse(refreshPreviewBody.contains("render();"))
+        assertFalse(applyLivePreviewBody.contains("render();"))
     }
 
     @Test

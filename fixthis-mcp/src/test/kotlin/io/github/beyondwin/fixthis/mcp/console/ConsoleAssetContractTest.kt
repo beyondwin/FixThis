@@ -744,10 +744,10 @@ class ConsoleAssetContractTest {
                     "showStatus\\([\\s\\S]*?\\);\\s+" +
                     "return;\\s+\\}\\s+" +
                     "await ensureSessionForAnnotating\\(\\);\\s+" +
-                    "toolMode\\.enterAnnotate\\(\\);\\s+" +
-                    "renderCurrentSessionList\\(\\);\\s+" +
                     "if \\(!draftFlow\\(\\)\\) \\{\\s+" +
-                    "await startDraftAnnotationFlow\\(\\);",
+                    "await startDraftAnnotationFlow\\(\\);[\\s\\S]*?\\} else \\{\\s+" +
+                    "toolMode\\.enterAnnotate\\(\\);\\s+" +
+                    "renderCurrentSessionList\\(\\);",
             ).containsMatchIn(html),
         )
         assertTrue(html.contains("inspectorTitle.textContent = item ? 'Annotation' : 'Annotations'"))

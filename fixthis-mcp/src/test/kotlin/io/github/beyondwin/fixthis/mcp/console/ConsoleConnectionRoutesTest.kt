@@ -175,15 +175,17 @@ class ConsoleConnectionRoutesTest {
     fun obstructedLivePreviewKeepsStableFrameAndMarksItStale() {
         val html = ConsoleSourceFixtures.readAll()
         val refreshPreviewBody = javascriptFunctionBody(html, "refreshPreview")
+        val applyLivePreviewBody = javascriptFunctionBody(html, "applyLivePreview")
         val applyConnectionBody = javascriptFunctionBody(html, "applyConnectionStatus")
 
-        assertTrue(refreshPreviewBody.contains("preview?.screen?.systemUiVisible && state.preview"))
+        assertTrue(refreshPreviewBody.contains("applyLivePreview(preview, {"))
+        assertTrue(applyLivePreviewBody.contains("preview.screen?.systemUiVisible && state.preview"))
         assertTrue(
-            refreshPreviewBody.contains(
+            applyLivePreviewBody.contains(
                 "state.preview.obstructedBySystemUi = preview.screen.systemUiKind || 'system_ui';",
             ),
         )
-        assertTrue(refreshPreviewBody.contains("return;"))
+        assertTrue(applyLivePreviewBody.contains("return true;"))
         assertTrue(applyConnectionBody.contains("if (state.preview?.obstructedBySystemUi)"))
         assertTrue(applyConnectionBody.contains("state.preview.stale = true;"))
         assertTrue(
@@ -193,6 +195,7 @@ class ConsoleConnectionRoutesTest {
             ),
         )
         assertDoesNotClearDraftOrPreview("refreshPreview", refreshPreviewBody)
+        assertDoesNotClearDraftOrPreview("applyLivePreview", applyLivePreviewBody)
         assertDoesNotClearDraftOrPreview("applyConnectionStatus", applyConnectionBody)
     }
 
