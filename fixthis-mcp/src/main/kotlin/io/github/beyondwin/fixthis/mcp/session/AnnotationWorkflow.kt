@@ -144,6 +144,7 @@ class AnnotationWorkflow(
         status: AnnotationStatusDto,
         summary: String?,
     ): AnnotationDto = runBlocking {
+        requireOpenSessionForAgentMutation(sessionId)
         val updated = resolveAnnotation(
             ResolveAnnotationCommand(
                 sessionId = SessionId(sessionId),
@@ -160,6 +161,7 @@ class AnnotationWorkflow(
         itemId: String,
         agentNote: String?,
     ): AnnotationDto = runBlocking {
+        requireOpenSessionForAgentMutation(sessionId)
         val updated = claimAnnotation(
             ClaimAnnotationCommand(
                 sessionId = SessionId(sessionId),
@@ -195,6 +197,15 @@ class AnnotationWorkflow(
         sessionId: String,
         itemIds: List<String>,
     ): SessionDto = store.markItemsHandedOff(sessionId, itemIds)
+
+    private fun requireOpenSessionForAgentMutation(sessionId: String) {
+        val session = store.getSession(sessionId)
+        if (session.status == SessionStatusDto.CLOSED) {
+            throw FeedbackSessionException(
+                "SESSION_CLOSED: Reopen the session or create a new active session before changing feedback.",
+            )
+        }
+    }
 }
 
 private fun AnnotationStatusDto.toDomainResolutionStatus(): AnnotationStatus = when (this) {
