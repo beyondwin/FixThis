@@ -681,8 +681,12 @@ class ConsoleAssetContractTest {
         val html = ConsoleSourceFixtures.readAll()
         val openSession = javascriptFunctionBody(html, "openSession")
         val newSession = javascriptFunctionBody(html, "newSession")
-
-        assertTrue(html.contains("async function resolvePendingBeforeBoundary(action, sessionId = null, boundaryContext = {})"))
+        assertTrue(
+            html.contains(
+                "async function resolvePendingBeforeBoundary(" +
+                    "action, sessionId = null, boundaryContext = {})",
+            ),
+        )
         assertTrue(
             html.contains("resolveLifecycleBoundary({"),
         )

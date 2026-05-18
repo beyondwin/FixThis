@@ -831,5 +831,4 @@ class ConsoleFeedbackItemRoutesTest {
             assertEquals(listOf("Sent"), comments)
         }
     }
-
 }

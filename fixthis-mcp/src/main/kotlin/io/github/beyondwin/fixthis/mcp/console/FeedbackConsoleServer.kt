@@ -187,22 +187,34 @@ private fun consoleHttpExecutor(): ExecutorService {
     }
 }
 
+private data class FeedbackSessionHttpMapping(
+    val prefix: String,
+    val statusCode: Int,
+    val errorCode: String,
+)
+
+private val feedbackSessionHttpMappings =
+    listOf(
+        FeedbackSessionHttpMapping("SESSION_NOT_FOUND:", 404, "unknown_feedback_session"),
+        FeedbackSessionHttpMapping("Unknown feedback session:", 404, "unknown_feedback_session"),
+        FeedbackSessionHttpMapping("Unknown feedback item:", 404, "unknown_feedback_item"),
+        FeedbackSessionHttpMapping("PREVIEW_NOT_FOUND:", 404, "preview_not_found"),
+        FeedbackSessionHttpMapping("PREVIEW_SCREENSHOT_NOT_FOUND:", 404, "preview_not_found"),
+        FeedbackSessionHttpMapping("SCREEN_NOT_FOUND:", 400, "preview_not_found"),
+        FeedbackSessionHttpMapping("NO_DRAFT_FEEDBACK:", 409, "no_draft_feedback"),
+        FeedbackSessionHttpMapping("SESSION_CLOSED:", 409, "session_closed"),
+        FeedbackSessionHttpMapping("NO_ACTIVE_SESSION:", 409, "unknown_feedback_session"),
+        FeedbackSessionHttpMapping("ITEM_NOT_EDITABLE:", 409, "item_not_editable"),
+        FeedbackSessionHttpMapping("DEVICE_NOT_AVAILABLE:", 409, "device_not_available"),
+        FeedbackSessionHttpMapping("PREVIEW_SAVE_IN_PROGRESS:", 409, "preview_save_in_progress"),
+    )
+
 private fun FeedbackSessionException.toConsoleHttpException(): FeedbackConsoleHttpException {
     val text = message ?: "Feedback session request failed"
-    val (statusCode, errorCode) = when {
-        text.startsWith("SESSION_NOT_FOUND:") -> 404 to "unknown_feedback_session"
-        text.startsWith("Unknown feedback session:") -> 404 to "unknown_feedback_session"
-        text.startsWith("Unknown feedback item:") -> 404 to "unknown_feedback_item"
-        text.startsWith("PREVIEW_NOT_FOUND:") -> 404 to "preview_not_found"
-        text.startsWith("PREVIEW_SCREENSHOT_NOT_FOUND:") -> 404 to "preview_not_found"
-        text.startsWith("SCREEN_NOT_FOUND:") -> 400 to "preview_not_found"
-        text.startsWith("NO_DRAFT_FEEDBACK:") -> 409 to "no_draft_feedback"
-        text.startsWith("SESSION_CLOSED:") -> 409 to "session_closed"
-        text.startsWith("NO_ACTIVE_SESSION:") -> 409 to "unknown_feedback_session"
-        text.startsWith("ITEM_NOT_EDITABLE:") -> 409 to "item_not_editable"
-        text.startsWith("DEVICE_NOT_AVAILABLE:") -> 409 to "device_not_available"
-        text.startsWith("PREVIEW_SAVE_IN_PROGRESS:") -> 409 to "preview_save_in_progress"
-        else -> 500 to null
-    }
-    return FeedbackConsoleHttpException(statusCode, text, errorCode = errorCode)
+    val mapping = feedbackSessionHttpMappings.firstOrNull { text.startsWith(it.prefix) }
+    return FeedbackConsoleHttpException(
+        statusCode = mapping?.statusCode ?: 500,
+        message = text,
+        errorCode = mapping?.errorCode,
+    )
 }
