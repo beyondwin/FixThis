@@ -331,13 +331,19 @@
               }
               const restored = loadDraftRecoveryForSession(sessionId);
               const restoredSummary = draftRecoverySummary(restored);
-              if (restoredSummary.total && restoredSummary.commented === 0 && hasRecoverablePreviewContext(restored)) {
+              const ownership = draftRecoveryOwnership(restored, state.session);
+              if (
+                restoredSummary.total &&
+                ownership.shouldAutoRestore &&
+                ownership.canResume &&
+                hasRecoverablePreviewContext(restored)
+              ) {
                 restorePendingRecoveryContext(restored);
                 pendingRecovery = null;
                 renderPendingRecoveryBanner();
                 return;
               }
-              pendingRecovery = restoredSummary.total ? restored : null;
+              pendingRecovery = restoredSummary.total ? { ...restored, recoveryOwnership: ownership } : null;
               renderPendingRecoveryBanner();
             }
 

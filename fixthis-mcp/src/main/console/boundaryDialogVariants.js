@@ -92,7 +92,7 @@ const BoundaryDialogVariants = Object.freeze({
       return count + ' ' + label + ' preserved from previous session.';
     },
     primary: (ctx = {}) => ctx.canResume === false ? null : Object.freeze({ label: 'Resume draft', action: 'resume' }),
-    secondary: Object.freeze({ label: 'Recapture', action: 'recapture' }),
+    secondary: (ctx = {}) => ctx.canRecapture === false ? null : Object.freeze({ label: 'Recapture', action: 'recapture' }),
     tertiary: Object.freeze({ label: 'Discard', action: 'discard' }),
     cancel: Object.freeze({ label: 'Cancel', action: 'cancel' }),
   }),

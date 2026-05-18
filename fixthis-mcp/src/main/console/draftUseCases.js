@@ -211,6 +211,50 @@ function hasCommentedRecovery(recovery) {
   return recoveryItems(recovery).some((item) => String(item?.comment || '').trim());
 }
 
+function draftRecoveryOwnership(recovery, session = null) {
+  const total = recoveryItems(recovery).length;
+  const commented = hasCommentedRecovery(recovery);
+  const status = String(session?.status || '').toLowerCase();
+  if (!total) {
+    return Object.freeze({
+      mode: 'none',
+      total,
+      commented,
+      canResume: false,
+      canRecapture: false,
+      shouldAutoRestore: false,
+    });
+  }
+  if (session?.deleted === true || status === 'deleted' || status === 'missing') {
+    return Object.freeze({
+      mode: 'deleted',
+      total,
+      commented,
+      canResume: false,
+      canRecapture: false,
+      shouldAutoRestore: false,
+    });
+  }
+  if (status === 'closed') {
+    return Object.freeze({
+      mode: 'closed',
+      total,
+      commented,
+      canResume: false,
+      canRecapture: true,
+      shouldAutoRestore: false,
+    });
+  }
+  return Object.freeze({
+    mode: commented ? 'commented' : 'pin-only',
+    total,
+    commented,
+    canResume: true,
+    canRecapture: true,
+    shouldAutoRestore: !commented,
+  });
+}
+
 async function resolveDraftBoundary(workspace, boundaryAction, ports) {
   if (!workspace?.workspaceId || !(workspace.items || []).length) return { choice: 'continue', workspace };
   const choice = await ports.boundaryPrompt.choose(workspace, boundaryAction);

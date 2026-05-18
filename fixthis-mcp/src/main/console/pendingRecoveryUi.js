@@ -32,20 +32,26 @@ function renderPendingRecoveryBanner() {
     hideBoundaryDialog('pendingRecovery');
     return;
   }
-  const canResume = hasRecoverablePreviewContext(pendingRecovery);
+  const ownership = pendingRecovery?.recoveryOwnership || draftRecoveryOwnership(pendingRecovery, state.session);
+  const canResume = ownership.canResume && hasRecoverablePreviewContext(pendingRecovery);
+  const canRecapture = ownership.canRecapture;
   const summaryParts = [];
   if (summary.commented) summaryParts.push(countLabel(summary.commented, 'draft comment', 'draft comments'));
   if (summary.pinOnly) summaryParts.push(countLabel(summary.pinOnly, 'pin without comment', 'pins without comments'));
-  const detail = canResume
-    ? 'Resume the local draft for this session.'
-    : 'Recapture the current app screen to continue this local draft.';
+  const detail = ownership.mode === 'deleted'
+    ? 'This local draft belongs to a deleted session. Discard it to continue.'
+    : ownership.mode === 'closed'
+      ? 'This local draft belongs to a closed session. Recapture into an active session to continue.'
+      : canResume
+        ? 'Resume the local draft for this session.'
+        : 'Recapture the current app screen to continue this local draft.';
   banner.hidden = false;
   banner.innerHTML =
     '<div class="pending-recovery-copy" data-pending-recovery-copy>' +
       '<strong>' + escapeHtml(summaryParts.join(' · ')) + '</strong>' +
       '<div>' + escapeHtml(detail) + '</div>' +
     '</div>';
-  renderBoundaryDialog('pendingRecovery', { canResume, itemCount: summary.total });
+  renderBoundaryDialog('pendingRecovery', { canResume, canRecapture, itemCount: summary.total });
 }
 
 function handlePendingRecoveryBoundaryAction(action) {
@@ -62,6 +68,8 @@ function handlePendingRecoveryBoundaryAction(action) {
     return;
   }
   if (action === 'recapture') {
+    const ownership = pendingRecovery?.recoveryOwnership || draftRecoveryOwnership(pendingRecovery, state.session);
+    if (!ownership.canRecapture) return;
     hideBoundaryDialog('pendingRecovery');
     recapturePendingRecovery().catch(showError);
     return;

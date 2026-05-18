@@ -5,6 +5,10 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const boundaryDialogVariantsSource = readFileSync(
+  resolve(root, 'fixthis-mcp/src/main/console/boundaryDialogVariants.js'),
+  'utf8',
+);
 const source = [
   'fixthis-mcp/src/main/console/draftWorkspace.js',
   'fixthis-mcp/src/main/console/draftWorkspaceHistory.js',
@@ -24,6 +28,7 @@ function loadRuntime() {
       recoverDraftWorkspaceFromEnvelope,
       resolveLifecycleBoundary,
       hasCommentedRecovery,
+      draftRecoveryOwnership,
       recoveryItems,
     };
   `)();
@@ -154,4 +159,53 @@ test('pending recovery resume cancels navigation and restores workspace', async 
 
   assert.equal(result.outcome, 'cancel');
   assert.equal(result.nextWorkspace.workspaceId, 'workspace-1');
+});
+
+test('draftRecoveryOwnership classifies deleted session recovery as discard-only', () => {
+  const runtime = loadRuntime();
+  const recovery = runtime.draftWorkspaceRecoveryEnvelope(workspaceWithItems([
+    { draftItemId: 'draft-1', comment: 'Recover me', targetType: 'area', bounds: { left: 0, top: 0, right: 10, bottom: 10 } },
+  ]));
+
+  const ownership = runtime.draftRecoveryOwnership(recovery, { deleted: true });
+
+  assert.equal(ownership.mode, 'deleted');
+  assert.equal(ownership.canResume, false);
+  assert.equal(ownership.canRecapture, false);
+  assert.equal(ownership.shouldAutoRestore, false);
+});
+
+test('draftRecoveryOwnership classifies closed session recovery as recapture-only', () => {
+  const runtime = loadRuntime();
+  const recovery = runtime.draftWorkspaceRecoveryEnvelope(workspaceWithItems([
+    { draftItemId: 'draft-1', comment: 'Recover me', targetType: 'area', bounds: { left: 0, top: 0, right: 10, bottom: 10 } },
+  ]));
+
+  const ownership = runtime.draftRecoveryOwnership(recovery, { status: 'closed' });
+
+  assert.equal(ownership.mode, 'closed');
+  assert.equal(ownership.canResume, false);
+  assert.equal(ownership.canRecapture, true);
+  assert.equal(ownership.shouldAutoRestore, false);
+});
+
+test('draftRecoveryOwnership auto-restores pin-only open-session recovery', () => {
+  const runtime = loadRuntime();
+  const recovery = runtime.draftWorkspaceRecoveryEnvelope(workspaceWithItems([
+    { draftItemId: 'draft-1', comment: '', targetType: 'area', bounds: { left: 0, top: 0, right: 10, bottom: 10 } },
+  ]));
+
+  const ownership = runtime.draftRecoveryOwnership(recovery, { status: 'active' });
+
+  assert.equal(ownership.mode, 'pin-only');
+  assert.equal(ownership.canResume, true);
+  assert.equal(ownership.canRecapture, true);
+  assert.equal(ownership.shouldAutoRestore, true);
+});
+
+test('pending recovery dialog hides recapture when ownership disallows recapture', () => {
+  assert.match(
+    boundaryDialogVariantsSource,
+    /secondary:\s*\(ctx = \{\}\) => ctx\.canRecapture === false \? null : Object\.freeze\(\{ label: 'Recapture', action: 'recapture' \}\)/,
+  );
 });
