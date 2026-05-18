@@ -14,7 +14,7 @@ elif command -v npm >/dev/null 2>&1; then
     npm install -g @beyondwin/fixthis
 else
     curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-      | bash -s -- --version v0.3.0
+      | bash -s -- --version v0.6.0
 fi
 ```
 
@@ -49,7 +49,7 @@ When asked to add FixThis to this Android app:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-     | bash -s -- --version v0.3.0
+     | bash -s -- --version v0.6.0
    ```
 3. Run `fixthis install-agent --project-dir . --target all`. This patches the
    detected app module with Gradle plugin `io.github.beyondwin.fixthis.compose`,
@@ -68,7 +68,7 @@ plugin to the app module:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "0.3.0"
+    id("io.github.beyondwin.fixthis.compose") version "0.6.0"
 }
 ```
 

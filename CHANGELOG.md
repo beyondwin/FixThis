@@ -27,6 +27,12 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+## [0.6.0] - 2026-05-18
+
+This release rolls up v0.4 maintainability, v0.5 trustworthy onboarding, and
+the v0.6 Handoff Intelligence / Studio Reliability / Release Grade tracks.
+There is no `0.4.0` or `0.5.0` tag; consumers upgrade `0.3.0 -> 0.6.0`.
+
 ### Removed — v0.4 maintainability phase 1 legacy purge
 
 - Schema-v1 browser pending mirror (`localStorage["fixthis.pending.<sessionId>"]`)
