@@ -152,7 +152,7 @@ Select a device in the compact console device control. If the control shows `No 
 
 ### I clicked Annotate but do not see saved feedback
 
-`Annotate` freezes the latest preview for targeting only; it does not save. Select a target or visual area, write a comment, click `Add annotation`, review the numbered pending markers, then click `Copy Prompt` or `Save to MCP` to persist written pending annotations when needed. Persisted items from the same frozen preview share one evidence snapshot and `screenId`.
+`Annotate` freezes the latest preview for targeting only; it does not save. Select a target or visual area to create a numbered pending marker, write a comment in the focused detail editor, then click `Copy Prompt` or `Save to MCP` to persist written pending annotations when needed. Persisted items from the same frozen preview share one evidence snapshot and `screenId`.
 
 ### Pending marker numbers changed
 

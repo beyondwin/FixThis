@@ -660,11 +660,7 @@ async function runSmoke(baseUrl) {
       'Selecting a saved annotation should not move focus into its comment editor',
     );
     const savedScreenSrcBeforeListBack = await page.$eval('#snapshotImage', image => image.src);
-    const listBackPersistResponse = page.waitForResponse(response =>
-      response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
-    );
-    await page.click('#inspectorFooter [data-action="done"]');
-    assert.ok((await listBackPersistResponse).ok(), 'Saved annotation back-to-list should persist before leaving detail');
+    await page.click('#editorBack');
     await page.waitForFunction(expectedSrc => {
       const image = document.getElementById('snapshotImage');
       return document.querySelectorAll('.saved-item-row').length === 4 &&
@@ -684,7 +680,7 @@ async function runSmoke(baseUrl) {
     const historyUpdateResponse = page.waitForResponse(response =>
       response.url().includes('/api/items/item-old') && response.request().method() === 'PUT'
     );
-    await page.click('#inspectorFooter [data-action="done"]');
+    await page.click('#editorBack');
     await page.locator('#sessions .session-row[data-session-id="session-1"]').click();
     assert.ok((await historyUpdateResponse).ok(), 'Saved annotation edit should persist');
     await page.waitForFunction(() => document.querySelector('#sessions .session-row.is-active')?.dataset.sessionId === 'session-1');

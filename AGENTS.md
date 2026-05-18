@@ -75,8 +75,9 @@ human-driven flow (build → doctor → run → console → agent handoff).
 2. Click **Start** on the connection card. FixThis launches the app and attaches.
 3. Navigate the app from the browser preview.
 4. Click **Annotate** to freeze the latest screen preview.
-5. Click a UI element or drag a visual area; type a comment.
-6. Click **Add annotation** — creates a numbered pin in the overlay.
+5. Click a UI element or drag a visual area — creates a numbered pin and opens
+   its annotation detail.
+6. Type a comment.
 7. Repeat for additional feedback on this screen.
 8. **Save to MCP** persists written annotations as a local handoff. (Use
    **Copy Prompt** instead to paste compact Markdown into a chat-style agent.)

@@ -43,7 +43,8 @@ test('draft workspace selects draft inspector and frozen canvas', () => {
   const inspector = m.selectInspectorModel(state);
   const canvas = m.selectCanvasModel(state);
   assert.equal(inspector.title, 'Draft Annotations');
-  assert.equal(inspector.primaryAction.type, 'DRAFT_ADD_ANNOTATION_CLICKED');
+  assert.equal(inspector.primaryAction, null);
+  assert.equal(inspector.secondaryAction, null);
   assert.equal(canvas.mode, 'frozenDraft');
   assert.match(canvas.lockLabel, /Session/);
 });

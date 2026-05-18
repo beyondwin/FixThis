@@ -246,7 +246,7 @@ flowchart TD
     D --> E["Console receives live preview and session updates"]
     E --> F["User clicks Annotate to freeze latest preview"]
     F --> G["User selects semantics node or visual area and writes comments"]
-    G --> H["Add annotation creates pending rows"]
+    G --> H["Selection creates pending rows"]
     H --> I["Copy Prompt or Save to MCP persists one screen evidence snapshot when needed"]
     I --> J["Feedback items share that screenId"]
     J --> K["Save to MCP creates local handoff batch"]
@@ -377,7 +377,7 @@ Recommended order for a developer seeing this project for the first time:
 - Selection and submission do not happen inside the app. Selection and submission happen exclusively in the MCP browser console.
 - Source candidates are text/symbol-based ranking from a source index — not exact compiler mappings.
 - Semantics redaction is not screenshot pixel redaction.
-- The feedback console's `Annotate` mode freezes the preview but does not save. `Add annotation` creates a browser-side pending item. Only `Copy Prompt` or `Save to MCP` creates a persisted evidence snapshot.
+- The feedback console's `Annotate` mode freezes the preview but does not save. Selecting a target or dragging a region creates a browser-side pending item and opens its detail editor. Only `Copy Prompt` or `Save to MCP` creates a persisted evidence snapshot.
 - `Copy Prompt` / `Save to MCP` require at least one written draft comment, not
   a comment on every pin. Pin-only residuals are local browser draft state, not
   agent handoff items.

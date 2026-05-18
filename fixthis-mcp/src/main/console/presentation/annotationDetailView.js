@@ -140,8 +140,7 @@
                     '</div>' +
                   '</section>' +
                   '<div class="annotation-actions">' +
-                    '<button type="button" class="annotation-danger" data-delete-current>Delete</button>' +
-                    '<button type="button" class="annotation-done" data-back-annotations>Done</button>' +
+                    '<button type="button" class="annotation-danger" data-delete-current>Delete annotation</button>' +
                   '</div>' +
                 '</div>';
               const labelInput = document.getElementById('annotationLabelInput');

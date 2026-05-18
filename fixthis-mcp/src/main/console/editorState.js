@@ -3,8 +3,8 @@
 
 function deriveEditorState(workspace, selection, savedItem) {
   const items = Array.isArray(workspace?.items) ? workspace.items : [];
+  if (savedItem) return 'saved';
   if (items.length > 0) return 'draft';
-  if (savedItem && !workspace?.workspaceId) return 'saved';
   if (selection) return 'pendingTarget';
   return 'none';
 }

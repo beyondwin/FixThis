@@ -105,8 +105,8 @@ In the console:
 
 1. Click **Annotate**.
 2. Click a Compose UI element, or drag a visual area.
-3. Type the requested change.
-4. Click **Add annotation**.
+3. Type the requested change in the annotation detail.
+4. Repeat click/drag for any other changes on this screen.
 5. Click **Copy Prompt** for any chat-style agent, or **Save to MCP** for
    Claude Code / Codex.
 

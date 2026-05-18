@@ -11,10 +11,9 @@
 | Agent handoff | `sendAgentButton` | `Save to MCP` |
 | Canvas select tool | `selectToolButton` | `Select` |
 | Canvas annotate tool | `annotateToolButton` | `Annotate` |
-| Add pending annotation | `addItemButton` | `Add annotation` |
-| Exit annotate mode | `cancelAddFlowButton` | `Exit Annotate` |
-| Clear current selection | `clearSelectionButton` | `Clear Selection` |
-| Clear draft feedback | `clearDraftButton` | `Clear Draft` |
+| Pending target secondary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="cancel"]` | `Cancel` |
+| Pending target primary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="addAnnotation"]` | `Add annotation` |
+| Saved annotation destructive action | `inspectorFooter[data-editor-state="saved"] [data-action="delete"]` | `Delete annotation` |
 | Refresh devices | `refreshDevicesButton` | `Refresh devices` |
 | Clear FixThis device selection | `disconnectDeviceButton` | `x` icon |
 | Workflow progress | `workflowProgress` | `FixThis feedback workflow` |
@@ -56,7 +55,8 @@
 ## Persistence Semantics
 
 - `Annotate` starts targeting and freezes the latest available preview. It does not write a session item by itself.
-- `Add annotation` creates a browser-side pending annotation.
+- Clicking a Compose node or dragging a visual area while a draft is frozen creates a browser-side pending annotation and focuses its detail editor immediately.
+- `Add annotation` is reserved for the transient pending-target state where a target exists but has not yet been committed; it must not appear while editing an existing draft annotation.
 - `Copy Prompt` persists written pending annotations when needed, then copies compact agent-facing prompt text.
 - `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
 - `Clear Draft` deletes unsent draft feedback after confirmation.

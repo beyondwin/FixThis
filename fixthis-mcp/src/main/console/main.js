@@ -100,6 +100,10 @@
             editorBack?.addEventListener('click', (event) => {
               event.preventDefault();
               const editorState = deriveEditorState(currentDraftWorkspace(), draftSelection(), selectedSavedAnnotation());
+              if (editorState === 'saved') {
+                closeSelectedSavedAnnotationDetail();
+                return;
+              }
               handleEditorBackClick({ state: editorState }, {
                 silentDiscard: clearSelection,
                 showToast: showStatus,

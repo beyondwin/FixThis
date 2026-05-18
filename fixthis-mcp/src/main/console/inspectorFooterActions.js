@@ -34,13 +34,24 @@ function handleInspectorFooterAction(action) {
     const sessionId = toolMode.getState().focusedSavedSessionId || state.session?.sessionId || null;
     const phase = lifecyclePhase(item);
     const editable = phase === 'draft' || phase === 'sent' || phase === 'sent_modified' || phase === 'needs_clarification';
-    toolMode.focusSavedItem(null, sessionId, item.screenId || null);
-    renderPreviewOnly();
-    renderInspectorRegion();
+    closeSavedAnnotationDetail(item, sessionId);
     if (editable) {
       persistSavedEvidenceItem(item, sessionId).catch(showError);
     }
   }
+}
+
+function closeSelectedSavedAnnotationDetail() {
+  const item = selectedSavedAnnotation();
+  if (!item) return;
+  const sessionId = toolMode.getState().focusedSavedSessionId || state.session?.sessionId || null;
+  closeSavedAnnotationDetail(item, sessionId);
+}
+
+function closeSavedAnnotationDetail(item, sessionId) {
+  toolMode.focusSavedItem(null, sessionId, item.screenId || null);
+  renderPreviewOnly();
+  renderInspectorRegion();
 }
 
 function navigateEditorToList() {

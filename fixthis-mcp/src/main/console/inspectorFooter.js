@@ -16,11 +16,6 @@ function renderInspectorFooter(editorState, ctx = {}) {
   switch (editorState) {
     case 'pendingTarget': {
       const cancel = makeInspectorFooterButton({ text: 'Cancel', action: 'cancel' });
-      replaceFooterChildren(root, cancel);
-      return;
-    }
-    case 'draft': {
-      const cancel = makeInspectorFooterButton({ text: 'Cancel', action: 'cancel' });
       const addAnnotation = makeInspectorFooterButton({
         text: 'Add annotation',
         action: 'addAnnotation',
@@ -30,19 +25,19 @@ function renderInspectorFooter(editorState, ctx = {}) {
       replaceFooterChildren(root, cancel, addAnnotation);
       return;
     }
+    case 'draft': {
+      root.hidden = true;
+      replaceFooterChildren(root);
+      return;
+    }
     case 'saved': {
       const del = makeInspectorFooterButton({
-        text: 'Delete',
+        text: 'Delete annotation',
         action: 'delete',
         className: 'annotation-danger',
       });
       del.disabled = ctx.deletable === false;
-      const done = makeInspectorFooterButton({
-        text: 'Done',
-        action: 'done',
-        className: 'primary',
-      });
-      replaceFooterChildren(root, del, done);
+      replaceFooterChildren(root, del);
       return;
     }
     default:
@@ -60,6 +55,8 @@ function replaceFooterChildren(root, ...next) {
     return;
   }
   next.forEach((button, index) => {
+    current[index].textContent = button.textContent;
+    current[index].className = button.className;
     current[index].disabled = button.disabled;
   });
 }

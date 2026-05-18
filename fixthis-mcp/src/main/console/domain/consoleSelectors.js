@@ -21,8 +21,8 @@ function selectInspectorModel(state) {
       title: 'Draft Annotations',
       count: workspace.items.length,
       rows: Object.freeze([...workspace.items]),
-      primaryAction: Object.freeze({ label: 'Add annotation', type: 'DRAFT_ADD_ANNOTATION_CLICKED' }),
-      secondaryAction: Object.freeze({ label: 'Exit Annotate', type: 'DRAFT_EXIT_CLICKED' }),
+      primaryAction: null,
+      secondaryAction: null,
     });
   }
   if (workspace.kind === WorkspaceKind.RECOVERY) {

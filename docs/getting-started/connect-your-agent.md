@@ -137,10 +137,9 @@ Use **Copy Prompt**:
 1. Open FixThis Studio.
 2. Click **Annotate**.
 3. Select a UI element or drag a visual area.
-4. Type the change request.
-5. Click **Add annotation**.
-6. Click **Copy Prompt**.
-7. Paste the Markdown into your agent.
+4. Type the change request in the annotation detail.
+5. Click **Copy Prompt**.
+6. Paste the Markdown into your agent.
 
 No MCP restart or config file is required for this mode.
 

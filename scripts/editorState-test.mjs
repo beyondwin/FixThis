@@ -39,6 +39,15 @@ test('deriveEditorState maps selection, workspace, and saved item to editor ladd
       input: { workspace: null, selection: null, savedItem: { itemId: 'item-1' } },
       expected: 'saved',
     },
+    {
+      name: 'saved item selected while a draft workspace remains active',
+      input: {
+        workspace: { lifecycle: 'editing', workspaceId: 'workspace-1', items: [{ comment: 'new draft' }] },
+        selection: null,
+        savedItem: { itemId: 'item-1' },
+      },
+      expected: 'saved',
+    },
   ];
 
   for (const item of cases) {

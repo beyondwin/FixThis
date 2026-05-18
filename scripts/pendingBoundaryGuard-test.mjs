@@ -222,6 +222,14 @@ test('inspector footer cancel action routes by derived editor state', () => {
   assert.match(actionBody, /else cancelAddItemsFlow\(\);/);
 });
 
+test('saved annotation back preserves screen context without forcing a done persist', () => {
+  assert.match(
+    mainSource,
+    /if \(editorState === 'saved'\) \{[\s\S]*?closeSelectedSavedAnnotationDetail\(\);[\s\S]*?return;[\s\S]*?\}[\s\S]*?handleEditorBackClick/,
+  );
+  assert.match(inspectorFooterActionsSource, /function closeSelectedSavedAnnotationDetail\(\)/);
+});
+
 test('composer footer visibility is delegated to renderInspectorFooter', () => {
   const previewRegion = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/presentation/previewRegionView.js'), 'utf8');
   const composerBody = body(previewRegion, 'function renderComposerInspector()');

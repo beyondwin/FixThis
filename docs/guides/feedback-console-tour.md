@@ -122,11 +122,12 @@ candidates.
 > Capture needed: area rectangle around a margin, with the Inspector showing
 > area mode and no source candidates.
 
-## Write a comment and pin it
+## Write a comment on the pin
 
-Type a comment in the Inspector, then click **Add annotation**. A numbered
-overlay marker appears on the preview, and a row appears in the pending list.
-Pending annotations support **Focus** (re-pan to the marker) and **Delete**.
+Click a target or drag a region on the frozen preview. A numbered overlay
+marker appears, its detail editor opens in the Inspector, and a row appears in
+the pending list. Type the requested change in the detail editor. Pending
+annotations support focus and **Delete annotation**.
 Draft pin numbers stay in sync while editing; once persisted, item sequence
 numbers remain stable for the session.
 

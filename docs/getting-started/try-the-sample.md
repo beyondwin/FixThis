@@ -43,10 +43,9 @@ your default browser.
 
 1. Click **Annotate** to freeze the latest preview.
 2. Click any UI element on the frozen preview, or drag a visual area.
-3. Type a comment about the change you want.
-4. Click **Add annotation** — a numbered pin appears on the overlay.
-5. Repeat 2–4 for any other changes on this screen.
-6. Click **Copy Prompt** to copy a compact Markdown prompt to the clipboard,
+3. Type a comment about the change you want in the annotation detail.
+4. Repeat 2–3 for any other changes on this screen.
+5. Click **Copy Prompt** to copy a compact Markdown prompt to the clipboard,
    then paste it into Claude / Codex / Cursor / any chat-style agent.
 
    *Or* click **Save to MCP** to persist the batch as a local handoff that

@@ -1,0 +1,44 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const detailSource = readFileSync(
+  resolve(root, 'fixthis-mcp/src/main/console/presentation/annotationDetailView.js'),
+  'utf8',
+);
+const annotationsSource = readFileSync(
+  resolve(root, 'fixthis-mcp/src/main/console/annotations.js'),
+  'utf8',
+);
+
+function functionBody(source, signature) {
+  const start = source.indexOf(signature);
+  assert.notEqual(start, -1, `${signature} not found`);
+  const paramsEnd = source.indexOf(')', start);
+  const bodyStart = source.indexOf('{', paramsEnd);
+  let depth = 0;
+  for (let i = bodyStart; i < source.length; i += 1) {
+    if (source[i] === '{') depth += 1;
+    if (source[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(bodyStart + 1, i);
+    }
+  }
+  assert.fail(`${signature} body did not close`);
+}
+
+test('pending annotation detail keeps destructive delete and removes redundant done', () => {
+  const renderPendingDetail = functionBody(detailSource, 'function renderAnnotationDetail(item, index)');
+
+  assert.match(renderPendingDetail, /data-delete-current>Delete annotation</);
+  assert.doesNotMatch(renderPendingDetail, /data-back-annotations>Done</);
+});
+
+test('creating an annotation focuses its detail editor immediately', () => {
+  const createAnnotation = functionBody(annotationsSource, 'function createAnnotationFromSelection(selection)');
+
+  assert.match(createAnnotation, /setDraftFocusIndex\(nextWorkspace\.items\.length - 1\);/);
+});

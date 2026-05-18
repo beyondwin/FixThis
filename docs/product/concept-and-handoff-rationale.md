@@ -48,7 +48,6 @@ run the debug app
 -> freeze the current preview with Annotate
 -> click a component or drag a visual area
 -> write a comment
--> Add annotation
 -> Copy Prompt or Save to MCP
 -> the agent reads the item, claims it, and resolves it
 ```

@@ -49,7 +49,7 @@ item mutation, event payloads carry top-level `sessionId` where they can update
 detail or preview state, and saved item numbers remain monotonic rather than
 being renumbered after deletes or session reopens.
 
-The current console contract is documented in [`docs/reference/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, `Add annotation`, `Copy Prompt`, and `Save to MCP`.
+The current console contract is documented in [`docs/reference/feedback-console-contract.md`](feedback-console-contract.md); the shipped workflow uses `Annotate`, direct target selection, `Copy Prompt`, and `Save to MCP`.
 
 Typical flow:
 
@@ -57,7 +57,7 @@ Typical flow:
 2. Start from the connection card. Click `Start`, choose a device when asked, or use `Open app`, `Reconnect`, or `Try again` until the card reaches `Ready`.
 3. Use the live preview to navigate the app.
 4. Click `Annotate` to freeze the latest preview.
-5. Select targets or visual areas and click `Add annotation` to create one or more pending annotations.
+5. Select targets or visual areas to create one or more pending annotations, then write comments in the focused detail editor.
 6. Click `Copy Prompt` to persist written pending annotations when needed and copy compact prompt text, or click `Save to MCP` to persist them and mark the items as ready for an agent to claim.
 7. Call `fixthis_list_feedback` (defaults to SENT and unfinished items).
 8. Call `fixthis_read_feedback({itemId})` for the item to work on.
@@ -73,16 +73,16 @@ Console workflow:
 3. If the card shows `Open the app`, `Reconnect`, or `Check your phone`, use the card action before taking new live preview or navigation actions.
 4. When the card shows `Ready`, use the app normally from the console preview.
 5. Click `Annotate` when ready to leave feedback on the current screen.
-6. Select a UI target or drag a visual area and write a comment.
-7. Click `Add annotation`; numbered overlay markers and pending rows stay in sync.
+6. Select a UI target or drag a visual area; FixThis creates a numbered draft annotation and opens its detail editor.
+7. Write a comment, then repeat target selection for additional feedback on the same frozen preview.
 8. Review the draft evidence group in the Inspector Draft view, including the frozen screenshot, numbered overlay, and comments.
 9. Click `Copy Prompt` for compact Markdown or `Save to MCP` when ready to mark items as sent so an agent can claim them through MCP.
 
 The console defaults to `Select` mode. Preview clicks navigate the app until `Annotate` freezes the latest preview for feedback targeting. Navigation remains debug-only and limited to one-step `back`, `tap`, and `swipe` actions.
 
-Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, the device `x` clear icon, `Copy Prompt`, and `Save to MCP`. Canvas controls include `Select`, `Annotate`, `Add annotation`, and `Exit Annotate`. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
+Top bar actions are short session-level controls: device selection, connection state, `Refresh devices`, the device `x` clear icon, `Copy Prompt`, and `Save to MCP`. Canvas controls include `Select` and `Annotate`; annotation detail uses `All annotations` to return and `Delete annotation` for destructive removal. Live preview interval options are Manual, 1s, 2s, and 5s; the default is 1s. Preview polling pauses while the browser tab is hidden and while the `Annotate` frozen-preview flow is active.
 
-`Annotate` freezes the latest preview only; it does not write a session item by itself. Multiple pending annotations can be added to one frozen preview with `Add annotation`. Pending items support Focus and Delete before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match.
+`Annotate` freezes the latest preview only; it does not write a session item by itself. Selecting a target or dragging a visual area on the frozen preview creates a pending annotation and focuses its detail editor immediately. Multiple pending annotations can be added to one frozen preview by repeating selection. Pending items support focus and `Delete annotation` before they are persisted; deleting renumbers pending items so the pending list numbers and overlay numbers match.
 
 `Copy Prompt` and `Save to MCP` persist written pending annotations when needed, promote the frozen preview into one persisted evidence snapshot, and connect those items to the same `screenId`. If a draft contains written comments plus pin-only residual targets, only the written subset is persisted; Copy Prompt keeps residual pins browser-local, while Save to MCP discards them as part of completing the handoff. The item's `screenId` field points to the evidence snapshot saved with that item batch, so multiple saved items can share one `screenId`. During persistence, FixThis derives optional `targetEvidence` and `targetReliability` for each item from the frozen preview's captured merged semantics nodes, source-index candidates, and save-time screen integrity checks. Later `Annotate` work on the same visible app screen can create another evidence snapshot when pending annotations are persisted. Live preview frames are not session history: `FeedbackSession.screens` contains persisted evidence snapshots, not every preview frame.
 

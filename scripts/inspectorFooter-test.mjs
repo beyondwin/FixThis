@@ -60,33 +60,35 @@ test('none hides the inspector footer and clears actions', () => {
   assert.equal(footer.dataset.editorState, 'none');
 });
 
-test('pendingTarget renders cancel only', () => {
+test('pendingTarget renders cancel and add annotation', () => {
   renderInspectorFooter('pendingTarget', {});
 
   assert.equal(footer.hidden, false);
   assert.ok(footer.querySelector('[data-action="cancel"]'));
+  assert.equal(footer.querySelector('[data-action="cancel"]').textContent, 'Cancel');
+  assert.ok(footer.querySelector('[data-action="addAnnotation"]'));
+  assert.equal(footer.querySelector('[data-action="addAnnotation"]').textContent, 'Add annotation');
+});
+
+test('draft hides the footer because annotations are created immediately', () => {
+  renderInspectorFooter('draft', {});
+
+  assert.equal(footer.hidden, true);
+  assert.equal(footer.querySelector('[data-action="cancel"]'), null);
   assert.equal(footer.querySelector('[data-action="addAnnotation"]'), null);
 });
 
-test('draft renders cancel and add annotation', () => {
-  renderInspectorFooter('draft', {});
-
-  assert.equal(footer.hidden, false);
-  assert.ok(footer.querySelector('[data-action="cancel"]'));
-  assert.ok(footer.querySelector('[data-action="addAnnotation"]'));
-});
-
-test('draft rerender preserves add annotation button node', () => {
-  renderInspectorFooter('draft', {});
+test('pendingTarget rerender preserves add annotation button node', () => {
+  renderInspectorFooter('pendingTarget', {});
   const first = footer.querySelector('[data-action="addAnnotation"]');
 
-  renderInspectorFooter('draft', {});
+  renderInspectorFooter('pendingTarget', {});
   const second = footer.querySelector('[data-action="addAnnotation"]');
 
   assert.equal(second, first);
 });
 
-test('saved renders delete and done', () => {
+test('saved renders only delete annotation', () => {
   renderInspectorFooter('saved', { deletable: true, editable: true });
 
   assert.equal(footer.hidden, false);
@@ -94,9 +96,9 @@ test('saved renders delete and done', () => {
   assert.equal(footer.querySelector('[data-action="addAnnotation"]'), null);
   assert.equal(footer.querySelector('[data-action="overflowToggle"]'), null);
   const del = footer.querySelector('[data-action="delete"]');
-  const done = footer.querySelector('[data-action="done"]');
   assert.ok(del, 'expected delete button');
-  assert.ok(done, 'expected done button');
+  assert.equal(del.textContent, 'Delete annotation');
+  assert.equal(footer.querySelector('[data-action="done"]'), null);
   assert.equal(del.disabled, false);
 });
 
@@ -106,5 +108,5 @@ test('saved disables delete when deletable is false', () => {
   const del = footer.querySelector('[data-action="delete"]');
   assert.ok(del);
   assert.equal(del.disabled, true);
-  assert.ok(footer.querySelector('[data-action="done"]'));
+  assert.equal(footer.querySelector('[data-action="done"]'), null);
 });
