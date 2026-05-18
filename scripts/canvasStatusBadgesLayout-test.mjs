@@ -128,6 +128,39 @@ async function measureAnnotateHintGap(page, zoom) {
   }, zoom);
 }
 
+async function measureDefaultPreviewScale(page, viewport) {
+  await page.setViewportSize(viewport);
+  await page.setContent(canvasFixture(), { waitUntil: 'domcontentloaded' });
+  return await page.evaluate(() => {
+    const transform = getComputedStyle(document.getElementById('snapshotFrame')).transform;
+    if (transform === 'none') return 1;
+    return Number(transform.match(/matrix\(([^,]+)/)?.[1] || '1');
+  });
+}
+
+async function measureDraftLockToAnnotateGap(page) {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setContent(canvasFixture(), { waitUntil: 'domcontentloaded' });
+  return await page.evaluate(() => {
+    document.getElementById('previewStaleBadge').hidden = true;
+    const lock = document.getElementById('draftLockBar').getBoundingClientRect();
+    const hint = document.getElementById('annotateHint').getBoundingClientRect();
+    return Math.round(hint.top - lock.bottom);
+  });
+}
+
+async function measureDraftLockPadding(page, viewport) {
+  await page.setViewportSize(viewport);
+  await page.setContent(canvasFixture(), { waitUntil: 'domcontentloaded' });
+  return await page.evaluate(() => {
+    const style = getComputedStyle(document.getElementById('draftLockBar'));
+    return {
+      paddingTop: style.paddingTop,
+      paddingBottom: style.paddingBottom,
+    };
+  });
+}
+
 test('canvas stale preview badge does not overlap draft lock banner', async () => {
   const { chromium } = await loadPlaywright();
   const browser = await chromium.launch({ headless: true });
@@ -161,6 +194,78 @@ test('canvas stale preview badge does not overlap draft lock banner', async () =
 
 test('preview zoom anchors to the top edge so annotate badge gap does not expand', () => {
   assert.match(cssRule('.snapshot-frame'), /transform-origin:\s*center top;/);
+});
+
+test('desktop canvas toolbar uses compact vertical padding', () => {
+  assert.match(cssRule('.canvas-toolbar'), /padding:\s*5\.5px 16px;/);
+});
+
+test('mobile draft lock banner keeps vertical breathing room', async () => {
+  const { chromium } = await loadPlaywright();
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    try {
+      const padding = await measureDraftLockPadding(page, { width: 390, height: 844 });
+
+      assert.deepEqual(padding, { paddingTop: '4px', paddingBottom: '4px' });
+    } finally {
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test('desktop default preview zoom renders at 95 percent visual scale', async () => {
+  const { chromium } = await loadPlaywright();
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    try {
+      const scale = await measureDefaultPreviewScale(page, { width: 1280, height: 800 });
+
+      assert.equal(scale, 0.95);
+    } finally {
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test('mobile default preview zoom keeps full visual scale', async () => {
+  const { chromium } = await loadPlaywright();
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    try {
+      const scale = await measureDefaultPreviewScale(page, { width: 390, height: 844 });
+
+      assert.equal(scale, 1);
+    } finally {
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test('draft lock banner sits close to annotate mode badge', async () => {
+  const { chromium } = await loadPlaywright();
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    try {
+      const gap = await measureDraftLockToAnnotateGap(page);
+
+      assert.ok(gap <= 10, `expected draft lock to annotate gap <= 10px, got ${gap}px`);
+    } finally {
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
 });
 
 test('annotate mode badge keeps the same visual gap when preview is zoomed out', async () => {

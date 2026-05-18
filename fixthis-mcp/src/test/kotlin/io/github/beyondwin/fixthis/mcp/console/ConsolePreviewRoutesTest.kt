@@ -129,7 +129,7 @@ class ConsolePreviewRoutesTest {
         assertTrue(
             Regex(
                 "\\.snapshot-stage \\{[\\s\\S]*justify-content: flex-start;" +
-                    "[\\s\\S]*padding: 12px 24px 24px;",
+                    "[\\s\\S]*padding: 4px 24px 24px;",
             ).containsMatchIn(html),
         )
         assertTrue(Regex("\\.annotate-hint-slot \\{[\\s\\S]*min-height: 32px;").containsMatchIn(html))

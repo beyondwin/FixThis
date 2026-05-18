@@ -735,7 +735,7 @@
               align-items: center;
               justify-content: space-between;
               gap: 16px;
-              padding: 10px 16px;
+              padding: 5.5px 16px;
               border-bottom: 1px solid var(--line);
 	              background: var(--bg-1);
 	            }
@@ -935,7 +935,7 @@
               gap: 10px;
               min-height: 0;
               overflow: auto;
-              padding: 12px 24px 24px;
+              padding: 4px 24px 24px;
               background:
                 radial-gradient(circle at 50% 50%, var(--bg-1) 0%, var(--bg-0) 70%),
                 var(--bg-0);
@@ -986,12 +986,13 @@
               padding: 0;
               border-radius: 36px;
               background: transparent;
+              --preview-base-scale: .95;
               box-shadow:
                 0 0 0 2px #3a3a40,
                 0 30px 60px -20px rgba(0, 0, 0, .6),
                 0 12px 24px -8px rgba(0, 0, 0, .4),
                 inset 0 1px 0 rgba(255, 255, 255, .06);
-              transform: scale(var(--preview-zoom, 1));
+              transform: scale(calc(var(--preview-zoom, 1) * var(--preview-base-scale, 1)));
               transform-origin: center top;
               transition: transform 120ms ease;
             }
@@ -1916,6 +1917,7 @@
 	                width: calc(100% - 28px);
 	                min-height: 42px;
 	                margin: 8px 14px 0;
+	                padding: 4px 12px;
 	                white-space: normal;
 	              }
 	              .session-boundary-sheet {
@@ -1943,10 +1945,11 @@
               .snapshot-stage {
                 min-height: 360px;
                 overflow: auto;
-                padding: 14px;
+                padding: 4px 14px 14px;
               }
               .snapshot-frame {
                 max-width: min(100%, 320px);
+                --preview-base-scale: 1;
               }
               .snapshot-frame img {
                 max-height: calc(100vh - 240px);
