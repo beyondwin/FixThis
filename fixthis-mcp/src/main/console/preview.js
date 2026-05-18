@@ -72,6 +72,7 @@
             let livePreviewTimer = null;
             function startLivePreviewPolling() {
               stopLivePreviewPolling();
+              if (!shouldUsePreviewFallbackPolling()) return;
               const intervalMs = configuredPreviewIntervalMs();
               if (!intervalMs) return;
               livePreviewTimer = setInterval(() => {

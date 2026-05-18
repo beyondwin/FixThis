@@ -5,6 +5,10 @@
               const source = consoleEventsSource = new EventSource('/api/events');
               const json = (event) => { try { return JSON.parse(event.data || '{}'); } catch (_) { return {}; } };
               const on = (name, fn) => source.addEventListener(name, (event) => fn(json(event)));
+              source.onopen = () => {
+                setConsoleEventsConnected(true);
+                stopLivePreviewPolling();
+              };
               const activeSessionId = () => state.session?.sessionId || null;
               const matchesActiveSession = (data) => Boolean(data?.sessionId && data.sessionId === state.session?.sessionId);
               function applySessionFromServer(session) {
@@ -51,5 +55,9 @@
               on('devices-updated', (data) => renderDeviceList(data.devices || data));
               on('connection-updated', (data) => data.connection && applyConnectionStatus(data.connection));
               source.addEventListener('replay-overflow', () => refresh().catch(showError));
-              source.onerror = () => state.connection && !state.connection.sessionsPollingPaused && setSessionsPollingPaused(true);
+              source.onerror = () => {
+                setConsoleEventsConnected(false);
+                if (state.connection && !state.connection.sessionsPollingPaused) setSessionsPollingPaused(true);
+                startLivePreviewPolling();
+              };
             }

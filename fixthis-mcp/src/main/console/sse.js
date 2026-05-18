@@ -1,5 +1,21 @@
 // @requires (none)
-            // sse.js — late-SSE-message session-equality gate.
+            // sse.js — late-SSE-message session-equality gate and connection
+            // state for preview fallback polling.
+            let consoleEventsConnected = false;
+
+            function setConsoleEventsConnected(connected) {
+              consoleEventsConnected = connected === true;
+              return consoleEventsConnected;
+            }
+
+            function isConsoleEventsConnected() {
+              return consoleEventsConnected;
+            }
+
+            function shouldUsePreviewFallbackPolling() {
+              return !consoleEventsConnected;
+            }
+
             // Returns true (and emits a diagnostic warn) when msg.sessionId no
             // longer matches the active session; callers MUST early-return
             // without mutating state or notifying. Broadcasts without a
