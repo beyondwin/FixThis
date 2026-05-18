@@ -30,7 +30,7 @@ No task changes handoff intelligence, visual design, release-build behavior, XML
 ### Create
 
 - `scripts/console-browser-reliability.mjs`
-  - Playwright proof suite for two-tab SSE sync, EventSource reconnect recovery, stale preview confirmation, repeated Save to MCP idempotency, and late preview isolation.
+  - Playwright proof suite for two-tab SSE sync, EventSource reconnect recovery, repeated Save to MCP idempotency, and late preview isolation. Stale preview Save confirmation remains covered by `scripts/studioWorkflow-test.mjs` and `scripts/studioWorkflowIntegration-test.mjs`.
 
 ### Modify
 
@@ -64,12 +64,6 @@ No task changes handoff intelligence, visual design, release-build behavior, XML
   - Contract checks for fallback-only preview polling and shared preview application.
 - `scripts/console-fixture/fakeBridgeServer.mjs`
   - Add controllable SSE subscribers and idempotent fake batch save support for browser proof.
-- `scripts/console-fixture/scenarios/multiTab.mjs`
-  - Add small scenario helpers for push sync and late preview isolation.
-- `scripts/console-harness.mjs`
-  - Leave the existing harness matrix unchanged; browser proof runs through the new dedicated script.
-- `scripts/console-tests.json`
-  - Include new low-cost contract tests in the `reliability` group.
 - `package.json`
   - Add `console:browser:reliability` for Playwright proof.
 - `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt`
@@ -147,7 +141,7 @@ In `fixthis-mcp/src/main/console/previewFsm.js`, add this action to the header c
 
 ```js
 //   APPLY_READY          — accept externally delivered preview payloads
-//                          such as SSE preview-ready events; optional
+//                          such as SSE preview-ready events; supplied
 //                          contextGeneration fences stale delivery.
 ```
 
@@ -491,7 +485,17 @@ node --test scripts/studioReliabilityContract-test.mjs scripts/consoleEvents-tes
 
 Expected: PASS.
 
-- [ ] **Step 7: Rebuild console assets**
+- [ ] **Step 7: Run Studio workflow policy tests**
+
+Run:
+
+```bash
+node --test scripts/studioWorkflow-test.mjs scripts/studioWorkflowIntegration-test.mjs
+```
+
+Expected: PASS and stale-preview Save to MCP still requires the workflow confirmation boundary.
+
+- [ ] **Step 8: Rebuild console assets**
 
 Run:
 
@@ -502,7 +506,7 @@ node --test scripts/build-console-assets-test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 Run:
 
@@ -980,164 +984,6 @@ git commit -m "fix(mcp): reject closed session durable mutations"
 **Files:**
 - Create: `scripts/console-browser-reliability.mjs`
 - Modify: `scripts/console-fixture/fakeBridgeServer.mjs`
-- Modify: `scripts/console-fixture/scenarios/multiTab.mjs`
-- Modify: `scripts/console-harness.mjs`
-- Modify: `scripts/console-tests.json`
-- Modify: `package.json`
-
-- [ ] **Step 1: Add fake bridge SSE support and idempotent batch save**
-                )
-                fixture.closeSession(sessionId)
-
-                val update = ConsoleHttpTestClient(server.url).putJson(
-                    "/api/items/${item.itemId}",
-                    """{"sessionId":"$sessionId","comment":"after close"}""",
-                )
-                val delete = ConsoleHttpTestClient(server.url).delete(
-                    "/api/items/${item.itemId}?sessionId=$sessionId",
-                )
-
-                assertEquals(400, update.statusCode)
-                assertTrue(update.body.contains("SESSION_CLOSED"), update.body)
-                assertEquals(400, delete.statusCode)
-                assertTrue(delete.body.contains("SESSION_CLOSED"), delete.body)
-            } finally {
-                fixture.close()
-            }
-        }
-    }
-```
-
-If `ConsoleServerFixture` method names differ, use the fixture helpers already present in this file and keep the same assertions: closed session mutation returns `400` and body contains `SESSION_CLOSED`.
-
-- [ ] **Step 2: Add closed-session handoff route test**
-
-Add this test to `ConsoleHandoffRoutesTest.kt`:
-
-```kotlin
-    @Test
-    fun agentHandoffRejectsClosedSession() {
-        withTempProject("fixthis-console-closed-handoff") { projectRoot ->
-            val fixture = ConsoleServerFixture(projectRoot)
-            try {
-                val server = fixture.start()
-                val sessionId = fixture.openSession()
-                val screen = fixture.captureScreen(sessionId)
-                val item = fixture.addAreaFeedback(
-                    sessionId = sessionId,
-                    screenId = screen.screenId,
-                    comment = "handoff me",
-                )
-                fixture.closeSession(sessionId)
-
-                val response = ConsoleHttpTestClient(server.url).postJson(
-                    "/api/agent-handoffs",
-                    """{"sessionId":"$sessionId","itemIds":["${item.itemId}"]}""",
-                )
-
-                assertEquals(400, response.statusCode)
-                assertTrue(response.body.contains("SESSION_CLOSED"), response.body)
-            } finally {
-                fixture.close()
-            }
-        }
-    }
-```
-
-If `ConsoleHandoffRoutesTest.kt` already has a fixture helper for starting the server, use that helper and keep the same request/response assertions.
-
-- [ ] **Step 3: Run the failing route tests**
-
-Run:
-
-```bash
-./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --no-daemon
-```
-
-Expected: FAIL for at least one closed-session mutation path that currently accepts durable mutation.
-
-- [ ] **Step 4: Add a reusable closed-session guard**
-
-In `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt`, add this helper near the event log helpers:
-
-```kotlin
-    private fun requireOpenSessionForMutation(sessionId: String, type: String) {
-        val session = getSessionLocked(sessionId)
-        if (session.status == SessionStatusDto.CLOSED) {
-            throw FeedbackSessionException(
-                "SESSION_CLOSED: Cannot run $type on a closed feedback session.",
-            )
-        }
-    }
-```
-
-Then update `withEventBackedMutation()` to call it before `prepare()`:
-
-```kotlin
-    private fun <T> withEventBackedMutation(
-        sessionId: String,
-        type: String,
-        prepare: () -> Pair<JsonObject, () -> T>,
-    ): T {
-        val result = synchronized(lock) {
-            requireOpenSessionForMutation(sessionId, type)
-            val (payload, mutate) = prepare()
-            // Throws EventLogException on failure, so mutate() is never reached.
-            journal.append(sessionId = sessionId, type = type, payload = payload)
-            mutate()
-        }
-        compactEventLogAfterMutation(sessionId)
-        return result
-    }
-```
-
-Also update `withOptionalEventBackedMutation()` the same way:
-
-```kotlin
-    private fun <T> withOptionalEventBackedMutation(
-        sessionId: String,
-        type: String,
-        prepare: () -> Pair<JsonObject, () -> T>?,
-        noop: () -> T,
-    ): T {
-        val result = synchronized(lock) {
-            requireOpenSessionForMutation(sessionId, type)
-            val (payload, mutate) = prepare() ?: return@synchronized noop()
-            journal.append(sessionId = sessionId, type = type, payload = payload)
-            mutate()
-        }
-        compactEventLogAfterMutation(sessionId)
-        return result
-    }
-```
-
-- [ ] **Step 5: Run route/session tests**
-
-Run:
-
-```bash
-./gradlew :fixthis-mcp:test --tests "*ConsoleFeedbackItemRoutesTest" --tests "*ConsoleHandoffRoutesTest" --tests "*FeedbackSessionServiceClaimTest" --no-daemon
-```
-
-Expected: PASS.
-
-- [ ] **Step 6: Commit**
-
-Run:
-
-```bash
-git add fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemRoutesTest.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt
-git commit -m "fix(mcp): reject closed session durable mutations"
-```
-
-## Task 6: Add Browser Reliability Proof
-
-**Files:**
-- Create: `scripts/console-browser-reliability.mjs`
-- Modify: `scripts/console-fixture/fakeBridgeServer.mjs`
-- Modify: `scripts/console-fixture/scenarios/multiTab.mjs`
-- Modify: `scripts/console-harness.mjs`
-- Modify: `scripts/console-tests.json`
 - Modify: `package.json`
 
 - [ ] **Step 1: Add fake bridge SSE support and idempotent batch save**
@@ -1240,6 +1086,17 @@ In `/api/preview`, before `json(res, fakePreview(previewSessionId));`, store the
 Add these methods to the returned `fixture` object:
 
 ```js
+    openSession,
+    currentSession: () => session,
+    closeEventClients: () => {
+      for (const client of Array.from(eventClients)) client.end();
+      eventClients.clear();
+    },
+    emitSessionUpdated: () => {
+      emitEvent('session-updated', { sessionId: session.sessionId, session });
+      emitEvent('sessions-updated', { sessionId: session.sessionId, sessions: { sessions: Array.from(sessionsById.values()).map(sessionSummary) } });
+      return session;
+    },
     emitPreviewReady: (sessionId = session.sessionId, overrides = {}) => {
       const preview = { ...fakePreview(sessionId), ...overrides };
       emitEvent('preview-ready', { sessionId, preview });
@@ -1274,8 +1131,13 @@ async function withBrowser(fn) {
   }
 }
 
-async function waitForConsole(page) {
-  await page.goto(page.context()._options.baseURL || page.url(), { waitUntil: 'domcontentloaded' }).catch(() => {});
+async function waitUntil(predicate, timeoutMs = 8000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error('timed out waiting for condition');
 }
 
 async function openConsolePage(context, url) {
@@ -1285,16 +1147,28 @@ async function openConsolePage(context, url) {
   return page;
 }
 
+async function postJson(page, path, body) {
+  return page.evaluate(async ({ path, body }) => {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'If-Match': '*' },
+      body: JSON.stringify(body),
+    });
+    return {
+      status: response.status,
+      json: await response.json(),
+    };
+  }, { path, body });
+}
+
 async function testTwoTabSseSync() {
   await withBrowser(async ({ fixture, context }) => {
-    const first = await openConsolePage(context, fixture.url);
     const second = await openConsolePage(context, fixture.url);
-    await second.waitForFunction(() => fixture.eventClientCount !== 0, null, { timeout: 1000 }).catch(() => {});
+    await openConsolePage(context, fixture.url);
+    await waitUntil(() => fixture.eventClientCount() >= 2);
 
     const item = fixture.seedAnnotation({ itemId: 'item-sse-sync', comment: 'Sync me' });
-    fixture.emitPreviewReady('session-1');
-    await first.evaluate(() => window.dispatchEvent(new Event('focus')));
-    fixture.emitPreviewReady('session-1');
+    fixture.emitSessionUpdated();
 
     await second.waitForFunction(
       () => window.FixThisConsoleDebug.getState().session?.items?.some((candidate) => candidate.itemId === 'item-sse-sync'),
@@ -1311,8 +1185,19 @@ async function testLatePreviewIsolation() {
     const page = await openConsolePage(context, fixture.url);
     fixture.createSession({ sessionId: 'session-a', title: 'Session A' });
     fixture.createSession({ sessionId: 'session-b', title: 'Session B' });
+    await page.evaluate(async () => {
+      await fetch('/api/session/open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: 'session-b' }),
+      });
+    });
+    await page.waitForFunction(
+      () => window.FixThisConsoleDebug.getState().session?.sessionId === 'session-b',
+      null,
+      { timeout: 8000 },
+    );
     fixture.emitPreviewReady('session-a', { previewId: 'old-preview' });
-    fixture.openSession?.('session-b');
     fixture.emitPreviewReady('session-b', { previewId: 'new-preview' });
 
     await page.waitForFunction(
@@ -1326,9 +1211,61 @@ async function testLatePreviewIsolation() {
   });
 }
 
+async function testEventSourceReconnectRecovery() {
+  await withBrowser(async ({ fixture, context }) => {
+    const page = await openConsolePage(context, fixture.url);
+    await waitUntil(() => fixture.eventClientCount() >= 1);
+    fixture.closeEventClients();
+    await waitUntil(() => fixture.eventClientCount() >= 1);
+
+    const item = fixture.seedAnnotation({ itemId: 'item-after-reconnect', comment: 'Reconnect sync' });
+    fixture.emitSessionUpdated();
+
+    await page.waitForFunction(
+      () => window.FixThisConsoleDebug.getState().session?.items?.some((candidate) => candidate.itemId === 'item-after-reconnect'),
+      null,
+      { timeout: 8000 },
+    );
+    const visible = await page.evaluate(() => window.FixThisConsoleDebug.getState().session.items.map((candidate) => candidate.itemId));
+    assert.ok(visible.includes(item.itemId), `reconnected tab did not see ${item.itemId}: ${visible.join(', ')}`);
+  });
+}
+
+async function testRepeatedSaveToMcpIdempotency() {
+  await withBrowser(async ({ fixture, context }) => {
+    const page = await openConsolePage(context, fixture.url);
+    const preview = await page.evaluate(async () => {
+      const response = await fetch('/api/preview');
+      return response.json();
+    });
+    const body = {
+      sessionId: 'session-1',
+      previewId: preview.previewId,
+      workspaceId: 'workspace-idempotent',
+      screen: preview.screen,
+      items: [{
+        draftItemId: 'draft-idempotent',
+        targetType: 'area',
+        bounds: { left: 10, top: 10, right: 80, bottom: 80 },
+        comment: 'Save once only',
+      }],
+    };
+
+    const first = await postJson(page, '/api/items/batch', body);
+    const duplicate = await postJson(page, '/api/items/batch', body);
+
+    assert.equal(first.status, 200);
+    assert.equal(duplicate.status, 200);
+    const saved = fixture.currentSession().items.filter((item) => item.clientDraftItemId === 'draft-idempotent');
+    assert.equal(saved.length, 1);
+  });
+}
+
 async function run() {
   await testTwoTabSseSync();
   await testLatePreviewIsolation();
+  await testEventSourceReconnectRecovery();
+  await testRepeatedSaveToMcpIdempotency();
   console.log('PASS console browser reliability proof');
 }
 
@@ -1337,8 +1274,6 @@ run().catch((error) => {
   process.exit(1);
 });
 ```
-
-Before implementation, this script may need small fixture corrections because it intentionally exercises capabilities not yet present. Keep assertions focused on user-visible state through `window.FixThisConsoleDebug.getState()`.
 
 - [ ] **Step 3: Add npm script**
 
@@ -1356,7 +1291,7 @@ Run:
 npm run console:browser:reliability
 ```
 
-Expected: PASS after the fixture and browser proof implementation are complete.
+Expected: PASS.
 
 - [ ] **Step 5: Run full reliability group**
 
@@ -1373,7 +1308,7 @@ Expected: PASS.
 Run:
 
 ```bash
-git add scripts/console-browser-reliability.mjs scripts/console-fixture/fakeBridgeServer.mjs scripts/console-fixture/scenarios/multiTab.mjs scripts/console-harness.mjs scripts/console-tests.json package.json
+git add scripts/console-browser-reliability.mjs scripts/console-fixture/fakeBridgeServer.mjs package.json
 git commit -m "test(console): add browser reliability proof"
 ```
 
@@ -1394,7 +1329,7 @@ Expected: PASS.
 Run:
 
 ```bash
-node --test scripts/previewUseCases-test.mjs scripts/consoleEvents-test.mjs scripts/sessionMismatchIgnore-test.mjs scripts/draftRecoveryMatrix-test.mjs scripts/draftUseCases-test.mjs scripts/studioReliabilityContract-test.mjs
+node --test scripts/previewUseCases-test.mjs scripts/consoleEvents-test.mjs scripts/sessionMismatchIgnore-test.mjs scripts/draftRecoveryMatrix-test.mjs scripts/draftUseCases-test.mjs scripts/studioReliabilityContract-test.mjs scripts/studioWorkflow-test.mjs scripts/studioWorkflowIntegration-test.mjs
 ```
 
 Expected: PASS.
