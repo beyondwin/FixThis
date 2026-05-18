@@ -148,9 +148,22 @@ Example actions:
 - `previewPollReceived`
 - `handoffResponseReceived`
 
+These are illustrative dimensions. The first implementation slice may unify
+all late asynchronous results (`handoffResponseReceived`, `previewPollReceived`,
+late SSE, late save) under one `asyncResponseReceived` action whose snapshot
+carries `eventSessionId` and `eventGeneration`. Splitting them is a later
+refinement that only matters when their decision shape diverges.
+
 The first implementation does not need to move every console path at once. It
 should start with the risky paths that mutate user work: annotate/capture,
 draft save, Copy Prompt, Save to MCP, session switch, claim, and resolve.
+
+The workflow snapshot's `currentGeneration` token is a per-surface counter,
+not a global one. The canonical reducer surface uses its own
+`effectsGeneration`; the browser adapter surface uses the polling FSM's
+`mutationGeneration`. Each surface compares its own generation against
+incoming event generations; cross-surface generation comparisons are out of
+scope for this design.
 
 ## Exception Policy
 
@@ -379,6 +392,17 @@ automatic.
 Mitigation: make the policy conservative and explicit. Closed sessions do not
 accept new draft work, Save to MCP, claim, or resolve mutations. Users must
 reopen the session or create a new active session before adding work.
+
+The first implementation slice enforces this at two layers with different
+coverage: the workflow policy blocks every durable mutation entry point in
+the UI for closed sessions, and the server-side `AnnotationWorkflow` adds a
+defense-in-depth guard for `claimFeedback` and `resolveFeedback`. The
+store-side `claimFeedback` in `FeedbackSessionStoreDelegate` only rejects
+already-resolved items today and does not check session status, so the
+defense-in-depth guard cannot move down to the store without a wider audit
+of the other mutation surfaces (`addAreaFeedback`, draft-save batches,
+`updateDraftItem`). Extending the store guard to those paths is deferred
+and tracked as follow-up work.
 
 ## Acceptance Criteria
 
