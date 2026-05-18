@@ -40,6 +40,27 @@ Gradle artifact workflows receive the same version through `-PFIXTHIS_VERSION`.
 | `BridgeProtocol.VERSION` | wire-visible bridge changes only | Independent of package version. |
 | `CHANGELOG.md` | every release | Move "Unreleased" entries under a new dated heading. |
 
+## Branch-protection policy
+
+`main` is protected and requires four GitHub Actions status checks
+(`CI`, `CodeQL`, `Console JS`, `Gradle verification`) before merge.
+
+- **Normal flow:** open a PR, let the four checks run, merge through the
+  GitHub UI. Do not push directly to `main`.
+- **Release / hotfix surge (rare):** maintainers with admin rights may push
+  release-prep commits straight to `main` to keep the tag, GitHub Release,
+  and dispatch workflows on the same SHA. Every bypassed push must come
+  with the `npm run ci:local` (`--full`) gate green locally and is logged
+  in the GitHub audit log as `Bypassed rule violations for refs/heads/main`.
+  Document the reason in the release issue or commit body so the bypass
+  trail is reviewable after the fact.
+
+When in doubt, route through PR. The cache-safe `--full` gate is the only
+local approximation of the protected-branch checks; cache poisoning has
+been observed to mask real failures (see `staleMarkerSuffix` on
+2026-05-18), so the bypass path is meant for release-coordination,
+not for skipping inconvenient feedback.
+
 ## Pre-release checklist
 
 Before tagging:

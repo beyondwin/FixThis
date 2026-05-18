@@ -152,6 +152,15 @@ else
     run_step "npm run perf:test"
 fi
 if [[ "$RUN_GRADLE" -eq 1 ]]; then
+    # In --full mode the verification stands in for a release-grade gate. Force
+    # a cold spotlessCheck/detekt so the Gradle build cache cannot hide a fresh
+    # rule violation (see staleMarkerSuffix on 2026-05-18, where a cached pass
+    # masked a 131-char MaxLineLength failure that only surfaced on CI).
+    GATE_CACHE_FLAG=""
+    if [[ "$MODE" == "full" ]]; then
+        GATE_CACHE_FLAG=" --no-build-cache --rerun-tasks"
+        run_step "./gradlew spotlessCheck detekt --no-daemon${GATE_CACHE_FLAG}"
+    fi
     run_step "./gradlew spotlessCheck detekt :fixthis-compose-core:test :fixthis-cli:test :fixthis-mcp:test :fixthis-compose-sidekick:testDebugUnitTest :fixthis-gradle-plugin:test :app:assembleDebug :fixthis-cli:installDist :fixthis-mcp:installDist --no-daemon"
 fi
 if [[ "$MODE" == "prepush" ]]; then
