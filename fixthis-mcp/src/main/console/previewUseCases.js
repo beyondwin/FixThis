@@ -7,7 +7,7 @@
 //
 // Factory shape:
 //   createPreviewUseCases({ onChange, api, storage })
-//     -> { getState, dispatch, request, contextChanged, setStale,
+//     -> { getState, dispatch, request, applyReady, contextChanged, setStale,
 //          setZoom, setPollInterval }
 //
 // Race-fence contract (normative): when request() awaits api.capture,
@@ -74,6 +74,17 @@ function createPreviewUseCases(options = {}) {
     return promise;
   }
 
+  function applyReady(preview, options = {}) {
+    const contextGeneration = Number.isInteger(options.contextGeneration)
+      ? options.contextGeneration
+      : current.contextGeneration;
+    return dispatch({
+      type: 'APPLY_READY',
+      preview,
+      contextGeneration,
+    });
+  }
+
   function contextChanged() {
     inFlightPromise = null;
     dispatch({ type: 'CONTEXT_CHANGED' });
@@ -98,6 +109,7 @@ function createPreviewUseCases(options = {}) {
     getState,
     dispatch,
     request,
+    applyReady,
     contextChanged,
     setStale,
     setZoom,

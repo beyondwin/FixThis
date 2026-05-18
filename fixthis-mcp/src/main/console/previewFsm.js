@@ -13,6 +13,9 @@
 //   REQUEST_SUCCEEDED    — applied only if BOTH action.generation and
 //                          action.contextGeneration match the inFlight tuple;
 //                          otherwise dropped (race-fence)
+//   APPLY_READY          — accept externally delivered preview payloads
+//                          such as SSE preview-ready events; supplied
+//                          contextGeneration fences stale delivery.
 //   REQUEST_FAILED       — same race-fence as REQUEST_SUCCEEDED; lifecycle → ERROR
 //   CONTEXT_CHANGED      — bump contextGeneration; clear inFlight and current;
 //                          lifecycle → IDLE (so the next request re-fetches)
@@ -76,6 +79,21 @@ function reducePreview(state, action) {
     }
     case 'REQUEST_SUCCEEDED': {
       if (isStaleFence(state, action)) return state;
+      return Object.freeze({
+        ...state,
+        lifecycle: PreviewLifecycle.READY,
+        current: action.preview ?? null,
+        inFlight: null,
+        error: null,
+      });
+    }
+    case 'APPLY_READY': {
+      if (
+        Number.isInteger(action.contextGeneration) &&
+        action.contextGeneration !== state.contextGeneration
+      ) {
+        return state;
+      }
       return Object.freeze({
         ...state,
         lifecycle: PreviewLifecycle.READY,

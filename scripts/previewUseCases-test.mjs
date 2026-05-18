@@ -85,6 +85,47 @@ test('REQUEST_SUCCEEDED is dropped when contextGeneration changed mid-flight', a
   assert.equal(uc.getState().current, null);
 });
 
+test('applyReady() stores externally delivered preview without starting a fetch', () => {
+  const seen = [];
+  const uc = makeUseCases({
+    api: { capture: async () => { throw new Error('capture must not run'); } },
+    observer: (next) => { seen.push(next); },
+  });
+
+  const next = uc.applyReady({ previewId: 'sse-preview', sessionId: 'session-1' });
+
+  assert.equal(next.lifecycle, m.PreviewLifecycle.READY);
+  assert.equal(next.current.previewId, 'sse-preview');
+  assert.equal(uc.getState().current.sessionId, 'session-1');
+  assert.equal(seen.at(-1).current.previewId, 'sse-preview');
+});
+
+test('applyReady() ignores stale context generation', () => {
+  const uc = makeUseCases();
+  uc.contextChanged();
+
+  const before = uc.getState();
+  const next = uc.applyReady(
+    { previewId: 'stale-preview', sessionId: 'session-1' },
+    { contextGeneration: before.contextGeneration - 1 },
+  );
+
+  assert.equal(next, before);
+  assert.equal(uc.getState().current, null);
+});
+
+test('applyReady() clears stale/error state on accepted external preview', async () => {
+  const uc = makeUseCases({ api: { capture: async () => ({ previewId: 'poll-preview' }) } });
+  await uc.request();
+  uc.setStale(true);
+
+  const next = uc.applyReady({ previewId: 'sse-preview', sessionId: 'session-1' });
+
+  assert.equal(next.lifecycle, m.PreviewLifecycle.READY);
+  assert.equal(next.current.previewId, 'sse-preview');
+  assert.equal(next.error, null);
+});
+
 test('request() failure dispatches REQUEST_FAILED and lifecycle ERROR', async () => {
   const uc = makeUseCases({ api: { capture: async () => { throw new Error('boom'); } } });
   await assert.rejects(uc.request(), /boom/);
