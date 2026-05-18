@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sources = [
+  'studioWorkflow.js',
   'domain/consoleEvents.js',
   'domain/workspaceState.js',
   'domain/consoleAppState.js',

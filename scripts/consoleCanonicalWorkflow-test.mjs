@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sources = [
+  'studioWorkflow.js',
   'domain/workspaceState.js',
   'domain/consoleAppState.js',
   'domain/consoleInvariants.js',
@@ -16,7 +17,8 @@ const factory = new Function(`${sources}; return {
   createInitialConsoleAppState,
   reduceConsoleAppState,
   assertConsoleInvariants,
-  WorkspaceKind
+  WorkspaceKind,
+  livePreviewWorkspace
 };`);
 const m = factory();
 
@@ -102,7 +104,12 @@ test('save during pending boundary opens target session after draft save succeed
 });
 
 test('annotate click plans preview capture and capture success starts draft', () => {
-  let state = m.createInitialConsoleAppState({ activeSessionId: 'session-a', sessions: [{ sessionId: 'session-a' }] });
+  let state = m.createInitialConsoleAppState({
+    activeSessionId: 'session-a',
+    sessions: [{ sessionId: 'session-a' }],
+    connection: { current: { state: 'READY' } },
+    workspace: m.livePreviewWorkspace('session-a', null),
+  });
   const annotate = m.reduceConsoleAppState(state, { type: 'ANNOTATE_CLICKED' });
   assert.equal(annotate.effects[0].kind, 'capturePreview');
   state = m.reduceConsoleAppState(annotate.state, {
@@ -114,6 +121,32 @@ test('annotate click plans preview capture and capture success starts draft', ()
   }).state;
   const draft = m.reduceConsoleAppState(state, { type: 'DRAFT_STARTED_FROM_PREVIEW', sessionId: 'session-a', preview: preview(1) }).state;
   assert.equal(draft.workspace.kind, m.WorkspaceKind.DRAFT);
+});
+
+test('workflow blocks annotate when connection is not ready', () => {
+  let state = m.createInitialConsoleAppState({
+    activeSessionId: 'session-a',
+    sessions: [{ sessionId: 'session-a' }],
+    connection: { current: { state: 'CHECK_PHONE' } },
+    workspace: m.livePreviewWorkspace ? m.livePreviewWorkspace('session-a', preview(1)) : { kind: m.WorkspaceKind.LIVE_PREVIEW, sessionId: 'session-a', preview: preview(1) },
+  });
+  const result = m.reduceConsoleAppState(state, { type: 'ANNOTATE_CLICKED' });
+  assert.deepEqual(result.effects, []);
+  assert.equal(result.state.status.variant, 'warn');
+  assert.match(result.state.status.message, /Connect the app before annotating/);
+});
+
+test('workflow blocks session switch while prompt action is in flight', () => {
+  const state = m.createInitialConsoleAppState({
+    activeSessionId: 'session-a',
+    sessions: [{ sessionId: 'session-a' }, { sessionId: 'session-b' }],
+    promptAction: { inFlight: true },
+  });
+  const result = m.reduceConsoleAppState(state, { type: 'SESSION_ROW_CLICKED', sessionId: 'session-b' });
+  assert.equal(result.state.activeSessionId, 'session-a');
+  assert.deepEqual(result.effects, []);
+  assert.equal(result.state.status.variant, 'warn');
+  assert.match(result.state.status.message, /Finish the current handoff action/);
 });
 
 test('copy prompt is planned from draft workspace only', () => {
