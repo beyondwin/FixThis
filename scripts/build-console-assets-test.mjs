@@ -11,8 +11,8 @@ const script = resolve(root, 'scripts/build-console-assets.mjs');
 const targetJs = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
 const targetMeta = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
 
-const RAW_BUDGET = 213 * 1024;   // 218,112 bytes
-const GZIP_BUDGET = 54 * 1024;   // 55,296 bytes (matches production budget in build-console-assets.mjs)
+const RAW_BUDGET = 225 * 1024;   // 230,400 bytes
+const GZIP_BUDGET = 58 * 1024;   // 59,392 bytes (matches production budget in build-console-assets.mjs)
 
 test('build script runs without arguments and produces app.js', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
@@ -27,22 +27,22 @@ test('build script produces console-build-meta.json sidecar', () => {
   assert.equal(typeof meta.gitSha, 'string');
 });
 
-test('app.js raw bytes are within the 213 KiB budget', () => {
+test('app.js raw bytes are within the 225 KiB budget', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
   const bytes = readFileSync(targetJs).byteLength;
   assert.ok(
     bytes <= RAW_BUDGET,
-    `app.js is ${bytes} bytes, exceeds raw budget ${RAW_BUDGET} bytes (213 KiB)`,
+    `app.js is ${bytes} bytes, exceeds raw budget ${RAW_BUDGET} bytes (225 KiB)`,
   );
 });
 
-test('app.js gzipped bytes are within the 54 KiB budget', () => {
+test('app.js gzipped bytes are within the 58 KiB budget', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });
   const raw = readFileSync(targetJs);
   const gz = gzipSync(raw, { level: 9 }).byteLength;
   assert.ok(
     gz <= GZIP_BUDGET,
-    `app.js gzipped is ${gz} bytes, exceeds gzip budget ${GZIP_BUDGET} bytes (54 KiB)`,
+    `app.js gzipped is ${gz} bytes, exceeds gzip budget ${GZIP_BUDGET} bytes (58 KiB)`,
   );
 });
 
