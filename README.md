@@ -57,7 +57,7 @@ The agent should run:
 
 ```bash
 # macOS package-manager path
-brew install beyondwin/fixthis/fixthis
+brew install beyondwin/tools/fixthis
 
 # Node/npm path
 npm install -g @beyondwin/fixthis
@@ -173,7 +173,7 @@ FixThis has public artifacts for the agent-first path:
 - Gradle plugin: `io.github.beyondwin.fixthis.compose`
 - Maven artifacts: `io.github.beyondwin:fixthis-compose-sidekick` and
   `io.github.beyondwin:fixthis-compose-core`
-- Homebrew tap: `brew install beyondwin/fixthis/fixthis`
+- Homebrew tap: `brew install beyondwin/tools/fixthis`
 - CLI/MCP package: GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz`
 - npm wrapper: `npm install -g @beyondwin/fixthis`
 - MCP Registry entry: `io.github.beyondwin/fixthis`

@@ -1805,7 +1805,7 @@ Pick the first matching branch:
 
 ```
 if command -v brew >/dev/null 2>&1 && [ "$(uname)" = "Darwin" ]; then
-    brew install beyondwin/fixthis/fixthis
+    brew install beyondwin/tools/fixthis
 elif command -v npm >/dev/null 2>&1; then
     npm install -g @beyondwin/fixthis
 else

@@ -189,7 +189,7 @@ covers the included plugin build without enabling remote publication.
 - Verify Maven Central / Plugin Portal listings appear and are installable when
   artifact workflows were run.
 - Verify Homebrew when the tap was updated:
-  `brew upgrade beyondwin/fixthis/fixthis && brew test beyondwin/fixthis/fixthis`.
+  `brew upgrade beyondwin/tools/fixthis && brew test beyondwin/tools/fixthis`.
 - Verify npm only after `NPM_TOKEN` is configured:
   `npm view @beyondwin/fixthis version dist.tarball`.
 - Verify MCP Registry only after npm is public:

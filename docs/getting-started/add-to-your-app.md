@@ -13,7 +13,7 @@ full supported / minimum-that-compiles version axes.
 The agent-first path should do this automatically:
 
 ```bash
-brew install beyondwin/fixthis/fixthis
+brew install beyondwin/tools/fixthis
 
 # Or, with npm:
 npm install -g @beyondwin/fixthis
@@ -89,7 +89,7 @@ use **Copy Prompt** in the console — no setup required.
 Agents may combine desktop install and MCP registration:
 
 ```bash
-brew install beyondwin/fixthis/fixthis
+brew install beyondwin/tools/fixthis
 fixthis init --agent --project-dir . --target codex
 
 # Or, with npm:

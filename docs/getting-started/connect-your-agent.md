@@ -35,7 +35,7 @@ an Android app repository.
 On macOS, prefer Homebrew:
 
 ```bash
-brew install beyondwin/fixthis/fixthis
+brew install beyondwin/tools/fixthis
 fixthis init --agent --project-dir . --target codex
 ```
 

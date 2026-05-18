@@ -48,7 +48,7 @@ tooling with `scripts/install-fixthis.sh` and then run
 The Homebrew tap is available for macOS:
 
 ```bash
-brew install beyondwin/fixthis/fixthis
+brew install beyondwin/tools/fixthis
 ```
 
 ### Registry discovery channels

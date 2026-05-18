@@ -40,7 +40,7 @@ An agent can install the CLI/MCP package before running `fixthis init`.
 On macOS, prefer the Homebrew tap:
 
 ```bash
-brew install beyondwin/fixthis/fixthis
+brew install beyondwin/tools/fixthis
 fixthis init --agent --project-dir . --target codex
 ```
 

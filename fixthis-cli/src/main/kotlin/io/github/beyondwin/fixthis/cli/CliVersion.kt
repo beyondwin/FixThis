@@ -6,7 +6,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-internal const val FIXTHIS_CLI_VERSION = "0.2.3"
+internal const val FIXTHIS_CLI_VERSION = "0.3.0"
 
 internal fun renderCliVersion(
     json: Boolean,

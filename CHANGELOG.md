@@ -236,7 +236,7 @@ Closes the six deferred items from the v0.3 first-run trust program
 
 ### Documentation
 - Updated release and getting-started docs to reflect the post-v0.2.3 channel
-  state: Homebrew is available at `beyondwin/fixthis/fixthis`, the npm wrapper
+  state: Homebrew is available at `beyondwin/tools/fixthis`, the npm wrapper
   is available at `@beyondwin/fixthis`, and the MCP Registry entry is
   `io.github.beyondwin/fixthis`.
 

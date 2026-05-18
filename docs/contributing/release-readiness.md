@@ -17,7 +17,7 @@ discovery.
 | Sample app | Available | Users can verify the workflow before touching their app. |
 | Claude Code / Codex MCP bootstrap | Available from source | `./scripts/bootstrap-mcp.sh --sample` configures local MCP for the sample. |
 | CLI/MCP GitHub Release package | Available | `scripts/install-fixthis.sh` installs it. |
-| Homebrew tap | Available | macOS users can run `brew install beyondwin/fixthis/fixthis`. |
+| Homebrew tap | Available | macOS users can run `brew install beyondwin/tools/fixthis`. |
 | External Gradle artifacts | Available | External apps apply `io.github.beyondwin.fixthis.compose` from the Gradle Plugin Portal; the plugin resolves sidekick/core from Maven Central. |
 | npm wrapper | Available | Users can run `npm install -g @beyondwin/fixthis`. |
 | MCP Registry entry | Available | `io.github.beyondwin/fixthis` points at the public npm wrapper. |
@@ -28,7 +28,7 @@ discovery.
 - Use `./scripts/bootstrap-mcp.sh --sample` to register the local MCP server
   with Claude Code or Codex.
 - Install the CLI/MCP package with Homebrew on macOS:
-  `brew install beyondwin/fixthis/fixthis`.
+  `brew install beyondwin/tools/fixthis`.
 - Install the CLI/MCP package with npm:
   `npm install -g @beyondwin/fixthis`.
 - Install the CLI/MCP package from GitHub Releases:
@@ -152,7 +152,7 @@ Required v0.6 evidence before tagging:
 | Compose sidekick | `io.github.beyondwin:fixthis-compose-sidekick` | Maven Central |
 | Compose core | `io.github.beyondwin:fixthis-compose-core` | Maven Central, only if needed by consumers |
 | CLI/MCP package | `fixthis-cli-mcp-vX.Y.Z.tar.gz` | GitHub Releases |
-| Homebrew formula | `beyondwin/fixthis/fixthis` | Homebrew tap |
+| Homebrew formula | `beyondwin/tools/fixthis` | Homebrew tap |
 | npm wrapper | `@beyondwin/fixthis` | npm |
 | MCP server | `io.github.beyondwin/fixthis` | MCP Registry metadata |
 

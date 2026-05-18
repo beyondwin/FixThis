@@ -29,7 +29,7 @@ points to canonical docs rather than restating them — update those, not this.
 ./scripts/bootstrap-mcp.sh --package <applicationId>
 
 # In a published/installable CLI flow inside an Android app repo.
-brew install beyondwin/fixthis/fixthis
+brew install beyondwin/tools/fixthis
 # Or: npm install -g @beyondwin/fixthis
 fixthis init
 ```

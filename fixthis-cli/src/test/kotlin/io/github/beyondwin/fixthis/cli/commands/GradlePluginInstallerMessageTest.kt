@@ -16,7 +16,7 @@ class GradlePluginInstallerMessageTest {
             GradlePluginInstaller.apply(
                 projectRoot = root,
                 packageName = "com.example.missing",
-                pluginVersion = "0.2.3",
+                pluginVersion = "0.3.0",
                 dryRun = true,
                 echo = { line -> captured += line },
             )
