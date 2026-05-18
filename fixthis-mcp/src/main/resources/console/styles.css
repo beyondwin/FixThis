@@ -771,13 +771,14 @@
 	              background: rgba(3, 5, 8, .62);
 	            }
 	            .session-boundary-dialog {
-	              width: min(430px, calc(100vw - 32px));
+	              width: min(560px, calc(100vw - 32px));
 	              max-height: calc(100vh - 48px);
 	              overflow: auto;
 	              border: 1px solid #3f4856;
-	              border-radius: 12px;
-	              background: #151922;
-	              padding: 18px;
+	              border-radius: 14px;
+	              background: #171b24;
+	              box-shadow: 0 24px 80px rgba(0, 0, 0, .46);
+	              padding: 20px;
 	              color: var(--txt-0);
 	            }
 	            .session-boundary-dialog h2 {
@@ -793,7 +794,7 @@
 	            }
 	            .session-boundary-actions {
 	              display: flex;
-	              flex-wrap: wrap;
+	              flex-wrap: nowrap;
 	              justify-content: flex-end;
 	              align-items: center;
 	              gap: 8px;
@@ -801,11 +802,17 @@
 	            .session-boundary-actions [data-boundary-action][hidden] {
 	              display: none;
 	            }
+	            .session-boundary-actions [data-boundary-action] {
+	              display: inline-flex;
+	              align-items: center;
+	              justify-content: center;
+	              min-height: 38px;
+	              padding: 0 14px;
+	              white-space: nowrap;
+	            }
 	            .session-boundary-actions .annotation-danger,
 	            .session-boundary-actions .annotation-done {
 	              margin-left: 0;
-	              min-height: 36px;
-	              padding: 0 14px;
 	              border-color: var(--line);
 	            }
 	            .session-boundary-actions [data-boundary-primary] {

@@ -6,8 +6,8 @@ import { loadConsoleSymbols } from './console-test-loader.mjs';
 // - When saveDraftWorkspace returns 412 with body
 //   `{state:'STALE_PREVIEW', readiness, serverDraft}`, the client opens the
 //   `staleDraftConflict` boundary dialog with the three labelled buttons.
-// - "Keep mine (overwrite)" resubmits the save with `If-Match: *`.
-// - "Use server's version" loads `serverDraft` into local state.
+// - "Overwrite saved draft" resubmits the save with `If-Match: *`.
+// - "Load saved draft" loads `serverDraft` into local state.
 // - Cancel is a no-op (caller preserves local pending pins).
 
 const { createDraftApiAdapter, resolveStaleDraftConflict } = loadConsoleSymbols({
@@ -91,7 +91,7 @@ test('resolveStaleDraftConflict opens the staleDraftConflict boundary dialog', a
   assert.deepEqual(renders[0].ctx.readiness, conflict.readiness);
 });
 
-test('Keep mine (overwrite) resubmits saveDraftWorkspace with If-Match: *', async () => {
+test('Overwrite saved draft resubmits saveDraftWorkspace with If-Match: *', async () => {
   let captured = null;
   const adapter = {
     saveDraftWorkspace: async (request, init) => {
@@ -114,7 +114,7 @@ test('Keep mine (overwrite) resubmits saveDraftWorkspace with If-Match: *', asyn
   assert.equal(retryResult.sessionId, 'session-1');
 });
 
-test("Use server's version returns serverDraft for the caller to load locally", async () => {
+test('Load saved draft returns serverDraft for the caller to load locally', async () => {
   const serverDraft = { sessionId: 'session-1', items: [{ itemId: 'item-server' }] };
   const resolved = await resolveStaleDraftConflict({
     adapter: { saveDraftWorkspace: async () => { throw new Error('should not refetch'); } },

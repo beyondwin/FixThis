@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { loadConsoleSymbols } from './console-test-loader.mjs';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const styles = readFileSync(resolve(root, 'fixthis-mcp/src/main/resources/console/styles.css'), 'utf8');
 
 function createDocument() {
   const title = { textContent: '' };
@@ -126,12 +132,20 @@ test('recapture recovered draft dialog labels recapture confirmation and remap c
   assert.deepEqual(visibleLabels(), ['Cancel', 'Recapture']);
 });
 
-test('staleDraftConflict dialog labels server-version and keep-mine actions verbatim', () => {
+test('staleDraftConflict dialog explains a local saved-draft conflict without server wording', () => {
   renderBoundaryDialog('staleDraftConflict', {});
 
-  assert.match(document.title.textContent, /newer save/i);
-  assert.match(document.summary.textContent, /server/i);
+  assert.match(document.title.textContent, /saved draft changed/i);
+  assert.match(document.summary.textContent, /another FixThis console/i);
+  assert.doesNotMatch(document.title.textContent, /server/i);
+  assert.doesNotMatch(document.summary.textContent, /server/i);
   // visibleLabels reads cancel -> tertiary -> secondary -> primary.
-  // Cancel, Use server's version, Keep mine (overwrite).
-  assert.deepEqual(visibleLabels(), ['Cancel', "Use server's version", 'Keep mine (overwrite)']);
+  // Cancel, Load saved draft, Overwrite saved draft.
+  assert.deepEqual(visibleLabels(), ['Keep editing', 'Load saved draft', 'Overwrite saved draft']);
+});
+
+test('session boundary actions keep desktop buttons on one line', () => {
+  assert.match(styles, /\.session-boundary-actions\s*\{[\s\S]*?flex-wrap:\s*nowrap;/);
+  assert.match(styles, /\.session-boundary-actions \[data-boundary-action\]\s*\{[\s\S]*?white-space:\s*nowrap;/);
+  assert.match(styles, /\.session-boundary-dialog\s*\{[\s\S]*?width:\s*min\(560px, calc\(100vw - 32px\)\);/);
 });
