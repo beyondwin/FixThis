@@ -1,4 +1,6 @@
-// @requires state.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js, editorState.js, inspectorFooter.js, editorBackButton.js, viewmodel/reliabilityPresentation.js, viewmodel/annotationPresentation.js
+// @requires state.js, connection.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js, editorState.js, inspectorFooter.js, editorBackButton.js, viewmodel/reliabilityPresentation.js, viewmodel/annotationPresentation.js
+            let annotateIntent = false;
+
             function isInteractionBlocked() {
               return Boolean(state.connection?.interactionBlockedReason);
             }
@@ -356,6 +358,10 @@
             async function startDraftAnnotationFlow() {
               if (toolMode.getState().draftFlowStarting) return;
               const decision = decideCurrentStudioWorkflow(StudioWorkflowAction.ANNOTATE_CLICKED);
+              if (decision.reason === 'connection-not-ready') {
+                annotateIntent = true;
+                return launchApp();
+              }
               if (surfaceStudioWorkflowDecision(decision)) {
                 resetComposer(false, false);
                 render();

@@ -287,6 +287,10 @@
               }
               checkProtocolCompat(status);
               checkSidekickBuildEpoch(status);
+              if (viewState === 'ready' && annotateIntent && !draftFlow()) {
+                annotateIntent = false;
+                startDraftAnnotationFlow().catch(showError);
+              }
             }
 
             function renderConnection(status) {

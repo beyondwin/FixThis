@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const adapterSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/studioWorkflowAdapter.js'), 'utf8');
 const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+const connectionSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/connection.js'), 'utf8');
 const historySource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
 const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
 
@@ -79,6 +80,27 @@ test('blocked draft capture exits an empty annotate shell', () => {
     start,
     /if \(surfaceStudioWorkflowDecision\(decision\)\) \{\s*resetComposer\(false,\s*false\);\s*render\(\);\s*return;\s*\}/,
   );
+});
+
+test('annotate from Open app state launches the app instead of silently blocking', () => {
+  const start = body(annotationsSource, 'async function startDraftAnnotationFlow()');
+  const launchIndex = start.indexOf('launchApp();');
+  const blockIndex = start.indexOf('surfaceStudioWorkflowDecision(decision)');
+  assert.notEqual(launchIndex, -1, 'connection-not-ready annotate should launch the app');
+  assert.notEqual(blockIndex, -1, 'non-launchable workflow blocks should still surface normally');
+  assert.ok(launchIndex < blockIndex, 'Open app recovery must run before the generic block surface');
+  assert.match(
+    start,
+    /if \(decision\.reason === 'connection-not-ready'\)/,
+  );
+});
+
+test('ready connection resumes the pending annotate intent after launch', () => {
+  const apply = body(connectionSource, 'function applyConnectionStatus(status, options)');
+  assert.match(annotationsSource, /let annotateIntent = false;/);
+  assert.match(annotationsSource, /annotateIntent = true;[\s\S]*?return launchApp\(\);/);
+  assert.match(apply, /if \(viewState === 'ready' && annotateIntent && !draftFlow\(\)\) \{/);
+  assert.match(apply, /annotateIntent = false;[\s\S]*?startDraftAnnotationFlow\(\)\.catch\(showError\)/);
 });
 
 test('composer disables prompt buttons using workflow decisions', () => {

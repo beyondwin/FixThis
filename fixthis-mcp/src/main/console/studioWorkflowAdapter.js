@@ -55,11 +55,11 @@ function decideCurrentStudioWorkflow(action, patch = {}) {
 }
 
 function studioWorkflowMessage(decision) {
-  if (decision.reason === 'operation-in-flight') return 'Finish the current handoff action before starting another.';
-  if (decision.reason === 'connection-blocked' || decision.reason === 'connection-not-ready') return 'Connection paused - draft preserved.';
-  if (decision.reason === 'closed-session') return 'Reopen the session or create a new active session before changing feedback.';
-  if (decision.reason === 'missing-item') return 'This feedback item is no longer available.';
-  return 'This action is blocked by the current Studio workflow state.';
+  if (decision.reason === 'operation-in-flight') return 'Finish action first.';
+  if (decision.reason === 'connection-blocked' || decision.reason === 'connection-not-ready') return 'Not ready.';
+  if (decision.reason === 'closed-session') return 'Open a session first.';
+  if (decision.reason === 'missing-item') return 'Item unavailable.';
+  return 'Action blocked';
 }
 
 function surfaceStudioWorkflowDecision(decision) {
