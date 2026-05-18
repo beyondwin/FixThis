@@ -65,6 +65,7 @@
   ],
   "reliability": [
     "scripts/studioWorkflow-test.mjs",
+    "scripts/studioWorkflowIntegration-test.mjs",
     "scripts/studioReliabilityContract-test.mjs",
     "scripts/sessionMismatchIgnore-test.mjs",
     "scripts/draftUseCases-test.mjs",

@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, draftUseCases.js, annotations.js
+// @requires state.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, annotations.js
             function promptUnavailableMessage() {
               if (!state.session) return 'Select a history item before copying or sending annotations.';
               const annotations = toolbarAnnotations();
@@ -70,6 +70,8 @@
             async function copyPrompt() {
                 store.dispatch({ type: 'COPY_PROMPT_CLICKED' });
                 if (pollingUseCases.getState().promptActionInFlight) return;
+                const decision = decideCurrentStudioWorkflow(StudioWorkflowAction.COPY_PROMPT_CLICKED);
+                if (surfaceStudioWorkflowDecision(decision)) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();
@@ -124,6 +126,8 @@
             async function sendAgentPrompt() {
                 store.dispatch({ type: 'SAVE_TO_MCP_CLICKED' });
                 if (pollingUseCases.getState().promptActionInFlight) return;
+                const decision = decideCurrentStudioWorkflow(StudioWorkflowAction.SAVE_TO_MCP_CLICKED);
+                if (surfaceStudioWorkflowDecision(decision)) return;
                 await withMutationLock(async () => {
                     clearSuccessStatus();
                     ensurePromptAnnotationsAvailable();

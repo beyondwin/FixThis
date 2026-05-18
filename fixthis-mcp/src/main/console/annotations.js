@@ -1,4 +1,4 @@
-// @requires state.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js, editorState.js, inspectorFooter.js, editorBackButton.js, viewmodel/reliabilityPresentation.js, viewmodel/annotationPresentation.js
+// @requires state.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, draftCommandQueue.js, editorState.js, inspectorFooter.js, editorBackButton.js, viewmodel/reliabilityPresentation.js, viewmodel/annotationPresentation.js
             function isInteractionBlocked() {
               return Boolean(state.connection?.interactionBlockedReason);
             }
@@ -156,7 +156,10 @@
 
             function updateComposerState() {
               const hasPromptAnnotations = currentPromptAnnotations().length > 0;
-              const promptDisabled = !hasPromptAnnotations || pollingUseCases.getState().promptActionInFlight;
+              const promptDecision = decideCurrentStudioWorkflow(StudioWorkflowAction.SAVE_TO_MCP_CLICKED);
+              const promptDisabled = !hasPromptAnnotations ||
+                pollingUseCases.getState().promptActionInFlight ||
+                promptDecision.type === StudioWorkflowDecisionType.BLOCK;
               const selectedSaved = selectedSavedAnnotation();
               const editorState = deriveEditorState(currentDraftWorkspace(), draftSelection(), selectedSaved);
               const savedPhase = selectedSaved ? lifecyclePhase(selectedSaved) : null;
@@ -353,6 +356,8 @@
 
             async function startDraftAnnotationFlow() {
               if (toolMode.getState().draftFlowStarting) return;
+              const decision = decideCurrentStudioWorkflow(StudioWorkflowAction.ANNOTATE_CLICKED);
+              if (surfaceStudioWorkflowDecision(decision)) return;
               error.textContent = '';
               toolMode.setAddItemsFlowStarting(true);
               updateComposerState();

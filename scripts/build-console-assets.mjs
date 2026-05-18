@@ -229,15 +229,15 @@ async function main() {
   const jsText = new TextDecoder().decode(jsBytes);
   assertContractSymbols(jsText);
 
-  const RAW_BUDGET_BYTES = 205 * 1024;
-  const GZIP_BUDGET_BYTES = 52 * 1024;
+  const RAW_BUDGET_BYTES = 210 * 1024;
+  const GZIP_BUDGET_BYTES = 54 * 1024;
   if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
-    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (205 KiB).`);
+    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (210 KiB).`);
     process.exit(1);
   }
   const gzBytes = gzipSync(Buffer.from(jsBytes), { level: 9 }).byteLength;
   if (gzBytes > GZIP_BUDGET_BYTES) {
-    console.error(`Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (52 KiB).`);
+    console.error(`Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (54 KiB).`);
     process.exit(1);
   }
 

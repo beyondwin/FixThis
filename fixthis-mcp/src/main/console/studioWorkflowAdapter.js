@@ -1,0 +1,75 @@
+// @requires studioWorkflow.js, state.js, draftWorkspace.js
+function currentStudioWorkflowConnection() {
+  const raw = String(state.connection?.current?.state || '').toLowerCase();
+  if (raw === 'ready') return 'ready';
+  if (raw === 'check_phone' || raw === 'choose_device') return 'blocked';
+  if (raw === 'unsupported_build') return 'unsupported';
+  if (raw === 'open_app' || raw === 'reconnect' || raw === 'starting') return 'reconnecting';
+  if (!state.selectedDeviceSerial && Array.isArray(state.devices) && state.devices.length === 0) return 'no-device';
+  return 'initializing';
+}
+
+function currentStudioWorkflowWorkspace() {
+  if (draftFlow()) return 'frozen-draft';
+  if (state.preview) return 'live-preview';
+  if (toolMode?.getState?.().focusedSavedItemId) return 'saved-focus';
+  return 'empty';
+}
+
+function currentStudioWorkflowOperation() {
+  if (pollingUseCases?.getState?.().promptActionInFlight) return 'saving-handoff';
+  if (previewUseCases?.getState?.().inFlight) return 'capturing';
+  if (toolMode?.getState?.().draftFlowStarting) return 'capturing';
+  return 'idle';
+}
+
+function currentStudioWorkflowRisks() {
+  const risks = [];
+  if (draftFlow() && draftItemList().length) risks.push('dirty-draft');
+  if (draftFlow() && draftWorkspace?.activityDriftWarning) risks.push('activity-drift');
+  if (state.preview?.stale) risks.push('stale-preview');
+  if (pollingUseCases?.getState?.().promptActionInFlight) risks.push('in-flight-mutation');
+  return risks;
+}
+
+function currentStudioWorkflowSnapshot(patch = {}) {
+  // `currentGeneration` reflects the polling FSM mutation counter so that
+  // ASYNC_RESPONSE_RECEIVED can detect stale responses. The variable
+  // `sessionMutationGeneration` is only referenced in a comment in `state.js`;
+  // the live counter lives at `pollingUseCases.getState().mutationGeneration`.
+  const generation = pollingUseCases?.getState?.()?.mutationGeneration;
+  return {
+    connection: currentStudioWorkflowConnection(),
+    workspace: currentStudioWorkflowWorkspace(),
+    operation: currentStudioWorkflowOperation(),
+    risks: currentStudioWorkflowRisks(),
+    activeSessionId: state.session?.sessionId || null,
+    activeSessionStatus: state.session?.status || 'active',
+    currentGeneration: typeof generation === 'number' ? generation : null,
+    ...patch,
+  };
+}
+
+function decideCurrentStudioWorkflow(action, patch = {}) {
+  return decideStudioWorkflow(action, currentStudioWorkflowSnapshot(patch));
+}
+
+function studioWorkflowMessage(decision) {
+  if (decision.reason === 'operation-in-flight') return 'Finish the current handoff action before starting another.';
+  if (decision.reason === 'connection-blocked' || decision.reason === 'connection-not-ready') return 'Connection paused - draft preserved.';
+  if (decision.reason === 'closed-session') return 'Reopen the session or create a new active session before changing feedback.';
+  if (decision.reason === 'missing-item') return 'This feedback item is no longer available.';
+  return 'This action is blocked by the current Studio workflow state.';
+}
+
+function surfaceStudioWorkflowDecision(decision) {
+  if (!decision || decision.type === StudioWorkflowDecisionType.ALLOW || decision.type === StudioWorkflowDecisionType.IGNORE) return false;
+  if (decision.type === StudioWorkflowDecisionType.CONFIRM) return false;
+  const message = studioWorkflowMessage(decision);
+  if (typeof showStatus === 'function') {
+    showStatus(message, { variant: 'warn', durationMs: 3500 });
+  } else if (typeof showWarning === 'function') {
+    showWarning(message);
+  }
+  return true;
+}

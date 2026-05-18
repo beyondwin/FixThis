@@ -1,0 +1,62 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const adapterSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/studioWorkflowAdapter.js'), 'utf8');
+const annotationsSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+const promptSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
+
+function body(source, signature) {
+  const start = source.indexOf(signature);
+  assert.notEqual(start, -1, `${signature} not found`);
+  let i = source.indexOf('(', start);
+  let parenDepth = 0;
+  for (; i < source.length; i += 1) {
+    if (source[i] === '(') parenDepth += 1;
+    if (source[i] === ')') {
+      parenDepth -= 1;
+      if (parenDepth === 0) { i += 1; break; }
+    }
+  }
+  const bodyStart = source.indexOf('{', i);
+  let depth = 0;
+  for (let j = bodyStart; j < source.length; j += 1) {
+    if (source[j] === '{') depth += 1;
+    if (source[j] === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(bodyStart + 1, j);
+    }
+  }
+  assert.fail(`${signature} body did not close`);
+}
+
+test('browser adapter derives workflow snapshot and surfaces decisions', () => {
+  assert.match(adapterSource, /function currentStudioWorkflowSnapshot\(/);
+  assert.match(adapterSource, /function decideCurrentStudioWorkflow\(/);
+  assert.match(adapterSource, /function surfaceStudioWorkflowDecision\(/);
+  assert.match(adapterSource, /decideStudioWorkflow\(action,\s*currentStudioWorkflowSnapshot/);
+});
+
+test('annotate flow consults workflow before mutating UI state', () => {
+  const start = body(annotationsSource, 'async function startDraftAnnotationFlow()');
+  assert.match(start, /decideCurrentStudioWorkflow\(StudioWorkflowAction\.ANNOTATE_CLICKED/);
+  assert.match(start, /surfaceStudioWorkflowDecision\(decision\)/);
+});
+
+test('composer disables prompt buttons using workflow decisions', () => {
+  const update = body(annotationsSource, 'function updateComposerState()');
+  assert.match(update, /decideCurrentStudioWorkflow\(StudioWorkflowAction\.SAVE_TO_MCP_CLICKED/);
+  assert.match(update, /promptDecision\.type === StudioWorkflowDecisionType\.BLOCK/);
+});
+
+test('copy and Save to MCP consult workflow before durable mutation', () => {
+  const copy = body(promptSource, 'async function copyPrompt()');
+  const send = body(promptSource, 'async function sendAgentPrompt()');
+  assert.match(copy, /decideCurrentStudioWorkflow\(StudioWorkflowAction\.COPY_PROMPT_CLICKED/);
+  assert.match(copy, /surfaceStudioWorkflowDecision\(decision\)/);
+  assert.match(send, /decideCurrentStudioWorkflow\(StudioWorkflowAction\.SAVE_TO_MCP_CLICKED/);
+  assert.match(send, /surfaceStudioWorkflowDecision\(decision\)/);
+});
