@@ -103,6 +103,75 @@ test('persistDraftWorkspace returns conflict without clearing workspace', async 
   assert.equal(result.workspace.items.length, 1);
 });
 
+test('persistDraftWorkspace treats stale draft save as conflict without clearing workspace', async () => {
+  const workspace = {
+    workspaceId: 'ws-a',
+    revision: 2,
+    lifecycle: 'editing',
+    context: { sessionId: 'session-a', previewId: 'preview-a', screenFingerprint: 'fp-a' },
+    screen: { screenId: 'screen-a' },
+    items: [{ draftItemId: 'draft-1', targetType: 'area', bounds: { left: 1, top: 1, right: 2, bottom: 2 }, comment: 'save me' }],
+  };
+  const ports = m.createFakeDraftPorts({
+    feedbackApi: {
+      saveDraftWorkspace: async () => ({
+        staleDraft: {
+          state: 'STALE_PREVIEW',
+          serverDraft: { sessionId: 'session-a', items: [{ itemId: 'server-item' }] },
+        },
+        etag: '"1"',
+      }),
+    },
+  });
+
+  const result = await m.persistDraftWorkspace(workspace, ports);
+
+  assert.equal(result.workspace.lifecycle, 'conflict');
+  assert.equal(result.workspace.items.length, 1);
+  assert.equal(result.conflict.error, 'stale_draft');
+  assert.equal(result.session, null);
+});
+
+test('persistDraftWorkspace can retry stale draft save with overwrite resolver', async () => {
+  const calls = [];
+  const workspace = {
+    workspaceId: 'ws-a',
+    revision: 2,
+    lifecycle: 'editing',
+    context: { sessionId: 'session-a', previewId: 'preview-a', screenFingerprint: 'fp-a' },
+    screen: { screenId: 'screen-a' },
+    items: [{ draftItemId: 'draft-1', targetType: 'area', bounds: { left: 1, top: 1, right: 2, bottom: 2 }, comment: 'save me' }],
+  };
+  const ports = m.createFakeDraftPorts({
+    feedbackApi: {
+      saveDraftWorkspace: async (_request, init = {}) => {
+        calls.push(init);
+        if (!init.ifMatch) {
+          return {
+            staleDraft: { state: 'STALE_PREVIEW', serverDraft: { sessionId: 'session-a', items: [] } },
+            etag: '"1"',
+          };
+        }
+        return { sessionId: 'session-a', items: [{ itemId: 'item-1' }] };
+      },
+    },
+    staleDraftConflict: {
+      resolve: async ({ feedbackApi, request }) => ({
+        action: 'overwrite',
+        retry: () => feedbackApi.saveDraftWorkspace(request, { ifMatch: '*' }),
+      }),
+    },
+  });
+
+  const result = await m.persistDraftWorkspace(workspace, ports);
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].ifMatch, '*');
+  assert.equal(result.workspace.lifecycle, 'empty');
+  assert.equal(result.session.sessionId, 'session-a');
+  assert.deepEqual(result.itemIds, ['item-1']);
+});
+
 test('resolveDraftBoundary keep saves recoverable workspace without discard', async () => {
   const saved = [];
   const workspace = { workspaceId: 'ws-a', context: { sessionId: 'session-a' }, items: [{ draftItemId: 'draft-1' }] };

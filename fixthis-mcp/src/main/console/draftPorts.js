@@ -5,11 +5,12 @@
 //   ids: { nextWorkspaceId(): string, nextDraftItemId(): string },
 //   clock: { now(): number },
 //   preview: { capture(): Promise<FeedbackPreviewSnapshot>, screenshotUrl(previewId, sessionId): string },
-//   feedbackApi: { saveDraftWorkspace(request): Promise<object>, saveToMcp(sessionId, itemIds): Promise<object>, handoffPreview(sessionId, itemIds): Promise<string>, markHandedOff(sessionId, itemIds): Promise<object> },
+//   feedbackApi: { saveDraftWorkspace(request, init?): Promise<object>, saveToMcp(sessionId, itemIds): Promise<object>, handoffPreview(sessionId, itemIds): Promise<string>, markHandedOff(sessionId, itemIds): Promise<object> },
 //   storage: { saveWorkspace(envelope): void, deleteWorkspace(sessionId, workspaceId): void, loadWorkspacesForSession(sessionId): object[] },
 //   clipboard: { writeText(text): Promise<void> },
 //   boundaryPrompt: { choose(workspace, boundaryAction): Promise<'save'|'keep'|'discard'|'cancel'> },
 //   recoveryPrompt: { choose(recovery, boundaryAction): Promise<'resume'|'recapture'|'clear'|'cancel'> },
+//   staleDraftConflict?: { resolve({ feedbackApi, request, staleDraft, etag, workspace }): Promise<object> },
 //   refresh: { sessions(): Promise<void> }
 // }
 

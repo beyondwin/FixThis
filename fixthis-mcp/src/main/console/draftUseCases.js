@@ -149,7 +149,56 @@ function deleteDraftItem(workspace, draftItemId) {
 async function persistDraftWorkspace(workspace, ports, options = {}) {
   const started = reduceDraftWorkspace(workspace, { type: 'SAVE_STARTED', workspaceId: workspace.workspaceId });
   const request = buildDraftWorkspaceSaveRequest(started, options);
-  const response = await ports.feedbackApi.saveDraftWorkspace(request);
+  let response = await ports.feedbackApi.saveDraftWorkspace(request);
+  if (response?.staleDraft) {
+    const resolver = ports.staleDraftConflict?.resolve;
+    if (typeof resolver === 'function') {
+      const resolution = await resolver({
+        feedbackApi: ports.feedbackApi,
+        request,
+        staleDraft: response.staleDraft,
+        etag: response.etag || null,
+        workspace: started,
+      });
+      if (resolution?.action === 'overwrite' && typeof resolution.retry === 'function') {
+        response = await resolution.retry();
+      } else {
+        const conflict = {
+          error: 'stale_draft',
+          staleDraft: response.staleDraft,
+          etag: response.etag || null,
+          action: resolution?.action || 'cancel',
+        };
+        return {
+          workspace: reduceDraftWorkspace(started, {
+            type: 'SAVE_CONFLICT',
+            workspaceId: started.workspaceId,
+            expectedRevision: started.revision,
+            conflict,
+          }),
+          session: null,
+          conflict,
+        };
+      }
+    }
+  }
+  if (response?.staleDraft) {
+    const conflict = {
+      error: 'stale_draft',
+      staleDraft: response.staleDraft,
+      etag: response.etag || null,
+    };
+    return {
+      workspace: reduceDraftWorkspace(started, {
+        type: 'SAVE_CONFLICT',
+        workspaceId: started.workspaceId,
+        expectedRevision: started.revision,
+        conflict,
+      }),
+      session: null,
+      conflict,
+    };
+  }
   if (response?.conflict?.error) {
     return {
       workspace: reduceDraftWorkspace(started, {

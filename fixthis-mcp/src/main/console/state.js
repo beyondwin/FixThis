@@ -190,6 +190,10 @@
             }
 
             function createBrowserDraftPorts() {
+              const feedbackApi = createDraftApiAdapter({
+                fetchImpl: fetch.bind(window),
+                consoleToken: window.FixThisConsoleConfig?.consoleToken || null,
+              });
               return createFakeDraftPorts({
                 ids: {
                   nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
@@ -200,10 +204,7 @@
                   capture: () => previewUseCases.request(),
                   screenshotUrl: previewScreenshotUrl,
                 },
-                feedbackApi: createDraftApiAdapter({
-                  fetchImpl: fetch.bind(window),
-                  consoleToken: window.FixThisConsoleConfig?.consoleToken || null,
-                }),
+                feedbackApi,
                 storage: createDraftStorageAdapter(localStorage, {
                   nextWorkspaceId: () => 'workspace-' + Date.now() + '-' + Math.random().toString(36).slice(2),
                 }),
@@ -219,6 +220,17 @@
                 recoveryPrompt: {
                   choose: (recovery, boundaryAction) =>
                     promptPendingRecoveryBoundaryChoice(recovery, boundaryAction?.kind || boundaryAction),
+                },
+                staleDraftConflict: {
+                  resolve: ({ request, staleDraft }) =>
+                    resolveStaleDraftConflict({
+                      adapter: feedbackApi,
+                      request,
+                      staleDraft,
+                      prompt: () => promptBoundaryDialogChoice('staleDraftConflict', {
+                        readiness: staleDraft?.readiness || null,
+                      }),
+                    }),
                 },
                 refresh: { sessions: refreshSessions },
               });
