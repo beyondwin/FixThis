@@ -188,7 +188,8 @@ configurations["functionalTestRuntimeOnly"].extendsFrom(configurations["testRunt
 // The gradle-plugin is consumed via `pluginManagement { includeBuild(...) }`
 // so it cannot resolve sibling subprojects. Instead, locate sidekick artefacts
 // relative to the root included build's projectDir.
-val sidekickDir = rootProject.projectDir.resolve("../fixthis-compose-sidekick")
+val fixThisRootDir = rootProject.projectDir.parentFile
+val sidekickDir = fixThisRootDir.resolve("fixthis-compose-sidekick")
 val consumerRulesFile = sidekickDir.resolve("consumer-rules.pro")
 val sidekickDebugManifestFile = sidekickDir.resolve("src/debug/AndroidManifest.xml")
 val sidekickMainManifestFile = sidekickDir.resolve("src/main/AndroidManifest.xml")
@@ -212,6 +213,7 @@ val functionalTest =
         systemProperty("fixthis.sidekick.mainManifest.path", sidekickMainManifestFile.absolutePath)
         systemProperty("fixthis.sidekick.initializerSource.path", sidekickInitializerSourceFile.absolutePath)
         systemProperty("fixthis.releaseConsumerFixture.path", releaseConsumerFixtureDir.absolutePath)
+        systemProperty("fixthis.rootDir.path", fixThisRootDir.absolutePath)
         inputs.file(consumerRulesFile).withPropertyName("consumerRules")
         inputs.file(sidekickDebugManifestFile).withPropertyName("sidekickDebugManifest")
         inputs.file(sidekickMainManifestFile).withPropertyName("sidekickMainManifest")
