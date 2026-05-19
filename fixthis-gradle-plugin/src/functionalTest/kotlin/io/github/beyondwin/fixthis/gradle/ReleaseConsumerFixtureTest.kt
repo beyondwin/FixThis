@@ -16,6 +16,7 @@ class ReleaseConsumerFixtureTest {
     fun `release consumer fixture assembles minified release without FixThis startup metadata`() {
         val sourceFixtureDir = File(System.getProperty("fixthis.releaseConsumerFixture.path"))
         val fixThisRootDir = File(System.getProperty("fixthis.rootDir.path"))
+        val fixThisVersion = fixThisVersion(fixThisRootDir)
         assumeTrue("Android SDK required for release consumer fixture", System.getenv("ANDROID_HOME") != null)
         assertTrue("Fixture directory missing: ${sourceFixtureDir.absolutePath}", sourceFixtureDir.isDirectory)
         assertTrue("FixThis root directory missing: ${fixThisRootDir.absolutePath}", fixThisRootDir.isDirectory)
@@ -29,6 +30,7 @@ class ReleaseConsumerFixtureTest {
                 .withArguments(
                     ":app:assembleRelease",
                     "-PfixthisRootDir=${fixThisRootDir.absolutePath}",
+                    "-PfixthisVersion=$fixThisVersion",
                     "--stacktrace",
                 )
                 .forwardOutput()
@@ -46,6 +48,11 @@ class ReleaseConsumerFixtureTest {
             fixtureDir.deleteRecursively()
         }
     }
+
+    private fun fixThisVersion(root: File): String = root.resolve("gradle.properties")
+        .readLines()
+        .first { it.startsWith("FIXTHIS_VERSION=") }
+        .substringAfter("=")
 
     private fun copyFixture(
         source: Path,

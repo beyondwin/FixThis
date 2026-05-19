@@ -61,12 +61,28 @@ internal fun defaultInstallTask(config: ResolvedProjectConfig): String {
     val projectPath = config.projectPath?.takeIf { it.isNotBlank() }
     val variantName = config.variantName?.takeIf { it.isNotBlank() }
     return if (projectPath != null && variantName != null) {
-        val normalizedProjectPath = projectPath
-            .trimEnd(':')
-            .let { if (it.startsWith(":")) it else ":$it" }
-        "$normalizedProjectPath:install${variantName.capitalized()}"
+        gradleTaskPath(projectPath, "install${variantName.capitalized()}")
     } else {
         ":app:installDebug"
+    }
+}
+
+private fun gradleTaskPath(projectPath: String, taskName: String): String {
+    val normalizedProjectPath = normalizedGradleProjectPath(projectPath)
+    return if (normalizedProjectPath == ":") {
+        ":$taskName"
+    } else {
+        "$normalizedProjectPath:$taskName"
+    }
+}
+
+private fun normalizedGradleProjectPath(projectPath: String): String {
+    val segments = projectPath.split(":")
+        .filter { it.isNotBlank() }
+    return if (segments.isEmpty()) {
+        ":"
+    } else {
+        ":${segments.joinToString(":")}"
     }
 }
 

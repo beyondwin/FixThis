@@ -2,6 +2,10 @@ plugins {
     id("com.android.application")
 }
 
+val fixthisVersion =
+    providers.gradleProperty("fixthisVersion").orNull
+        ?: error("Missing required Gradle property: fixthisVersion")
+
 android {
     namespace = "com.example.fixthisfixture"
     compileSdk = 34
@@ -26,5 +30,5 @@ android {
 }
 
 dependencies {
-    implementation("io.github.beyondwin:fixthis-compose-sidekick:0.6.1")
+    implementation("io.github.beyondwin:fixthis-compose-sidekick:$fixthisVersion")
 }

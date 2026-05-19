@@ -196,4 +196,41 @@ class KotlinSourceScannerTest {
         assertTrue(signals.any { it.kind == SourceSignalKindAsset.CONTENT_DESCRIPTION && it.value == "설정" })
         assertTrue(signals.any { it.kind == SourceSignalKindAsset.ROLE && it.value == "Button" })
     }
+
+    @Test
+    fun `indexes typed stringResource variable content descriptions`() {
+        val file = tempDir.newFile("TypedToolbar.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.Modifier
+                import androidx.compose.ui.semantics.contentDescription
+                import androidx.compose.ui.semantics.semantics
+                import androidx.compose.ui.res.stringResource
+
+                @Composable
+                fun Toolbar() {
+                    val refreshLabel: String = stringResource(R.string.refresh)
+                    IconButton(
+                        modifier = Modifier.semantics {
+                            contentDescription = refreshLabel
+                        },
+                    )
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(
+            file = file,
+            stringResourceResolver = mapOf("refresh" to "새로고침"),
+        )
+
+        val contentDescriptions = entries.flatMap { it.contentDescriptions }
+        val signals = entries.flatMap { it.signals }
+
+        assertEquals(listOf("새로고침"), contentDescriptions)
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.CONTENT_DESCRIPTION && it.value == "새로고침" })
+    }
 }

@@ -33,7 +33,7 @@ Each entry preserves the legacy field lists (`symbols`, `text`,
 - `STRICT_COMP_TEST_TAG`: a `comp:<ComposableName>:...` test tag.
 - `CONTENT_DESCRIPTION`: a Compose semantics content description, including
   direct `contentDescription = stringResource(...)` calls and local variables
-  assigned from `stringResource(...)`.
+  assigned from `stringResource(...)` with or without an explicit Kotlin type.
 - `ROLE`: a Compose semantics role such as `Role.Button`.
 - `ACTIVITY_NAME`: an activity-name signal.
 - `ARBITRARY_STRING_LITERAL`: a Kotlin string literal not recognized as a

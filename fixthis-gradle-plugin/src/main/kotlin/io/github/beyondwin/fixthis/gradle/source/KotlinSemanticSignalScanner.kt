@@ -137,7 +137,7 @@ internal fun IntRange.startLine(lineStartOffsets: IntArray): Int {
 }
 
 private val stringResourceVariableRegex =
-    Regex("\\bval\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*stringResource\\s*\\(\\s*R\\.string\\.([A-Za-z0-9_]+)")
+    Regex("\\bval\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?::\\s*[^=\\n]+)?=\\s*stringResource\\s*\\(\\s*R\\.string\\.([A-Za-z0-9_]+)")
 private val contentDescriptionStringResourceRegex =
     Regex("\\bcontentDescription\\s*=\\s*stringResource\\s*\\(\\s*R\\.string\\.([A-Za-z0-9_]+)")
 private val contentDescriptionVariableRegex =

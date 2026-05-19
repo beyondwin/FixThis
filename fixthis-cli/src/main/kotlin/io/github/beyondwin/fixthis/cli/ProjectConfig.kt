@@ -12,11 +12,15 @@ object ProjectConfig {
             null
         }
         return when {
-            !packageOverride.isNullOrBlank() -> ResolvedProjectConfig(
-                applicationId = packageOverride,
-                projectPath = metadata?.projectPath?.takeIf(String::isNotBlank),
-                variantName = metadata?.variantName?.takeIf(String::isNotBlank),
-            )
+            !packageOverride.isNullOrBlank() -> {
+                val applicationId = packageOverride.trim()
+                val matchingMetadata = metadata?.takeIf { it.applicationId == applicationId }
+                ResolvedProjectConfig(
+                    applicationId = applicationId,
+                    projectPath = matchingMetadata?.projectPath?.takeIf(String::isNotBlank),
+                    variantName = matchingMetadata?.variantName?.takeIf(String::isNotBlank),
+                )
+            }
             metadata != null -> ResolvedProjectConfig(
                 applicationId = metadata.applicationId.takeIf { it.isNotBlank() }
                     ?: error("${projectConfig.path} does not contain applicationId"),
@@ -130,14 +134,34 @@ data class GradleAndroidApplication(
     val applicationIdSuffixes: List<String> = emptyList(),
     val buildFile: File,
 ) {
-    fun matches(candidate: String): Boolean = applicationId == candidate ||
-        applicationIdSuffixes.any { suffix -> applicationId + suffix == candidate }
+    fun matches(candidate: String): Boolean = applicationIdCandidates().contains(candidate)
 
-    fun applicationIdCandidates(): List<String> =
-        (listOf(applicationId) + applicationIdSuffixes
+    fun applicationIdCandidates(): List<String> = (
+        listOf(applicationId) + applicationIdSuffixCombinations()
+            .map { suffix -> applicationId + suffix }
+        )
+        .distinct()
+
+    private fun applicationIdSuffixCombinations(): List<String> {
+        val suffixes = applicationIdSuffixes
             .filter { it.isNotBlank() }
-            .map { suffix -> applicationId + suffix })
             .distinct()
+        val combinations = linkedSetOf<String>()
+
+        fun collect(current: String, remaining: List<String>) {
+            remaining.forEachIndexed { index, suffix ->
+                val next = current + suffix
+                combinations += next
+                collect(
+                    current = next,
+                    remaining = remaining.take(index) + remaining.drop(index + 1),
+                )
+            }
+        }
+
+        collect(current = "", remaining = suffixes)
+        return combinations.toList()
+    }
 }
 
 @Serializable

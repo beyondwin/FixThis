@@ -765,6 +765,7 @@ class SourceMatcherTest {
         )
 
         assertEquals("feature/catalog/src/main/kotlin/CatalogCards.kt", candidates.single().file)
+        assertEquals(SelectionConfidence.MEDIUM, candidates.single().confidence)
         assertTrue(candidates.single().matchReasons.contains("selected stateDescription"))
     }
 

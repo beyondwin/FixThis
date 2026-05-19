@@ -39,6 +39,26 @@ class RunCommandTest {
     }
 
     @Test
+    fun defaultInstallTaskIgnoresVariantMetadataWhenPackageOverrideDiffers() {
+        val root = Files.createTempDirectory("fixthis-run-override").toFile()
+        root.resolve(".fixthis").mkdirs()
+        root.resolve(".fixthis/project.json").writeText(
+            """
+            {
+              "schemaVersion": "1.0",
+              "applicationId": "com.example.demo",
+              "projectPath": ":app",
+              "variantName": "demoDebug"
+            }
+            """.trimIndent(),
+        )
+
+        val config = ProjectConfig.resolve(root, packageOverride = "com.example.full")
+
+        assertEquals(":app:installDebug", defaultInstallTask(config))
+    }
+
+    @Test
     fun defaultInstallTaskFallsBackToAppInstallDebugWithoutVariantMetadata() {
         val root = Files.createTempDirectory("fixthis-run-unflavored").toFile()
         root.resolve(".fixthis").mkdirs()
@@ -64,6 +84,20 @@ class RunCommandTest {
                 io.github.beyondwin.fixthis.cli.ResolvedProjectConfig(
                     applicationId = "com.example.demo",
                     projectPath = "app",
+                    variantName = "demoDebug",
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun defaultInstallTaskHandlesRootProjectPath() {
+        assertEquals(
+            ":installDemoDebug",
+            defaultInstallTask(
+                io.github.beyondwin.fixthis.cli.ResolvedProjectConfig(
+                    applicationId = "com.example.demo",
+                    projectPath = ":",
                     variantName = "demoDebug",
                 ),
             ),

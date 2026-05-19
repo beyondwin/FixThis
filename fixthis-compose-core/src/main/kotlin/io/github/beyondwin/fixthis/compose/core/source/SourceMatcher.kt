@@ -471,7 +471,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             profile.rawScore <= 0.0 -> SelectionConfidence.NONE
             profile.selectedStrongCount > 0 && clear -> SelectionConfidence.HIGH
             profile.distinctSelectedMediumKinds >= 2 && clear -> SelectionConfidence.HIGH
-            profile.hasSelectedUiText || profile.hasSelectedContentDescription -> SelectionConfidence.MEDIUM
+            profile.hasSelectedUiText ||
+                profile.hasSelectedContentDescription ||
+                profile.hasSelectedStateDescription -> SelectionConfidence.MEDIUM
             profile.selectedStrongCount > 0 -> SelectionConfidence.MEDIUM
             else -> SelectionConfidence.LOW
         }

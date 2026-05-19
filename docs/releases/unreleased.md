@@ -7,24 +7,23 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-- Release version drift is now guarded end-to-end. The local package version
-  source of truth remains `gradle.properties` (`FIXTHIS_VERSION`), and
-  `npm run release:version:sync` / `npm run release:version:check` keep public
-  install docs, CLI defaults, npm metadata, and MCP Registry metadata aligned.
-- CLI/MCP release packaging now passes the requested version into Gradle with
-  `-PFIXTHIS_VERSION=...`, so release tarballs and workflow-built packages
-  report the version being cut.
-- Android SDK levels are centralized in the version catalog and validated by
-  `npm run release:compat:test`. The sidekick AAR bundle gate checks
-  `minCompileSdk` against the same catalog value before producing Central
-  Portal upload artifacts.
-- The next patch release keeps the debug sidekick consumable by apps compiling
-  with Android 14 (`compileSdk` 34). The CLI still warns when explicitly asked
-  to install the previous patch runtime, whose dependency metadata requires
-  `compileSdk` 36.
-- The Gradle Plugin Portal workflow now tests the requested version contract
-  before publishing, reducing the chance of publishing plugin metadata that
-  points at the wrong runtime version.
+- Agent setup and run commands now handle flavored Android application ids
+  end-to-end. Gradle `applicationIdSuffix` values are considered installable
+  candidates, combined flavor/build-type suffixes are detected, and explicit
+  `--package` overrides no longer reuse stale variant metadata from
+  `.fixthis/project.json`.
+- Source matching is stronger for real Compose projects. The source index now
+  scans active-variant project dependencies, records typed semantic signals for
+  Compose text/content-description/role/test-tag/resource usage, and gives
+  selected `stateDescription` evidence a medium-confidence source hint.
+- The debug sidekick and sample app now carry `minSdk` 23 compatibility, with
+  the docs and compatibility checks aligned to that lower bound.
+- Release guardrails now cover the Homebrew tap and release helper fixtures in
+  addition to the existing version-sync checks, reducing the chance of shipping
+  stale package coordinates or fixture-only hardcoded versions.
+- Generated MCP config is less brittle for Homebrew installs because it avoids
+  versioned Cellar executable paths when the stable `fixthis` command is
+  available.
 
 ## Compatibility Notes
 
@@ -43,6 +42,8 @@ GitHub Release page and registry listings as release evidence.
 - Bridge protocol version is `1.3`.
 - Persisted JSON changes are additive. `editSurfaceCandidates[].role` is
   optional and older sessions omit it.
+- Current source-index assets use schema version `1.2` and preserve the legacy
+  source-index field lists while adding typed `signals`.
 
 ## Validation Surface
 

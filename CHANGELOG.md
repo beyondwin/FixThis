@@ -27,7 +27,49 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
-No user-visible changes yet.
+### Added
+
+- Source-index generation now scans the app module plus project dependencies
+  on the active debug variant's compile/runtime classpath. Reusable Compose UI
+  from included project modules can now appear in source candidates, while
+  unrelated sibling modules stay out of the index.
+- Compose source scanning records stronger semantic signals for recognized
+  `Text(...)` calls, `contentDescription = stringResource(...)`, local
+  `stringResource(...)` content-description variables, roles, test tags, owner
+  composables, and default-locale string-resource values.
+- A scheduled compatibility workflow now exercises the documented lower-bound
+  AGP, Kotlin, Compose BOM, and Compose UI test axes, plus a Kotlin 2.3.x
+  forward smoke.
+- Release checks now include `npm run release:homebrew:check` for the Homebrew
+  tap and extend version-drift detection to release helper fixtures.
+
+### Changed
+
+- The source-index schema is now `1.2` and includes typed `signals` alongside
+  the preserved legacy fields.
+- The debug sidekick and sample app now document and validate `minSdk` 23
+  support.
+- Generated MCP config avoids pinning Homebrew installs to versioned Cellar
+  paths when the stable `fixthis` executable is available.
+- The release consumer fixture now uses the package version supplied by the
+  functional test instead of hardcoding the current release version.
+
+### Fixed
+
+- `fixthis init` / `fixthis install-agent` handle flavor- and
+  build-type-suffixed application ids more reliably, including combined
+  suffixes such as `.demo.debug`.
+- `fixthis run` derives the Gradle install task from generated
+  `.fixthis/project.json` variant metadata only when that metadata matches the
+  selected package. Explicit `--package` overrides no longer reuse stale
+  variant metadata from a different application id.
+- `fixthis run` now handles root Gradle project paths correctly, producing
+  `:install<Variant>` instead of an invalid `::install<Variant>` task path.
+- Selected `stateDescription` string-resource matches now receive the same
+  medium-confidence source hint as selected text and content descriptions.
+- Typed local variables such as
+  `val label: String = stringResource(R.string.label)` are now recognized when
+  used as Compose content descriptions.
 
 ## [0.6.1] - 2026-05-19
 

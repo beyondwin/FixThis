@@ -20,11 +20,12 @@ function fixThisVersion() {
     ?.trim();
 }
 
-test("release helper scripts do not hardcode the current package version", () => {
+test("release helper files do not hardcode the current package version", () => {
   const version = fixThisVersion();
   assert.ok(version, "FIXTHIS_VERSION is missing from gradle.properties");
 
   const checkedScripts = [
+    "fixthis-gradle-plugin/src/functionalTest/resources/release-consumer-fixture/app/build.gradle.kts",
     "scripts/check-release-readiness.mjs",
     "scripts/install-fixthis-test.mjs",
   ];
@@ -38,7 +39,7 @@ test("release helper scripts do not hardcode the current package version", () =>
   assert.deepEqual(
     offenders,
     [],
-    `Scripts should read FIXTHIS_VERSION instead of hardcoding ${version}`,
+    `Release helper files should read FIXTHIS_VERSION instead of hardcoding ${version}`,
   );
 });
 
