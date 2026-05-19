@@ -87,4 +87,36 @@ class KotlinSourceScannerTest {
             assertTrue(entry.signals.none { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION })
         }
     }
+
+    @Test
+    fun `does not index arbitrary strings outside Composable as UI source candidates`() {
+        val file = tempDir.newFile("SeedData.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+
+                val demoStations = listOf("Central Gas")
+
+                @Composable
+                fun StationCard() {
+                    Text("Open")
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+
+        assertTrue(entries.none { "Central Gas" in it.text })
+        assertTrue(
+            entries.none { entry ->
+                entry.signals.any {
+                    it.kind == SourceSignalKindAsset.ARBITRARY_STRING_LITERAL && it.value == "Central Gas"
+                }
+            },
+        )
+        assertTrue(entries.any { "Open" in it.text })
+    }
 }

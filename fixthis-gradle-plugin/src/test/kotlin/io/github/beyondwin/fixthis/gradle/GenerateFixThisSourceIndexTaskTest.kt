@@ -305,10 +305,12 @@ class GenerateFixThisSourceIndexTaskTest {
             package io.github.beyondwin.fixthis.sample
 
             import androidx.compose.material3.Text
+            import androidx.compose.runtime.Composable
             import androidx.compose.ui.Modifier
             import androidx.compose.ui.platform.testTag
             import androidx.compose.ui.semantics.contentDescription
 
+            @Composable
             fun RawStrings() {
                 val title = ""${'"'}
                     Account

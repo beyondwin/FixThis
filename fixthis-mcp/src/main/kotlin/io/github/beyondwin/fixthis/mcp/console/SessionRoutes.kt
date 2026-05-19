@@ -24,10 +24,7 @@ internal class SessionRoutes(
 
     override fun handle(exchange: HttpExchange) {
         when (exchange.requestURI.path) {
-            "/" -> exchange.requireMethod("GET") {
-                val html = packagedIndexHtml ?: FeedbackConsoleAssets.html(consoleAssetsDir, consoleToken)
-                exchange.sendText(200, html, "text/html; charset=utf-8")
-            }
+            "/" -> exchange.handleIndex()
             "/favicon.ico" -> exchange.requireMethod("GET") {
                 exchange.sendNoContent()
             }
@@ -75,6 +72,18 @@ internal class SessionRoutes(
             "/api/export/markdown" -> exchange.requireMethod("GET") {
                 exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.requireCurrentSession()), "text/markdown; charset=utf-8")
             }
+        }
+    }
+
+    private fun HttpExchange.handleIndex() {
+        if (requestMethod == "HEAD") {
+            sendResponseHeaders(200, -1)
+            close()
+            return
+        }
+        requireMethod("GET") {
+            val html = packagedIndexHtml ?: FeedbackConsoleAssets.html(consoleAssetsDir, consoleToken)
+            sendText(200, html, "text/html; charset=utf-8")
         }
     }
 

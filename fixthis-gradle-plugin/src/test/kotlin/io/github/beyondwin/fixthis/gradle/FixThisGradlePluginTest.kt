@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.gradle
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.io.File
 
 class FixThisGradlePluginTest {
     @Test
@@ -55,6 +56,24 @@ class FixThisGradlePluginTest {
 
     @Test
     fun `default runtime version matches current public patch release`() {
-        assertEquals("0.2.3", DefaultFixThisRuntimeVersion)
+        assertEquals(fixThisVersion(), DefaultFixThisRuntimeVersion)
     }
+
+    @Test
+    fun `default runtime version is generated from release metadata`() {
+        val source = File(
+            repoRoot(),
+            "fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisExtension.kt",
+        ).readText()
+
+        assertEquals(false, Regex("""DefaultFixThisRuntimeVersion\s*(?::\s*String)?\s*=\s*"[0-9]""").containsMatchIn(source))
+    }
+
+    private fun fixThisVersion(): String = File(repoRoot(), "gradle.properties")
+        .readLines()
+        .first { it.startsWith("FIXTHIS_VERSION=") }
+        .substringAfter("=")
+
+    private fun repoRoot(): File = generateSequence(File("").absoluteFile) { it.parentFile }
+        .first { File(it, "gradle.properties").isFile && File(it, "settings.gradle.kts").isFile }
 }

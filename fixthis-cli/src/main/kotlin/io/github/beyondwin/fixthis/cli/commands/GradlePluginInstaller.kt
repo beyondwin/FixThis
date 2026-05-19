@@ -1,12 +1,14 @@
 package io.github.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.CliktError
+import io.github.beyondwin.fixthis.cli.FixThisRelease
 import io.github.beyondwin.fixthis.cli.GradleApplicationIdDetector
 import java.io.File
 
 internal object GradlePluginInstaller {
     const val PluginId = "io.github.beyondwin.fixthis.compose"
-    const val DefaultPluginVersion = "0.6.0"
+    val DefaultPluginVersion: String
+        get() = FixThisRelease.VERSION
 
     fun apply(
         projectRoot: File,

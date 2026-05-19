@@ -327,6 +327,90 @@ class InitAgentCommandTest {
     }
 
     @Test
+    fun installAgentDryRunJsonModePrintsOnlyJsonToStdoutWhenGradlePluginWouldBePatched() {
+        val tempProject = androidProject("com.example.dryrun.patch")
+        val out = ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(PrintStream(out))
+        try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.dryrun.patch",
+                        "--target",
+                        "claude",
+                        "--json",
+                        "--dry-run",
+                    ),
+                )
+            }
+        } finally {
+            System.setOut(oldOut)
+        }
+
+        val text = out.toString()
+        val obj = Json.parseToJsonElement(text.trim()).jsonObject
+        assertEquals("1.0", obj.getValue("schemaVersion").jsonPrimitive.content)
+        assertFalse(
+            "Gradle plugin dry-run output must not be mixed into JSON stdout:\n$text",
+            text.contains("Would update") || text.contains("""id("io.github.beyondwin.fixthis.compose")"""),
+        )
+    }
+
+    @Test
+    fun installAgentAppliesGradlePluginWhenPackageMatchesApplicationIdSuffixFlavor() {
+        val projectRoot = temporaryFolder.newFolder("flavored-project").canonicalFile
+        projectRoot.resolve("settings.gradle.kts").writeText("""include(":app")""")
+        projectRoot.resolve("app").mkdirs()
+        projectRoot.resolve("app/build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.android.application")
+            }
+
+            android {
+                namespace = "com.example"
+                flavorDimensions += "mode"
+                defaultConfig {
+                    applicationId = "com.example"
+                }
+                productFlavors {
+                    create("demo") {
+                        dimension = "mode"
+                        applicationIdSuffix = ".demo"
+                    }
+                }
+            }
+            """.trimIndent(),
+        )
+
+        withUserHome(temporaryFolder.newFolder("home")) {
+            buildRootCommand().parse(
+                listOf(
+                    "install-agent",
+                    "--package",
+                    "com.example.demo",
+                    "--project-dir",
+                    projectRoot.absolutePath,
+                    "--target",
+                    "claude",
+                    "--plugin-version",
+                    "0.6.0",
+                ),
+            )
+        }
+
+        assertTrue(
+            projectRoot.resolve("app/build.gradle.kts")
+                .readText()
+                .contains("""id("io.github.beyondwin.fixthis.compose") version "0.6.0""""),
+        )
+    }
+
+    @Test
     fun installAgentExitsPartialWhenSomeSkipped() {
         val tempProject = temporaryFolder.newFolder("ft-partial")
         val exitCode: Int = try {

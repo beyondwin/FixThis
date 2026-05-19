@@ -12,7 +12,7 @@ bundled sample app. No changes to your own app are required.
 | Kotlin | 2.2.21 |
 | Compose BOM | 2026.04.01 |
 | Android `minSdk` | 24 (Android 7.0) |
-| Android `targetSdk` / `compileSdk` | 36 |
+| Android `targetSdk` / `compileSdk` | 34 |
 | Desktop OS | macOS, Linux, Windows (anywhere `adb` runs) |
 | AI agent (optional) | Claude Code, Codex, Cursor, or any chat agent that accepts pasted Markdown |
 

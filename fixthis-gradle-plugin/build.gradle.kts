@@ -10,10 +10,55 @@ plugins {
 }
 
 group = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.github.beyondwin").get()
-version = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.6.0").get()
+val fixthisVersion =
+    providers.gradleProperty("FIXTHIS_VERSION").orElse(
+        providers.provider {
+            rootProject.projectDir
+                .resolve("../gradle.properties")
+                .readLines()
+                .firstOrNull { it.startsWith("FIXTHIS_VERSION=") }
+                ?.substringAfter("=")
+                ?: "0.6.0"
+        },
+    )
+version = fixthisVersion.get()
+
+val generatedFixThisVersionDir = layout.buildDirectory.dir("generated/fixthisVersion/kotlin")
+
+val generateFixThisVersion =
+    tasks.register("generateFixThisVersion") {
+        val version = fixthisVersion
+        inputs.property("fixthisVersion", version)
+        outputs.dir(generatedFixThisVersionDir)
+        doLast {
+            val output =
+                generatedFixThisVersionDir
+                    .get()
+                    .file("io/github/beyondwin/fixthis/gradle/FixThisRelease.kt")
+                    .asFile
+            output.parentFile.mkdirs()
+            output.writeText(
+                """
+                package io.github.beyondwin.fixthis.gradle
+
+                internal object FixThisRelease {
+                    const val VERSION: String = "${version.get()}"
+                }
+                """.trimIndent() + "\n",
+            )
+        }
+    }
 
 kotlin {
     jvmToolchain(21)
+}
+
+sourceSets.named("main") {
+    java.srcDir(generatedFixThisVersionDir)
+}
+
+tasks.named("compileKotlin") {
+    dependsOn(generateFixThisVersion)
 }
 
 val ktlintVersion = libs.versions.ktlint.get()

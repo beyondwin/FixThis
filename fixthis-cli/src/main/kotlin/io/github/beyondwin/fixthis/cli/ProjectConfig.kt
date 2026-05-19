@@ -23,6 +23,8 @@ object ProjectConfig {
 object GradleApplicationIdDetector {
     private val applicationIdRegex =
         Regex("""(?m)\bapplicationId\b\s*(?:=|\s)\s*["']([^"']+)["']""")
+    private val applicationIdSuffixRegex =
+        Regex("""(?m)\bapplicationIdSuffix\b\s*(?:=|\s)\s*["']([^"']+)["']""")
 
     fun find(projectRoot: File): String? {
         val matches = androidApplications(projectRoot)
@@ -42,7 +44,7 @@ object GradleApplicationIdDetector {
 
     fun findApplication(projectRoot: File, applicationId: String): GradleAndroidApplication? {
         val matches = androidApplications(projectRoot)
-            .filter { it.applicationId == applicationId }
+            .filter { it.matches(applicationId) }
             .distinctBy { it.buildFile.canonicalFile }
 
         return when (matches.size) {
@@ -78,7 +80,13 @@ object GradleApplicationIdDetector {
             (text.contains("com.android.application") || text.contains("android {"))
         ) {
             applicationIdRegex.find(text)?.groupValues?.get(1)?.let { applicationId ->
-                GradleAndroidApplication(applicationId = applicationId, buildFile = file.canonicalFile)
+                GradleAndroidApplication(
+                    applicationId = applicationId,
+                    applicationIdSuffixes = applicationIdSuffixRegex.findAll(text)
+                        .map { match -> match.groupValues[1] }
+                        .toList(),
+                    buildFile = file.canonicalFile,
+                )
             }
         } else {
             null
@@ -98,8 +106,12 @@ object GradleApplicationIdDetector {
 
 data class GradleAndroidApplication(
     val applicationId: String,
+    val applicationIdSuffixes: List<String> = emptyList(),
     val buildFile: File,
-)
+) {
+    fun matches(candidate: String): Boolean = applicationId == candidate ||
+        applicationIdSuffixes.any { suffix -> applicationId + suffix == candidate }
+}
 
 @Serializable
 private data class ProjectMetadata(

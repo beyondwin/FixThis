@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "io.github.beyondwin.fixthis.sample"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "io.github.beyondwin.fixthis.sample"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

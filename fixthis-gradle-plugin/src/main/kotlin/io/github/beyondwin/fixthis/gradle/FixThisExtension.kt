@@ -29,4 +29,5 @@ abstract class FixThisExtension @Inject constructor(
         objects.property(Boolean::class.java).convention(true)
 }
 
-internal const val DefaultFixThisRuntimeVersion = "0.2.3"
+internal val DefaultFixThisRuntimeVersion: String
+    get() = FixThisRelease.VERSION

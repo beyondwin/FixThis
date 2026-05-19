@@ -28,6 +28,7 @@ internal class KotlinSourceScanner(
             .map { match -> match.range.first to match.groupValues[2] }
             .toList()
         val recognizedStringRanges = recognizedUiStringRanges(source)
+        val ownersByLine = composableOwnerByLine(lines)
         val entriesByLine = linkedMapOf<Int, SourceIndexEntryBuilder>()
         var pendingComposable = false
 
@@ -66,6 +67,7 @@ internal class KotlinSourceScanner(
             entriesByLine = entriesByLine,
             packageName = packageName,
             classDeclarations = classDeclarations,
+            ownersByLine = ownersByLine,
         )
         collectTextCallSignals(
             file = file,
@@ -96,7 +98,6 @@ internal class KotlinSourceScanner(
             classDeclarations = classDeclarations,
         )
 
-        val ownersByLine = composableOwnerByLine(lines)
         entriesByLine.forEach { (lineNumber, builder) ->
             ownersByLine.getOrNull(lineNumber - 1)?.let { ownerName ->
                 builder.addSignal(SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION, ownerName)
@@ -115,21 +116,23 @@ internal class KotlinSourceScanner(
         entriesByLine: MutableMap<Int, SourceIndexEntryBuilder>,
         packageName: String?,
         classDeclarations: List<Pair<Int, String>>,
+        ownersByLine: Array<String?>,
     ) {
         quotedStringRegex.findAll(source).forEach { match ->
+            val lineNumber = match.startLine(lineStartOffsets)
+            val outsideRecognizedRange = recognizedStringRanges.none { it.contains(match.range) }
+            if (outsideRecognizedRange && ownersByLine.getOrNull(lineNumber - 1) == null) return@forEach
             val value = decodeKotlinString(match)
             entriesByLine.entryFor(
                 file = file,
-                lineNumber = match.startLine(lineStartOffsets),
+                lineNumber = lineNumber,
                 lines = lines,
                 packageName = packageName,
                 className = classNameAt(match.range.first, classDeclarations),
             )
                 .apply {
                     text += value
-                    if (recognizedStringRanges.none { it.contains(match.range) }) {
-                        addSignal(SourceSignalKindAsset.ARBITRARY_STRING_LITERAL, value)
-                    }
+                    if (outsideRecognizedRange) addSignal(SourceSignalKindAsset.ARBITRARY_STRING_LITERAL, value)
                 }
         }
     }

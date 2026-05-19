@@ -124,7 +124,7 @@ internal fun SemanticsConfiguration.toFixThisTextProperties(redactEditableText: 
     val contentDescription = safeGet(SemanticsProperties.ContentDescription).orEmpty()
     val stateDescription = safeGet(SemanticsProperties.StateDescription)
     val isPassword = has(SemanticsProperties.Password)
-    val hasSensitiveData = safeGet(SemanticsProperties.IsSensitiveData) == true
+    val hasSensitiveData = hasBooleanPropertyNamed("IsSensitiveData")
     val redacted = RedactionPolicy.apply(
         isPassword = isPassword,
         editableText = editableText,
@@ -185,7 +185,7 @@ private fun Any?.safeRawValue(
 ): String = when {
     isPassword && keyName.isRedactableTextProperty() -> REDACTED_PASSWORD_TEXT
     redactEditableText && keyName == SemanticsProperties.EditableText.name -> "<redacted-editable-text>"
-    redactEditableText && keyName == SemanticsProperties.InputText.name -> "<redacted-editable-text>"
+    redactEditableText && keyName == "InputText" -> "<redacted-editable-text>"
     redactTextLikeProperties && keyName.isRedactableTextProperty() -> REDACTED_TEXT
     else -> toString()
 }
@@ -198,3 +198,7 @@ private fun String.isRedactableTextProperty(): Boolean = contains("Text", ignore
 private fun <T> SemanticsConfiguration.safeGet(key: SemanticsPropertyKey<T>): T? = runCatching { getOrNull(key) }.getOrNull()
 
 private fun SemanticsConfiguration.has(key: SemanticsPropertyKey<*>): Boolean = any { it.key == key }
+
+private fun SemanticsConfiguration.hasBooleanPropertyNamed(name: String): Boolean = any { entry ->
+    entry.key.name == name && entry.value == true
+}

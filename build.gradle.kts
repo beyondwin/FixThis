@@ -15,7 +15,7 @@ plugins {
 }
 
 val fixthisGroup = providers.gradleProperty("FIXTHIS_GROUP").orElse("io.github.beyondwin")
-val fixthisVersion = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.2.2-SNAPSHOT")
+val fixthisVersion = providers.gradleProperty("FIXTHIS_VERSION").orElse("0.6.0")
 
 // Filter unstable releases (alpha/beta/RC/snapshot/milestone) out of the
 // `dependencyUpdates` report so we only see candidates we'd actually adopt.

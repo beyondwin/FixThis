@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "io.github.beyondwin.fixthis.compose.sidekick"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 24

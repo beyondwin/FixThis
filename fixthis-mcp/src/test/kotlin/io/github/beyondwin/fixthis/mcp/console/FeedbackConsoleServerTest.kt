@@ -288,6 +288,20 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun headRequestToIndexIsAcceptedForHealthChecks() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val connection = ConsoleHttpTestClient(server.url).connection("/")
+            connection.requestMethod = "HEAD"
+            assertEquals(200, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun startUrlUsesConfiguredHostAndBoundPort() {
         val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service = service, host = "127.0.0.1", port = 0)

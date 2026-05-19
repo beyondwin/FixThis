@@ -18,9 +18,10 @@ scheduled workflow is promoted to a required check (see
 | -------------------------- | --------------------- | --------------------- | -------------------------------------- |
 | Android Gradle Plugin      | **9.1.1**             | 9.0.0                 | `gradle/libs.versions.toml` → `agp`    |
 | Kotlin Gradle Plugin       | **2.2.21**            | 2.2.0                 | `gradle/libs.versions.toml` → `kotlin` |
-| Compose BOM                | **2026.04.01**        | 2026.01.00            | `gradle/libs.versions.toml` → `composeBom` |
-| Compose UI test artifacts  | **1.10.0**            | 1.9.0                 | `gradle/libs.versions.toml` → `composeUiTest` |
+| Compose BOM                | **2025.01.01**        | 2025.01.01            | `gradle/libs.versions.toml` → `composeBom` |
+| Compose UI test artifacts  | **1.7.8**             | 1.7.8                 | `gradle/libs.versions.toml` → `composeUiTest` |
 | JDK toolchain              | **21 (Temurin)**      | 21                    | `.github/workflows/ci.yml`             |
+| Android `compileSdk`       | **34**                | 34                    | `sample/build.gradle.kts`, `fixthis-compose-sidekick/build.gradle.kts` |
 | Android `minSdk`           | **24**                | 24                    | `sample/build.gradle.kts`              |
 
 The "Tested" column matches what CI builds on every PR and push to `main`
@@ -55,12 +56,14 @@ that compiles" column is checked weekly (informational only — see
 
 ### Compose BOM
 
-- **Tested: 2026.04.01.** Matches the BOM the sample app and `fixthis-compose-core`
+- **Tested: 2025.01.01.** Matches the BOM the sample app and `fixthis-compose-core`
   resolve at build time.
-- **Minimum 2026.01.00.** This is the intended lower bound for the
-  console-bound semantics surface that Smart Select reads
-  (`SemanticsProperties`). Older Compose releases have enough semantics API
-  churn that they remain outside the documented support window.
+- **Minimum 2025.01.01.** This keeps FixThis on the Compose 1.7.x line so the
+  sidekick AAR can be consumed by apps still compiling with Android 14
+  (`compileSdk` 34). A lower `compileSdk` 33 floor was investigated, but
+  Compose 1.5.x pulls `androidx.emoji2:emoji2:1.4.0`, whose published AAR
+  metadata already requires `compileSdk` 34. Newer Compose releases are
+  supported through dependency resolution in the consuming app.
 
 ### JDK toolchain
 
@@ -75,6 +78,18 @@ that compiles" column is checked weekly (informational only — see
 - `minSdk` 24 is fixed. Lower SDKs are not validated; the sidekick uses
   `androidx.startup` (debug-only) which requires API 21+, but the sample app
   and tests assume 24.
+
+### Android `compileSdk`
+
+- **Tested and minimum: 34.** The sidekick AAR is intentionally built with
+  `compileSdk` 34 so debug consumers already pinned to Android 14 do not have
+  to raise their project-wide `compileSdk` just to install FixThis. `targetSdk`
+  remains the consuming app's decision; FixThis does not require release builds
+  and is wired only through debug variants.
+- Google Play target API requirements apply to the consuming app's
+  `targetSdk`, not to FixThis's debug-only library `compileSdk`. Apps submitted
+  to Play should keep their own `targetSdk` at the currently required Play
+  level while consuming FixThis only in debug variants.
 
 ## Scheduled validation
 

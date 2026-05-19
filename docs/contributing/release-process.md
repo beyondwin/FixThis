@@ -31,8 +31,14 @@ independent of the package version — bumped per the checklist in
 
 ## Where the version lives
 
-The annotated tag and CHANGELOG heading are the public version source of truth.
-Gradle artifact workflows receive the same version through `-PFIXTHIS_VERSION`.
+`gradle.properties` (`FIXTHIS_VERSION=…`) is the editable local source of
+truth for the package version. After changing it, run
+`npm run release:version:sync` to update npm, MCP registry metadata, and current
+install docs. `npm run release:version:check` fails if any generated/default
+version site drifts.
+
+The annotated tag and CHANGELOG heading still record the public release. Gradle
+artifact workflows receive the same version through `-PFIXTHIS_VERSION`.
 
 | Location | Bumped on | Notes |
 |----------|-----------|-------|
