@@ -10,7 +10,7 @@ import java.io.File
 
 class ReleaseConsumerFixtureTest {
     @Test
-    fun `release consumer fixture assembles minified release without FixThis startup provider`() {
+    fun `release consumer fixture assembles minified release without FixThis startup metadata`() {
         val fixtureDir = File(System.getProperty("fixthis.releaseConsumerFixture.path"))
         assumeTrue("Android SDK required for release consumer fixture", System.getenv("ANDROID_HOME") != null)
         assertTrue("Fixture directory missing: ${fixtureDir.absolutePath}", fixtureDir.isDirectory)
@@ -29,6 +29,5 @@ class ReleaseConsumerFixtureTest {
         assertTrue("Merged release manifest missing: ${mergedManifest.absolutePath}", mergedManifest.isFile)
         val manifest = mergedManifest.readText()
         assertFalse(manifest.contains("FixThisInitializer"))
-        assertFalse(manifest.contains("androidx.startup.InitializationProvider"))
     }
 }

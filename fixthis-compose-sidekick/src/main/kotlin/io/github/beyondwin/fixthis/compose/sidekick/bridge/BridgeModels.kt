@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.app.Activity
 import android.content.res.Configuration
+import android.os.Build
 import io.github.beyondwin.fixthis.compose.core.model.FixThisError
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
@@ -149,14 +150,18 @@ internal fun mapWindowMode(isPip: Boolean, isMultiWindow: Boolean): String = whe
     else -> "FULLSCREEN"
 }
 
+internal fun isActivityInPictureInPictureMode(activity: Activity): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInPictureInPictureMode
+
+private fun isActivityInMultiWindowMode(activity: Activity): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && activity.isInMultiWindowMode
+
 /**
  * Inspects the activity for picture-in-picture / multi-window state and returns
  * the wire-DTO window mode string. Delegates the precedence logic to
  * [mapWindowMode] so the branch logic is unit-testable without an Activity.
  */
 internal fun inferWindowMode(activity: Activity): String = mapWindowMode(
-    isPip = activity.isInPictureInPictureMode,
-    isMultiWindow = activity.isInMultiWindowMode,
+    isPip = isActivityInPictureInPictureMode(activity),
+    isMultiWindow = isActivityInMultiWindowMode(activity),
 )
 
 @Serializable

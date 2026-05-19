@@ -51,6 +51,14 @@ class OrientationCaptureTest {
         assertEquals("FULLSCREEN", mapWindowMode(isPip = false, isMultiWindow = false))
     }
 
+    @Test
+    @Config(sdk = [23])
+    fun `inferWindowMode returns FULLSCREEN below picture-in-picture API`() {
+        val activity = Robolectric.buildActivity(Activity::class.java).get()
+
+        assertEquals("FULLSCREEN", inferWindowMode(activity))
+    }
+
     @Ignore(
         "Robolectric integration test hangs >10min due to AndroidBridgeEnvironment setup; " +
             "pure-function tests above cover the mapping logic. Replace via EmulatorTestKit (Phase E RTI-1).",

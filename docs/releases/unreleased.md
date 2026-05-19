@@ -32,7 +32,7 @@ GitHub Release page and registry listings as release evidence.
   `io.github.beyondwin.fixthis.compose` version `0.6.1`.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - The current source tree builds the sidekick and sample with Android
-  `compileSdk` 34, `targetSdk` 34, and `minSdk` 24 from
+  `compileSdk` 34, `targetSdk` 34, and `minSdk` 23 from
   `gradle/libs.versions.toml`.
 - The current source tree uses Compose BOM `2025.01.01` and Compose UI test
   artifacts `1.7.8` to keep the debug sidekick consumable by Android

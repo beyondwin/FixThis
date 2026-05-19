@@ -70,7 +70,7 @@ internal class AndroidBridgeEnvironment(
             screenInteractive = powerManager?.isInteractive,
             keyguardLocked = keyguardManager?.isKeyguardLocked,
             appForeground = lifecycleCallbacks.isAppForeground(),
-            pictureInPicture = resumedActivity?.isInPictureInPictureMode,
+            pictureInPicture = resumedActivity?.let(::isActivityInPictureInPictureMode),
             installEpochMillis = readInstallEpochMillis(),
             sidekickBuildEpochMs = buildInfo.buildEpochMs,
         )

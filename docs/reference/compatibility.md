@@ -22,7 +22,7 @@ scheduled workflow is promoted to a required check (see
 | Compose UI test artifacts  | **1.7.8**             | 1.7.8                 | `gradle/libs.versions.toml` → `composeUiTest` |
 | JDK toolchain              | **21 (Temurin)**      | 21                    | `.github/workflows/ci.yml`             |
 | Android `compileSdk`       | **34**                | 34                    | `sample/build.gradle.kts`, `fixthis-compose-sidekick/build.gradle.kts` |
-| Android `minSdk`           | **24**                | 24                    | `sample/build.gradle.kts`              |
+| Android `minSdk`           | **23**                | 23                    | `sample/build.gradle.kts`              |
 
 The "Tested" column matches what CI builds on every PR and push to `main`
 ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)). The "Minimum
@@ -78,9 +78,9 @@ that compiles" column is checked weekly (informational only — see
 
 ### Android `minSdk`
 
-- `minSdk` 24 is fixed. Lower SDKs are not validated; the sidekick uses
-  `androidx.startup` (debug-only) which requires API 21+, but the sample app
-  and tests assume 24.
+- `minSdk` 23 is supported. APIs introduced above 23 are guarded at runtime,
+  and the sidekick's debug-only `androidx.startup` dependency supports lower
+  API levels.
 
 ### Android `compileSdk`
 

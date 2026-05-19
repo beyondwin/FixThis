@@ -29,7 +29,7 @@ class FixThisActivityLifecycleCallbacks : Application.ActivityLifecycleCallbacks
     }
 
     override fun onActivityPaused(activity: Activity) {
-        resumedCounter.updateAndGet { current -> if (current > 0) current - 1 else 0 }
+        decrementResumedCounter()
         FixThisConnectionStatusHostLayout.detachFrom(activity)
     }
 
@@ -40,5 +40,13 @@ class FixThisActivityLifecycleCallbacks : Application.ActivityLifecycleCallbacks
     override fun onActivityDestroyed(activity: Activity) {
         FixThisConnectionStatusHostLayout.detachFrom(activity)
         FixThisBridgeRuntime.onActivityDestroyed(activity)
+    }
+
+    private fun decrementResumedCounter() {
+        while (true) {
+            val current = resumedCounter.get()
+            val next = if (current > 0) current - 1 else 0
+            if (resumedCounter.compareAndSet(current, next)) return
+        }
     }
 }

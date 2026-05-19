@@ -19,7 +19,7 @@ function androidVersion(name) {
 test("Android SDK levels are centralized in the version catalog", () => {
   assert.equal(androidVersion("androidCompileSdk"), "34");
   assert.equal(androidVersion("androidTargetSdk"), "34");
-  assert.equal(androidVersion("androidMinSdk"), "24");
+  assert.equal(androidVersion("androidMinSdk"), "23");
 
   const sidekickBuild = read("fixthis-compose-sidekick/build.gradle.kts");
   const sampleBuild = read("sample/build.gradle.kts");
@@ -51,6 +51,29 @@ test("Android compatibility docs match the catalog compileSdk floor", () => {
     mismatches,
     [],
     `FixThis 0.6.x sidekick artifacts require compileSdk ${requiredCompileSdk}`,
+  );
+});
+
+test("Android compatibility docs match the catalog minSdk floor", () => {
+  const requiredMinSdk = androidVersion("androidMinSdk");
+  const files = {
+    "docs/reference/compatibility.md": new RegExp(
+      `Android \`minSdk\`\\s*\\|\\s*\\*\\*${requiredMinSdk}\\*\\*\\s*\\|\\s*${requiredMinSdk}`,
+    ),
+    "docs/getting-started/add-to-your-app.md": new RegExp(`\`minSdk\` ${requiredMinSdk}`),
+    "docs/getting-started/try-the-sample.md": new RegExp(
+      `Android \`minSdk\`\\s*\\|\\s*${requiredMinSdk}`,
+    ),
+  };
+
+  const mismatches = Object.entries(files)
+    .filter(([path, pattern]) => !pattern.test(read(path)))
+    .map(([path]) => path);
+
+  assert.deepEqual(
+    mismatches,
+    [],
+    `FixThis 0.6.x sidekick artifacts require minSdk ${requiredMinSdk}`,
   );
 });
 
