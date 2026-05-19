@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![JDK 21](https://img.shields.io/badge/JDK-21-orange.svg)](https://adoptium.net/)
 [![Node 20+](https://img.shields.io/badge/Node-20%2B-339933.svg)](https://nodejs.org/)
-[![Compose](https://img.shields.io/badge/Jetpack_Compose-2026.04.01-4285F4.svg)](https://developer.android.com/jetpack/compose)
+[![Compose](https://img.shields.io/badge/Jetpack_Compose-2025.01.01-4285F4.svg)](https://developer.android.com/jetpack/compose)
 
 ![FixThis Studio — point at any Jetpack Compose UI element, annotate, hand off AI-ready context to your coding agent](docs/assets/fixthis-studio-hero.png)
 

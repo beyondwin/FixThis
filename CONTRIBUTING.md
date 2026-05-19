@@ -209,6 +209,8 @@ node scripts/build-console-assets.mjs --check
 bash scripts/check-surface-zindex.sh
 node scripts/check-doc-consistency.mjs
 node scripts/check-release-readiness.mjs
+npm run release:version:check
+npm run release:compat:test
 node --check fixthis-mcp/src/main/resources/console/app.js
 npm run release:package:test
 # All console JS tests (single source of truth is scripts/console-tests.json).
@@ -220,6 +222,11 @@ node scripts/check-whitespace.mjs diff --check
 `check-release-readiness.mjs` protects public release docs from accidentally
 claiming Maven Central or Gradle Plugin Portal publication before artifacts are
 actually visible.
+
+`release:version:check` verifies that current public install docs, CLI defaults,
+npm metadata, and MCP Registry metadata all match `FIXTHIS_VERSION` in
+`gradle.properties`. `release:compat:test` verifies that the Android SDK levels
+and compatibility docs match the version catalog.
 
 When touching feedback-session switching, saved overlays, pending recovery, or
 undo/redo context, also run the focused session-scope harnesses:

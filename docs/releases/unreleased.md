@@ -7,13 +7,32 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-- _No unreleased work yet. Add entries here as changes land on `main`._
+- Release version drift is now guarded end-to-end. The local package version
+  source of truth remains `gradle.properties` (`FIXTHIS_VERSION`), and
+  `npm run release:version:sync` / `npm run release:version:check` keep public
+  install docs, CLI defaults, npm metadata, and MCP Registry metadata aligned.
+- CLI/MCP release packaging now passes the requested version into Gradle with
+  `-PFIXTHIS_VERSION=...`, so release tarballs and workflow-built packages
+  report the version being cut.
+- Android SDK levels are centralized in the version catalog and validated by
+  `npm run release:compat:test`. The sidekick AAR bundle gate checks
+  `minCompileSdk` against the same catalog value before producing Central
+  Portal upload artifacts.
+- The Gradle Plugin Portal workflow now tests the requested version contract
+  before publishing, reducing the chance of publishing plugin metadata that
+  points at the wrong runtime version.
 
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin
   `io.github.beyondwin.fixthis.compose` version `0.6.0`.
 - The plugin resolves the debug-only sidekick from Maven Central.
+- The current source tree builds the sidekick and sample with Android
+  `compileSdk` 34, `targetSdk` 34, and `minSdk` 24 from
+  `gradle/libs.versions.toml`.
+- The current source tree uses Compose BOM `2025.01.01` and Compose UI test
+  artifacts `1.7.8` to keep the debug sidekick consumable by Android
+  14-pinned apps.
 - Homebrew installs the matching CLI/MCP GitHub Release package on macOS.
 - npm installs the matching CLI/MCP GitHub Release package through
   `@beyondwin/fixthis`.
@@ -38,6 +57,13 @@ docs, also run:
 ```bash
 npm run docs:agent-bootstrap:test
 bash scripts/check-docs-cli-surface.sh
+npm run release:version:check
+```
+
+If Android SDK or Compose compatibility docs change, also run:
+
+```bash
+npm run release:compat:test
 ```
 
 For console layout or agent-state UI changes, also run:

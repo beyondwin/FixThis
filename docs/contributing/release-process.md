@@ -77,6 +77,8 @@ Before tagging:
 - [ ] Console JS harnesses pass: `npm run console:test:all` (the group-to-file source of truth is `scripts/console-tests.json`)
 - [ ] Console browser smoke passes when console layout, connection, or handoff UI changed: `npm run console:smoke`
 - [ ] Console responsive stress passes when layout, global status, activity-drift, or agent-state UI changed: `npm run console:responsive:stress`
+- [ ] Version synchronization passes: `npm run release:version:check`
+- [ ] Android compatibility docs match the version catalog: `npm run release:compat:test`
 - [ ] CLI/MCP package script tests pass: `npm run release:package:test`
 - [ ] Whitespace clean: `git diff --check`
 - [ ] Gradle help has no deprecation warnings when build logic changed: `./gradlew help --warning-mode all --no-daemon`
@@ -117,6 +119,8 @@ Before tagging:
    ```bash
    node scripts/check-doc-consistency.mjs
    node scripts/check-release-readiness.mjs
+   npm run release:version:check
+   npm run release:compat:test
    git diff --check
    ```
 

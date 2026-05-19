@@ -27,6 +27,34 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Added
+
+- Release version synchronization is now guarded by
+  `npm run release:version:sync` and `npm run release:version:check`.
+  Release docs, CLI defaults, npm metadata, and MCP registry metadata all read
+  the package version from `gradle.properties` (`FIXTHIS_VERSION`) instead of
+  relying on scattered hardcoded `0.x.y` fallbacks.
+- Android SDK compatibility is now centralized in `gradle/libs.versions.toml`
+  (`androidCompileSdk`, `androidTargetSdk`, and `androidMinSdk`) and covered by
+  `npm run release:compat:test`, so the sample app, sidekick AAR metadata, and
+  compatibility docs stay aligned.
+- Gradle Plugin Portal publishing now runs a requested-version contract check
+  before `publishPlugins`, catching mismatches between the manually requested
+  release version and the generated plugin/runtime defaults.
+
+### Changed
+
+- CLI/MCP release packaging passes the requested package version into Gradle
+  with `-PFIXTHIS_VERSION=...`, so local release tarballs and workflow-built
+  tarballs report the version being packaged instead of whatever value happens
+  to be checked into the source tree.
+- Central Portal bundle creation now validates the sidekick AAR
+  `minCompileSdk` against the shared Android compile SDK catalog value before
+  producing the upload bundle.
+- The documented Compose baseline for the current source tree is
+  `2025.01.01` with Compose UI test artifacts `1.7.8`, matching the version
+  catalog and the Android 14-compatible sidekick build.
+
 ## [0.6.0] - 2026-05-18
 
 This release rolls up v0.4 maintainability, v0.5 trustworthy onboarding, and
