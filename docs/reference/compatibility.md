@@ -53,6 +53,9 @@ that compiles" column is checked weekly (informational only — see
   compiler 1.10+ wiring with AGP 9. Older 2.1.x toolchains run into
   compose-compiler / AGP matching constraints and are not part of the current
   support window.
+- **Forward smoke: 2.3.20.** The scheduled compatibility workflow includes a
+  non-gating Kotlin 2.3.20 sample assemble. This records current Kotlin 2.3.x
+  coverage without changing the pinned PR-tested toolchain.
 
 ### Compose BOM
 
@@ -97,9 +100,11 @@ A scheduled workflow runs the lower bounds informationally:
 
 - File: [`.github/workflows/nightly-compat.yml`](../../.github/workflows/nightly-compat.yml)
 - Schedule: 03:00 UTC Tuesdays plus manual `workflow_dispatch`.
-- Each axis (AGP, Kotlin, Compose BOM / UI test artifacts) is exercised by one
-  `./gradlew :app:assembleDebug` invocation with a property override
-  pointing at the axis's lower bound.
+- Each lower-bound axis (AGP, Kotlin, Compose BOM / UI test artifacts) is
+  exercised by one `./gradlew :app:assembleDebug` invocation with a property
+  override pointing at the axis's lower bound.
+- Kotlin also has a forward-smoke job for 2.3.20 because downstream apps may
+  move faster than FixThis's pinned CI toolchain.
 - The workflow is **informational** — `continue-on-error: true` on each
   step. Failures are surfaced in the job log only; they do not block PRs.
 - Promotion of this workflow to a required check is tracked in

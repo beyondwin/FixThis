@@ -49,7 +49,7 @@ object GradleApplicationIdDetector {
 
     fun find(projectRoot: File): String? {
         val matches = androidApplications(projectRoot)
-            .map { it.applicationId }
+            .flatMap { it.applicationIdCandidates() }
             .distinct()
 
         return when (matches.size) {
@@ -132,6 +132,12 @@ data class GradleAndroidApplication(
 ) {
     fun matches(candidate: String): Boolean = applicationId == candidate ||
         applicationIdSuffixes.any { suffix -> applicationId + suffix == candidate }
+
+    fun applicationIdCandidates(): List<String> =
+        (listOf(applicationId) + applicationIdSuffixes
+            .filter { it.isNotBlank() }
+            .map { suffix -> applicationId + suffix })
+            .distinct()
 }
 
 @Serializable

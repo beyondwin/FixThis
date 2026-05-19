@@ -27,8 +27,11 @@ Subcommands:
 `--package` is the Android applicationId of the debug app you are running
 FixThis against. If omitted, every subcommand reads
 `<projectDir>/.fixthis/project.json` field `applicationId`, then scans Gradle
-`build.gradle(.kts)` files for a unique Android `applicationId`. It fails with
-a clear error if none or more than one candidate is found.
+`build.gradle(.kts)` files for a unique Android `applicationId`. Gradle
+`applicationIdSuffix` values are treated as additional installable candidates,
+so flavored projects such as `com.example` / `com.example.demo` must pass
+`--package` or run the variant-specific `fixthisSetup...` task first. FixThis
+fails with a clear error if none or more than one candidate is found.
 
 `--project-dir` defaults to `.` (the current working directory).
 
@@ -155,7 +158,7 @@ fixthis install-agent --project-dir . --target all --dry-run
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--package` | — | Android applicationId. If omitted, FixThis scans Gradle build files for a unique value. |
+| `--package` | — | Android applicationId. If omitted, FixThis scans Gradle build files for a unique value and refuses to guess when `applicationIdSuffix` creates multiple candidates. |
 | `--project-dir` | `.` | Android project root. |
 | `--dry-run` | off | Print planned writes, including the patched Gradle file, without modifying files. |
 | `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
@@ -343,7 +346,8 @@ Every subcommand resolves the package and project root in this order:
 1. `--package` flag, if given.
 2. `<projectDir>/.fixthis/project.json` field `applicationId`.
 3. Unique Android `applicationId` in Gradle `build.gradle` / `build.gradle.kts`
-   files under `<projectDir>`.
+   files under `<projectDir>`. `applicationIdSuffix` values expand the
+   candidate set.
 4. Fail with a usage error.
 
 `<projectDir>` is `--project-dir` (default `.`) or whatever the agent invoked
