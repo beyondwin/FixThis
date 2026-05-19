@@ -86,7 +86,7 @@ Gradle plugin applied to the Android application project.
 - plugin id: `io.github.beyondwin.fixthis.compose`
 - Active on debug variants only.
 - Attaches a project dependency if `:fixthis-compose-sidekick` is in the same multi-project build; otherwise attaches the `io.github.beyondwin:fixthis-compose-sidekick:<runtimeVersion>` coordinate for external projects.
-- The `generate<Variant>FixThisSourceIndex` task scans Kotlin/XML sources and produces the generated asset.
+- The `generate<Variant>FixThisSourceIndex` task scans Kotlin/XML sources from the app module and project dependencies on that debug variant's compile/runtime classpath, then produces the generated asset.
 - `source/KotlinSourceScanner.kt`, `XmlStringResourceScanner.kt`,
   `SourceIndexGenerator.kt`, and `SourceIndexAssets.kt`: keep source scanning,
   XML string-resource extraction, generated asset DTOs, and Gradle task wiring

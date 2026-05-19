@@ -5,6 +5,12 @@ asset. The Gradle task scans Kotlin sources and default-locale Android string
 resources, then the runtime matcher ranks source-index entries against the
 selected Compose semantics node and nearby context.
 
+For multi-module Android apps, the Gradle plugin scans the application module
+plus project dependencies that are present on the active debug variant's
+compile/runtime classpath. Unrelated sibling modules in the same Gradle build
+are not indexed, which keeps candidate ranking focused on code that can render
+the installed APK.
+
 ## Source Index Schema
 
 Current source-index `schemaVersion` is `1.2`. FixThis is pre-1.0, so this

@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.gradle
 
+import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
@@ -80,6 +81,83 @@ class FixThisGradlePluginTest {
                 "feature/station-list/src/debug/java",
             ),
             roots,
+        )
+    }
+
+    @Test
+    fun `project dependency paths are collected from variant configurations`() {
+        val rootDir = Files.createTempDirectory("fixthis-project-dependency-paths").toFile().canonicalFile
+        val rootProject = ProjectBuilder.builder()
+            .withName("root")
+            .withProjectDir(rootDir)
+            .build()
+        val appProject = ProjectBuilder.builder()
+            .withName("app")
+            .withParent(rootProject)
+            .withProjectDir(rootDir.resolve("app"))
+            .build()
+        val featureGroupProject = ProjectBuilder.builder()
+            .withName("feature")
+            .withParent(rootProject)
+            .withProjectDir(rootDir.resolve("feature"))
+            .build()
+        ProjectBuilder.builder()
+            .withName("station-list")
+            .withParent(featureGroupProject)
+            .withProjectDir(rootDir.resolve("feature/station-list"))
+            .build()
+        val configuration = appProject.configurations.create("demoDebugRuntimeClasspath")
+
+        appProject.dependencies.add(
+            configuration.name,
+            appProject.dependencies.project(mapOf("path" to ":feature:station-list")),
+        )
+
+        assertEquals(
+            setOf(":feature:station-list"),
+            projectDependencyPaths(
+                configurations = listOf(configuration),
+                ownerProjectPath = appProject.path,
+            ),
+        )
+    }
+
+    @Test
+    fun `source index project directories are scoped to project dependencies`() {
+        val rootDir = Files.createTempDirectory("fixthis-scoped-index-roots").toFile().canonicalFile
+        val rootProject = ProjectBuilder.builder()
+            .withName("root")
+            .withProjectDir(rootDir)
+            .build()
+        val appProject = ProjectBuilder.builder()
+            .withName("app")
+            .withParent(rootProject)
+            .withProjectDir(rootDir.resolve("app"))
+            .build()
+        val featureGroupProject = ProjectBuilder.builder()
+            .withName("feature")
+            .withParent(rootProject)
+            .withProjectDir(rootDir.resolve("feature"))
+            .build()
+        ProjectBuilder.builder()
+            .withName("station-list")
+            .withParent(featureGroupProject)
+            .withProjectDir(rootDir.resolve("feature/station-list"))
+            .build()
+        ProjectBuilder.builder()
+            .withName("unused")
+            .withParent(featureGroupProject)
+            .withProjectDir(rootDir.resolve("feature/unused"))
+            .build()
+
+        val directories = sourceIndexProjectDirectories(
+            project = appProject,
+            dependencyProjectPaths = setOf(":feature:station-list"),
+        ).map { it.relativeTo(rootDir).invariantSeparatorsPath }
+
+        assertEquals(
+            listOf("feature/station-list"),
+            directories,
         )
     }
 
