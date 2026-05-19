@@ -14,6 +14,7 @@ export const currentReleaseFiles = [
   "docs/contributing/release-readiness.md",
   "docs/architecture/overview.md",
   "docs/releases/unreleased.md",
+  "scripts/install-fixthis.sh",
 ];
 
 export const releaseVersionPattern = /(?<![0-9.])v?0\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/g;

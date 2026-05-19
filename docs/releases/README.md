@@ -10,6 +10,8 @@ Maven Central, and the Gradle Plugin Portal.
 ## Releases
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [v0.7.0](v0.7.0.md) — flavor-aware setup, stronger Compose source matching,
+  minSdk 23 sidekick support, and expanded release guardrails.
 - [v0.6.1](v0.6.1.md) — compatibility patch for external Android projects,
   restoring Android 14-compatible sidekick metadata and aligning published
   install surfaces.

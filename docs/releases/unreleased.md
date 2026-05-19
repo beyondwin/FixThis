@@ -7,28 +7,12 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-- Agent setup and run commands now handle flavored Android application ids
-  end-to-end. Gradle `applicationIdSuffix` values are considered installable
-  candidates, combined flavor/build-type suffixes are detected, and explicit
-  `--package` overrides no longer reuse stale variant metadata from
-  `.fixthis/project.json`.
-- Source matching is stronger for real Compose projects. The source index now
-  scans active-variant project dependencies, records typed semantic signals for
-  Compose text/content-description/role/test-tag/resource usage, and gives
-  selected `stateDescription` evidence a medium-confidence source hint.
-- The debug sidekick and sample app now carry `minSdk` 23 compatibility, with
-  the docs and compatibility checks aligned to that lower bound.
-- Release guardrails now cover the Homebrew tap and release helper fixtures in
-  addition to the existing version-sync checks, reducing the chance of shipping
-  stale package coordinates or fixture-only hardcoded versions.
-- Generated MCP config is less brittle for Homebrew installs because it avoids
-  versioned Cellar executable paths when the stable `fixthis` command is
-  available.
+No user-visible changes yet after v0.7.0.
 
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin
-  `io.github.beyondwin.fixthis.compose` version `0.6.1`.
+  `io.github.beyondwin.fixthis.compose` version `0.7.0`.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - The current source tree builds the sidekick and sample with Android
   `compileSdk` 34, `targetSdk` 34, and `minSdk` 23 from

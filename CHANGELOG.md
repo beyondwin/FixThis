@@ -27,6 +27,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+No user-visible changes yet.
+
+## [0.7.0] - 2026-05-19
+
 ### Added
 
 - Source-index generation now scans the app module plus project dependencies
