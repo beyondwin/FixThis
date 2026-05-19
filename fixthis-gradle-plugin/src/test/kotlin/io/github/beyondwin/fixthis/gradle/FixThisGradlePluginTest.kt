@@ -60,7 +60,7 @@ class FixThisGradlePluginTest {
     fun `indexed source roots include sibling feature modules by default`() {
         val root = Files.createTempDirectory("fixthis-indexed-roots").toFile().canonicalFile
         val app = root.resolve("app")
-        val feature = root.resolve("feature/station-list")
+        val feature = root.resolve("feature/catalog")
         app.resolve("src/main/java").mkdirs()
         app.resolve("src/debug/java").mkdirs()
         feature.resolve("src/main/java").mkdirs()
@@ -77,8 +77,8 @@ class FixThisGradlePluginTest {
             listOf(
                 "app/src/main/java",
                 "app/src/debug/java",
-                "feature/station-list/src/main/java",
-                "feature/station-list/src/debug/java",
+                "feature/catalog/src/main/java",
+                "feature/catalog/src/debug/java",
             ),
             roots,
         )
@@ -102,19 +102,19 @@ class FixThisGradlePluginTest {
             .withProjectDir(rootDir.resolve("feature"))
             .build()
         ProjectBuilder.builder()
-            .withName("station-list")
+            .withName("catalog")
             .withParent(featureGroupProject)
-            .withProjectDir(rootDir.resolve("feature/station-list"))
+            .withProjectDir(rootDir.resolve("feature/catalog"))
             .build()
         val configuration = appProject.configurations.create("demoDebugRuntimeClasspath")
 
         appProject.dependencies.add(
             configuration.name,
-            appProject.dependencies.project(mapOf("path" to ":feature:station-list")),
+            appProject.dependencies.project(mapOf("path" to ":feature:catalog")),
         )
 
         assertEquals(
-            setOf(":feature:station-list"),
+            setOf(":feature:catalog"),
             projectDependencyPaths(
                 configurations = listOf(configuration),
                 ownerProjectPath = appProject.path,
@@ -140,9 +140,9 @@ class FixThisGradlePluginTest {
             .withProjectDir(rootDir.resolve("feature"))
             .build()
         ProjectBuilder.builder()
-            .withName("station-list")
+            .withName("catalog")
             .withParent(featureGroupProject)
-            .withProjectDir(rootDir.resolve("feature/station-list"))
+            .withProjectDir(rootDir.resolve("feature/catalog"))
             .build()
         ProjectBuilder.builder()
             .withName("unused")
@@ -152,11 +152,11 @@ class FixThisGradlePluginTest {
 
         val directories = sourceIndexProjectDirectories(
             project = appProject,
-            dependencyProjectPaths = setOf(":feature:station-list"),
+            dependencyProjectPaths = setOf(":feature:catalog"),
         ).map { it.relativeTo(rootDir).invariantSeparatorsPath }
 
         assertEquals(
-            listOf("feature/station-list"),
+            listOf("feature/catalog"),
             directories,
         )
     }

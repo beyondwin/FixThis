@@ -138,7 +138,7 @@ class GenerateFixThisSourceIndexTaskTest {
     fun `uses repo relative file paths for indexed sources outside app module`() {
         val rootDir = temporaryFolder.newFolder("repo")
         val appDir = rootDir.resolve("app")
-        val featureFile = rootDir.resolve("feature/station-list/src/main/java/io/example/StationCard.kt")
+        val featureFile = rootDir.resolve("feature/catalog/src/main/java/io/example/CatalogCard.kt")
         featureFile.parentFile.mkdirs()
         featureFile.writeText(
             """
@@ -148,8 +148,8 @@ class GenerateFixThisSourceIndexTaskTest {
             import androidx.compose.runtime.Composable
 
             @Composable
-            fun StationCard() {
-                Text("Nearby station")
+            fun CatalogCard() {
+                Text("Featured item")
             }
             """.trimIndent(),
         )
@@ -169,16 +169,16 @@ class GenerateFixThisSourceIndexTaskTest {
             .map { it.jsonObject }
             .single { entry ->
                 entry.getValue("symbols").jsonArray.any { symbol ->
-                    symbol.jsonPrimitive.content == "StationCard"
+                    symbol.jsonPrimitive.content == "CatalogCard"
                 }
             }
 
         assertEquals(
-            "feature/station-list/src/main/java/io/example/StationCard.kt",
+            "feature/catalog/src/main/java/io/example/CatalogCard.kt",
             entry.getValue("file").jsonPrimitive.content,
         )
         assertEquals(
-            "feature/station-list/src/main/java/io/example/StationCard.kt",
+            "feature/catalog/src/main/java/io/example/CatalogCard.kt",
             entry.getValue("repoFile").jsonPrimitive.content,
         )
     }

@@ -748,10 +748,10 @@ class SourceMatcherTest {
         val index = SourceIndex(
             entries = listOf(
                 SourceIndexEntry(
-                    file = "feature/station-list/src/main/kotlin/StationListCards.kt",
+                    file = "feature/catalog/src/main/kotlin/CatalogCards.kt",
                     line = 230,
                     signals = listOf(
-                        SourceSignal(SourceSignalKind.STRING_RESOURCE, "station_list_watch_saved"),
+                        SourceSignal(SourceSignalKind.STRING_RESOURCE, "catalog_item_saved"),
                         SourceSignal(SourceSignalKind.STRING_RESOURCE_RESOLVED, "저장됨"),
                     ),
                 ),
@@ -759,12 +759,12 @@ class SourceMatcherTest {
         )
 
         val candidates = SourceMatcher(index).match(
-            selectedNode = node(uid = "watch-toggle").copy(stateDescription = "저장됨"),
+            selectedNode = node(uid = "save-toggle").copy(stateDescription = "저장됨"),
             nearbyNodes = emptyList(),
             activityName = null,
         )
 
-        assertEquals("feature/station-list/src/main/kotlin/StationListCards.kt", candidates.single().file)
+        assertEquals("feature/catalog/src/main/kotlin/CatalogCards.kt", candidates.single().file)
         assertTrue(candidates.single().matchReasons.contains("selected stateDescription"))
     }
 

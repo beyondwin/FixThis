@@ -98,10 +98,10 @@ class KotlinSourceScannerTest {
                 import androidx.compose.material3.Text
                 import androidx.compose.runtime.Composable
 
-                val demoStations = listOf("Central Gas")
+                val seedItems = listOf("Seed fixture")
 
                 @Composable
-                fun StationCard() {
+                fun CatalogCard() {
                     Text("Open")
                 }
                 """.trimIndent(),
@@ -110,11 +110,11 @@ class KotlinSourceScannerTest {
 
         val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
 
-        assertTrue(entries.none { "Central Gas" in it.text })
+        assertTrue(entries.none { "Seed fixture" in it.text })
         assertTrue(
             entries.none { entry ->
                 entry.signals.any {
-                    it.kind == SourceSignalKindAsset.ARBITRARY_STRING_LITERAL && it.value == "Central Gas"
+                    it.kind == SourceSignalKindAsset.ARBITRARY_STRING_LITERAL && it.value == "Seed fixture"
                 }
             },
         )
