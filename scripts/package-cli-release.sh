@@ -64,9 +64,10 @@ if [[ ! "$VERSION" =~ ^v?[0-9]+[.][0-9]+[.][0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
     echo "[package] expected semantic version such as v0.2.0 or 0.2.0-rc.1" >&2
     exit 2
 fi
+GRADLE_VERSION="${VERSION#v}"
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
-    ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist --no-daemon
+    ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist -PFIXTHIS_VERSION="$GRADLE_VERSION" --no-daemon
 fi
 
 CLI_DIR="fixthis-cli/build/install/fixthis"

@@ -12,7 +12,7 @@ class ReleaseVersionSyncTest {
 
     @Test
     fun `runtime code versions come from gradle properties`() {
-        val version = fixThisVersion()
+        val version = runtimeBuildVersion()
 
         assertEquals(version, FIXTHIS_CLI_VERSION)
         assertEquals(version, GradlePluginInstaller.DefaultPluginVersion)
@@ -38,7 +38,7 @@ class ReleaseVersionSyncTest {
 
     @Test
     fun `public install metadata and current docs use the gradle properties version`() {
-        val version = fixThisVersion()
+        val version = gradlePropertiesVersion()
         val mismatches = currentReleaseFiles.flatMap { path ->
             val text = File(repoRoot, path).readText()
             releaseVersionRegex.findAll(text)
@@ -54,7 +54,11 @@ class ReleaseVersionSyncTest {
         )
     }
 
-    private fun fixThisVersion(): String = File(repoRoot, "gradle.properties")
+    private fun runtimeBuildVersion(): String =
+        System.getProperty("fixthis.version")
+            ?: gradlePropertiesVersion()
+
+    private fun gradlePropertiesVersion(): String = File(repoRoot, "gradle.properties")
         .readLines()
         .first { it.startsWith("FIXTHIS_VERSION=") }
         .substringAfter("=")

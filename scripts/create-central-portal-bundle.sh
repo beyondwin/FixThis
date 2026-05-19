@@ -38,6 +38,15 @@ checksum_sha1() {
   fi
 }
 
+expected_compile_sdk="$(
+  sed -n 's/^androidCompileSdk[[:space:]]*=[[:space:]]*"\([0-9][0-9]*\)".*/\1/p' \
+    "$repo_root/gradle/libs.versions.toml" | head -n 1
+)"
+if [[ -z "$expected_compile_sdk" ]]; then
+  echo "Expected androidCompileSdk in gradle/libs.versions.toml" >&2
+  exit 1
+fi
+
 rm -rf "$repo_dir"
 mkdir -p "$repo_dir" "$(dirname "$bundle_path")"
 
@@ -56,6 +65,19 @@ mkdir -p "$repo_dir" "$(dirname "$bundle_path")"
 artifact_root="$repo_dir/io/github/beyondwin"
 if [[ ! -d "$artifact_root" ]]; then
   echo "Expected Maven artifacts under $artifact_root" >&2
+  exit 1
+fi
+
+sidekick_aar="$repo_dir/io/github/beyondwin/fixthis-compose-sidekick/$version/fixthis-compose-sidekick-$version.aar"
+if [[ ! -f "$sidekick_aar" ]]; then
+  echo "Expected sidekick AAR at $sidekick_aar" >&2
+  exit 1
+fi
+
+if ! unzip -p "$sidekick_aar" META-INF/com/android/build/gradle/aar-metadata.properties \
+  | grep -qx "minCompileSdk=$expected_compile_sdk"; then
+  echo "Expected $sidekick_aar to declare minCompileSdk=$expected_compile_sdk" >&2
+  unzip -p "$sidekick_aar" META-INF/com/android/build/gradle/aar-metadata.properties >&2 || true
   exit 1
 fi
 

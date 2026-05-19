@@ -36,11 +36,15 @@ kotlin {
 }
 
 sourceSets.named("main") {
-    java.srcDir(generatedFixThisVersionDir)
+    java.srcDir(generateFixThisVersion)
 }
 
 tasks.named("compileKotlin") {
     dependsOn(generateFixThisVersion)
+}
+
+tasks.withType<Test>().configureEach {
+    systemProperty("fixthis.version", fixthisVersion.get())
 }
 
 application {

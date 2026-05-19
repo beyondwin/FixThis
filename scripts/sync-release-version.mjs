@@ -1,34 +1,21 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import {
+  currentReleaseFiles,
+  readFixThisVersion,
+  releaseVersionPattern,
+  repoRoot,
+} from "./release-version.mjs";
 
-const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const checkOnly = process.argv.includes("--check");
-const version = readFileSync(join(repoRoot, "gradle.properties"), "utf8")
-  .split("\n")
-  .find((line) => line.startsWith("FIXTHIS_VERSION="))
-  ?.split("=")[1]
-  ?.trim();
-
-if (!version) {
-  console.error("[release-version] FIXTHIS_VERSION is missing from gradle.properties");
+let version;
+try {
+  version = readFixThisVersion();
+} catch (error) {
+  console.error(`[release-version] ${error.message}`);
   process.exit(1);
 }
-
-const currentReleaseFiles = [
-  "README.md",
-  "MCP.md",
-  "docs/getting-started/add-to-your-app.md",
-  "docs/getting-started/agent-install-snippet.md",
-  "docs/getting-started/connect-your-agent.md",
-  "docs/reference/cli.md",
-  "docs/contributing/release-readiness.md",
-  "docs/architecture/overview.md",
-  "docs/releases/unreleased.md",
-];
-
-const releaseVersionPattern = /(?<![0-9.])v?0\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/g;
 
 function updateTextFile(path, update) {
   const absolutePath = join(repoRoot, path);

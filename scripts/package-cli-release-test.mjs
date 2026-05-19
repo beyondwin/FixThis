@@ -95,3 +95,40 @@ test("package-cli-release rejects path-like version strings", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("package-cli-release passes requested version into Gradle build", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-package-release-"));
+  try {
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    copyFileSync(
+      join(repoRoot, "scripts/package-cli-release.sh"),
+      join(root, "scripts/package-cli-release.sh"),
+    );
+    chmodSync(join(root, "scripts/package-cli-release.sh"), 0o755);
+
+    writeExecutable(
+      join(root, "gradlew"),
+      [
+        "#!/usr/bin/env bash",
+        "printf '%s\\n' \"$@\" > gradle-args.txt",
+        "mkdir -p fixthis-cli/build/install/fixthis/bin",
+        "mkdir -p fixthis-mcp/build/install/fixthis-mcp/bin",
+        "printf '#!/usr/bin/env bash\\n' > fixthis-cli/build/install/fixthis/bin/fixthis",
+        "printf '#!/usr/bin/env bash\\n' > fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp",
+        "chmod +x fixthis-cli/build/install/fixthis/bin/fixthis",
+        "chmod +x fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp",
+      ].join("\n") + "\n",
+    );
+
+    const result = spawnSync(
+      "bash",
+      ["scripts/package-cli-release.sh", "--version", "v9.8.7"],
+      { cwd: root, encoding: "utf8" },
+    );
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(readFileSync(join(root, "gradle-args.txt"), "utf8"), /-PFIXTHIS_VERSION=9\.8\.7/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

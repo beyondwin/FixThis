@@ -69,10 +69,12 @@ class FixThisGradlePluginTest {
         assertEquals(false, Regex("""DefaultFixThisRuntimeVersion\s*(?::\s*String)?\s*=\s*"[0-9]""").containsMatchIn(source))
     }
 
-    private fun fixThisVersion(): String = File(repoRoot(), "gradle.properties")
-        .readLines()
-        .first { it.startsWith("FIXTHIS_VERSION=") }
-        .substringAfter("=")
+    private fun fixThisVersion(): String =
+        System.getProperty("fixthis.version")
+            ?: File(repoRoot(), "gradle.properties")
+                .readLines()
+                .first { it.startsWith("FIXTHIS_VERSION=") }
+                .substringAfter("=")
 
     private fun repoRoot(): File = generateSequence(File("").absoluteFile) { it.parentFile }
         .first { File(it, "gradle.properties").isFile && File(it, "settings.gradle.kts").isFile }

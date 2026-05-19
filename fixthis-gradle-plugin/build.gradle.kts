@@ -18,7 +18,7 @@ val fixthisVersion =
                 .readLines()
                 .firstOrNull { it.startsWith("FIXTHIS_VERSION=") }
                 ?.substringAfter("=")
-                ?: "0.6.0"
+                ?: error("FIXTHIS_VERSION is missing from ../gradle.properties")
         },
     )
 version = fixthisVersion.get()
@@ -54,11 +54,15 @@ kotlin {
 }
 
 sourceSets.named("main") {
-    java.srcDir(generatedFixThisVersionDir)
+    java.srcDir(generateFixThisVersion)
 }
 
 tasks.named("compileKotlin") {
     dependsOn(generateFixThisVersion)
+}
+
+tasks.withType<Test>().configureEach {
+    systemProperty("fixthis.version", fixthisVersion.get())
 }
 
 val ktlintVersion = libs.versions.ktlint.get()

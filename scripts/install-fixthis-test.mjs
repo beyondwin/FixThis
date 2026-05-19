@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { escapedVersion, readFixThisVersion } from "./release-version.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -24,13 +25,17 @@ function writeExecutable(path, body) {
 }
 
 test("install-fixthis help uses the current release in agent-first example", () => {
+  const version = readFixThisVersion(repoRoot);
   const result = spawnSync("bash", [join(repoRoot, "scripts/install-fixthis.sh"), "--help"], {
     cwd: repoRoot,
     encoding: "utf8",
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /--version v0\.6\.0 --init --target codex --project-dir \./);
+  assert.match(
+    result.stdout,
+    new RegExp(`--version v${escapedVersion(version)} --init --target codex --project-dir \\.`),
+  );
   assert.doesNotMatch(result.stdout, /--version v0\.3\.0 --init/);
 });
 

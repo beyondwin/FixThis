@@ -44,6 +44,17 @@ jobs:
             fi
           done
 
+      - name: Verify requested version contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ inputs.version }}"
+          version="${version#v}"
+          ./gradlew -p fixthis-gradle-plugin \
+            test \
+            -PFIXTHIS_VERSION="$version" \
+            --no-daemon
+
       - name: Publish Gradle plugin
         shell: bash
         run: |

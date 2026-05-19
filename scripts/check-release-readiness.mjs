@@ -3,9 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { execFileSync } from 'node:child_process';
+import { escapedVersion, readFixThisVersion } from './release-version.mjs';
 
 const root = process.cwd();
 const failures = [];
+const fixthisVersion = readFixThisVersion(root);
 
 function read(file) {
   const absolutePath = path.join(root, file);
@@ -85,7 +87,9 @@ function forbidTextInRepository(rule, forbiddenText) {
 requireRegex(
   'R1.readme-agent-first-install',
   'README.md',
-  /fixthis\s+install-agent[\s\S]*io\.github\.beyondwin\.fixthis\.compose[\s\S]*version\s+"0\.6\.0"/,
+  new RegExp(
+    `fixthis\\s+install-agent[\\s\\S]*io\\.github\\.beyondwin\\.fixthis\\.compose[\\s\\S]*version\\s+"${escapedVersion(fixthisVersion)}"`,
+  ),
   'the published agent-first install path and Gradle Plugin Portal id',
 );
 requireIncludes(
