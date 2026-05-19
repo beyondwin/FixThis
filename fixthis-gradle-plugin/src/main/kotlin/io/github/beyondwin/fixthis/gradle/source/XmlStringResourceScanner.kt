@@ -31,7 +31,7 @@ internal class XmlStringResourceScanner(
                 }.takeIf { it >= 0 }
                 add(
                     SourceIndexEntryAsset(
-                        file = sourceFile.relativeToOrSelf(projectDirectory).invariantSeparatorsPath,
+                        file = sourceFile.relativeSourcePath(projectDirectory, rootProjectDirectory),
                         repoFile = sourceFile.relativeToOrSelf(rootProjectDirectory).invariantSeparatorsPath,
                         line = lineIndex?.plus(1),
                         text = listOf(value),

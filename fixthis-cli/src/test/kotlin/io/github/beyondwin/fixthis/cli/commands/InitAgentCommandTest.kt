@@ -452,6 +452,44 @@ class InitAgentCommandTest {
     }
 
     @Test
+    fun installAgentRewritesAgentArtifactsFromResolvedProjectConfigPackage() {
+        val projectRoot = androidProject("com.example.base")
+        projectRoot.resolve(".fixthis").mkdirs()
+        projectRoot.resolve(".fixthis/project.json").writeText(
+            """
+            {
+              "schemaVersion": "1.0",
+              "applicationId": "com.example.base.demo",
+              "projectPath": ":app",
+              "variantName": "demoDebug"
+            }
+            """.trimIndent(),
+        )
+        projectRoot.resolve(".fixthis/agent-setup.json").writeText(
+            """{"state":{"packageName":"com.example.base"}}""",
+        )
+
+        withUserHome(temporaryFolder.newFolder("home")) {
+            buildRootCommand().parse(
+                listOf(
+                    "install-agent",
+                    "--project-dir",
+                    projectRoot.absolutePath,
+                    "--target",
+                    "claude",
+                    "--skip-gradle-plugin",
+                ),
+            )
+        }
+
+        val manifest = Json.parseToJsonElement(projectRoot.resolve(".fixthis/agent-setup.json").readText()).jsonObject
+        assertEquals(
+            "com.example.base.demo",
+            manifest.getValue("state").jsonObject.getValue("packageName").jsonPrimitive.content,
+        )
+    }
+
+    @Test
     fun installAgentExitsPartialWhenSomeSkipped() {
         val tempProject = temporaryFolder.newFolder("ft-partial")
         val exitCode: Int = try {

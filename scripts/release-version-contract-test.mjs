@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
@@ -55,4 +57,47 @@ test("Gradle version providers do not hardcode current release fallbacks", () =>
     [],
     "Gradle builds should require FIXTHIS_VERSION or read gradle.properties, not carry a release fallback",
   );
+});
+
+test("Homebrew formula version check fails when formula points at an older release", () => {
+  const dir = mkdtempSync(join(tmpdir(), "fixthis-homebrew-version-"));
+  const formula = join(dir, "fixthis.rb");
+  writeFileSync(
+    formula,
+    'url "https://github.com/beyondwin/FixThis/releases/download/v0.6.0/fixthis-cli-mcp-v0.6.0.tar.gz"\n',
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    ["scripts/check-homebrew-formula-version.mjs", "--formula", formula],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+    },
+  );
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Homebrew formula points at v0\.6\.0/);
+});
+
+test("Homebrew formula version check passes when formula points at the current release", () => {
+  const version = fixThisVersion();
+  const dir = mkdtempSync(join(tmpdir(), "fixthis-homebrew-version-"));
+  const formula = join(dir, "fixthis.rb");
+  writeFileSync(
+    formula,
+    `url "https://github.com/beyondwin/FixThis/releases/download/v${version}/fixthis-cli-mcp-v${version}.tar.gz"\n`,
+  );
+
+  const result = spawnSync(
+    process.execPath,
+    ["scripts/check-homebrew-formula-version.mjs", "--formula", formula],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+    },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(`Homebrew formula points at v${version.replaceAll(".", "\\.")}`));
 });

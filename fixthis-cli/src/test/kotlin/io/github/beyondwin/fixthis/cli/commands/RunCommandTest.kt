@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.cli.commands
 import com.github.ajalt.clikt.core.CliktError
 import io.github.beyondwin.fixthis.cli.AdbDevice
 import io.github.beyondwin.fixthis.cli.ExitCode
+import io.github.beyondwin.fixthis.cli.ProjectConfig
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -17,6 +18,58 @@ import java.nio.file.Files
 import kotlin.system.measureTimeMillis
 
 class RunCommandTest {
+    @Test
+    fun defaultInstallTaskUsesVariantMetadataWhenProjectConfigExists() {
+        val root = Files.createTempDirectory("fixthis-run-flavored").toFile()
+        root.resolve(".fixthis").mkdirs()
+        root.resolve(".fixthis/project.json").writeText(
+            """
+            {
+              "schemaVersion": "1.0",
+              "applicationId": "com.example.demo",
+              "projectPath": ":app",
+              "variantName": "demoDebug"
+            }
+            """.trimIndent(),
+        )
+
+        val config = ProjectConfig.resolve(root, packageOverride = null)
+
+        assertEquals(":app:installDemoDebug", defaultInstallTask(config))
+    }
+
+    @Test
+    fun defaultInstallTaskFallsBackToAppInstallDebugWithoutVariantMetadata() {
+        val root = Files.createTempDirectory("fixthis-run-unflavored").toFile()
+        root.resolve(".fixthis").mkdirs()
+        root.resolve(".fixthis/project.json").writeText(
+            """
+            {
+              "schemaVersion": "1.0",
+              "applicationId": "com.example"
+            }
+            """.trimIndent(),
+        )
+
+        val config = ProjectConfig.resolve(root, packageOverride = null)
+
+        assertEquals(":app:installDebug", defaultInstallTask(config))
+    }
+
+    @Test
+    fun defaultInstallTaskNormalizesProjectPathWithoutLeadingColon() {
+        assertEquals(
+            ":app:installDemoDebug",
+            defaultInstallTask(
+                io.github.beyondwin.fixthis.cli.ResolvedProjectConfig(
+                    applicationId = "com.example.demo",
+                    projectPath = "app",
+                    variantName = "demoDebug",
+                ),
+            ),
+        )
+    }
+
     @Test
     fun runPreflightStopsBeforeGradleWhenAndroidSdkIsMissing() {
         val root = Files.createTempDirectory("fixthis-run-missing-sdk").toFile()

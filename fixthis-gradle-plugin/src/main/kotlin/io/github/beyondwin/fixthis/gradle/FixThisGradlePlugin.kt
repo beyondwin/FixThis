@@ -6,6 +6,7 @@ import io.github.beyondwin.fixthis.gradle.task.FixThisSetupTask
 import io.github.beyondwin.fixthis.gradle.task.GenerateFixThisSourceIndexTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import java.io.File
 
 class FixThisGradlePlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -64,9 +65,16 @@ class FixThisGradlePlugin : Plugin<Project> {
         )
         task.projectDirectory.set(project.layout.projectDirectory)
         task.rootProjectDirectory.set(project.rootProject.layout.projectDirectory)
+        val additionalProjectDirectories = project.rootProject.subprojects
+            .map { it.projectDir.canonicalFile }
+            .filterNot { it == project.projectDir.canonicalFile }
         task.kotlinSourceFiles.from(
-            sourceSetNames.map { sourceSetName ->
-                project.layout.projectDirectory.dir("src/$sourceSetName")
+            indexedSourceSetRoots(
+                projectDirectory = project.projectDir,
+                additionalProjectDirectories = additionalProjectDirectories,
+                sourceSetNames = sourceSetNames,
+            ).map { sourceRoot ->
+                project.files(sourceRoot)
                     .asFileTree
                     .matching { pattern ->
                         pattern.include("**/*.kt")
@@ -75,8 +83,13 @@ class FixThisGradlePlugin : Plugin<Project> {
             },
         )
         task.resourceXmlFiles.from(
-            sourceSetNames.map { sourceSetName ->
-                project.layout.projectDirectory.dir("src/$sourceSetName/res")
+            indexedSourceSetRoots(
+                projectDirectory = project.projectDir,
+                additionalProjectDirectories = additionalProjectDirectories,
+                sourceSetNames = sourceSetNames,
+                childPath = "res",
+            ).map { sourceRoot ->
+                project.files(sourceRoot)
                     .asFileTree
                     .matching { pattern ->
                         pattern.include("**/*.xml")
@@ -140,6 +153,26 @@ internal fun activeSourceSetNames(
     flavorName?.takeIf { it.isNotBlank() }?.let(::add)
     variantName.takeIf { it.isNotBlank() }?.let(::add)
 }.distinct()
+
+internal fun indexedSourceSetRoots(
+    projectDirectory: File,
+    additionalProjectDirectories: List<File>,
+    sourceSetNames: List<String>,
+    childPath: String = "",
+): List<File> {
+    val projectDirectories = (listOf(projectDirectory) + additionalProjectDirectories)
+        .map { it.canonicalFile }
+        .distinctBy { it.absolutePath }
+    return projectDirectories.flatMap { candidateProject ->
+        sourceSetNames.mapNotNull { sourceSetName ->
+            val sourceRoot = candidateProject
+                .resolve("src")
+                .resolve(sourceSetName)
+                .let { if (childPath.isBlank()) it else it.resolve(childPath) }
+            sourceRoot.takeIf { it.isDirectory }?.canonicalFile
+        }
+    }
+}
 
 internal fun fixThisSetupTaskName(variantName: String): String = if (variantName == "debug") {
     "fixthisSetup"

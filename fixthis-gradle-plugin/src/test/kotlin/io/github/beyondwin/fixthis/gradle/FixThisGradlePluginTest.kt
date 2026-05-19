@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.gradle
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
+import java.nio.file.Files
 
 class FixThisGradlePluginTest {
     @Test
@@ -51,6 +52,34 @@ class FixThisGradlePluginTest {
         assertEquals(
             "io.github.beyondwin:fixthis-compose-sidekick:0.2.3",
             fixThisSidekickCoordinate("0.2.3"),
+        )
+    }
+
+    @Test
+    fun `indexed source roots include sibling feature modules by default`() {
+        val root = Files.createTempDirectory("fixthis-indexed-roots").toFile().canonicalFile
+        val app = root.resolve("app")
+        val feature = root.resolve("feature/station-list")
+        app.resolve("src/main/java").mkdirs()
+        app.resolve("src/debug/java").mkdirs()
+        feature.resolve("src/main/java").mkdirs()
+        feature.resolve("src/debug/java").mkdirs()
+
+        val roots = indexedSourceSetRoots(
+            projectDirectory = app,
+            additionalProjectDirectories = listOf(feature),
+            sourceSetNames = listOf("main", "debug"),
+            childPath = "java",
+        ).map { it.relativeTo(root).invariantSeparatorsPath }
+
+        assertEquals(
+            listOf(
+                "app/src/main/java",
+                "app/src/debug/java",
+                "feature/station-list/src/main/java",
+                "feature/station-list/src/debug/java",
+            ),
+            roots,
         )
     }
 

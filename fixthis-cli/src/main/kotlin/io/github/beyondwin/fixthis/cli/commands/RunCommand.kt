@@ -9,6 +9,8 @@ import io.github.beyondwin.fixthis.cli.Adb
 import io.github.beyondwin.fixthis.cli.AdbDevice
 import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.cli.ExitCode
+import io.github.beyondwin.fixthis.cli.ProjectConfig
+import io.github.beyondwin.fixthis.cli.ResolvedProjectConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -17,17 +19,19 @@ import java.io.File
 class RunCommand : CoreCliktCommand(name = "run") {
     private val packageName by option("--package", help = "Android application id to launch")
     private val projectDir by option("--project-dir", help = "Project root containing .fixthis/project.json").default(".")
-    private val installTask by option("--install-task", help = "Gradle install task to run before launch").default(":app:installDebug")
+    private val installTask by option("--install-task", help = "Gradle install task to run before launch")
     private val timeoutMillis by option("--timeout-millis", help = "Bridge status timeout after launch").long().default(30_000L)
 
     override fun run() {
         val root = File(projectDir).canonicalFile
         val adb = Adb(adbExecutable = requireAndroidRunEnvironment(root))
         val client = BridgeClient(adb = adb, projectRoot = root)
-        val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
+        val config = failAsCliError { ProjectConfig.resolve(root, packageName) }
+        val resolvedPackage = config.applicationId
+        val resolvedInstallTask = installTask ?: defaultInstallTask(config)
 
-        echo("Installing debug app with ./gradlew $installTask")
-        runGradle(root, installTask)
+        echo("Installing debug app with ./gradlew $resolvedInstallTask")
+        runGradle(root, resolvedInstallTask)
         echo("Launching $resolvedPackage")
         failAsCliError { adb.monkey(resolvedPackage) }
         echo("Checking FixThis sidekick")
@@ -51,6 +55,23 @@ class RunCommand : CoreCliktCommand(name = "run") {
         val exitCode = process.waitFor()
         if (exitCode != 0) error("Gradle install failed with exit code $exitCode")
     }
+}
+
+internal fun defaultInstallTask(config: ResolvedProjectConfig): String {
+    val projectPath = config.projectPath?.takeIf { it.isNotBlank() }
+    val variantName = config.variantName?.takeIf { it.isNotBlank() }
+    return if (projectPath != null && variantName != null) {
+        val normalizedProjectPath = projectPath
+            .trimEnd(':')
+            .let { if (it.startsWith(":")) it else ":$it" }
+        "$normalizedProjectPath:install${variantName.capitalized()}"
+    } else {
+        ":app:installDebug"
+    }
+}
+
+private fun String.capitalized(): String = replaceFirstChar { char ->
+    if (char.isLowerCase()) char.titlecase() else char.toString()
 }
 
 internal fun requireAndroidRunEnvironment(

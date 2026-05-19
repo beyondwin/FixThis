@@ -4,21 +4,42 @@ import kotlinx.serialization.Serializable
 import java.io.File
 
 object ProjectConfig {
-    fun resolvePackageName(projectRoot: File, packageOverride: String?): String {
-        packageOverride?.takeIf { it.isNotBlank() }?.let { return it }
+    fun resolve(projectRoot: File, packageOverride: String?): ResolvedProjectConfig {
         val projectConfig = projectRoot.resolve(".fixthis/project.json")
-        return if (projectConfig.exists()) {
-            val config = fixThisJson.decodeFromString(ProjectMetadata.serializer(), projectConfig.readText())
-            config.applicationId.takeIf { it.isNotBlank() }
-                ?: error("${projectConfig.path} does not contain applicationId")
+        val metadata = if (projectConfig.exists()) {
+            fixThisJson.decodeFromString(ProjectMetadata.serializer(), projectConfig.readText())
         } else {
-            GradleApplicationIdDetector.find(projectRoot) ?: error(
-                "No package was provided, ${projectConfig.path} does not exist, " +
-                    "and no unique Android applicationId was found in Gradle build files",
+            null
+        }
+        return when {
+            !packageOverride.isNullOrBlank() -> ResolvedProjectConfig(
+                applicationId = packageOverride,
+                projectPath = metadata?.projectPath?.takeIf(String::isNotBlank),
+                variantName = metadata?.variantName?.takeIf(String::isNotBlank),
+            )
+            metadata != null -> ResolvedProjectConfig(
+                applicationId = metadata.applicationId.takeIf { it.isNotBlank() }
+                    ?: error("${projectConfig.path} does not contain applicationId"),
+                projectPath = metadata.projectPath?.takeIf(String::isNotBlank),
+                variantName = metadata.variantName?.takeIf(String::isNotBlank),
+            )
+            else -> ResolvedProjectConfig(
+                applicationId = GradleApplicationIdDetector.find(projectRoot) ?: error(
+                    "No package was provided, ${projectConfig.path} does not exist, " +
+                        "and no unique Android applicationId was found in Gradle build files",
+                ),
             )
         }
     }
+
+    fun resolvePackageName(projectRoot: File, packageOverride: String?): String = resolve(projectRoot, packageOverride).applicationId
 }
+
+data class ResolvedProjectConfig(
+    val applicationId: String,
+    val projectPath: String? = null,
+    val variantName: String? = null,
+)
 
 object GradleApplicationIdDetector {
     private val applicationIdRegex =
@@ -117,4 +138,6 @@ data class GradleAndroidApplication(
 private data class ProjectMetadata(
     val schemaVersion: String = "1.0",
     val applicationId: String,
+    val projectPath: String? = null,
+    val variantName: String? = null,
 )

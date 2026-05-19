@@ -252,7 +252,7 @@ internal class KotlinSourceScanner(
     ): SourceIndexEntryBuilder = getOrPut(lineNumber) {
         val sourceFile = file.canonicalFile
         SourceIndexEntryBuilder(
-            file = sourceFile.relativeToOrSelf(projectDirectory).invariantSeparatorsPath,
+            file = sourceFile.relativeSourcePath(projectDirectory, rootProjectDirectory),
             repoFile = sourceFile.relativeToOrSelf(rootProjectDirectory).invariantSeparatorsPath,
             line = lineNumber,
             excerpt = line.trim(),

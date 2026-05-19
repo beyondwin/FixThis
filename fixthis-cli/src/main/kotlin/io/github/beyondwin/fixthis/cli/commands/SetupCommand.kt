@@ -310,7 +310,7 @@ class InitCommand : CoreCliktCommand(name = "init") {
         val root = File(projectDir).canonicalFile
         val resolvedPackage = resolvePackageForInstall(root)
         preflightGradlePlugin(root, resolvedPackage)
-        runSetupWrite()
+        runSetupWrite(resolvedPackage ?: packageName)
         writeInstallArtifacts(root, resolvedPackage)
         echo("")
         echo("Next for agents:")
@@ -336,10 +336,10 @@ class InitCommand : CoreCliktCommand(name = "init") {
         )
     }
 
-    private fun runSetupWrite() {
+    private fun runSetupWrite(packageForConfig: String?) {
         SetupCommand().parse(
             buildList {
-                packageName?.let {
+                packageForConfig?.let {
                     add("--package")
                     add(it)
                 }
@@ -595,11 +595,15 @@ internal fun buildMcpConfigEntry(
     sdk: AndroidSdkLocator.SdkLocation?,
     executable: File?,
 ): McpConfigEntry {
-    val command = executable?.absolutePath ?: "fixthis"
-    val args = if (executable == null) {
-        listOf("mcp", "--package", resolvedPackage, "--project-dir", root.absolutePath)
-    } else {
-        listOf("--package", resolvedPackage, "--project-dir", root.absolutePath)
+    val stableExecutable = executable?.stableHomebrewExecutable()
+    val command = when {
+        stableExecutable != null -> stableExecutable.absolutePath
+        executable == null || executable.isVersionedHomebrewCellarExecutable() -> "fixthis"
+        else -> executable.absolutePath
+    }
+    val args = when (command) {
+        "fixthis" -> listOf("mcp", "--package", resolvedPackage, "--project-dir", root.absolutePath)
+        else -> listOf("--package", resolvedPackage, "--project-dir", root.absolutePath)
     }
     return McpConfigEntry(
         serverName = serverName,
@@ -609,6 +613,24 @@ internal fun buildMcpConfigEntry(
             sdk?.let { put("ANDROID_HOME", it.home.absolutePath) }
         },
     )
+}
+
+private fun File.isVersionedHomebrewCellarExecutable(): Boolean {
+    val normalized = absolutePath.replace(File.separatorChar, '/')
+    return Regex("""/Cellar/fixthis/[^/]+/""").containsMatchIn(normalized)
+}
+
+private fun File.stableHomebrewExecutable(): File? {
+    val normalized = absolutePath.replace(File.separatorChar, '/')
+    val prefix = if (isVersionedHomebrewCellarExecutable()) {
+        normalized.substringBefore("/Cellar/fixthis/", missingDelimiterValue = "")
+    } else {
+        ""
+    }
+    return prefix
+        .takeIf { it.isNotBlank() }
+        ?.let { File(it).resolve("bin").resolve(name) }
+        ?.takeIf { it.isFile && it.canExecute() }
 }
 
 class McpCommand : CoreCliktCommand(name = "mcp") {

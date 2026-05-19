@@ -135,6 +135,55 @@ class GenerateFixThisSourceIndexTaskTest {
     }
 
     @Test
+    fun `uses repo relative file paths for indexed sources outside app module`() {
+        val rootDir = temporaryFolder.newFolder("repo")
+        val appDir = rootDir.resolve("app")
+        val featureFile = rootDir.resolve("feature/station-list/src/main/java/io/example/StationCard.kt")
+        featureFile.parentFile.mkdirs()
+        featureFile.writeText(
+            """
+            package io.example
+
+            import androidx.compose.material3.Text
+            import androidx.compose.runtime.Composable
+
+            @Composable
+            fun StationCard() {
+                Text("Nearby station")
+            }
+            """.trimIndent(),
+        )
+        val outputDir = appDir.resolve("build/generated/fixthis/debug/assets")
+
+        runTask(
+            projectDir = appDir,
+            rootProjectDir = rootDir,
+            kotlinSources = listOf(featureFile),
+            resourceXmlFiles = emptyList(),
+            outputDir = outputDir,
+        )
+
+        val entry = Json.parseToJsonElement(
+            outputDir.resolve("fixthis/fixthis-source-index.json").readText(),
+        ).jsonObject.getValue("entries").jsonArray
+            .map { it.jsonObject }
+            .single { entry ->
+                entry.getValue("symbols").jsonArray.any { symbol ->
+                    symbol.jsonPrimitive.content == "StationCard"
+                }
+            }
+
+        assertEquals(
+            "feature/station-list/src/main/java/io/example/StationCard.kt",
+            entry.getValue("file").jsonPrimitive.content,
+        )
+        assertEquals(
+            "feature/station-list/src/main/java/io/example/StationCard.kt",
+            entry.getValue("repoFile").jsonPrimitive.content,
+        )
+    }
+
+    @Test
     fun `scans xml string resources and writes build info`() {
         val projectDir = temporaryFolder.newFolder("project")
         val stringsFile = projectDir.resolve("src/main/res/values/strings.xml")

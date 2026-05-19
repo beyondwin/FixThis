@@ -52,6 +52,65 @@ class SetupPlannerTest {
     }
 
     @Test
+    fun mcpConfigEntryAvoidsPersistingVersionedHomebrewCellarPath() {
+        val projectRoot = temporaryFolder.newFolder("project").canonicalFile
+        val executable = temporaryFolder.root
+            .resolve("Cellar/fixthis/0.6.0/libexec/fixthis-mcp/bin/fixthis-mcp")
+        executable.parentFile.mkdirs()
+        executable.writeText("#!/bin/sh\n")
+        executable.setExecutable(true)
+
+        val entry = buildMcpConfigEntry(
+            resolvedPackage = "io.github.beyondwin.fixthis.sample",
+            root = projectRoot,
+            serverName = "fixthis",
+            sdk = null,
+            executable = executable,
+        )
+
+        assertEquals("fixthis", entry.command)
+        assertEquals(
+            listOf(
+                "mcp",
+                "--package",
+                "io.github.beyondwin.fixthis.sample",
+                "--project-dir",
+                projectRoot.absolutePath,
+            ),
+            entry.args,
+        )
+    }
+
+    @Test
+    fun mcpConfigEntryUsesStableHomebrewBinPathWhenAvailable() {
+        val homebrewRoot = temporaryFolder.newFolder("homebrew").canonicalFile
+        val projectRoot = temporaryFolder.newFolder("project").canonicalFile
+        val cellarExecutable = homebrewRoot
+            .resolve("Cellar/fixthis/0.6.0/libexec/fixthis-mcp/bin/fixthis-mcp")
+        cellarExecutable.parentFile.mkdirs()
+        cellarExecutable.writeText("#!/bin/sh\n")
+        cellarExecutable.setExecutable(true)
+        val stableExecutable = homebrewRoot.resolve("bin/fixthis-mcp")
+        stableExecutable.parentFile.mkdirs()
+        stableExecutable.writeText("#!/bin/sh\n")
+        stableExecutable.setExecutable(true)
+
+        val entry = buildMcpConfigEntry(
+            resolvedPackage = "io.github.beyondwin.fixthis.sample",
+            root = projectRoot,
+            serverName = "fixthis",
+            sdk = null,
+            executable = cellarExecutable,
+        )
+
+        assertEquals(stableExecutable.absolutePath, entry.command)
+        assertEquals(
+            listOf("--package", "io.github.beyondwin.fixthis.sample", "--project-dir", projectRoot.absolutePath),
+            entry.args,
+        )
+    }
+
+    @Test
     fun buildWritePlansPreservesDryRunMetadataWithoutWritingConfigFiles() {
         val projectRoot = temporaryFolder.newFolder("project").canonicalFile
         val configFile = projectRoot.resolve("fake-agent.conf")
