@@ -58,21 +58,33 @@ internal fun requireAndroidRunEnvironment(
     sdkLookup: () -> AndroidSdkLocator.SdkLocation? = { AndroidSdkLocator.find(projectRoot = root) },
     devicesLookup: (String) -> List<AdbDevice> = { adbExecutable -> Adb(adbExecutable = adbExecutable).devices() },
 ): String {
-    val sdk = sdkLookup() ?: throw CliktError(
-        "Android SDK platform-tools were not found.\n" +
+    val sdk = requireAndroidSdk(sdkLookup)
+    val devices = listAndroidDevices(sdk.adb.absolutePath, devicesLookup)
+    requireConnectedAndroidDevice(devices)
+    return sdk.adb.absolutePath
+}
+
+private fun requireAndroidSdk(sdkLookup: () -> AndroidSdkLocator.SdkLocation?): AndroidSdkLocator.SdkLocation = sdkLookup() ?: throw CliktError(
+    "Android SDK platform-tools were not found.\n" +
+        "Fix: Install Android SDK platform-tools or set ANDROID_HOME.",
+    statusCode = ExitCode.ENV_BLOCKER.value,
+)
+
+private fun listAndroidDevices(
+    adbExecutable: String,
+    devicesLookup: (String) -> List<AdbDevice>,
+): List<AdbDevice> = try {
+    devicesLookup(adbExecutable)
+} catch (error: Throwable) {
+    throw CliktError(
+        "ADB could not list Android devices: ${error.message ?: error::class.java.simpleName}\n" +
             "Fix: Install Android SDK platform-tools or set ANDROID_HOME.",
         statusCode = ExitCode.ENV_BLOCKER.value,
+        cause = error as? Exception,
     )
-    val devices = try {
-        devicesLookup(sdk.adb.absolutePath)
-    } catch (error: Throwable) {
-        throw CliktError(
-            "ADB could not list Android devices: ${error.message ?: error::class.java.simpleName}\n" +
-                "Fix: Install Android SDK platform-tools or set ANDROID_HOME.",
-            statusCode = ExitCode.ENV_BLOCKER.value,
-            cause = error as? Exception,
-        )
-    }
+}
+
+private fun requireConnectedAndroidDevice(devices: List<AdbDevice>) {
     if (!hasConnectedAndroidDevice(devices)) {
         throw CliktError(
             "No connected Android device or emulator found.\n" +
@@ -80,7 +92,6 @@ internal fun requireAndroidRunEnvironment(
             statusCode = ExitCode.ENV_BLOCKER.value,
         )
     }
-    return sdk.adb.absolutePath
 }
 
 /**
