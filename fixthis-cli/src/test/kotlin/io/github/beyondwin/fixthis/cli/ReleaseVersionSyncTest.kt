@@ -54,9 +54,8 @@ class ReleaseVersionSyncTest {
         )
     }
 
-    private fun runtimeBuildVersion(): String =
-        System.getProperty("fixthis.version")
-            ?: gradlePropertiesVersion()
+    private fun runtimeBuildVersion(): String = System.getProperty("fixthis.version")
+        ?: gradlePropertiesVersion()
 
     private fun gradlePropertiesVersion(): String = File(repoRoot, "gradle.properties")
         .readLines()

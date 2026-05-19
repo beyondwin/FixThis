@@ -307,6 +307,36 @@ class InitCommand : CoreCliktCommand(name = "init") {
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 
     override fun run() {
+        val root = File(projectDir).canonicalFile
+        val resolvedPackage = resolvePackageForInstall(root)
+        preflightGradlePlugin(root, resolvedPackage)
+        runSetupWrite()
+        writeInstallArtifacts(root, resolvedPackage)
+        echo("")
+        echo("Next for agents:")
+        echo("  1. Restart Claude Code or Codex so the MCP config is reloaded.")
+        echo("  2. Run `fixthis doctor --project-dir ${File(projectDir).canonicalFile.absolutePath}`.")
+        echo("  3. Open the console with `fixthis_open_feedback_console`.")
+    }
+
+    private fun resolvePackageForInstall(root: File): String? = if (agent || applyGradlePlugin) {
+        failAsCliError {
+            BridgeClient(projectRoot = root).resolvePackageName(packageName)
+        }
+    } else {
+        null
+    }
+
+    private fun preflightGradlePlugin(root: File, resolvedPackage: String?) {
+        if (!applyGradlePlugin) return
+        GradlePluginInstaller.preflight(
+            projectRoot = root,
+            packageName = checkNotNull(resolvedPackage),
+            pluginVersion = pluginVersion,
+        )
+    }
+
+    private fun runSetupWrite() {
         SetupCommand().parse(
             buildList {
                 packageName?.let {
@@ -328,35 +358,31 @@ class InitCommand : CoreCliktCommand(name = "init") {
                 }
             },
         )
-        if (agent || applyGradlePlugin) {
-            val root = File(projectDir).canonicalFile
-            val resolvedPackage = failAsCliError {
-                BridgeClient(projectRoot = root).resolvePackageName(packageName)
-            }
-            if (applyGradlePlugin) {
-                GradlePluginInstaller.apply(
-                    projectRoot = root,
-                    packageName = resolvedPackage,
-                    pluginVersion = pluginVersion,
-                    dryRun = dryRun,
-                    echo = ::echo,
-                )
-            }
-            if (agent) {
-                AgentSetupFiles.write(
-                    projectRoot = root,
-                    packageName = resolvedPackage,
-                    serverName = validateMcpServerName(serverName),
-                    dryRun = dryRun,
-                    echo = ::echo,
-                )
-            }
+    }
+
+    private fun writeInstallArtifacts(root: File, resolvedPackage: String?) {
+        if (!agent && !applyGradlePlugin) return
+        val packageForSetup = resolvedPackage ?: failAsCliError {
+            BridgeClient(projectRoot = root).resolvePackageName(packageName)
         }
-        echo("")
-        echo("Next for agents:")
-        echo("  1. Restart Claude Code or Codex so the MCP config is reloaded.")
-        echo("  2. Run `fixthis doctor --project-dir ${File(projectDir).canonicalFile.absolutePath}`.")
-        echo("  3. Open the console with `fixthis_open_feedback_console`.")
+        if (applyGradlePlugin) {
+            GradlePluginInstaller.apply(
+                projectRoot = root,
+                packageName = packageForSetup,
+                pluginVersion = pluginVersion,
+                dryRun = dryRun,
+                echo = ::echo,
+            )
+        }
+        if (agent) {
+            AgentSetupFiles.write(
+                projectRoot = root,
+                packageName = packageForSetup,
+                serverName = validateMcpServerName(serverName),
+                dryRun = dryRun,
+                echo = ::echo,
+            )
+        }
     }
 }
 

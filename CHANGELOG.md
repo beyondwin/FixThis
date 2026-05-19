@@ -27,6 +27,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+No user-visible changes yet.
+
+## [0.6.1] - 2026-05-19
+
 ### Added
 
 - Release version synchronization is now guarded by
@@ -54,6 +58,25 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - The documented Compose baseline for the current source tree is
   `2025.01.01` with Compose UI test artifacts `1.7.8`, matching the version
   catalog and the Android 14-compatible sidekick build.
+- `fixthis install-agent` now warns when users explicitly request the
+  previously published `0.6.0` runtime from a project compiling below Android
+  16, because that artifact's dependency metadata requires `compileSdk` 36.
+
+### Fixed
+
+- The published `0.6.1` Gradle plugin, sidekick, CLI, npm wrapper, MCP
+  metadata, and install docs are version-aligned so external projects resolve
+  the Android 14-compatible sidekick artifact instead of the previous
+  `compileSdk` 36 runtime.
+- `fixthis install-agent --package <flavorApplicationId>` now preflights the
+  Gradle app-module match before writing agent config, avoiding partial global
+  Codex / Claude config writes when a flavor-suffixed application id cannot be
+  mapped to an app module.
+- ADB bridge requests without an explicit device now scope to the only ready
+  device when other attached emulators are offline, avoiding `adb: more than
+  one device/emulator` failures in common stale-emulator sessions.
+- Central Portal bundle creation now accepts documented relative output paths
+  as well as absolute paths.
 
 ## [0.6.0] - 2026-05-18
 

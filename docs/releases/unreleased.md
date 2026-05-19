@@ -18,6 +18,10 @@ GitHub Release page and registry listings as release evidence.
   `npm run release:compat:test`. The sidekick AAR bundle gate checks
   `minCompileSdk` against the same catalog value before producing Central
   Portal upload artifacts.
+- The next patch release keeps the debug sidekick consumable by apps compiling
+  with Android 14 (`compileSdk` 34). The CLI still warns when explicitly asked
+  to install the previous patch runtime, whose dependency metadata requires
+  `compileSdk` 36.
 - The Gradle Plugin Portal workflow now tests the requested version contract
   before publishing, reducing the chance of publishing plugin metadata that
   points at the wrong runtime version.
@@ -25,7 +29,7 @@ GitHub Release page and registry listings as release evidence.
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin
-  `io.github.beyondwin.fixthis.compose` version `0.6.0`.
+  `io.github.beyondwin.fixthis.compose` version `0.6.1`.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - The current source tree builds the sidekick and sample with Android
   `compileSdk` 34, `targetSdk` 34, and `minSdk` 24 from

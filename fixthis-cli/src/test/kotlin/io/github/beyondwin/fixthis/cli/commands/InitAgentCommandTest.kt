@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.cli.commands
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.parse
 import io.github.beyondwin.fixthis.cli.ExitCode
+import io.github.beyondwin.fixthis.cli.FixThisRelease
 import io.github.beyondwin.fixthis.cli.buildRootCommand
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -116,6 +117,46 @@ class InitAgentCommandTest {
 
         val buildText = buildFile.readText()
         assertTrue(buildText.contains("""id("io.github.beyondwin.fixthis.compose") version "0.2.0""""))
+    }
+
+    @Test
+    fun installAgentDoesNotWriteAgentConfigWhenGradleAppModulePreflightFails() {
+        val projectRoot = androidProject("com.example.base")
+        val userHome = temporaryFolder.newFolder("home")
+        val codexConfig = userHome.resolve(".codex/config.toml")
+        val claudeSettings = projectRoot.resolve(".claude/settings.json")
+
+        val statusCode = try {
+            withUserHome(userHome) {
+                buildRootCommand().parse(
+                    listOf(
+                        "install-agent",
+                        "--package",
+                        "com.example.base.demo",
+                        "--project-dir",
+                        projectRoot.absolutePath,
+                        "--target",
+                        "all",
+                        "--plugin-version",
+                        "0.6.0",
+                    ),
+                )
+            }
+            0
+        } catch (error: CliktError) {
+            error.statusCode
+        }
+
+        assertTrue(
+            "install-agent must fail when the requested package cannot be mapped to an app module",
+            statusCode != ExitCode.OK.value,
+        )
+        assertFalse("Codex config must not be written before Gradle module preflight passes", codexConfig.exists())
+        assertFalse(
+            "Claude settings must not be written before Gradle module preflight passes",
+            claudeSettings.exists(),
+        )
+        assertFalse(projectRoot.resolve(".fixthis/agent-setup.json").exists())
     }
 
     @Test
@@ -398,7 +439,7 @@ class InitAgentCommandTest {
                     "--target",
                     "claude",
                     "--plugin-version",
-                    "0.6.0",
+                    FixThisRelease.VERSION,
                 ),
             )
         }
@@ -406,7 +447,7 @@ class InitAgentCommandTest {
         assertTrue(
             projectRoot.resolve("app/build.gradle.kts")
                 .readText()
-                .contains("""id("io.github.beyondwin.fixthis.compose") version "0.6.0""""),
+                .contains("""id("io.github.beyondwin.fixthis.compose") version "${FixThisRelease.VERSION}""""),
         )
     }
 

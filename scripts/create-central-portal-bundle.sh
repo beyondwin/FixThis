@@ -22,6 +22,14 @@ repo_dir="${2:?repo dir is required}"
 bundle_path="${3:?bundle path is required}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+repo_dir_parent="$(dirname "$repo_dir")"
+repo_dir_name="$(basename "$repo_dir")"
+bundle_path_parent="$(dirname "$bundle_path")"
+bundle_path_name="$(basename "$bundle_path")"
+mkdir -p "$repo_dir_parent" "$bundle_path_parent"
+repo_dir="$(cd "$repo_dir_parent" && pwd)/$repo_dir_name"
+bundle_path="$(cd "$bundle_path_parent" && pwd)/$bundle_path_name"
+
 checksum_md5() {
   if command -v md5sum >/dev/null 2>&1; then
     md5sum "$1" | awk '{print $1}'

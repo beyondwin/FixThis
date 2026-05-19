@@ -79,8 +79,9 @@ class BridgeClient(
     fun selectedDeviceSerial(): String? = deviceSelection.selected()
 
     private fun requestScope(): BridgeRequestScope {
-        val serial = deviceSelection.selected()
-        return BridgeRequestScope(selectedDeviceSerial = serial, adb = resolvedAdb.forDevice(serial))
+        val selectedSerial = deviceSelection.selected()
+        val scopedSerial = BridgeRequestDeviceResolver.resolve(resolvedAdb.devices(), selectedSerial)
+        return BridgeRequestScope(selectedDeviceSerial = scopedSerial, adb = resolvedAdb.forDevice(scopedSerial))
     }
 
     suspend fun request(
@@ -120,7 +121,6 @@ class BridgeClient(
         scope: BridgeRequestScope,
         activeRequest: ActiveBridgeRequest,
     ): JsonObject {
-        ensureDeviceConnected(scope.adb, scope.selectedDeviceSerial)
         val session = sessionReader.read(scope.adb, packageName)
         for (attempt in 0 until BRIDGE_SOCKET_NAME_MAX_ATTEMPTS) {
             val attemptedSession = session.withSocketNameAttempt(attempt)
@@ -201,17 +201,7 @@ class BridgeClient(
 
     private fun ensureDeviceConnected(adb: AdbFacade, selectedDeviceSerial: String?) {
         val devices = adb.devices()
-        if (selectedDeviceSerial == null) {
-            if (devices.none { it.state == "device" }) {
-                throw NoDeviceException("No connected Android device or emulator found")
-            }
-            return
-        }
-        val device = devices.firstOrNull { it.serial == selectedDeviceSerial }
-            ?: throw NoDeviceException("Selected Android device is not connected: $selectedDeviceSerial")
-        if (device.state != "device") {
-            throw NoDeviceException("Selected Android device is not ready: $selectedDeviceSerial (${device.state})")
-        }
+        BridgeRequestDeviceResolver.resolve(devices, selectedDeviceSerial)
     }
 }
 

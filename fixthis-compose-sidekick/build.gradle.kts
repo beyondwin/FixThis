@@ -7,10 +7,16 @@ plugins {
 
 android {
     namespace = "io.github.beyondwin.fixthis.compose.sidekick"
-    compileSdk = libs.versions.androidCompileSdk.get().toInt()
+    compileSdk =
+        libs.versions.androidCompileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
-        minSdk = libs.versions.androidMinSdk.get().toInt()
+        minSdk =
+            libs.versions.androidMinSdk
+                .get()
+                .toInt()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
     }

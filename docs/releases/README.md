@@ -10,6 +10,9 @@ Maven Central, and the Gradle Plugin Portal.
 ## Releases
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [v0.6.1](v0.6.1.md) — compatibility patch for external Android projects,
+  restoring Android 14-compatible sidekick metadata and aligning published
+  install surfaces.
 - [v0.6.0](v0.6.0.md) — rollup of v0.4 maintainability, v0.5 trustworthy
   onboarding, and v0.6 Handoff Intelligence / Studio Reliability / Release
   Grade. There is no separate v0.4.0 or v0.5.0 tag.

@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.CliktError
 import io.github.beyondwin.fixthis.cli.FixThisRelease
+import io.github.beyondwin.fixthis.cli.GradleAndroidApplication
 import io.github.beyondwin.fixthis.cli.GradleApplicationIdDetector
 import java.io.File
 
@@ -17,9 +18,8 @@ internal object GradlePluginInstaller {
         dryRun: Boolean,
         echo: (String) -> Unit,
     ) {
-        val application = GradleApplicationIdDetector.findApplication(projectRoot, packageName)
-            ?: throw CliktError(AgentSurfaceMessages.noAppModule(packageName = packageName))
-        val plan = patchPlan(application.buildFile, pluginVersion)
+        val (application, plan) = applicationPatchPlan(projectRoot, packageName, pluginVersion)
+        RuntimeCompileSdkCompatibility.emitWarning(projectRoot, application.buildFile, pluginVersion, echo)
         if (plan == null) {
             SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
                 target = "gradle-plugin",
@@ -41,6 +41,24 @@ internal object GradlePluginInstaller {
             scope = "project-local",
         )
         echo("Applied Gradle plugin `$PluginId` to ${application.buildFile.absolutePath}")
+    }
+
+    fun preflight(
+        projectRoot: File,
+        packageName: String,
+        pluginVersion: String,
+    ) {
+        applicationPatchPlan(projectRoot, packageName, pluginVersion)
+    }
+
+    private fun applicationPatchPlan(
+        projectRoot: File,
+        packageName: String,
+        pluginVersion: String,
+    ): ApplicationPatchPlan {
+        val application = GradleApplicationIdDetector.findApplication(projectRoot, packageName)
+            ?: throw CliktError(AgentSurfaceMessages.noAppModule(packageName = packageName))
+        return ApplicationPatchPlan(application, patchPlan(application.buildFile, pluginVersion))
     }
 
     private fun patchPlan(buildFile: File, pluginVersion: String): PatchPlan? {
@@ -79,5 +97,58 @@ internal object GradlePluginInstaller {
         }
     }
 
+    private data class ApplicationPatchPlan(
+        val application: GradleAndroidApplication,
+        val patch: PatchPlan?,
+    )
+
     private data class PatchPlan(val newText: String)
+}
+
+private object RuntimeCompileSdkCompatibility {
+    private const val BrokenRuntimeVersion = "0.6.0"
+    private const val BrokenRuntimeMinCompileSdk = 36
+
+    fun emitWarning(
+        projectRoot: File,
+        buildFile: File,
+        pluginVersion: String,
+        echo: (String) -> Unit,
+    ) {
+        val required = minimumCompileSdkForRuntime(pluginVersion) ?: return
+        val detected = detectCompileSdk(projectRoot, buildFile) ?: return
+        if (detected < required) {
+            echo(
+                "Warning: FixThis runtime $pluginVersion requires Android compileSdk $required or newer; " +
+                    "detected compileSdk $detected. Update the app compileSdk before building the debug variant.",
+            )
+        }
+    }
+
+    private fun minimumCompileSdkForRuntime(pluginVersion: String): Int? = when (pluginVersion) {
+        BrokenRuntimeVersion -> BrokenRuntimeMinCompileSdk
+        else -> null
+    }
+
+    private fun detectCompileSdk(projectRoot: File, buildFile: File): Int? = directCompileSdk(buildFile) ?: versionCatalogCompileSdk(projectRoot)
+
+    private fun directCompileSdk(buildFile: File): Int? {
+        val text = buildFile.readText()
+        val kotlinDsl = Regex("""(?m)\bcompileSdk\s*=\s*(\d+)""").find(text)
+        val groovyDsl = Regex("""(?m)\bcompileSdk\s+(\d+)""").find(text)
+        return (kotlinDsl ?: groovyDsl)?.groupValues?.get(1)?.toIntOrNull()
+    }
+
+    private fun versionCatalogCompileSdk(projectRoot: File): Int? {
+        val catalog = projectRoot.resolve("gradle/libs.versions.toml").takeIf { it.isFile } ?: return null
+        val text = catalog.readText()
+        return listOf("compileSdk", "androidCompileSdk")
+            .firstNotNullOfOrNull { key ->
+                Regex("(?m)^$key\\s*=\\s*\"(\\d+)\"")
+                    .find(text)
+                    ?.groupValues
+                    ?.get(1)
+                    ?.toIntOrNull()
+            }
+    }
 }

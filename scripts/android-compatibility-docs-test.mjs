@@ -24,9 +24,9 @@ test("Android SDK levels are centralized in the version catalog", () => {
   const sidekickBuild = read("fixthis-compose-sidekick/build.gradle.kts");
   const sampleBuild = read("sample/build.gradle.kts");
 
-  assert.match(sidekickBuild, /compileSdk\s*=\s*libs\.versions\.androidCompileSdk\.get\(\)\.toInt\(\)/);
-  assert.match(sampleBuild, /compileSdk\s*=\s*libs\.versions\.androidCompileSdk\.get\(\)\.toInt\(\)/);
-  assert.match(sampleBuild, /targetSdk\s*=\s*libs\.versions\.androidTargetSdk\.get\(\)\.toInt\(\)/);
+  assert.match(sidekickBuild, /compileSdk\s*=\s*libs\.versions\.androidCompileSdk\s*\.get\(\)\s*\.toInt\(\)/);
+  assert.match(sampleBuild, /compileSdk\s*=\s*libs\.versions\.androidCompileSdk\s*\.get\(\)\s*\.toInt\(\)/);
+  assert.match(sampleBuild, /targetSdk\s*=\s*libs\.versions\.androidTargetSdk\s*\.get\(\)\s*\.toInt\(\)/);
 
   assert.doesNotMatch(sidekickBuild, /compileSdk\s*=\s*34/);
   assert.doesNotMatch(sampleBuild, /compileSdk\s*=\s*34/);
@@ -58,6 +58,8 @@ test("Central Portal bundle rejects sidekick artifacts with a drifted minCompile
   const script = read("scripts/create-central-portal-bundle.sh");
 
   assert.match(script, /fixthis-compose-sidekick-\$version\.aar/);
+  assert.match(script, /repo_dir_parent/);
+  assert.match(script, /bundle_path_parent/);
   assert.match(script, /androidCompileSdk/);
   assert.match(script, /expected_compile_sdk/);
   assert.match(script, /minCompileSdk=\$expected_compile_sdk/);
