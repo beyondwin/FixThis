@@ -10,6 +10,7 @@ internal data class EvidenceProfile(
     val hasSelectedTestTag: Boolean = SourceMatchReason.SELECTED_TEST_TAG in reasons
     val hasSelectedUiText: Boolean = SourceMatchReason.SELECTED_TEXT in reasons
     val hasSelectedContentDescription: Boolean = SourceMatchReason.SELECTED_CONTENT_DESCRIPTION in reasons
+    val hasSelectedStateDescription: Boolean = SourceMatchReason.SELECTED_STATE_DESCRIPTION in reasons
     val hasSelectedRole: Boolean = SourceMatchReason.SELECTED_ROLE in reasons
     val hasSelectedStringResource: Boolean = SourceMatchReason.SELECTED_STRING_RESOURCE in reasons
     val hasSelectedResolvedStringResource: Boolean = SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE in reasons
@@ -21,6 +22,7 @@ internal data class EvidenceProfile(
             hasStrictCompTag ||
             hasSelectedUiText ||
             hasSelectedContentDescription ||
+            hasSelectedStateDescription ||
             hasSelectedRole ||
             hasSelectedStringResource ||
             hasSelectedResolvedStringResource
@@ -52,6 +54,7 @@ internal data class EvidenceProfile(
     val distinctSelectedMediumKinds: Int =
         (if (hasSelectedUiText) 1 else 0) +
             (if (hasSelectedContentDescription) 1 else 0) +
+            (if (hasSelectedStateDescription) 1 else 0) +
             (if (hasSelectedStringResource || hasSelectedResolvedStringResource) 1 else 0) +
             (if (hasSelectedRole && hasAnySelected && reasons != setOf(SourceMatchReason.SELECTED_ROLE)) 1 else 0)
 
@@ -72,6 +75,7 @@ internal data class EvidenceProfile(
         private val BUCKET_AND_ORIGIN_REASONS: Set<SourceMatchReason> = setOf(
             SourceMatchReason.SELECTED_TEXT,
             SourceMatchReason.SELECTED_CONTENT_DESCRIPTION,
+            SourceMatchReason.SELECTED_STATE_DESCRIPTION,
             SourceMatchReason.SELECTED_ROLE,
             SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE,
             SourceMatchReason.ARBITRARY_LITERAL,

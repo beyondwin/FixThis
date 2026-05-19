@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.compose.core.source
 internal enum class SourceMatchReason(val wireLabel: String) {
     SELECTED_TEXT("selected text"),
     SELECTED_CONTENT_DESCRIPTION("selected contentDescription"),
+    SELECTED_STATE_DESCRIPTION("selected stateDescription"),
     SELECTED_TEST_TAG("selected testTag"),
     SELECTED_TEST_TAG_CONVENTION_COMPOSABLE("selected testTag convention composable"),
     SELECTED_ROLE("selected role"),

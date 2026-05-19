@@ -19,6 +19,7 @@ internal object SourceScoringPolicy {
             reasons.hasAny(
                 SourceMatchReason.SELECTED_TEXT,
                 SourceMatchReason.SELECTED_CONTENT_DESCRIPTION,
+                SourceMatchReason.SELECTED_STATE_DESCRIPTION,
                 SourceMatchReason.SELECTED_STRING_RESOURCE,
                 SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE,
                 SourceMatchReason.SELECTED_ROLE,
@@ -37,6 +38,7 @@ internal object SourceScoringPolicy {
     fun bucketScore(reason: SourceMatchReason): Double = when (reason) {
         SourceMatchReason.SELECTED_TEXT -> SELECTED_TEXT_SCORE
         SourceMatchReason.SELECTED_CONTENT_DESCRIPTION -> SELECTED_CONTENT_DESCRIPTION_SCORE
+        SourceMatchReason.SELECTED_STATE_DESCRIPTION -> SELECTED_STATE_DESCRIPTION_SCORE
         SourceMatchReason.SELECTED_TEST_TAG -> SELECTED_TEST_TAG_SCORE
         SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE -> SELECTED_TEST_TAG_CONVENTION_SCORE
         SourceMatchReason.SELECTED_ROLE -> SELECTED_ROLE_SCORE
@@ -54,6 +56,7 @@ internal object SourceScoringPolicy {
 
     private const val SELECTED_TEXT_SCORE: Double = 45.0
     private const val SELECTED_CONTENT_DESCRIPTION_SCORE: Double = 40.0
+    private const val SELECTED_STATE_DESCRIPTION_SCORE: Double = 38.0
     private const val SELECTED_TEST_TAG_SCORE: Double = 55.0
     private const val SELECTED_TEST_TAG_CONVENTION_SCORE: Double = 65.0
     private const val SELECTED_ROLE_SCORE: Double = 25.0

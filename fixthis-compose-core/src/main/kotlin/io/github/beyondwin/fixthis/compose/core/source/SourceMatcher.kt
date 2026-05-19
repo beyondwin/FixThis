@@ -89,6 +89,14 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 accumulator = accumulator,
             )
         }
+        selectedNode.stateDescription?.let { term ->
+            rawScore += addIfMatches(
+                hit = entry.textLikeWeightHit(term),
+                term = term,
+                reason = SourceMatchReason.SELECTED_STATE_DESCRIPTION,
+                accumulator = accumulator,
+            )
+        }
         selectedNode.testTag?.let { term ->
             rawScore += addSelectedTestTagScore(entry, term, accumulator)
         }

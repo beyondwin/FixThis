@@ -23,8 +23,8 @@ internal class KotlinSourceScanner(
         val source = file.readText()
         val lines = source.lineSequence().toList()
         val lineStartOffsets = source.lineStartOffsets()
-        val packageName = packageRegex.find(source)?.groupValues?.get(1)
-        val classDeclarations = classRegex.findAll(source)
+        val packageName = kotlinSourcePackageRegex.find(source)?.groupValues?.get(1)
+        val classDeclarations = kotlinSourceClassRegex.findAll(source)
             .map { match -> match.range.first to match.groupValues[2] }
             .toList()
         val recognizedStringRanges = recognizedUiStringRanges(source)
@@ -39,7 +39,7 @@ internal class KotlinSourceScanner(
                 pendingComposable = true
             }
 
-            val functionMatch = functionRegex.find(line)
+            val functionMatch = kotlinSourceFunctionRegex.find(line)
             if (functionMatch != null) {
                 if (pendingComposable || line.contains("@Composable")) {
                     val symbol = functionMatch.groupValues[1]
@@ -97,6 +97,15 @@ internal class KotlinSourceScanner(
             packageName = packageName,
             classDeclarations = classDeclarations,
         )
+        collectSemanticModifierSignals(source, stringResourceResolver) { range ->
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = range.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(range.first, classDeclarations),
+            )
+        }
 
         entriesByLine.forEach { (lineNumber, builder) ->
             ownersByLine.getOrNull(lineNumber - 1)?.let { ownerName ->
@@ -104,7 +113,7 @@ internal class KotlinSourceScanner(
             }
         }
 
-        return entriesByLine.values.map { it.toAsset() }
+        return entriesByLine.toSortedMap().values.map { it.toAsset() }
     }
 
     private fun collectRecognizedStringSignals(
@@ -118,7 +127,7 @@ internal class KotlinSourceScanner(
         classDeclarations: List<Pair<Int, String>>,
         ownersByLine: Array<String?>,
     ) {
-        quotedStringRegex.findAll(source).forEach { match ->
+        kotlinSourceQuotedStringRegex.findAll(source).forEach { match ->
             val lineNumber = match.startLine(lineStartOffsets)
             val outsideRecognizedRange = recognizedStringRanges.none { it.contains(match.range) }
             if (outsideRecognizedRange && ownersByLine.getOrNull(lineNumber - 1) == null) return@forEach
@@ -146,11 +155,11 @@ internal class KotlinSourceScanner(
         packageName: String?,
         classDeclarations: List<Pair<Int, String>>,
     ) {
-        textCallRegex.findAll(source).forEach { match ->
+        kotlinSourceTextCallRegex.findAll(source).forEach { match ->
             val value = decodeKotlinString(match)
             entriesByLine.entryFor(
                 file = file,
-                lineNumber = match.startLine(lineStartOffsets),
+                lineNumber = match.literalStartLine(lineStartOffsets),
                 lines = lines,
                 packageName = packageName,
                 className = classNameAt(match.range.first, classDeclarations),
@@ -172,7 +181,7 @@ internal class KotlinSourceScanner(
         classDeclarations: List<Pair<Int, String>>,
         resolver: Map<String, String>,
     ) {
-        stringResourceRegex.findAll(source).forEach { match ->
+        kotlinSourceStringResourceRegex.findAll(source).forEach { match ->
             val resourceName = match.groupValues[1]
             entriesByLine.entryFor(
                 file = file,
@@ -201,7 +210,7 @@ internal class KotlinSourceScanner(
         packageName: String?,
         classDeclarations: List<Pair<Int, String>>,
     ) {
-        testTagRegex.findAll(source).forEach { match ->
+        kotlinSourceTestTagRegex.findAll(source).forEach { match ->
             val value = decodeKotlinString(match)
             entriesByLine.entryFor(
                 file = file,
@@ -218,7 +227,7 @@ internal class KotlinSourceScanner(
                     addSignal(SourceSignalKindAsset.TEST_TAG, value)
                 }
         }
-        contentDescriptionRegex.findAll(source).forEach { match ->
+        kotlinSourceContentDescriptionRegex.findAll(source).forEach { match ->
             val value = decodeKotlinString(match)
             entriesByLine.entryFor(
                 file = file,
@@ -282,46 +291,9 @@ internal class KotlinSourceScanner(
 
     private fun recognizedUiStringRanges(source: String): List<IntRange> {
         val recognizedMatches =
-            textCallRegex.findAll(source) +
-                testTagRegex.findAll(source) +
-                contentDescriptionRegex.findAll(source)
+            kotlinSourceTextCallRegex.findAll(source) +
+                kotlinSourceTestTagRegex.findAll(source) +
+                kotlinSourceContentDescriptionRegex.findAll(source)
         return recognizedMatches.map { it.range }.toList()
-    }
-
-    private fun IntRange.contains(other: IntRange): Boolean = first <= other.first && last >= other.last
-
-    private fun String.isStrictCompTestTag(): Boolean = strictCompTestTagRegex.matches(this)
-
-    private fun String.lineStartOffsets(): IntArray {
-        val offsets = mutableListOf(0)
-        forEachIndexed { index, char ->
-            if (char == '\n' && index + 1 < length) {
-                offsets += index + 1
-            }
-        }
-        return offsets.toIntArray()
-    }
-
-    private fun MatchResult.startLine(lineStartOffsets: IntArray): Int {
-        val offset = range.first
-        val insertionPoint = lineStartOffsets.binarySearch(offset)
-        return if (insertionPoint >= 0) {
-            insertionPoint + 1
-        } else {
-            -insertionPoint - 1
-        }
-    }
-
-    private companion object {
-        val quotedStringRegex = Regex("\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\"")
-        val textCallRegex = Regex("\\bText\\s*\\(\\s*(?:\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\")")
-        val stringResourceRegex = Regex("\\bstringResource\\s*\\(\\s*R\\.string\\.([A-Za-z0-9_]+)")
-        val testTagRegex = Regex("\\btestTag\\s*\\(\\s*(?:\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\")")
-        val contentDescriptionRegex =
-            Regex("\\bcontentDescription\\s*=\\s*(?:\"\"\"([\\s\\S]*?)\"\"\"|\"((?:\\\\.|[^\"\\\\])*)\")")
-        val functionRegex = Regex("\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(")
-        val packageRegex = Regex("\\bpackage\\s+([A-Za-z_][A-Za-z0-9_.]*)")
-        val classRegex = Regex("\\b(class|object|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)")
-        val strictCompTestTagRegex = Regex("""comp:[A-Za-z_][A-Za-z0-9_]*:.+""")
     }
 }

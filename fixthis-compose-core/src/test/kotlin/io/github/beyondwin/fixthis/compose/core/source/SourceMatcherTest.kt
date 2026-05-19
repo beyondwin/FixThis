@@ -743,6 +743,31 @@ class SourceMatcherTest {
         assertEquals("LoginScreen", candidates.single().ownerComposable)
     }
 
+    @Test
+    fun selectedStateDescriptionCanMatchResolvedStringResource() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "feature/station-list/src/main/kotlin/StationListCards.kt",
+                    line = 230,
+                    signals = listOf(
+                        SourceSignal(SourceSignalKind.STRING_RESOURCE, "station_list_watch_saved"),
+                        SourceSignal(SourceSignalKind.STRING_RESOURCE_RESOLVED, "저장됨"),
+                    ),
+                ),
+            ),
+        )
+
+        val candidates = SourceMatcher(index).match(
+            selectedNode = node(uid = "watch-toggle").copy(stateDescription = "저장됨"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertEquals("feature/station-list/src/main/kotlin/StationListCards.kt", candidates.single().file)
+        assertTrue(candidates.single().matchReasons.contains("selected stateDescription"))
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),

@@ -22,7 +22,8 @@ Each entry preserves the legacy field lists (`symbols`, `text`,
 `activityNames`) and also carries typed `signals`. Current signal kinds are:
 
 - `COMPOSABLE_SYMBOL`: an `@Composable fun` declaration.
-- `UI_TEXT`: literal UI text found in recognized Compose UI calls.
+- `UI_TEXT`: literal UI text found in recognized Compose UI calls, including
+  `Text("...")` and `Text(text = "...")`.
 - `STRING_RESOURCE`: a resource id referenced as `R.string.<name>` or defined
   in XML.
 - `STRING_RESOURCE_RESOLVED`: the default-locale string value for a direct
@@ -30,8 +31,10 @@ Each entry preserves the legacy field lists (`symbols`, `text`,
   call-site entry, not on the XML resource entry.
 - `TEST_TAG`: a Compose `testTag(...)`.
 - `STRICT_COMP_TEST_TAG`: a `comp:<ComposableName>:...` test tag.
-- `CONTENT_DESCRIPTION`: a Compose semantics content description.
-- `ROLE`: a role signal.
+- `CONTENT_DESCRIPTION`: a Compose semantics content description, including
+  direct `contentDescription = stringResource(...)` calls and local variables
+  assigned from `stringResource(...)`.
+- `ROLE`: a Compose semantics role such as `Role.Button`.
 - `ACTIVITY_NAME`: an activity-name signal.
 - `ARBITRARY_STRING_LITERAL`: a Kotlin string literal not recognized as a
   stronger UI signal.
@@ -48,6 +51,11 @@ The source-index generator resolves only default-locale Android strings from
 Resolved string-resource matches use `selected resolved stringResource` with a
 bucket score of `48.0`, which intentionally ranks the Kotlin rendering call site
 above the XML `strings.xml` entry for the same visible text.
+
+Selected Compose `stateDescription` values are also matched against source text
+and resolved string-resource signals. This keeps stateful controls such as
+toggle buttons and sort controls from losing their source hint when their
+visible text is empty.
 
 ## Owner Composable Resolution
 
