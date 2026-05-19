@@ -359,6 +359,137 @@ The run is successful when it produces a report that clearly separates:
    are useful.
 9. Document the local-only workflow and interpretation of confidence failures.
 
+## Review Findings (2026-05-20)
+
+A pre-implementation review of the companion plan
+(`docs/superpowers/plans/2026-05-20-trustworthy-source-matching-local-fixture-lab.md`)
+against the FixThis Gradle plugin source surfaced several gaps that the
+design must absorb so that the implementation plan and its acceptance
+criteria stay coherent. The plan's "Review Findings" section carries the
+authoritative corrective patches; this section captures the design-level
+implications.
+
+### D1. Trust-calibration coverage must be a manifest-level requirement
+
+The Product Goal frames success as "useful cases improve while ambiguous,
+visual, weak-semantics, repeated, or possible-interop cases stay cautious."
+The initial plan, however, allowed every committed case to omit
+`expectedConfidence` and warning expectations. To keep design and
+implementation aligned, the acceptance criteria below are tightened:
+
+> Each committed fixture must include at least one case that pins
+> `expectedConfidence`, and the fixture set as a whole must include at least
+> one `mustWarn` or `mustNotWarn` expectation. The lab must be able to fail
+> the suite on a confidence regression on day one, not "once we get
+> around to adding such cases."
+
+This is reflected in the plan's manifest patch (Task 1 Step 5) under F2.
+
+### D2. Re-pinning is a first-class workflow, not a one-time chore
+
+Manifest commits drift from upstream and so do paths. The plan now carries
+a **Task 0** that resolves the upstream SHA, walks the tree at that SHA via
+`gh api`, and only then writes the manifest. The design must list re-pinning
+as an explicit, repeatable workflow so that future plan revisions do not
+silently regress to placeholder SHAs. The Implementation Sequencing list is
+amended:
+
+> 0. Pin upstream commits and verify expected case paths against the pinned
+>    trees. Reject placeholder SHAs and unverified paths.
+
+This step precedes the existing item 1.
+
+### D3. Multi-module source-index dependency is part of the test contract
+
+`FixThisGradlePlugin.kt` aggregates source from the `:app` module's
+resolved project dependencies. Cross-module case expectations therefore
+implicitly assume the consumer module compiles in the target feature module.
+The Test Strategy section is amended:
+
+> Manifest cases that span modules (for example,
+> `feature/foryou/.../strings.xml` evaluated from `:app`) must rely on a
+> declared or transitive compile/runtime dependency from `:app` to the
+> target module. If the upstream graph changes, the case must be re-pinned
+> or moved; otherwise the resulting `missing_top3` is a fixture-drift
+> failure, not a matcher regression.
+
+### D4. Failure classification table is missing two states actually produced
+
+The Error Handling and Metrics sections enumerate failures but the plan's
+runner currently produces two additional implicit states:
+
+- `source_index_missing` when the Gradle build succeeded but the expected
+  source-index file is absent. The list mentions this; keep it.
+- `wrong_top1` when an `expectedTop1PathContains` is supplied and the
+  rank-1 candidate differs. The list mentions this; keep it.
+- `manifest_invalid` for upstream-failed validation (already listed).
+
+What is missing today and needs to be added to the canonical list:
+
+- `expectedConfidence_unsupported` — surfaced by the validator (the plan's
+  Task 2 `validateManifest` already throws on this; the design list should
+  include it so future readers find it).
+- `signal_kind_unknown` — the validator does not currently reject unknown
+  `expectedSignal.kind` values, but `SourceSignalAsset` in the plugin
+  defines a closed enum (`COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`,
+  `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`,
+  `ACTIVITY_NAME`, `ARBITRARY_STRING_LITERAL`, `STRING_RESOURCE_RESOLVED`,
+  `LAMBDA_OWNER_FUNCTION`). The runner should validate against that enum
+  so a typo like `COMPOSABLE_SYMBOLL` fails fast.
+
+### D5. `applicationId` field semantics are informational in v1
+
+Until device-backed capture lands, the runner does not read
+`applicationId`; the design previously described it as "the expected debug
+app id after variant suffixes are accounted for", which both Reply (which
+adds `.debug` via `applicationIdSuffix`) and Now in Android (`.demo.debug`)
+satisfy. v1 should explicitly mark the field as informational so that an
+inaccurate value does not silently cause future device-backed runs to fail.
+
+Manifest Shape is amended with a note:
+
+> `applicationId` is informational in v1. It is recorded so the device-backed
+> handoff flow can resolve the running app, but the v1 source-index
+> evaluator does not assert on it. Inaccurate values must be corrected
+> before the device-backed flow is enabled.
+
+### D6. Updated acceptance criteria
+
+The Acceptance Criteria list is replaced with the following (additions
+**bolded** in intent — committed as plain text):
+
+- External fixture source is never committed.
+- Fixture cache, working copy, generated `.fixthis/` data, and reports are
+  ignored by git.
+- Runner uses immutable pinned commits only, and the pinning workflow is
+  re-runnable as documented in the local fixture lab guide.
+- The runner can execute source-index-only evaluation without a connected
+  device.
+- Device-backed evaluation is optional and clearly marked when unavailable.
+- Reports flag high-confidence overclaiming as a first-class failure.
+- Every committed fixture exercises at least one `expectedConfidence`, and
+  the fixture set as a whole exercises at least one `mustWarn` or
+  `mustNotWarn` expectation.
+- Reports capture enough JSON detail for before/after comparison across
+  local matcher changes.
+- The runner validates `expectedSignal.kind` against the closed enum
+  exported by the FixThis Gradle plugin so manifest typos fail fast.
+- Existing FixThis release artifacts and public install instructions do not
+  mention or depend on the fixture lab.
+
+### D7. Additional risks worth naming
+
+- **Manifest placeholder drift.** Plans authored against a future schema
+  may carry SHAs from training/sketching that no longer exist upstream.
+  Mitigation: Task 0 re-pin step and reviewer rejection of unverified SHAs.
+- **Source-signal enum churn.** Adding/removing a `SourceSignalKindAsset`
+  in the plugin would silently invalidate manifest cases that referenced
+  the removed kind. Mitigation: the runner's signal-kind validator should
+  import the closed enum from a single, plugin-published list rather than
+  hard-coding it. Track as follow-up.
+
+---
+
 ## Approval Notes
 
 The user approved:
