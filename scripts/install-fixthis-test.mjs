@@ -23,6 +23,17 @@ function writeExecutable(path, body) {
   chmodSync(path, 0o755);
 }
 
+test("install-fixthis help uses the current release in agent-first example", () => {
+  const result = spawnSync("bash", [join(repoRoot, "scripts/install-fixthis.sh"), "--help"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /--version v0\.6\.0 --init --target codex --project-dir \./);
+  assert.doesNotMatch(result.stdout, /--version v0\.3\.0 --init/);
+});
+
 test("install-fixthis installs a local release archive and can run init", () => {
   const root = mkdtempSync(join(tmpdir(), "fixthis-install-"));
   try {

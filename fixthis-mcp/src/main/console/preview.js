@@ -170,6 +170,7 @@
                 }
                 if (button) {
                   button.textContent = preview.readiness.nextAction || 'Retry capture';
+                  button.setAttribute('aria-label', preview.readiness.nextAction || 'Retry capture');
                   button.dataset.connectionAction = 'CAPTURE';
                 }
                 return;
@@ -182,6 +183,7 @@
               }
               if (button) {
                 button.textContent = 'Capture screen';
+                button.setAttribute('aria-label', 'Capture screen');
               }
             }
 

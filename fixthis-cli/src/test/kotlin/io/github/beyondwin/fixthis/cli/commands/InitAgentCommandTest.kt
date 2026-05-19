@@ -292,6 +292,41 @@ class InitAgentCommandTest {
     }
 
     @Test
+    fun installAgentDryRunJsonModePrintsOnlyJsonToStdout() {
+        val tempProject = temporaryFolder.newFolder("dry-run-json").also { setupFakeAndroidProject(it) }
+        val out = ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(PrintStream(out))
+        try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.app",
+                        "--target",
+                        "claude",
+                        "--json",
+                        "--dry-run",
+                        "--skip-gradle-plugin",
+                    ),
+                )
+            }
+        } finally {
+            System.setOut(oldOut)
+        }
+
+        val text = out.toString()
+        val obj = Json.parseToJsonElement(text.trim()).jsonObject
+        assertEquals("1.0", obj.getValue("schemaVersion").jsonPrimitive.content)
+        assertFalse(
+            "human dry-run diff must not be mixed into JSON stdout:\n$text",
+            text.contains("Target:") || text.contains("Next for agents:"),
+        )
+    }
+
+    @Test
     fun installAgentExitsPartialWhenSomeSkipped() {
         val tempProject = temporaryFolder.newFolder("ft-partial")
         val exitCode: Int = try {

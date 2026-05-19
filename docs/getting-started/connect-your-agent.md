@@ -39,6 +39,10 @@ brew install beyondwin/tools/fixthis
 fixthis init --agent --project-dir . --target codex
 ```
 
+If FixThis is already installed through Homebrew, run
+`brew update && brew upgrade beyondwin/tools/fixthis` before checking
+`fixthis --version`.
+
 With npm:
 
 ```bash

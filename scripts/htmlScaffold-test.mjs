@@ -8,6 +8,7 @@ test('console HTML exposes dynamic editor/footer/toast scaffolds', () => {
   assert.match(html, /id="inspectorFooter"/);
   assert.match(html, /id="editorBack"/);
   assert.match(html, /id="toastContainer"/);
+  assert.match(html, /id="connectionPrimaryAction"[^>]*aria-label="Start FixThis connection"/);
   assert.doesNotMatch(html, /id="clearSelectionButton"/);
   assert.doesNotMatch(html, /id="cancelAddFlowButton"/);
   assert.doesNotMatch(html, /id="addItemButton"/);

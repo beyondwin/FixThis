@@ -9,7 +9,8 @@ Pick the first matching branch:
 
 ```bash
 if command -v brew >/dev/null 2>&1 && [ "$(uname)" = "Darwin" ]; then
-    brew install beyondwin/tools/fixthis
+    brew update
+    brew upgrade beyondwin/tools/fixthis || brew install beyondwin/tools/fixthis
 elif command -v npm >/dev/null 2>&1; then
     npm install -g @beyondwin/fixthis
 else
@@ -35,7 +36,8 @@ When asked to add FixThis to this Android app:
 2. Ensure the FixThis CLI is installed. On macOS, prefer Homebrew:
 
    ```bash
-   brew install beyondwin/tools/fixthis
+   brew update
+   brew upgrade beyondwin/tools/fixthis || brew install beyondwin/tools/fixthis
    ```
 
    With npm:

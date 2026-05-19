@@ -431,6 +431,27 @@ class ConsoleConnectionRoutesTest {
     }
 
     @Test
+    fun connectionApiMapsAdbListFailureToDesktopEnvironmentBlocker() {
+        val bridge = FakeFixThisBridge(
+            devicesError = RuntimeException("Cannot run program \"adb\": No such file or directory"),
+        )
+        val service = FeedbackSessionService(bridge, FeedbackSessionStore(), "/repo", CONNECTION_SAMPLE_PACKAGE)
+        val server = FeedbackConsoleServer(service).also { it.start() }
+        try {
+            val body = ConsoleHttpTestClient(server.url).get("/api/connection")
+            val json = fixThisJson.parseToJsonElement(body).jsonObject
+            val readiness = json.getValue("readiness").jsonObject
+
+            assertEquals("ENV_BLOCKER", readiness.getValue("state").jsonPrimitive.content)
+            assertEquals("ADB is not available", json.getValue("headline").jsonPrimitive.content)
+            assertTrue(json.getValue("message").jsonPrimitive.content.contains("platform-tools"))
+            assertFalse(json.getValue("message").jsonPrimitive.content.contains("Unlock your phone"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun launchAppApiLaunchesSelectedPackageAndReturnsStartingStatus() {
         val bridge = FakeFixThisBridge(heartbeatError = RuntimeException("not ready yet"))
         bridge.selectDevice("adb-R3CN60LXW3L-cuwm3G._adb-tls-connect._tcp")

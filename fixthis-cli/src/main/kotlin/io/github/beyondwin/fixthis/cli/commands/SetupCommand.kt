@@ -17,7 +17,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.PrintStream
 import kotlin.system.exitProcess
 
 internal object SetupRunResults {
@@ -463,32 +465,34 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             )
         }
 
-        InitCommand().parse(
-            buildList {
-                add("--agent")
-                if (!skipGradlePlugin) {
-                    add("--apply-gradle-plugin")
-                    add("--plugin-version")
-                    add(pluginVersion)
-                }
-                packageName?.let {
-                    add("--package")
-                    add(it)
-                }
-                add("--project-dir")
-                add(projectDir)
-                add("--target")
-                add(effectiveTarget)
-                add("--server-name")
-                add(serverName)
-                if (dryRun) {
-                    add("--dry-run")
-                }
-                if (verbose) {
-                    add("--verbose")
-                }
-            },
-        )
+        captureStdoutWhenJson(json) {
+            InitCommand().parse(
+                buildList {
+                    add("--agent")
+                    if (!skipGradlePlugin) {
+                        add("--apply-gradle-plugin")
+                        add("--plugin-version")
+                        add(pluginVersion)
+                    }
+                    packageName?.let {
+                        add("--package")
+                        add(it)
+                    }
+                    add("--project-dir")
+                    add(projectDir)
+                    add("--target")
+                    add(effectiveTarget)
+                    add("--server-name")
+                    add(serverName)
+                    if (dryRun) {
+                        add("--dry-run")
+                    }
+                    if (verbose) {
+                        add("--verbose")
+                    }
+                },
+            )
+        }
 
         if (json) {
             val skippedAll = SetupRunResults.skipped.get() + earlySkipped
@@ -525,6 +529,20 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             )
         }
         // OK path: exit 0 implicit
+    }
+}
+
+private inline fun captureStdoutWhenJson(json: Boolean, block: () -> Unit) {
+    if (!json) {
+        block()
+        return
+    }
+    val previous = System.out
+    System.setOut(PrintStream(ByteArrayOutputStream()))
+    try {
+        block()
+    } finally {
+        System.setOut(previous)
     }
 }
 

@@ -1,16 +1,80 @@
 package io.github.beyondwin.fixthis.cli.commands
 
+import com.github.ajalt.clikt.core.CliktError
+import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.ExitCode
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import kotlin.system.measureTimeMillis
 
 class RunCommandTest {
+    @Test
+    fun runPreflightStopsBeforeGradleWhenAndroidSdkIsMissing() {
+        val root = Files.createTempDirectory("fixthis-run-missing-sdk").toFile()
+
+        try {
+            requireAndroidRunEnvironment(
+                root = root,
+                sdkLookup = { null },
+                devicesLookup = {
+                    fail("run preflight should not call adb when the SDK was not found")
+                    emptyList()
+                },
+            )
+            fail("expected env blocker")
+        } catch (error: CliktError) {
+            assertEquals(ExitCode.ENV_BLOCKER.value, error.statusCode)
+            assertTrue(
+                "expected Android SDK fix hint, got: ${error.message}",
+                error.message!!.contains("Install Android SDK platform-tools or set ANDROID_HOME"),
+            )
+        }
+    }
+
+    @Test
+    fun runPreflightRequiresAConnectedAndroidDevice() {
+        val root = Files.createTempDirectory("fixthis-run-no-device").toFile()
+        val adb = fakeAdb(root)
+
+        try {
+            requireAndroidRunEnvironment(
+                root = root,
+                sdkLookup = { AndroidSdkLocator.SdkLocation(root, adb, "test") },
+                devicesLookup = { listOf(AdbDevice("emulator-5554", "offline")) },
+            )
+            fail("expected env blocker")
+        } catch (error: CliktError) {
+            assertEquals(ExitCode.ENV_BLOCKER.value, error.statusCode)
+            assertTrue(
+                "expected connected-device fix hint, got: ${error.message}",
+                error.message!!.contains("Start an emulator or connect a device"),
+            )
+        }
+    }
+
+    @Test
+    fun runPreflightReturnsAdbExecutableWhenEnvironmentIsReady() {
+        val root = Files.createTempDirectory("fixthis-run-ready").toFile()
+        val adb = fakeAdb(root)
+
+        val executable = requireAndroidRunEnvironment(
+            root = root,
+            sdkLookup = { AndroidSdkLocator.SdkLocation(root, adb, "test") },
+            devicesLookup = { listOf(AdbDevice("emulator-5554", "device")) },
+        )
+
+        assertEquals(adb.absolutePath, executable)
+    }
+
     @Test
     fun waitForStatusCancellationReturnsWithin50ms() = runBlocking {
         val job = launch {
@@ -47,5 +111,11 @@ class RunCommandTest {
                 error.cause === expected,
             )
         }
+    }
+
+    private fun fakeAdb(root: File): File = root.resolve("platform-tools/adb").apply {
+        parentFile.mkdirs()
+        writeText("")
+        setExecutable(true)
     }
 }

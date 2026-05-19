@@ -70,6 +70,10 @@ fixthis install-agent --project-dir . --target all
 fixthis doctor --project-dir . --json
 ```
 
+If Homebrew already has FixThis installed, run
+`brew update && brew upgrade beyondwin/tools/fixthis` and verify the active
+binary with `fixthis --version`.
+
 `fixthis install-agent` patches the detected Android app module with the
 published Gradle plugin, writes MCP config for Claude Code / Codex, writes
 `.fixthis/project.json`, and writes `.fixthis/agent-setup.*` handoff files.

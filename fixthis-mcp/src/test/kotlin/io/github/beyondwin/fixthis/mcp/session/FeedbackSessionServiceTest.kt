@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.cli.AdbDevice
+import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessState
 import io.github.beyondwin.fixthis.compose.core.model.EvidenceQuality
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
@@ -113,7 +114,7 @@ class FeedbackSessionServiceTest {
     }
 
     @Test
-    fun connectionStatusMapsDeviceEnumerationFailureToCheckPhoneDetails() = runBlocking {
+    fun connectionStatusMapsDeviceEnumerationFailureToDesktopEnvironmentBlocker() = runBlocking {
         val bridge = FakeFixThisBridge(devicesError = RuntimeException("adb server is unavailable"))
         val service = serviceWithBridge(bridge)
         service.currentSession()
@@ -121,7 +122,8 @@ class FeedbackSessionServiceTest {
         val status = service.connectionStatus()
 
         assertEquals(ConsoleConnectionState.CHECK_PHONE, status.state)
-        assertEquals("Check your phone", status.headline)
+        assertEquals("ADB is not available", status.headline)
+        assertEquals(FirstRunReadinessState.ENV_BLOCKER, status.readiness?.state)
         assertTrue(status.details.rawError.orEmpty().contains("adb server is unavailable"))
         assertEquals("unknown", status.details.deviceState)
         assertEquals("not checked", status.details.bridgeState)

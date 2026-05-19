@@ -25,6 +25,10 @@ curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/inst
 fixthis install-agent --project-dir . --target all
 ```
 
+If Homebrew already has an older FixThis, run
+`brew update && brew upgrade beyondwin/tools/fixthis` and verify with
+`fixthis --version`.
+
 `fixthis install-agent` detects the Android app module by `applicationId`,
 writes Claude Code / Codex MCP config, creates `.fixthis/project.json` plus
 `.fixthis/agent-setup.*` handoff files, and applies the published Gradle

@@ -17,6 +17,16 @@
               return 'Continue';
             }
 
+            function connectionActionAccessibleLabel(action) {
+              if (action === 'START') return 'Start FixThis connection';
+              if (action === 'OPEN_APP') return 'Open debug app';
+              if (action === 'RECONNECT') return 'Reconnect to debug app';
+              if (action === 'TRY_AGAIN') return 'Retry connection';
+              if (action === 'CHOOSE_DEVICE') return 'Choose Android device';
+              if (action === 'CAPTURE') return 'Capture screen';
+              return connectionActionLabel(action);
+            }
+
             function userConnectionState(status) {
               if (!status) return 'welcome';
               const rawState = String(status.state || 'WELCOME').toLowerCase();
@@ -310,9 +320,11 @@
               const action = viewState === 'reconnect'
                 ? 'RECONNECT'
                 : (status?.primaryAction || (viewState === 'starting' ? 'OPEN_APP' : null));
-              connectionPrimaryAction.textContent = connectionActionLabel(action);
+              const resolvedAction = action || 'START';
+              connectionPrimaryAction.textContent = connectionActionLabel(resolvedAction);
+              connectionPrimaryAction.setAttribute('aria-label', connectionActionAccessibleLabel(resolvedAction));
               connectionPrimaryAction.disabled = connectionState.launchInFlight;
-              connectionPrimaryAction.dataset.connectionAction = action || 'START';
+              connectionPrimaryAction.dataset.connectionAction = resolvedAction;
               if (connectionState.sessionsPollingPaused) {
                 // Surface a sub-line indicating sessions polling is paused. The details panel
                 // preserves line breaks and wraps long tokens through .connection-details pre.

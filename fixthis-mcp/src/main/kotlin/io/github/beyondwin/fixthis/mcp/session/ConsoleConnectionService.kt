@@ -47,8 +47,8 @@ internal class ConsoleConnectionService(
             val raw = error.message ?: error::class.java.simpleName
             return ConsoleConnectionStatus(
                 state = ConsoleConnectionState.CHECK_PHONE,
-                headline = "Check your phone",
-                message = "Unlock your phone or allow debugging, then try again.",
+                headline = "ADB is not available",
+                message = "Install Android SDK platform-tools or set ANDROID_HOME, then try again.",
                 primaryAction = ConsoleConnectionAction.TRY_AGAIN,
                 packageName = session.packageName,
                 readiness = FirstRunReadinessCatalog.envBlocker(

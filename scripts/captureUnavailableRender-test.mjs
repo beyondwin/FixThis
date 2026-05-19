@@ -3,14 +3,16 @@ import { test } from 'node:test';
 import { loadConsoleSymbols } from './console-test-loader.mjs';
 
 function createElement(id) {
+  const attributes = {};
   return {
     id,
     dataset: {},
     hidden: false,
     textContent: '',
     title: '',
+    attributes,
     classList: { add() {}, remove() {}, toggle() {} },
-    setAttribute() {},
+    setAttribute(name, value) { attributes[name] = String(value); },
   };
 }
 
@@ -59,6 +61,7 @@ test('preview.previewAvailable === false renders readiness slot with Retry captu
 
   const button = document.getElementById('connectionPrimaryAction');
   assert.equal(button.textContent, 'Retry capture');
+  assert.equal(button.attributes['aria-label'], 'Retry capture');
   assert.equal(button.dataset.connectionAction, 'CAPTURE');
 });
 
@@ -85,4 +88,5 @@ test('preview.previewAvailable === true hides the readiness slot and restores Ca
   // The button label is restored to the default Capture label when previewAvailable
   // recovers; the connection card's renderConnection owns the live label otherwise.
   assert.equal(button.textContent, 'Capture screen');
+  assert.equal(button.attributes['aria-label'], 'Capture screen');
 });

@@ -1,11 +1,14 @@
 package io.github.beyondwin.fixthis.cli.commands
 
+import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreCliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
 import io.github.beyondwin.fixthis.cli.Adb
+import io.github.beyondwin.fixthis.cli.AdbDevice
 import io.github.beyondwin.fixthis.cli.BridgeClient
+import io.github.beyondwin.fixthis.cli.ExitCode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -19,7 +22,7 @@ class RunCommand : CoreCliktCommand(name = "run") {
 
     override fun run() {
         val root = File(projectDir).canonicalFile
-        val adb = Adb.forProject(root)
+        val adb = Adb(adbExecutable = requireAndroidRunEnvironment(root))
         val client = BridgeClient(adb = adb, projectRoot = root)
         val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
 
@@ -48,6 +51,36 @@ class RunCommand : CoreCliktCommand(name = "run") {
         val exitCode = process.waitFor()
         if (exitCode != 0) error("Gradle install failed with exit code $exitCode")
     }
+}
+
+internal fun requireAndroidRunEnvironment(
+    root: File,
+    sdkLookup: () -> AndroidSdkLocator.SdkLocation? = { AndroidSdkLocator.find(projectRoot = root) },
+    devicesLookup: (String) -> List<AdbDevice> = { adbExecutable -> Adb(adbExecutable = adbExecutable).devices() },
+): String {
+    val sdk = sdkLookup() ?: throw CliktError(
+        "Android SDK platform-tools were not found.\n" +
+            "Fix: Install Android SDK platform-tools or set ANDROID_HOME.",
+        statusCode = ExitCode.ENV_BLOCKER.value,
+    )
+    val devices = try {
+        devicesLookup(sdk.adb.absolutePath)
+    } catch (error: Throwable) {
+        throw CliktError(
+            "ADB could not list Android devices: ${error.message ?: error::class.java.simpleName}\n" +
+                "Fix: Install Android SDK platform-tools or set ANDROID_HOME.",
+            statusCode = ExitCode.ENV_BLOCKER.value,
+            cause = error as? Exception,
+        )
+    }
+    if (!hasConnectedAndroidDevice(devices)) {
+        throw CliktError(
+            "No connected Android device or emulator found.\n" +
+                "Fix: Start an emulator or connect a device, then run `adb devices`.",
+            statusCode = ExitCode.ENV_BLOCKER.value,
+        )
+    }
+    return sdk.adb.absolutePath
 }
 
 /**
