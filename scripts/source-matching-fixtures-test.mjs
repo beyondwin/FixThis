@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, readFileSync as readTempFile, writeFileSync as writeTempFile } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, join as joinPath } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 

@@ -122,6 +122,9 @@ export function classifyCaseOutcome(expectation, observed) {
     } else if (observed.confidence === "high" && expectation.expectedConfidence === "low-or-medium") {
       failures.push("overconfident");
     }
+    // Other miscalibrations (e.g. expected medium-or-high, got low) are silently
+    // ignored today; once real evaluator output exists, decide whether to surface
+    // an `under_confident` failure tier here.
   }
 
   for (const warning of expectation.mustWarn || []) {
@@ -417,20 +420,26 @@ export async function main(argv = process.argv.slice(2)) {
   ensureDir(defaultReportDir);
   if (command === "prepare") {
     const prepared = [];
+    const failed = [];
     for (const fixture of manifest.fixtures) {
-      const paths = prepareFixture(fixture, { stdio: "inherit" });
-      prepared.push({
-        fixtureId: fixture.id,
-        repoDir: relative(repoRoot, paths.repoDir),
-        workDir: relative(repoRoot, paths.workDir),
-      });
+      try {
+        const paths = prepareFixture(fixture, { stdio: "inherit" });
+        prepared.push({
+          fixtureId: fixture.id,
+          repoDir: relative(repoRoot, paths.repoDir),
+          workDir: relative(repoRoot, paths.workDir),
+        });
+      } catch (error) {
+        failed.push({ fixtureId: fixture.id, error: error.message });
+      }
     }
     writeJson(join(defaultReportDir, "prepare.json"), {
       schemaVersion: 1,
-      status: "prepared",
+      status: failed.length === 0 ? "prepared" : "partial",
       prepared,
+      ...(failed.length > 0 ? { failed } : {}),
     });
-    return 0;
+    return failed.length === 0 ? 0 : 1;
   }
   if (command === "run") {
     const fixtures = [];
