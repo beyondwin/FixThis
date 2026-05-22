@@ -64,7 +64,6 @@ npmrc.local
 
 # Agent/local tool state
 .fixthis
-graphify-out/
 .claude/
 .codex/
 .mcp.json
