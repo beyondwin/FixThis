@@ -4,6 +4,14 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
+import {
+  classifyCaseOutcome,
+  reportStatus,
+  safeRelativePath,
+  validateManifest,
+  variantTaskSuffix,
+} from "./source-matching-fixtures.mjs";
+
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
 function read(path) {
@@ -42,4 +50,72 @@ test("fixture manifest uses immutable pinned commits", () => {
     assert.ok(fixture.applicationId.length > 0);
     assert.ok(fixture.cases.length > 0);
   }
+});
+
+test("validateManifest rejects floating commits and unsafe paths", () => {
+  assert.throws(
+    () => validateManifest({
+      schemaVersion: 1,
+      fixtures: [{
+        id: "bad",
+        repo: "https://github.com/android/compose-samples.git",
+        commit: "main",
+        projectDir: "../outside",
+        modulePath: ":app",
+        variant: "debug",
+        applicationId: "com.example.bad",
+        cases: [],
+      }],
+    }),
+    /commit.*40-character SHA|projectDir escapes fixture root|cases must contain/,
+  );
+});
+
+test("safeRelativePath rejects absolute paths and traversal", () => {
+  assert.equal(safeRelativePath("Reply"), "Reply");
+  assert.equal(safeRelativePath("."), ".");
+  assert.throws(() => safeRelativePath("/tmp/nope"), /must be relative/);
+  assert.throws(() => safeRelativePath("../nope"), /escapes fixture root/);
+});
+
+test("variantTaskSuffix converts Gradle variants to task suffixes", () => {
+  assert.equal(variantTaskSuffix("debug"), "Debug");
+  assert.equal(variantTaskSuffix("demoDebug"), "DemoDebug");
+});
+
+test("classifyCaseOutcome flags top hits, missing warnings, and overconfidence", () => {
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: ["Home.kt"],
+      expectedConfidence: "low-or-medium",
+      mustWarn: ["POSSIBLE_VIEW_INTEROP"],
+    }, {
+      candidates: [
+        { path: "sample/Home.kt" },
+        { path: "sample/Other.kt" },
+      ],
+      confidence: "high",
+      warnings: [],
+    }).failures,
+    ["overconfident", "missing_warning"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: ["Home.kt"],
+      expectedConfidence: "medium-or-high",
+      mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "medium",
+      warnings: [],
+    }).metrics,
+    ["top1_hit", "top3_hit", "confidence_calibrated"],
+  );
+});
+
+test("reportStatus distinguishes pass, fail, and environment downgrade", () => {
+  assert.equal(reportStatus([{ failures: [], environment: [] }]), "pass");
+  assert.equal(reportStatus([{ failures: [], environment: ["device_unavailable"] }]), "pass_with_environment_downgrade");
+  assert.equal(reportStatus([{ failures: ["missing_top3"], environment: [] }]), "fail");
 });
