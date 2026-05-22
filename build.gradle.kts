@@ -48,13 +48,16 @@ allprojects {
             // Exclude build outputs, generated sources, and on-disk git worktrees from
             // sibling executor runs (.worktrees/* and .claude/worktrees/* are gitignored
             // but the root project's Spotless target glob would otherwise walk them and
-            // fail on stale formatting in those checkouts).
+            // fail on stale formatting in those checkouts). The .fixthis/ root holds
+            // local-only fixture lab caches (.fixthis/eval-fixtures/) that may contain
+            // upstream sample code whose formatting is not our concern.
             targetExclude(
                 "**/build/**",
                 "**/generated/**",
                 "**/.worktrees/**",
                 "**/.claude/worktrees/**",
                 "**/worktrees/**",
+                "**/.fixthis/**",
             )
             ktlint(ktlintVersion).editorConfigOverride(
                 mapOf(
@@ -79,6 +82,7 @@ allprojects {
                 "**/.worktrees/**",
                 "**/.claude/worktrees/**",
                 "**/worktrees/**",
+                "**/.fixthis/**",
             )
             ktlint(ktlintVersion)
         }
