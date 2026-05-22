@@ -15,7 +15,6 @@ pitch, scope, and sample-to-agent Quick Start.
 | Try FixThis without changing my app | [Quick Start — sample app](getting-started/try-the-sample.md) |
 | Add FixThis to my Compose debug build | [Add FixThis to your app](getting-started/add-to-your-app.md) |
 | Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) |
-| Navigate this repo with Graphify as an agent | [Agent Graphify workflow](guides/agent-graphify.md) |
 | Learn the browser annotation workflow | [Feedback console tour](guides/feedback-console-tour.md) |
 | Understand the product and prompt rationale in one place | [Concept and handoff rationale](product/concept-and-handoff-rationale.md) |
 | Understand what FixThis is and is not | [Product concept](product/README.md) |
