@@ -49,6 +49,8 @@ npmrc.local
 
 # FixThis local runtime/capture artifacts
 .fixthis/
+.fixthis/eval-fixtures/
+build/reports/fixthis-source-matching/
 
 # OS
 .DS_Store

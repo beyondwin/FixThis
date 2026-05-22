@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "id": "reply",
+      "repo": "https://github.com/android/compose-samples.git",
+      "commit": "d3ff757b289f7036815978a8f7b16706ee3423b0",
+      "projectDir": "Reply",
+      "modulePath": ":app",
+      "variant": "debug",
+      "applicationId": "com.example.reply",
+      "cases": [
+        {
+          "id": "reply-main-activity-owner",
+          "mode": "source-index",
+          "expectedEntryPathContains": "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+          "expectedConfidence": "medium-or-high",
+          "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "ReplyApp" }
+        },
+        {
+          "id": "reply-list-content-owner",
+          "mode": "source-index",
+          "expectedEntryPathContains": "Reply/app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
+          "expectedConfidence": "medium-or-high",
+          "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "ReplyEmailList" }
+        }
+      ]
+    },
+    {
+      "id": "jetsnack",
+      "repo": "https://github.com/android/compose-samples.git",
+      "commit": "d3ff757b289f7036815978a8f7b16706ee3423b0",
+      "projectDir": "Jetsnack",
+      "modulePath": ":app",
+      "variant": "debug",
+      "applicationId": "com.example.jetsnack",
+      "cases": [
+        {
+          "id": "jetsnack-home-owner",
+          "mode": "source-index",
+          "expectedEntryPathContains": "Jetsnack/app/src/main/java/com/example/jetsnack/ui/home/Home.kt",
+          "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "Home" }
+        },
+        {
+          "id": "jetsnack-search-category-copy",
+          "mode": "source-index",
+          "expectedEntryPathContains": "Jetsnack/app/src/main/java/com/example/jetsnack/model/Search.kt",
+          "expectedConfidence": "low-or-medium",
+          "expectedSignal": { "kind": "ARBITRARY_STRING_LITERAL", "value": "Desserts" }
+        }
+      ]
+    },
+    {
+      "id": "nowinandroid",
+      "repo": "https://github.com/android/nowinandroid.git",
+      "commit": "7d45eae4f8720a0c77f507712ba2437ff974b6ed",
+      "projectDir": ".",
+      "modulePath": ":app",
+      "variant": "demoDebug",
+      "applicationId": "com.google.samples.apps.nowinandroid.demo.debug",
+      "cases": [
+        {
+          "id": "nia-for-you-title-resource",
+          "mode": "source-index",
+          "expectedEntryPathContains": "feature/foryou/src/main/res/values/strings.xml",
+          "expectedSignal": { "kind": "STRING_RESOURCE_RESOLVED", "value": "For you" }
+        },
+        {
+          "id": "nia-navigation-component-owner",
+          "mode": "source-index",
+          "expectedEntryPathContains": "core/designsystem/src/main/kotlin/com/google/samples/apps/nowinandroid/core/designsystem/component/NiaNavigation.kt",
+          "expectedConfidence": "medium-or-high",
+          "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"],
+          "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "NiaNavigationBar" }
+        }
+      ]
+    }
+  ]
+}
