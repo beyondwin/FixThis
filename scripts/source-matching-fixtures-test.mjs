@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, readFileSync, readFileSync as readTempFile, writeFileSync as writeTempFile } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, join as joinPath } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import {
   classifyCaseOutcome,
+  fixturePaths,
+  patchAppBuildFileText,
+  patchSettingsText,
   reportStatus,
   safeRelativePath,
   validateManifest,
@@ -118,4 +122,43 @@ test("reportStatus distinguishes pass, fail, and environment downgrade", () => {
   assert.equal(reportStatus([{ failures: [], environment: [] }]), "pass");
   assert.equal(reportStatus([{ failures: [], environment: ["device_unavailable"] }]), "pass_with_environment_downgrade");
   assert.equal(reportStatus([{ failures: ["missing_top3"], environment: [] }]), "fail");
+});
+
+test("fixturePaths keeps repos and work under ignored local root", () => {
+  const paths = fixturePaths({
+    id: "reply",
+    repo: "https://github.com/android/compose-samples.git",
+    commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+    projectDir: "Reply",
+  });
+  assert.match(paths.repoDir, /\.fixthis\/eval-fixtures\/repos\/[a-f0-9]{12}$/);
+  assert.match(paths.workDir, /\.fixthis\/eval-fixtures\/work\/reply$/);
+});
+
+test("patchSettingsText inserts the FixThis Gradle plugin included build once", () => {
+  const original = [
+    "pluginManagement {",
+    "    repositories {",
+    "        google()",
+    "    }",
+    "}",
+    "rootProject.name = \"Reply\"",
+    "",
+  ].join("\n");
+  const patched = patchSettingsText(original, "/repo/fixthis-gradle-plugin");
+  assert.match(patched, /pluginManagement \{\n    includeBuild\("\/repo\/fixthis-gradle-plugin"\)/);
+  assert.equal(patchSettingsText(patched, "/repo/fixthis-gradle-plugin"), patched);
+});
+
+test("patchAppBuildFileText applies FixThis without runtime dependency", () => {
+  const original = [
+    "plugins {",
+    "    alias(libs.plugins.android.application)",
+    "}",
+    "",
+  ].join("\n");
+  const patched = patchAppBuildFileText(original);
+  assert.match(patched, /id\("io\.github\.beyondwin\.fixthis\.compose"\)/);
+  assert.match(patched, /addDebugRuntime\.set\(false\)/);
+  assert.equal(patchAppBuildFileText(patched), patched);
 });

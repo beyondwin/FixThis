@@ -1,10 +1,15 @@
-import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { dirname, join, normalize, sep } from "node:path";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, normalize, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 export const defaultManifestPath = join(repoRoot, "fixtures/source-matching/manifest.json");
 export const defaultReportDir = join(repoRoot, "build/reports/fixthis-source-matching");
+export const fixtureRoot = join(repoRoot, ".fixthis/eval-fixtures");
+export const fixtureRepoRoot = join(fixtureRoot, "repos");
+export const fixtureWorkRoot = join(fixtureRoot, "work");
 
 const fullShaPattern = /^[a-f0-9]{40}$/;
 const allowedConfidence = new Set(["high", "medium", "low", "unknown"]);
@@ -158,6 +163,123 @@ function arrayOf(value) {
   return Array.isArray(value) ? value : [value];
 }
 
+export function repoCacheKey(repoUrl) {
+  return createHash("sha1").update(repoUrl).digest("hex").slice(0, 12);
+}
+
+export function fixturePaths(fixture) {
+  const repoDir = join(fixtureRepoRoot, `${repoCacheKey(fixture.repo)}`);
+  const workDir = join(fixtureWorkRoot, fixture.id);
+  const projectWorkDir = fixture.projectDir === "."
+    ? workDir
+    : join(workDir, safeRelativePath(fixture.projectDir, `${fixture.id} projectDir`));
+  return { repoDir, workDir, projectWorkDir };
+}
+
+export function patchSettingsText(text, fixThisGradlePluginDir) {
+  const includeLine = `    includeBuild(${JSON.stringify(fixThisGradlePluginDir)})`;
+  if (text.includes(includeLine) || text.includes(`includeBuild(${JSON.stringify(fixThisGradlePluginDir)})`)) {
+    return text;
+  }
+  const pluginManagement = text.match(/pluginManagement\s*\{/);
+  if (!pluginManagement) {
+    return `pluginManagement {\n${includeLine}\n}\n\n${text}`;
+  }
+  const insertAt = text.indexOf("\n", pluginManagement.index + pluginManagement[0].length);
+  return `${text.slice(0, insertAt + 1)}${includeLine}\n${text.slice(insertAt + 1)}`;
+}
+
+export function patchAppBuildFileText(text) {
+  const pluginLine = '    id("io.github.beyondwin.fixthis.compose")';
+  const configBlock = [
+    "",
+    "fixthis {",
+    "    addDebugRuntime.set(false)",
+    "    generateSourceIndex.set(true)",
+    "    generateProjectMetadata.set(true)",
+    "}",
+    "",
+  ].join("\n");
+  let next = text;
+  if (!next.includes("io.github.beyondwin.fixthis.compose")) {
+    const pluginsMatch = next.match(/plugins\s*\{/);
+    if (!pluginsMatch) throw new Error("Could not find plugins block in app build file");
+    const insertAt = next.indexOf("\n", pluginsMatch.index + pluginsMatch[0].length);
+    next = `${next.slice(0, insertAt + 1)}${pluginLine}\n${next.slice(insertAt + 1)}`;
+  }
+  if (!next.includes("addDebugRuntime.set(false)")) {
+    next = `${next.trimEnd()}\n${configBlock}`;
+  }
+  return next;
+}
+
+export function runCommand(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd || repoRoot,
+    encoding: "utf8",
+    stdio: options.stdio || "pipe",
+    env: { ...process.env, ...(options.env || {}) },
+  });
+  if (result.error) {
+    throw new Error(`${command} ${args.join(" ")} failed to spawn: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    const stdout = typeof result.stdout === "string" ? result.stdout : "";
+    const stderr = typeof result.stderr === "string" ? result.stderr : "";
+    const detail = [stdout, stderr].join("\n").trim();
+    const suffix = detail
+      ? `\n${detail}`
+      : "\n(no captured output; rerun with stdio: 'pipe' to capture details)";
+    throw new Error(`${command} ${args.join(" ")} exited ${result.status}${suffix}`);
+  }
+  return result;
+}
+
+export function prepareFixture(fixture, options = {}) {
+  const paths = fixturePaths(fixture);
+  ensureDir(fixtureRepoRoot);
+  ensureDir(fixtureWorkRoot);
+
+  if (!existsSync(paths.repoDir)) {
+    runCommand("git", ["clone", "--filter=blob:none", "--no-checkout", fixture.repo, paths.repoDir], { stdio: options.stdio || "pipe" });
+  }
+  runCommand("git", ["fetch", "--filter=blob:none", "origin", fixture.commit], { cwd: paths.repoDir, stdio: options.stdio || "pipe" });
+  runCommand("git", ["checkout", "--detach", fixture.commit], { cwd: paths.repoDir, stdio: options.stdio || "pipe" });
+
+  rmSync(paths.workDir, { recursive: true, force: true });
+  ensureDir(paths.workDir);
+  const sourceDir = fixture.projectDir === "." ? paths.repoDir : join(paths.repoDir, safeRelativePath(fixture.projectDir, `${fixture.id} projectDir`));
+
+  cpSync(sourceDir, paths.projectWorkDir, {
+    recursive: true,
+    filter: (source) => {
+      const rel = relative(sourceDir, source);
+      if (!rel) return true;
+      return !rel.split(sep).some((part) => part === ".git" || part === ".gradle" || part === "build");
+    },
+  });
+
+  const moduleRel = fixture.modulePath.replace(/^:/, "").replaceAll(":", "/");
+  const kotlinBuild = join(paths.projectWorkDir, moduleRel, "build.gradle.kts");
+  const groovyBuild = join(paths.projectWorkDir, moduleRel, "build.gradle");
+  if (!existsSync(kotlinBuild)) {
+    if (existsSync(groovyBuild)) {
+      throw new Error(`${fixture.id}: Groovy build.gradle is not supported by this lab. Pin a Kotlin DSL sample or add a Groovy patcher.`);
+    }
+    throw new Error(`${fixture.id}: expected ${moduleRel}/build.gradle.kts in fixture working copy`);
+  }
+  const appBuildPath = kotlinBuild;
+
+  const settingsPath = join(paths.projectWorkDir, "settings.gradle.kts");
+  writeFileSync(
+    settingsPath,
+    patchSettingsText(readFileSync(settingsPath, "utf8"), join(repoRoot, "fixthis-gradle-plugin")),
+  );
+  writeFileSync(appBuildPath, patchAppBuildFileText(readFileSync(appBuildPath, "utf8")));
+
+  return paths;
+}
+
 function usage() {
   return "Usage: node scripts/source-matching-fixtures.mjs <prepare|run|report>";
 }
@@ -170,8 +292,24 @@ export async function main(argv = process.argv.slice(2)) {
   }
   const manifest = loadManifest();
   ensureDir(defaultReportDir);
-  const marker = join(defaultReportDir, `${command}-validation.json`);
-  writeJson(marker, {
+  if (command === "prepare") {
+    const prepared = [];
+    for (const fixture of manifest.fixtures) {
+      const paths = prepareFixture(fixture, { stdio: "inherit" });
+      prepared.push({
+        fixtureId: fixture.id,
+        repoDir: relative(repoRoot, paths.repoDir),
+        workDir: relative(repoRoot, paths.workDir),
+      });
+    }
+    writeJson(join(defaultReportDir, "prepare.json"), {
+      schemaVersion: 1,
+      status: "prepared",
+      prepared,
+    });
+    return 0;
+  }
+  writeJson(join(defaultReportDir, `${command}-validation.json`), {
     schemaVersion: 1,
     command,
     status: "validated",
