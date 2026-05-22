@@ -218,3 +218,15 @@ test("markdownReport summarizes status, fixtures, and case failures", () => {
   assert.match(text, /reply/);
   assert.match(text, /missing_top3/);
 });
+
+test("docs explain that fixture lab is local-only and gitignored", () => {
+  const guide = read("docs/guides/source-matching-fixture-lab.md");
+  assert.match(guide, /local-only/i);
+  assert.match(guide, /\.fixthis\/eval-fixtures\//);
+  assert.match(guide, /build\/reports\/fixthis-source-matching\//);
+  assert.match(guide, /not a release gate/i);
+  assert.match(guide, /npm run source-matching:fixtures/);
+
+  const index = read("docs/index.md");
+  assert.match(index, /source-matching-fixture-lab\.md/);
+});
