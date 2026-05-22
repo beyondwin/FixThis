@@ -47,11 +47,8 @@ maven-central.properties
 npmrc.local
 .npmrc.local
 
-# FixThis local capture artifacts
-.fixthis/artifacts/
-.fixthis/feedback-sessions/
-.fixthis/preview-cache/
-.fixthis/smoke-reports/
+# FixThis local runtime/capture artifacts
+.fixthis/
 
 # OS
 .DS_Store
@@ -63,7 +60,6 @@ npmrc.local
 *.orig
 
 # Agent/local tool state
-.fixthis
 graphify-out/
 .claude/
 .codex/
