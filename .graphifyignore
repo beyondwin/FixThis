@@ -1,0 +1,68 @@
+# VCS and agent-local state
+.git/
+.claude/
+.codex/
+.cursor/
+.mcp.json
+.orchestrator/
+.codex-orchestrator/
+.remember/
+.superpowers/
+.worktrees/
+
+# Graphify output must never feed back into extraction.
+graphify-out/
+
+# Gradle, Kotlin, Android, and generated build output
+.gradle/
+.kotlin/
+build/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.hprof
+
+# Node and test output
+node_modules/
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+output/
+
+# FixThis local runtime, feedback, and fixture state
+.fixthis/
+.fixthis/eval-fixtures/
+build/reports/fixthis-source-matching/
+
+# Local secrets and machine-specific files
+.env*
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*.gpg
+*.kbx
+key.properties
+credentials.properties
+secrets.properties
+signing.properties
+publish.properties
+publishing.properties
+gradle-publish.properties
+maven-central.properties
+npmrc.local
+.npmrc.local
+
+# Logs, editor backups, and OS files
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.orig
