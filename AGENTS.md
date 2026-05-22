@@ -144,35 +144,3 @@ Canonical commands and the local PR checklist live in
 ```
 
 Architecture deep dive: [`docs/architecture/overview.md`](docs/architecture/overview.md).
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
-
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
-
-## FixThis Graphify Boundaries
-
-Graphify is an agent navigation aid for this repository, not a FixThis product
-runtime dependency.
-
-- Treat `graphify query`, `graphify path`, and `graphify explain` output as
-  advisory context. Before changing behavior, verify against the actual Kotlin,
-  JavaScript, Gradle, and Markdown sources.
-- For MCP output compatibility, bridge protocol changes, source matching confidence,
-  or persisted JSON fields, verify against `docs/reference/*` and the implementation
-  before editing.
-- Do not commit `.fixthis/`, `graphify-out/`, Android build output, local
-  source-matching fixture workspaces, or generated Graphify cache/wiki/HTML.
-- If Graphify is missing or `graphify-out/graph.json` is stale, continue with
-  `rg`, direct source reads, and the canonical docs. Graphify failures do not
-  block normal FixThis development.
-- Use `graphify hook install` only as a personal opt-in. Manual
-  `graphify update .` is the default workflow for this repo.
