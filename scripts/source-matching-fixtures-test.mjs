@@ -7,7 +7,9 @@ import test from "node:test";
 
 import {
   classifyCaseOutcome,
+  evaluateSourceIndexCase,
   fixturePaths,
+  markdownReport,
   patchAppBuildFileText,
   patchSettingsText,
   reportStatus,
@@ -161,4 +163,58 @@ test("patchAppBuildFileText applies FixThis without runtime dependency", () => {
   assert.match(patched, /id\("io\.github\.beyondwin\.fixthis\.compose"\)/);
   assert.match(patched, /addDebugRuntime\.set\(false\)/);
   assert.equal(patchAppBuildFileText(patched), patched);
+});
+
+test("evaluateSourceIndexCase finds expected path and signal", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+        line: 52,
+        signals: [
+          { kind: "COMPOSABLE_SYMBOL", value: "ReplyApp" },
+        ],
+      },
+    ],
+  };
+  const result = evaluateSourceIndexCase({
+    id: "reply-main-activity-owner",
+    mode: "source-index",
+    expectedEntryPathContains: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+    expectedSignal: { kind: "COMPOSABLE_SYMBOL", value: "ReplyApp" },
+  }, sourceIndex);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "source_signal_present"]);
+});
+
+test("evaluateSourceIndexCase reports missing signal", () => {
+  const result = evaluateSourceIndexCase({
+    id: "missing",
+    mode: "source-index",
+    expectedEntryPathContains: "Nope.kt",
+    expectedSignal: { kind: "COMPOSABLE_SYMBOL", value: "Missing" },
+  }, { entries: [] });
+  assert.deepEqual(result.failures, ["missing_top3", "missing_source_signal"]);
+});
+
+test("markdownReport summarizes status, fixtures, and case failures", () => {
+  const text = markdownReport({
+    schemaVersion: 1,
+    status: "fail",
+    fixtures: [{
+      fixtureId: "reply",
+      status: "evaluated",
+      cases: [{
+        caseId: "missing",
+        metrics: [],
+        failures: ["missing_top3"],
+        environment: [],
+      }],
+    }],
+  });
+  assert.match(text, /# FixThis Source Matching Fixture Report/);
+  assert.match(text, /Status: fail/);
+  assert.match(text, /reply/);
+  assert.match(text, /missing_top3/);
 });

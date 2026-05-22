@@ -280,6 +280,129 @@ export function prepareFixture(fixture, options = {}) {
   return paths;
 }
 
+export function evaluateSourceIndexCase(testCase, sourceIndex) {
+  const entries = Array.isArray(sourceIndex?.entries) ? sourceIndex.entries : [];
+  const pathNeedle = testCase.expectedEntryPathContains;
+  const matchingEntries = entries.filter((entry) => typeof entry.file === "string" && entry.file.includes(pathNeedle));
+  const observed = {
+    candidates: matchingEntries.slice(0, 3).map((entry) => ({
+      path: entry.file,
+      line: entry.line || null,
+      signals: entry.signals || [],
+    })),
+    warnings: [],
+    environment: [],
+  };
+  const outcome = classifyCaseOutcome({
+    expectedTop3PathContains: pathNeedle,
+  }, observed);
+
+  if (testCase.expectedSignal) {
+    const foundSignal = matchingEntries.some((entry) =>
+      (entry.signals || []).some((signal) =>
+        signal.kind === testCase.expectedSignal.kind &&
+        signal.value === testCase.expectedSignal.value,
+      ),
+    );
+    if (foundSignal) outcome.metrics.push("source_signal_present");
+    else outcome.failures.push("missing_source_signal");
+  }
+  return {
+    caseId: testCase.id,
+    mode: testCase.mode,
+    metrics: outcome.metrics,
+    failures: outcome.failures,
+    environment: outcome.environment,
+    observed: {
+      candidates: observed.candidates,
+    },
+  };
+}
+
+export function evaluateFixtureSourceIndex(fixture, sourceIndex) {
+  const cases = fixture.cases.map((testCase) => evaluateSourceIndexCase(testCase, sourceIndex));
+  return {
+    fixtureId: fixture.id,
+    mode: "source-index",
+    status: cases.some((testCase) => testCase.failures.length > 0) ? "fail" : "evaluated",
+    sourceIndexSchemaVersion: sourceIndex.schemaVersion || null,
+    cases,
+  };
+}
+
+export function markdownReport(report) {
+  const lines = [
+    "# FixThis Source Matching Fixture Report",
+    "",
+    `Status: ${report.status}`,
+    `Generated: ${report.generatedAt}`,
+    "",
+  ];
+  for (const fixture of report.fixtures || []) {
+    lines.push(`## ${fixture.fixtureId}`);
+    lines.push("");
+    lines.push(`- Status: ${fixture.status}`);
+    if (fixture.sourceIndexSchemaVersion) {
+      lines.push(`- Source index schema: ${fixture.sourceIndexSchemaVersion}`);
+    }
+    lines.push("");
+    lines.push("| Case | Metrics | Failures | Environment |");
+    lines.push("| --- | --- | --- | --- |");
+    for (const testCase of fixture.cases || []) {
+      lines.push([
+        testCase.caseId,
+        (testCase.metrics || []).join(", ") || "-",
+        (testCase.failures || []).join(", ") || "-",
+        (testCase.environment || []).join(", ") || "-",
+      ].join(" | ").replace(/^/, "| ").replace(/$/, " |"));
+    }
+    lines.push("");
+  }
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
+export function runSourceIndexEvaluation(fixture) {
+  const paths = fixturePaths(fixture);
+  if (!existsSync(paths.projectWorkDir)) {
+    prepareFixture(fixture, { stdio: "inherit" });
+  }
+  const task = sourceIndexTaskPath(fixture);
+  runCommand("./gradlew", [task, "--no-daemon"], {
+    cwd: paths.projectWorkDir,
+    stdio: "inherit",
+  });
+  const sourceIndexPath = generatedSourceIndexPath(paths.projectWorkDir, fixture);
+  if (!existsSync(sourceIndexPath)) {
+    return {
+      fixtureId: fixture.id,
+      mode: "source-index",
+      status: "source_index_missing",
+      cases: fixture.cases.map((testCase) => ({
+        caseId: testCase.id,
+        metrics: [],
+        failures: ["source_index_missing"],
+        environment: [],
+      })),
+    };
+  }
+  const sourceIndex = JSON.parse(readFileSync(sourceIndexPath, "utf8"));
+  return evaluateFixtureSourceIndex(fixture, sourceIndex);
+}
+
+export function writeFixtureReport(fixtures) {
+  const caseResults = fixtures.flatMap((fixture) => fixture.cases || []);
+  const report = {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    status: reportStatus(caseResults),
+    deviceBackedCapture: "not_configured",
+    fixtures,
+  };
+  writeJson(join(defaultReportDir, "report.json"), report);
+  writeFileSync(join(defaultReportDir, "report.md"), markdownReport(report));
+  return report;
+}
+
 function usage() {
   return "Usage: node scripts/source-matching-fixtures.mjs <prepare|run|report>";
 }
@@ -309,12 +432,41 @@ export async function main(argv = process.argv.slice(2)) {
     });
     return 0;
   }
-  writeJson(join(defaultReportDir, `${command}-validation.json`), {
-    schemaVersion: 1,
-    command,
-    status: "validated",
-    fixtureCount: manifest.fixtures.length,
-  });
+  if (command === "run") {
+    const fixtures = [];
+    for (const fixture of manifest.fixtures) {
+      try {
+        fixtures.push(runSourceIndexEvaluation(fixture));
+      } catch (error) {
+        fixtures.push({
+          fixtureId: fixture.id,
+          mode: "source-index",
+          status: "fixture_build_failed",
+          error: error.message,
+          cases: fixture.cases.map((testCase) => ({
+            caseId: testCase.id,
+            metrics: [],
+            failures: ["fixture_build_failed"],
+            environment: [],
+          })),
+        });
+      }
+    }
+    const report = writeFixtureReport(fixtures);
+    return report.status === "fail" ? 1 : 0;
+  }
+
+  if (command === "report") {
+    const reportPath = join(defaultReportDir, "report.json");
+    if (!existsSync(reportPath)) {
+      console.error("No source matching fixture report exists. Run `npm run source-matching:fixtures` first.");
+      return 1;
+    }
+    const report = JSON.parse(readFileSync(reportPath, "utf8"));
+    writeFileSync(join(defaultReportDir, "report.md"), markdownReport(report));
+    console.log(readFileSync(join(defaultReportDir, "report.md"), "utf8"));
+    return report.status === "fail" ? 1 : 0;
+  }
   return 0;
 }
 
