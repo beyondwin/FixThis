@@ -242,11 +242,8 @@ object CompactHandoffRenderer {
     private fun StringBuilder.appendReliabilityBlock(reliability: TargetReliability?) {
         if (reliability == null) return
         val confidence = reliability.confidence.name.lowercase()
-        if (confidence == "unknown" && reliability.warnings.isEmpty()) {
-            appendLine("  targetConfidence=unknown; action=verify-manually")
-            return
-        }
-        appendLine("  targetConfidence=$confidence; action=${reliability.compactActionToken()}")
+        appendLine("  targetConfidence=$confidence")
+        appendLine("  targetAction=${reliability.compactActionToken()}")
         reliability.warnings.forEach { warning ->
             appendLine("  warning: ${warning.handoffMessage().inlineSafe()}")
         }

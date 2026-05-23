@@ -11,6 +11,7 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class CompactHandoffRendererTest {
@@ -51,6 +52,73 @@ class CompactHandoffRendererTest {
 
         assertTrue(markdown.contains("targetConfidence=low"))
         assertTrue(markdown.contains("possible AndroidView/WebView area"))
+    }
+
+    @Test
+    fun compactHandoffKeepsTargetConfidenceTokenStableAndRendersActionSeparately() {
+        val expectedActions = mapOf(
+            TargetConfidence.HIGH to "inspect-source-first",
+            TargetConfidence.MEDIUM to "inspect-and-corroborate",
+            TargetConfidence.LOW to "treat-source-paths-as-hints",
+            TargetConfidence.UNKNOWN to "verify-manually",
+        )
+
+        expectedActions.forEach { (confidence, action) ->
+            val markdown = CompactHandoffRenderer.render(
+                oneItemSession(
+                    AnnotationDto(
+                        itemId = "item-${confidence.name.lowercase()}",
+                        screenId = "screen-1",
+                        createdAtEpochMillis = 1L,
+                        updatedAtEpochMillis = 1L,
+                        target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                        comment = "Check ${confidence.name.lowercase()} target",
+                        sequenceNumber = 1,
+                        targetReliability = TargetReliability(confidence = confidence),
+                    ),
+                ),
+            )
+            val lines = markdown.lines()
+            val confidenceLine = "  targetConfidence=${confidence.name.lowercase()}"
+            val confidenceIndex = lines.indexOf(confidenceLine)
+
+            assertTrue(confidenceIndex >= 0, "Expected exact confidence line in:\n$markdown")
+            assertEquals("  targetAction=$action", lines[confidenceIndex + 1])
+            assertTrue(
+                lines.none { it.startsWith("$confidenceLine;") },
+                "targetConfidence line must not contain suffixes:\n$markdown",
+            )
+        }
+    }
+
+    @Test
+    fun compactHandoffRendersWarningsAfterTargetAction() {
+        val markdown = CompactHandoffRenderer.render(
+            oneItemSession(
+                AnnotationDto(
+                    itemId = "item-warning",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                    comment = "Check warning order",
+                    sequenceNumber = 1,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
+                ),
+            ),
+        )
+        val lines = markdown.lines()
+        val confidenceIndex = lines.indexOf("  targetConfidence=low")
+
+        assertTrue(confidenceIndex >= 0, "Expected exact low confidence line in:\n$markdown")
+        assertEquals("  targetAction=treat-source-paths-as-hints", lines[confidenceIndex + 1])
+        assertTrue(
+            lines[confidenceIndex + 2].startsWith("  warning: possible AndroidView/WebView area"),
+            "Expected warning immediately after targetAction in:\n$markdown",
+        )
     }
 
     @Test

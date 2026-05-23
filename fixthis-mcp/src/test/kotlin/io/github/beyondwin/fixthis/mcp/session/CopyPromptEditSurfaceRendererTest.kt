@@ -113,7 +113,8 @@ class CopyPromptEditSurfaceRendererTest {
 
         assertTrue(markdown.contains("editSurface: textColor  role=layout-or-style -> sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt:26"))
         assertTrue(markdown.contains("sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt:59"))
-        assertTrue(markdown.contains("targetConfidence=low; action=treat-source-paths-as-hints"))
+        assertTrue(markdown.contains("targetConfidence=low"))
+        assertTrue(markdown.contains("targetAction=treat-source-paths-as-hints"))
         assertTrue(markdown.contains("warning: source candidates are close; verify before editing"))
     }
 
