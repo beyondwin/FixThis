@@ -14,6 +14,26 @@ export const fixtureWorkRoot = join(fixtureRoot, "work");
 const fullShaPattern = /^[a-f0-9]{40}$/;
 const allowedConfidence = new Set(["high", "medium", "low", "unknown"]);
 const confidenceExpectations = new Set(["high", "medium-or-high", "low-or-medium", "low", "unknown"]);
+const targetWarnings = new Set([
+  "VISUAL_AREA_ONLY",
+  "NO_MEANINGFUL_COMPOSE_TARGET",
+  "POSSIBLE_VIEW_INTEROP",
+  "LOW_SOURCE_CANDIDATE_MARGIN",
+  "SOURCE_INDEX_STALE",
+  "SCREEN_FINGERPRINT_MISMATCH_FORCED",
+  "SCREEN_FINGERPRINT_UNAVAILABLE",
+  "SENSITIVE_TEXT_REDACTED",
+]);
+const sourceRiskFlags = new Set([
+  "AMBIGUOUS",
+  "AREA_SELECTION",
+  "TEXT_ONLY",
+  "NEARBY_ONLY",
+  "ARBITRARY_LITERAL",
+  "ACTIVITY_ONLY",
+  "LEGACY_FALLBACK",
+  "UNTYPED_FALLBACK",
+]);
 
 export function safeRelativePath(value, fieldName = "path") {
   if (typeof value !== "string" || value.length === 0) {
@@ -80,6 +100,12 @@ export function validateManifest(manifest) {
           errors.push(`${entry.id || "case"} expectedSignal must include kind and value`);
         }
       }
+      validateAllowedValues(entry.mustWarn, targetWarnings, `${entry.id || "case"} mustWarn`, errors);
+      validateAllowedValues(entry.mustNotWarn, targetWarnings, `${entry.id || "case"} mustNotWarn`, errors);
+      validateAllowedValues(entry.expectedRiskFlags, sourceRiskFlags, `${entry.id || "case"} expectedRiskFlags`, errors);
+      if (entry.mustNotHighConfidence !== undefined && typeof entry.mustNotHighConfidence !== "boolean") {
+        errors.push(`${entry.id || "case"} mustNotHighConfidence must be boolean`);
+      }
     }
   }
   if (errors.length) {
@@ -94,6 +120,7 @@ export function classifyCaseOutcome(expectation, observed) {
   const failures = [];
   const candidates = observed.candidates || [];
   const warnings = new Set(observed.warnings || []);
+  const riskFlags = new Set(observed.riskFlags || []);
   const top1Needles = arrayOf(
     expectation.expectedTop1PathContains
       || expectation.expectedEntryPathContains
@@ -119,12 +146,16 @@ export function classifyCaseOutcome(expectation, observed) {
   if (expectation.expectedConfidence && observed.confidence) {
     if (confidenceMatches(expectation.expectedConfidence, observed.confidence)) {
       metrics.push("confidence_calibrated");
-    } else if (observed.confidence === "high" && expectation.expectedConfidence === "low-or-medium") {
+    } else if (observed.confidence === "high" && ["low-or-medium", "low", "unknown"].includes(expectation.expectedConfidence)) {
       failures.push("overconfident");
+    } else if (observed.confidence === "low" && expectation.expectedConfidence === "medium-or-high") {
+      failures.push("underconfident");
     }
-    // Other miscalibrations (e.g. expected medium-or-high, got low) are silently
-    // ignored today; once real evaluator output exists, decide whether to surface
-    // an `under_confident` failure tier here.
+  }
+
+  for (const riskFlag of expectation.expectedRiskFlags || []) {
+    if (riskFlags.has(riskFlag)) metrics.push("risk_flag_present");
+    else failures.push("missing_risk_flag");
   }
 
   for (const warning of expectation.mustWarn || []) {
@@ -133,6 +164,17 @@ export function classifyCaseOutcome(expectation, observed) {
   }
   for (const warning of expectation.mustNotWarn || []) {
     if (warnings.has(warning)) failures.push("unexpected_warning");
+  }
+
+  if (expectation.mustNotHighConfidence === true) {
+    if (observed.confidence === "high") {
+      failures.push("unexpected_high_confidence");
+      if (riskFlags.size > 0 || warnings.size > 0) {
+        failures.push("weak_evidence_promoted");
+      }
+    } else if (observed.confidence) {
+      metrics.push("high_confidence_avoided");
+    }
   }
 
   return { metrics, failures, environment: observed.environment || [] };
@@ -164,6 +206,14 @@ function confidenceMatches(expected, actual) {
 function arrayOf(value) {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
+}
+
+function validateAllowedValues(values, allowed, fieldName, errors) {
+  for (const value of arrayOf(values)) {
+    if (!allowed.has(value)) {
+      errors.push(`${fieldName} contains unsupported value ${value}`);
+    }
+  }
 }
 
 export function repoCacheKey(repoUrl) {

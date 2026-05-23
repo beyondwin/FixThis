@@ -76,6 +76,54 @@ test("validateManifest rejects floating commits and unsafe paths", () => {
   );
 });
 
+test("validateManifest accepts trust calibration fields and rejects unsupported risk flags", () => {
+  assert.doesNotThrow(() => validateManifest({
+    schemaVersion: 1,
+    fixtures: [{
+      id: "trusty",
+      repo: "https://github.com/android/compose-samples.git",
+      commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+      projectDir: "Reply",
+      modulePath: ":app",
+      variant: "debug",
+      applicationId: "com.example.reply",
+      cases: [{
+        id: "trust-case",
+        mode: "source-index",
+        expectedTop1PathContains: "ReplyApp.kt",
+        expectedTop3PathContains: ["ReplyApp.kt", "ReplyList.kt"],
+        expectedConfidence: "medium-or-high",
+        expectedRiskFlags: ["AMBIGUOUS"],
+        mustWarn: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+        mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+        mustNotHighConfidence: true,
+      }],
+    }],
+  }));
+
+  assert.throws(
+    () => validateManifest({
+      schemaVersion: 1,
+      fixtures: [{
+        id: "bad-risk",
+        repo: "https://github.com/android/compose-samples.git",
+        commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+        projectDir: "Reply",
+        modulePath: ":app",
+        variant: "debug",
+        applicationId: "com.example.reply",
+        cases: [{
+          id: "bad-risk-case",
+          mode: "source-index",
+          expectedTop3PathContains: "ReplyApp.kt",
+          expectedRiskFlags: ["NOT_A_REAL_RISK"],
+        }],
+      }],
+    }),
+    /bad-risk-case expectedRiskFlags contains unsupported value NOT_A_REAL_RISK/,
+  );
+});
+
 test("safeRelativePath rejects absolute paths and traversal", () => {
   assert.equal(safeRelativePath("Reply"), "Reply");
   assert.equal(safeRelativePath("."), ".");
@@ -116,6 +164,63 @@ test("classifyCaseOutcome flags top hits, missing warnings, and overconfidence",
       warnings: [],
     }).metrics,
     ["top1_hit", "top3_hit", "confidence_calibrated"],
+  );
+});
+
+test("classifyCaseOutcome differentiates confidence and risk regressions", () => {
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop1PathContains: "Home.kt",
+      expectedTop3PathContains: "Home.kt",
+      expectedConfidence: "medium-or-high",
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "low",
+      warnings: [],
+      riskFlags: [],
+    }).failures,
+    ["underconfident"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedRiskFlags: ["ARBITRARY_LITERAL"],
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "medium",
+      warnings: [],
+      riskFlags: [],
+    }).failures,
+    ["missing_risk_flag"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "high",
+      warnings: [],
+      riskFlags: ["ARBITRARY_LITERAL"],
+    }).failures,
+    ["unexpected_high_confidence", "weak_evidence_promoted"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedRiskFlags: ["ARBITRARY_LITERAL"],
+      mustWarn: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "medium",
+      warnings: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+      riskFlags: ["ARBITRARY_LITERAL"],
+    }).metrics,
+    ["top1_hit", "top3_hit", "risk_flag_present", "warning_present", "high_confidence_avoided"],
   );
 });
 
