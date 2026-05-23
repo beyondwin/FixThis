@@ -8,15 +8,14 @@ internal object SourceScoringPolicy {
     const val selectedTextRankingTier: Int = 40
     const val nearbyContextRankingTier: Int = 20
     const val activityRankingTier: Int = 10
-    private const val selectedOwnerFunctionRankingTier: Int = 60
 
     fun rankingTier(matchReasons: List<SourceMatchReason>): Int {
         val reasons = matchReasons.toSet()
         return when {
-            SourceMatchReason.SELECTED_OWNER_FUNCTION in reasons -> selectedOwnerFunctionRankingTier
             reasons.hasAny(
                 SourceMatchReason.SELECTED_TEST_TAG,
                 SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE,
+                SourceMatchReason.SELECTED_OWNER_FUNCTION,
             ) -> selectedTestTagRankingTier
             reasons.hasAny(
                 SourceMatchReason.SELECTED_TEXT,
@@ -62,7 +61,7 @@ internal object SourceScoringPolicy {
     private const val SELECTED_STATE_DESCRIPTION_SCORE: Double = 38.0
     private const val SELECTED_TEST_TAG_SCORE: Double = 55.0
     private const val SELECTED_TEST_TAG_CONVENTION_SCORE: Double = 65.0
-    private const val SELECTED_OWNER_FUNCTION_SCORE: Double = 90.0
+    private const val SELECTED_OWNER_FUNCTION_SCORE: Double = 64.0
     private const val SELECTED_ROLE_SCORE: Double = 25.0
     private const val SELECTED_RESOLVED_STRING_RESOURCE_SCORE: Double = 48.0
     private const val NEARBY_TEXT_SCORE: Double = 24.0

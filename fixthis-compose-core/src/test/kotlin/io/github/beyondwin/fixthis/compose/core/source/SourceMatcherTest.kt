@@ -280,6 +280,41 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun directSelectedTestTagOutranksOwnerFunctionOnlyMatch() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/AdaptiveGridOwner.kt",
+                        line = 38,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.LAMBDA_OWNER_FUNCTION, "AdaptiveGrid"),
+                        ),
+                    ),
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/AdaptiveGridTile.kt",
+                        line = 24,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.TEST_TAG, "comp:AdaptiveGrid:tile"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val matches = matcher.match(
+            selectedNode = node(uid = "tile", testTag = "comp:AdaptiveGrid:tile"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertEquals("sample/src/main/java/AdaptiveGridTile.kt", matches.first().file)
+        assertTrue(matches.first().matchReasons.contains("selected testTag"))
+        assertEquals("sample/src/main/java/AdaptiveGridOwner.kt", matches[1].file)
+        assertTrue(matches[1].matchReasons.contains("selected owner composable"))
+    }
+
+    @Test
     fun typedUiTextSignalOutranksArbitraryStringLiteralForSameSelectedText() {
         val matcher = SourceMatcher(
             SourceIndex(
@@ -823,7 +858,7 @@ class SourceMatcherTest {
                         line = 12,
                         symbols = listOf("AdaptiveGrid"),
                         signals = listOf(
-                            SourceSignal(SourceSignalKind.COMPOSABLE_SYMBOL, "AdaptiveGrid"),
+                            SourceSignal(SourceSignalKind.COMPOSABLE_SYMBOL, "AdaptiveGrid", confidenceWeight = 0.7),
                         ),
                     ),
                 ),
@@ -837,6 +872,7 @@ class SourceMatcherTest {
         )
 
         assertEquals("sample/src/main/java/AdaptiveGrid.kt", matches.first().file)
+        assertEquals(38, matches.first().line)
         assertEquals(SelectionConfidence.MEDIUM, matches.first().confidence)
         assertTrue(matches.first().matchReasons.contains("selected owner composable"))
     }
