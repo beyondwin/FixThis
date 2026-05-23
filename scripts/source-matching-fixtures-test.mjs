@@ -235,6 +235,18 @@ test("classifyCaseOutcome differentiates confidence and risk regressions", () =>
   assert.deepEqual(
     classifyCaseOutcome({
       expectedTop3PathContains: "Home.kt",
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      warnings: [],
+      riskFlags: [],
+    }).metrics,
+    ["top1_hit", "top3_hit", "high_confidence_avoided"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
       expectedRiskFlags: ["ARBITRARY_LITERAL"],
       mustWarn: ["LOW_SOURCE_CANDIDATE_MARGIN"],
       mustNotHighConfidence: true,
@@ -331,6 +343,7 @@ test("evaluateSourceIndexCase forwards trust expectations to the classifier", ()
     id: "reply-main-activity-trust",
     mode: "source-index",
     expectedEntryPathContains: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+    expectedConfidence: "medium-or-high",
     mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
     mustNotHighConfidence: true,
   }, sourceIndex);

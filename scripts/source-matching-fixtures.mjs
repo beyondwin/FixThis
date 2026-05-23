@@ -172,7 +172,7 @@ export function classifyCaseOutcome(expectation, observed) {
       if (riskFlags.size > 0 || warnings.size > 0) {
         failures.push("weak_evidence_promoted");
       }
-    } else if (observed.confidence) {
+    } else {
       metrics.push("high_confidence_avoided");
     }
   }
@@ -343,7 +343,6 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
       line: entry.line || null,
       signals: entry.signals || [],
     })),
-    confidence: matchingEntries.length > 0 ? "medium" : undefined,
     warnings: [],
     environment: [],
   };
