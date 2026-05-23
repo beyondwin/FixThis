@@ -242,11 +242,21 @@ object CompactHandoffRenderer {
     private fun StringBuilder.appendReliabilityBlock(reliability: TargetReliability?) {
         if (reliability == null) return
         val confidence = reliability.confidence.name.lowercase()
-        if (confidence == "unknown" && reliability.warnings.isEmpty()) return
-        appendLine("  targetConfidence=$confidence")
+        if (confidence == "unknown" && reliability.warnings.isEmpty()) {
+            appendLine("  targetConfidence=unknown; action=verify-manually")
+            return
+        }
+        appendLine("  targetConfidence=$confidence; action=${reliability.compactActionToken()}")
         reliability.warnings.forEach { warning ->
             appendLine("  warning: ${warning.handoffMessage().inlineSafe()}")
         }
+    }
+
+    private fun TargetReliability.compactActionToken(): String = when (confidence) {
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.HIGH -> "inspect-source-first"
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.MEDIUM -> "inspect-and-corroborate"
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.LOW -> "treat-source-paths-as-hints"
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.UNKNOWN -> "verify-manually"
     }
 
     private fun StringBuilder.appendCandidatesBlock(item: AnnotationDto, sourceRoot: String?) {
