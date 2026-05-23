@@ -410,6 +410,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             SourceSignalKind.ROLE,
             SourceSignalKind.ACTIVITY_NAME,
             -> 0.85
+            SourceSignalKind.LAYOUT_RENDERER -> 0.75
             SourceSignalKind.ARBITRARY_STRING_LITERAL -> 0.35
         }
 

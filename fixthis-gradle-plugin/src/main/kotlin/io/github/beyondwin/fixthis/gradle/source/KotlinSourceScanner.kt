@@ -97,6 +97,15 @@ internal class KotlinSourceScanner(
             packageName = packageName,
             classDeclarations = classDeclarations,
         )
+        collectLayoutRendererSignals(
+            file = file,
+            source = source,
+            lines = lines,
+            lineStartOffsets = lineStartOffsets,
+            entriesByLine = entriesByLine,
+            packageName = packageName,
+            classDeclarations = classDeclarations,
+        )
         collectSemanticModifierSignals(source, stringResourceResolver) { range ->
             entriesByLine.entryFor(
                 file = file,
@@ -240,6 +249,28 @@ internal class KotlinSourceScanner(
                     contentDescriptions += value
                     addSignal(SourceSignalKindAsset.CONTENT_DESCRIPTION, value)
                 }
+        }
+    }
+
+    private fun collectLayoutRendererSignals(
+        file: File,
+        source: String,
+        lines: List<String>,
+        lineStartOffsets: IntArray,
+        entriesByLine: MutableMap<Int, SourceIndexEntryBuilder>,
+        packageName: String?,
+        classDeclarations: List<Pair<Int, String>>,
+    ) {
+        layoutRendererSignals(source).forEach { signal ->
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = signal.range.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(signal.range.first, classDeclarations),
+            ).apply {
+                addSignal(SourceSignalKindAsset.LAYOUT_RENDERER, signal.renderer)
+            }
         }
     }
 

@@ -877,6 +877,37 @@ class SourceMatcherTest {
         assertTrue(matches.first().matchReasons.contains("selected owner composable"))
     }
 
+    @Test
+    fun strictComposableTagCanSurfaceLayoutRendererEntryAsMediumConfidence() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/AdaptiveGrid.kt",
+                        line = 38,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.LAYOUT_RENDERER, "Layout"),
+                            SourceSignal(SourceSignalKind.LAMBDA_OWNER_FUNCTION, "AdaptiveGrid"),
+                        ),
+                        excerpt = "Layout(content = {}, measurePolicy = { ... })",
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "tile", testTag = "comp:AdaptiveGrid:tile"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertEquals("sample/src/main/java/AdaptiveGrid.kt", match.file)
+        assertEquals(38, match.line)
+        assertEquals(SelectionConfidence.MEDIUM, match.confidence)
+        assertTrue(match.matchReasons.contains("selected owner composable"))
+        assertTrue(match.ownerComposable == null || match.ownerComposable == "AdaptiveGrid")
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),

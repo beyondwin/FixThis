@@ -233,4 +233,39 @@ class KotlinSourceScannerTest {
         assertEquals(listOf("새로고침"), contentDescriptions)
         assertTrue(signals.any { it.kind == SourceSignalKindAsset.CONTENT_DESCRIPTION && it.value == "새로고침" })
     }
+
+    @Test
+    fun `indexes Layout and SubcomposeLayout renderer calls with owner function`() {
+        val file = tempDir.newFile("AdaptiveGrid.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+                import androidx.compose.ui.layout.SubcomposeLayout
+
+                @Composable
+                fun AdaptiveGrid() {
+                    Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                }
+
+                @Composable
+                fun DeferredTabs() {
+                    SubcomposeLayout { _, _ -> layout(0, 0) {} }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val layoutEntry = entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER && it.value == "Layout" }
+        }
+        val subcomposeEntry = entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER && it.value == "SubcomposeLayout" }
+        }
+
+        assertTrue(layoutEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "AdaptiveGrid" })
+        assertTrue(subcomposeEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "DeferredTabs" })
+    }
 }

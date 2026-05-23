@@ -27,6 +27,11 @@ internal data class KotlinRoleSignal(
     val role: String,
 )
 
+internal data class KotlinLayoutRendererSignal(
+    val range: IntRange,
+    val renderer: String,
+)
+
 internal fun stringResourceBindings(
     source: String,
     resolver: Map<String, String>,
@@ -76,6 +81,16 @@ internal fun roleSignals(source: String): List<KotlinRoleSignal> = roleRegex.fin
         )
     }
     .toList()
+
+internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSignal> =
+    layoutRendererRegex.findAll(source)
+        .map { match ->
+            KotlinLayoutRendererSignal(
+                range = match.range,
+                renderer = match.groupValues[1],
+            )
+        }
+        .toList()
 
 internal fun collectSemanticModifierSignals(
     source: String,
@@ -143,3 +158,4 @@ private val contentDescriptionStringResourceRegex =
 private val contentDescriptionVariableRegex =
     Regex("\\bcontentDescription\\s*=\\s*([A-Za-z_][A-Za-z0-9_]*)")
 private val roleRegex = Regex("\\brole\\s*=\\s*Role\\.([A-Za-z_][A-Za-z0-9_]*)")
+private val layoutRendererRegex = Regex("\\b(Layout|SubcomposeLayout)\\s*(?:\\(|\\{)")
