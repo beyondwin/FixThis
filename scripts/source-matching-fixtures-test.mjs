@@ -410,6 +410,7 @@ test("writeFixtureReport style summary separates failures and environment downgr
   assert.deepEqual(report.summary.environmentCounts, { upstream_path_missing: 1 });
   assert.equal(report.summary.totalCases, 2);
   assert.equal(report.summary.failedCases, 1);
+  assert.equal(report.summary.environmentCases, 1);
 });
 
 test("markdownReport prints summary counts before fixture tables", () => {

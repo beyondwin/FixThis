@@ -67,12 +67,16 @@ Important failure labels:
 - `missing_source_signal`: expected typed source signal was missing.
 - `overconfident`: observed confidence was higher than the case allowed.
 - `underconfident`: observed confidence was lower than the case expected.
+- `missing_risk_flag`: expected source risk flag was absent.
 - `missing_warning`: a required target warning was absent.
 - `unexpected_warning`: a warning that should not appear was present.
 - `unexpected_high_confidence`: a case marked `mustNotHighConfidence` became high confidence.
 - `weak_evidence_promoted`: weak evidence carried a risk or warning but still became high confidence.
 - `fixture_build_failed`: the external fixture did not build in this local environment.
 - `source_index_missing`: Gradle completed without producing the expected FixThis source index.
+
+Reserved labels for future fixture contract work:
+
 - `fixture_drift`: the pinned upstream fixture no longer matches the case contract and should be re-pinned or corrected.
 - `case_contract_invalid`: the committed manifest case is invalid.
 
