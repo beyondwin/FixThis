@@ -60,7 +60,7 @@ build/reports/fixthis-source-matching/report.json
 build/reports/fixthis-source-matching/report.md
 ```
 
-Important failure labels:
+Important result labels:
 
 - `missing_top3`: expected source entry did not appear in the evaluated source index.
 - `wrong_top1`: a case required a top-1 match and the first candidate did not match.
@@ -72,6 +72,9 @@ Important failure labels:
 - `unexpected_warning`: a warning that should not appear was present.
 - `unexpected_high_confidence`: a case marked `mustNotHighConfidence` became high confidence.
 - `weak_evidence_promoted`: weak evidence carried a risk or warning but still became high confidence.
+- `trust_observation_not_configured`: the source-index fixture could not
+  observe confidence, risk, or warning expectations because device-backed
+  capture is not enabled.
 - `fixture_build_failed`: the external fixture did not build in this local environment.
 - `source_index_missing`: Gradle completed without producing the expected FixThis source index.
 
@@ -81,7 +84,8 @@ Reserved labels for future fixture contract work:
 - `case_contract_invalid`: the committed manifest case is invalid.
 
 Device-backed capture is not enabled in the first local lab implementation.
-Reports mark it as `not_configured`.
+Reports mark the top-level capture mode as `not_configured`, and case-level
+trust expectations that require runtime capture as `trust_observation_not_configured`.
 
 ## Multi-Module Source-Index Aggregation
 

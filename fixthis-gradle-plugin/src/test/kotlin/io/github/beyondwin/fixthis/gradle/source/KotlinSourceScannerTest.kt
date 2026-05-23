@@ -335,6 +335,33 @@ class KotlinSourceScannerTest {
     }
 
     @Test
+    fun `does not emit layout renderer signal for Layout trailing lambda`() {
+        val file = tempDir.newFile("LayoutTrailingLambda.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+
+                @Composable
+                fun LayoutTrailingLambda() {
+                    Layout {
+                        Text("Visible")
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+    }
+
+    @Test
     fun `does not emit layout renderer signals inside nested block comments`() {
         val file = tempDir.newFile("NestedCommentLayout.kt").apply {
             writeText(

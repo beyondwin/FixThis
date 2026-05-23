@@ -168,7 +168,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
 
         // Post-processing: emit "arbitrary literal" or "untyped fallback" origin markers
         if (ctx.anyTermMatched) {
-            if (!ctx.anyTypedSignalNonLiteral && !ctx.anyUntypedFallbackOnly && ctx.anyArbitraryLiteralSignal) {
+            if (ctx.anyArbitraryLiteralSignal) {
                 matchReasons.add(SourceMatchReason.ARBITRARY_LITERAL)
             }
             if (!ctx.anyTypedSignalNonLiteral && !ctx.anyArbitraryLiteralSignal && ctx.anyUntypedFallbackOnly) {

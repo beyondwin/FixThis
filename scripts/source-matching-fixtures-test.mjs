@@ -241,8 +241,12 @@ test("classifyCaseOutcome differentiates confidence and risk regressions", () =>
       candidates: [{ path: "sample/Home.kt" }],
       warnings: [],
       riskFlags: [],
-    }).metrics,
-    ["top1_hit", "top3_hit", "high_confidence_avoided"],
+    }),
+    {
+      metrics: ["top1_hit", "top3_hit"],
+      failures: [],
+      environment: ["trust_observation_not_configured"],
+    },
   );
 
   assert.deepEqual(
@@ -258,6 +262,26 @@ test("classifyCaseOutcome differentiates confidence and risk regressions", () =>
       riskFlags: ["ARBITRARY_LITERAL"],
     }).metrics,
     ["top1_hit", "top3_hit", "risk_flag_present", "warning_present", "high_confidence_avoided"],
+  );
+});
+
+test("classifyCaseOutcome downgrades unobserved trust expectations to environment", () => {
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedConfidence: "medium-or-high",
+      expectedRiskFlags: ["ARBITRARY_LITERAL"],
+      mustWarn: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+      mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+    }),
+    {
+      metrics: ["top1_hit", "top3_hit"],
+      failures: [],
+      environment: ["trust_observation_not_configured"],
+    },
   );
 });
 
@@ -349,7 +373,38 @@ test("evaluateSourceIndexCase forwards trust expectations to the classifier", ()
     mustNotHighConfidence: true,
   }, sourceIndex);
   assert.deepEqual(result.failures, []);
-  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "high_confidence_avoided"]);
+  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit"]);
+  assert.deepEqual(result.environment, ["trust_observation_not_configured"]);
+});
+
+test("evaluateSourceIndexCase supports top3-only path expectations", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+        line: 52,
+        signals: [],
+      },
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/ReplyList.kt",
+        line: 12,
+        signals: [],
+      },
+    ],
+  };
+
+  const result = evaluateSourceIndexCase({
+    id: "reply-list-top3",
+    mode: "source-index",
+    expectedTop3PathContains: "ReplyList.kt",
+  }, sourceIndex);
+
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit"]);
+  assert.deepEqual(result.observed.candidates.map((candidate) => candidate.path), [
+    "Reply/app/src/main/java/com/example/reply/ui/ReplyList.kt",
+  ]);
 });
 
 test("evaluateSourceIndexCase reports missing signal", () => {

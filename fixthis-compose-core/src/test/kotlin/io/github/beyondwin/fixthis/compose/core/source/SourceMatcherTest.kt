@@ -878,6 +878,35 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun ownerFunctionPlusArbitraryLiteralDoesNotBecomeHighConfidence() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/AdaptiveGrid.kt",
+                        line = 38,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.ARBITRARY_STRING_LITERAL, "Pay now", confidenceWeight = 0.35),
+                            SourceSignal(SourceSignalKind.LAMBDA_OWNER_FUNCTION, "AdaptiveGrid"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "tile", text = listOf("Pay now"), testTag = "comp:AdaptiveGrid:tile"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertEquals(SelectionConfidence.MEDIUM, match.confidence)
+        assertTrue(SourceCandidateRisk.ARBITRARY_LITERAL in match.riskFlags)
+        assertTrue(match.matchReasons.contains("selected owner composable"))
+        assertTrue(match.matchReasons.contains("arbitrary literal"))
+    }
+
+    @Test
     fun strictComposableTagCanSurfaceLayoutRendererEntryAsMediumConfidence() {
         val matcher = SourceMatcher(
             SourceIndex(

@@ -33,6 +33,10 @@ internal object SourceRiskClassifier {
                 flags.add(SourceCandidateRisk.ACTIVITY_ONLY)
                 confidence = capAt(confidence, SelectionConfidence.LOW)
             }
+            profile.hasArbitraryLiteral && !profile.hasSelectedTestTag && !profile.hasStrictCompTag -> {
+                flags.add(SourceCandidateRisk.ARBITRARY_LITERAL)
+                confidence = capAt(confidence, SelectionConfidence.MEDIUM)
+            }
             profile.isTextOnly -> {
                 flags.add(SourceCandidateRisk.TEXT_ONLY)
                 confidence = capAt(confidence, SelectionConfidence.MEDIUM)

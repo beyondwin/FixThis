@@ -93,6 +93,10 @@ internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSig
                 return@mapNotNull null
             }
             val renderer = match.groupValues[2]
+            val delimiter = match.groupValues[3]
+            if (renderer == "Layout" && delimiter == "{") {
+                return@mapNotNull null
+            }
             val hasComposeQualifier = match.groupValues[1].isNotEmpty()
             if (!hasComposeQualifier) {
                 val isPartOfQualifiedCall = match.range.first > 0 && source[match.range.first - 1] == '.'
@@ -174,7 +178,7 @@ private val contentDescriptionStringResourceRegex =
 private val contentDescriptionVariableRegex =
     Regex("\\bcontentDescription\\s*=\\s*([A-Za-z_][A-Za-z0-9_]*)")
 private val roleRegex = Regex("\\brole\\s*=\\s*Role\\.([A-Za-z_][A-Za-z0-9_]*)")
-private val layoutRendererRegex = Regex("\\b(?:(androidx\\.compose\\.ui\\.layout)\\.)?(Layout|SubcomposeLayout)\\s*(?:\\(|\\{)")
+private val layoutRendererRegex = Regex("\\b(?:(androidx\\.compose\\.ui\\.layout)\\.)?(Layout|SubcomposeLayout)\\s*(\\(|\\{)")
 private val composeLayoutImportRegex = Regex("""(?m)^\s*import\s+androidx\.compose\.ui\.layout\.(Layout|SubcomposeLayout|\*)\s*$""")
 private val declarationKeywordBeforeRendererRegex = Regex("""\b(class|object|interface|fun)\s+$""")
 private val layoutRendererNames = setOf("Layout", "SubcomposeLayout")

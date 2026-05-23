@@ -14,6 +14,7 @@ export const fixtureWorkRoot = join(fixtureRoot, "work");
 const fullShaPattern = /^[a-f0-9]{40}$/;
 const allowedConfidence = new Set(["high", "medium", "low", "unknown"]);
 const confidenceExpectations = new Set(["high", "medium-or-high", "low-or-medium", "low", "unknown"]);
+const trustObservationNotConfigured = "trust_observation_not_configured";
 const targetWarnings = new Set([
   "VISUAL_AREA_ONLY",
   "NO_MEANINGFUL_COMPOSE_TARGET",
@@ -118,9 +119,13 @@ export function validateManifest(manifest) {
 export function classifyCaseOutcome(expectation, observed) {
   const metrics = [];
   const failures = [];
+  const environment = [...(observed.environment || [])];
   const candidates = observed.candidates || [];
-  const warnings = new Set(observed.warnings || []);
-  const riskFlags = new Set(observed.riskFlags || []);
+  const hasConfidenceObservation = typeof observed.confidence === "string" && observed.confidence.length > 0;
+  const hasWarningObservation = hasOwn(observed, "warnings");
+  const hasRiskObservation = hasOwn(observed, "riskFlags");
+  const warnings = new Set(hasWarningObservation ? observed.warnings || [] : []);
+  const riskFlags = new Set(hasRiskObservation ? observed.riskFlags || [] : []);
   const top1Needles = arrayOf(
     expectation.expectedTop1PathContains
       || expectation.expectedEntryPathContains
@@ -143,7 +148,7 @@ export function classifyCaseOutcome(expectation, observed) {
     failures.push("missing_top3");
   }
 
-  if (expectation.expectedConfidence && observed.confidence) {
+  if (expectation.expectedConfidence && hasConfidenceObservation) {
     if (confidenceMatches(expectation.expectedConfidence, observed.confidence)) {
       metrics.push("confidence_calibrated");
     } else if (observed.confidence === "high" && ["low-or-medium", "low", "unknown"].includes(expectation.expectedConfidence)) {
@@ -151,19 +156,32 @@ export function classifyCaseOutcome(expectation, observed) {
     } else if (observed.confidence === "low" && expectation.expectedConfidence === "medium-or-high") {
       failures.push("underconfident");
     }
+  } else if (expectation.expectedConfidence) {
+    addUnique(environment, trustObservationNotConfigured);
   }
 
-  for (const riskFlag of expectation.expectedRiskFlags || []) {
-    if (riskFlags.has(riskFlag)) metrics.push("risk_flag_present");
-    else failures.push("missing_risk_flag");
+  const expectedRiskFlags = expectation.expectedRiskFlags || [];
+  if (expectedRiskFlags.length > 0 && !hasRiskObservation) {
+    addUnique(environment, trustObservationNotConfigured);
+  } else {
+    for (const riskFlag of expectedRiskFlags) {
+      if (riskFlags.has(riskFlag)) metrics.push("risk_flag_present");
+      else failures.push("missing_risk_flag");
+    }
   }
 
-  for (const warning of expectation.mustWarn || []) {
-    if (warnings.has(warning)) metrics.push("warning_present");
-    else failures.push("missing_warning");
-  }
-  for (const warning of expectation.mustNotWarn || []) {
-    if (warnings.has(warning)) failures.push("unexpected_warning");
+  const requiredWarnings = expectation.mustWarn || [];
+  const forbiddenWarnings = expectation.mustNotWarn || [];
+  if ((requiredWarnings.length > 0 || forbiddenWarnings.length > 0) && !hasWarningObservation) {
+    addUnique(environment, trustObservationNotConfigured);
+  } else {
+    for (const warning of requiredWarnings) {
+      if (warnings.has(warning)) metrics.push("warning_present");
+      else failures.push("missing_warning");
+    }
+    for (const warning of forbiddenWarnings) {
+      if (warnings.has(warning)) failures.push("unexpected_warning");
+    }
   }
 
   if (expectation.mustNotHighConfidence === true) {
@@ -172,12 +190,14 @@ export function classifyCaseOutcome(expectation, observed) {
       if (riskFlags.size > 0 || warnings.size > 0) {
         failures.push("weak_evidence_promoted");
       }
-    } else {
+    } else if (hasConfidenceObservation) {
       metrics.push("high_confidence_avoided");
+    } else {
+      addUnique(environment, trustObservationNotConfigured);
     }
   }
 
-  return { metrics, failures, environment: observed.environment || [] };
+  return { metrics, failures, environment };
 }
 
 export function reportStatus(results) {
@@ -206,6 +226,14 @@ function confidenceMatches(expected, actual) {
 function arrayOf(value) {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
+}
+
+function hasOwn(value, key) {
+  return Object.prototype.hasOwnProperty.call(value || {}, key);
+}
+
+function addUnique(values, value) {
+  if (!values.includes(value)) values.push(value);
 }
 
 function validateAllowedValues(values, allowed, fieldName, errors) {
@@ -335,21 +363,23 @@ export function prepareFixture(fixture, options = {}) {
 
 export function evaluateSourceIndexCase(testCase, sourceIndex) {
   const entries = Array.isArray(sourceIndex?.entries) ? sourceIndex.entries : [];
-  const pathNeedle = testCase.expectedEntryPathContains;
-  const matchingEntries = entries.filter((entry) => typeof entry.file === "string" && entry.file.includes(pathNeedle));
+  const pathNeedles = [
+    ...arrayOf(testCase.expectedEntryPathContains),
+    ...arrayOf(testCase.expectedTop3PathContains),
+  ];
+  const matchingEntries = entries.filter((entry) =>
+    typeof entry.file === "string" &&
+    pathNeedles.some((needle) => entry.file.includes(needle)),
+  );
   const observed = {
     candidates: matchingEntries.slice(0, 3).map((entry) => ({
       path: entry.file,
       line: entry.line || null,
       signals: entry.signals || [],
     })),
-    warnings: [],
     environment: [],
   };
-  const outcome = classifyCaseOutcome({
-    ...testCase,
-    expectedTop3PathContains: testCase.expectedTop3PathContains || pathNeedle,
-  }, observed);
+  const outcome = classifyCaseOutcome(testCase, observed);
 
   if (testCase.expectedSignal) {
     const foundSignal = matchingEntries.some((entry) =>
