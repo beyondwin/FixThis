@@ -465,6 +465,32 @@ test("evaluateSourceIndexCase preserves source index order for top1 expectations
   ]);
 });
 
+test("evaluateSourceIndexCase enforces expected entry separately from ranking targets", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/PresentRankingTarget.kt",
+        line: 12,
+        signals: [
+          { kind: "COMPOSABLE_SYMBOL", value: "WrongOwner" },
+        ],
+      },
+    ],
+  };
+
+  const result = evaluateSourceIndexCase({
+    id: "reply-missing-entry-with-present-ranking",
+    mode: "source-index",
+    expectedEntryPathContains: "MissingExpectedEntry.kt",
+    expectedTop3PathContains: "PresentRankingTarget.kt",
+    expectedSignal: { kind: "COMPOSABLE_SYMBOL", value: "ExpectedOwner" },
+  }, sourceIndex);
+
+  assert.deepEqual(result.metrics, ["top3_hit"]);
+  assert.deepEqual(result.failures, ["missing_top3", "missing_source_signal"]);
+});
+
 test("evaluateSourceIndexCase reports missing signal", () => {
   const result = evaluateSourceIndexCase({
     id: "missing",

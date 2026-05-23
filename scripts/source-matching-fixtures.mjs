@@ -379,6 +379,7 @@ export function prepareFixture(fixture, options = {}) {
 
 export function evaluateSourceIndexCase(testCase, sourceIndex) {
   const entries = Array.isArray(sourceIndex?.entries) ? sourceIndex.entries : [];
+  const expectedEntryNeedles = arrayOf(testCase.expectedEntryPathContains);
   const rankingExpectationNeedles = [
     ...arrayOf(testCase.expectedTop1PathContains),
     ...arrayOf(testCase.expectedTop3PathContains),
@@ -392,6 +393,10 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
     typeof entry.file === "string" &&
     pathNeedles.some((needle) => entry.file.includes(needle)),
   );
+  const expectedEntryMatches = entries.filter((entry) =>
+    typeof entry.file === "string" &&
+    expectedEntryNeedles.some((needle) => entry.file.includes(needle)),
+  );
   const candidateEntries = hasRankingExpectation ? entries : matchingEntries;
   const observed = {
     candidates: candidateEntries.slice(0, 3).map((entry) => ({
@@ -403,8 +408,15 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
   };
   const outcome = classifyCaseOutcome(testCase, observed);
 
+  if (expectedEntryNeedles.length > 0 && !expectedEntryNeedles.every((needle) =>
+    expectedEntryMatches.some((entry) => entry.file.includes(needle))
+  )) {
+    addUnique(outcome.failures, "missing_top3");
+  }
+
   if (testCase.expectedSignal) {
-    const foundSignal = matchingEntries.some((entry) =>
+    const signalEntries = expectedEntryNeedles.length > 0 ? expectedEntryMatches : matchingEntries;
+    const foundSignal = signalEntries.some((entry) =>
       (entry.signals || []).some((signal) =>
         signal.kind === testCase.expectedSignal.kind &&
         signal.value === testCase.expectedSignal.value,
