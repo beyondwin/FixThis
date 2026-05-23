@@ -82,8 +82,13 @@ internal fun roleSignals(source: String): List<KotlinRoleSignal> = roleRegex.fin
     }
     .toList()
 
-internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSignal> =
-    layoutRendererRegex.findAll(source)
+internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSignal> {
+    val ignoredRanges = source.layoutRendererIgnoredRanges()
+    return layoutRendererRegex.findAll(source)
+        .filterNot { match ->
+            ignoredRanges.any { range -> match.range.first in range } ||
+                source.hasDeclarationKeywordBefore(match.range.first)
+        }
         .map { match ->
             KotlinLayoutRendererSignal(
                 range = match.range,
@@ -91,6 +96,7 @@ internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSig
             )
         }
         .toList()
+}
 
 internal fun collectSemanticModifierSignals(
     source: String,
@@ -159,3 +165,50 @@ private val contentDescriptionVariableRegex =
     Regex("\\bcontentDescription\\s*=\\s*([A-Za-z_][A-Za-z0-9_]*)")
 private val roleRegex = Regex("\\brole\\s*=\\s*Role\\.([A-Za-z_][A-Za-z0-9_]*)")
 private val layoutRendererRegex = Regex("\\b(Layout|SubcomposeLayout)\\s*(?:\\(|\\{)")
+private val declarationKeywordBeforeRendererRegex = Regex("""\b(class|object|interface|fun)\s+$""")
+
+private fun String.layoutRendererIgnoredRanges(): List<IntRange> =
+    kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
+
+private fun String.hasDeclarationKeywordBefore(offset: Int): Boolean {
+    val lineStart = lastIndexOf('\n', startIndex = offset).let { index ->
+        if (index == -1) 0 else index + 1
+    }
+    return declarationKeywordBeforeRendererRegex.containsMatchIn(substring(lineStart, offset))
+}
+
+private fun String.commentRanges(): List<IntRange> {
+    val stringRanges = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList()
+    val ranges = mutableListOf<IntRange>()
+    var stringIndex = 0
+    var index = 0
+    while (index < length - 1) {
+        val stringRange = stringRanges.getOrNull(stringIndex)
+        if (stringRange != null && index > stringRange.last) {
+            stringIndex += 1
+            continue
+        }
+        if (stringRange != null && index in stringRange) {
+            index = stringRange.last + 1
+            continue
+        }
+        when {
+            this[index] == '/' && this[index + 1] == '/' -> {
+                val lineEnd = indexOf('\n', startIndex = index + 2).let { end ->
+                    if (end == -1) length - 1 else end - 1
+                }
+                ranges += index..lineEnd
+                index = lineEnd + 1
+            }
+            this[index] == '/' && this[index + 1] == '*' -> {
+                val commentEnd = indexOf("*/", startIndex = index + 2).let { end ->
+                    if (end == -1) length - 1 else end + 1
+                }
+                ranges += index..commentEnd
+                index = commentEnd + 1
+            }
+            else -> index += 1
+        }
+    }
+    return ranges
+}

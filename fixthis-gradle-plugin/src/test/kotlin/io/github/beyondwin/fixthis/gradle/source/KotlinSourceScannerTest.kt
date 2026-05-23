@@ -268,4 +268,37 @@ class KotlinSourceScannerTest {
         assertTrue(layoutEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "AdaptiveGrid" })
         assertTrue(subcomposeEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "DeferredTabs" })
     }
+
+    @Test
+    fun `does not emit layout renderer signals for comments strings or local declarations`() {
+        val file = tempDir.newFile("LayoutDecoys.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun LayoutDecoys() {
+                    // Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                    val template = "SubcomposeLayout { _, _ -> layout(0, 0) {} }"
+                    class Layout {}
+                    Text("Visible")
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+        assertTrue(
+            signals.any {
+                it.kind == SourceSignalKindAsset.ARBITRARY_STRING_LITERAL &&
+                    it.value == "SubcomposeLayout { _, _ -> layout(0, 0) {} }"
+            },
+        )
+    }
 }

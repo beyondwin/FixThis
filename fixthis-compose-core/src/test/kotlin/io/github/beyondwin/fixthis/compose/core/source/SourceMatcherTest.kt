@@ -905,7 +905,7 @@ class SourceMatcherTest {
         assertEquals(38, match.line)
         assertEquals(SelectionConfidence.MEDIUM, match.confidence)
         assertTrue(match.matchReasons.contains("selected owner composable"))
-        assertTrue(match.ownerComposable == null || match.ownerComposable == "AdaptiveGrid")
+        assertEquals("AdaptiveGrid", match.ownerComposable)
     }
 
     private fun node(
