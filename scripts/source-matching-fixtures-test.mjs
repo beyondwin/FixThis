@@ -426,9 +426,42 @@ test("evaluateSourceIndexCase supports top3-only path expectations", () => {
   }, sourceIndex);
 
   assert.deepEqual(result.failures, []);
-  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit"]);
+  assert.deepEqual(result.metrics, ["top3_hit"]);
   assert.deepEqual(result.observed.candidates.map((candidate) => candidate.path), [
+    "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
     "Reply/app/src/main/java/com/example/reply/ui/ReplyList.kt",
+  ]);
+});
+
+test("evaluateSourceIndexCase preserves source index order for top1 expectations", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/Wrong.kt",
+        line: 12,
+        signals: [],
+      },
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/Expected.kt",
+        line: 52,
+        signals: [],
+      },
+    ],
+  };
+
+  const result = evaluateSourceIndexCase({
+    id: "reply-expected-top1",
+    mode: "source-index",
+    expectedTop1PathContains: "Expected.kt",
+    expectedTop3PathContains: "Expected.kt",
+  }, sourceIndex);
+
+  assert.deepEqual(result.failures, ["wrong_top1"]);
+  assert.deepEqual(result.metrics, ["top3_hit"]);
+  assert.deepEqual(result.observed.candidates.map((candidate) => candidate.path), [
+    "Reply/app/src/main/java/com/example/reply/ui/Wrong.kt",
+    "Reply/app/src/main/java/com/example/reply/ui/Expected.kt",
   ]);
 });
 

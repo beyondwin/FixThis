@@ -379,16 +379,22 @@ export function prepareFixture(fixture, options = {}) {
 
 export function evaluateSourceIndexCase(testCase, sourceIndex) {
   const entries = Array.isArray(sourceIndex?.entries) ? sourceIndex.entries : [];
+  const rankingExpectationNeedles = [
+    ...arrayOf(testCase.expectedTop1PathContains),
+    ...arrayOf(testCase.expectedTop3PathContains),
+  ];
   const pathNeedles = [
     ...arrayOf(testCase.expectedEntryPathContains),
     ...arrayOf(testCase.expectedTop3PathContains),
   ];
+  const hasRankingExpectation = rankingExpectationNeedles.length > 0;
   const matchingEntries = entries.filter((entry) =>
     typeof entry.file === "string" &&
     pathNeedles.some((needle) => entry.file.includes(needle)),
   );
+  const candidateEntries = hasRankingExpectation ? entries : matchingEntries;
   const observed = {
-    candidates: matchingEntries.slice(0, 3).map((entry) => ({
+    candidates: candidateEntries.slice(0, 3).map((entry) => ({
       path: entry.file,
       line: entry.line || null,
       signals: entry.signals || [],
