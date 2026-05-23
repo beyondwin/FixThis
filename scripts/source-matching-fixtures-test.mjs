@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import {
+  buildFixtureReport,
   classifyCaseOutcome,
   evaluateSourceIndexCase,
   fixturePaths,
@@ -380,6 +381,67 @@ test("markdownReport summarizes status, fixtures, and case failures", () => {
   assert.match(text, /Status: fail/);
   assert.match(text, /reply/);
   assert.match(text, /missing_top3/);
+});
+
+test("writeFixtureReport style summary separates failures and environment downgrades", () => {
+  const report = buildFixtureReport([{
+    fixtureId: "reply",
+    mode: "source-index",
+    status: "evaluated",
+    sourceIndexSchemaVersion: "1.2",
+    cases: [
+      {
+        caseId: "ok",
+        metrics: ["top3_hit", "confidence_calibrated"],
+        failures: [],
+        environment: [],
+      },
+      {
+        caseId: "drift",
+        metrics: [],
+        failures: ["fixture_drift"],
+        environment: ["upstream_path_missing"],
+      },
+    ],
+  }], "2026-05-24T00:00:00.000Z");
+
+  assert.equal(report.status, "fail");
+  assert.deepEqual(report.summary.failureCounts, { fixture_drift: 1 });
+  assert.deepEqual(report.summary.environmentCounts, { upstream_path_missing: 1 });
+  assert.equal(report.summary.totalCases, 2);
+  assert.equal(report.summary.failedCases, 1);
+});
+
+test("markdownReport prints summary counts before fixture tables", () => {
+  const text = markdownReport({
+    schemaVersion: 1,
+    generatedAt: "2026-05-24T00:00:00.000Z",
+    status: "fail",
+    summary: {
+      totalCases: 2,
+      failedCases: 1,
+      environmentCases: 1,
+      failureCounts: { overconfident: 1 },
+      environmentCounts: { device_unavailable: 1 },
+    },
+    fixtures: [{
+      fixtureId: "reply",
+      status: "evaluated",
+      cases: [{
+        caseId: "bad-confidence",
+        metrics: [],
+        failures: ["overconfident"],
+        environment: ["device_unavailable"],
+      }],
+    }],
+  });
+
+  assert.match(text, /## Summary/);
+  assert.match(text, /- Total cases: 2/);
+  assert.match(text, /- Failed cases: 1/);
+  assert.match(text, /- Environment downgrade cases: 1/);
+  assert.match(text, /- Failure counts: overconfident=1/);
+  assert.match(text, /- Environment counts: device_unavailable=1/);
 });
 
 test("docs explain that fixture lab is local-only and gitignored", () => {

@@ -384,6 +384,33 @@ export function evaluateFixtureSourceIndex(fixture, sourceIndex) {
   };
 }
 
+function countLabels(cases, fieldName) {
+  return cases
+    .flatMap((testCase) => testCase[fieldName] || [])
+    .reduce((counts, label) => {
+      counts[label] = (counts[label] || 0) + 1;
+      return counts;
+    }, {});
+}
+
+export function buildFixtureReport(fixtures, generatedAt = new Date().toISOString()) {
+  const caseResults = fixtures.flatMap((fixture) => fixture.cases || []);
+  return {
+    schemaVersion: 1,
+    generatedAt,
+    status: reportStatus(caseResults),
+    deviceBackedCapture: "not_configured",
+    summary: {
+      totalCases: caseResults.length,
+      failedCases: caseResults.filter((testCase) => (testCase.failures || []).length > 0).length,
+      environmentCases: caseResults.filter((testCase) => (testCase.environment || []).length > 0).length,
+      failureCounts: countLabels(caseResults, "failures"),
+      environmentCounts: countLabels(caseResults, "environment"),
+    },
+    fixtures,
+  };
+}
+
 export function markdownReport(report) {
   const lines = [
     "# FixThis Source Matching Fixture Report",
@@ -392,6 +419,16 @@ export function markdownReport(report) {
     `Generated: ${report.generatedAt}`,
     "",
   ];
+  if (report.summary) {
+    lines.push("## Summary");
+    lines.push("");
+    lines.push(`- Total cases: ${report.summary.totalCases}`);
+    lines.push(`- Failed cases: ${report.summary.failedCases}`);
+    lines.push(`- Environment downgrade cases: ${report.summary.environmentCases}`);
+    lines.push(`- Failure counts: ${formatCounts(report.summary.failureCounts)}`);
+    lines.push(`- Environment counts: ${formatCounts(report.summary.environmentCounts)}`);
+    lines.push("");
+  }
   for (const fixture of report.fixtures || []) {
     lines.push(`## ${fixture.fixtureId}`);
     lines.push("");
@@ -413,6 +450,13 @@ export function markdownReport(report) {
     lines.push("");
   }
   return `${lines.join("\n").trimEnd()}\n`;
+}
+
+function formatCounts(counts) {
+  const entries = Object.entries(counts || {});
+  return entries.length === 0
+    ? "-"
+    : entries.map(([label, count]) => `${label}=${count}`).join(", ");
 }
 
 export function runSourceIndexEvaluation(fixture) {
@@ -444,14 +488,7 @@ export function runSourceIndexEvaluation(fixture) {
 }
 
 export function writeFixtureReport(fixtures) {
-  const caseResults = fixtures.flatMap((fixture) => fixture.cases || []);
-  const report = {
-    schemaVersion: 1,
-    generatedAt: new Date().toISOString(),
-    status: reportStatus(caseResults),
-    deviceBackedCapture: "not_configured",
-    fixtures,
-  };
+  const report = buildFixtureReport(fixtures);
   writeJson(join(defaultReportDir, "report.json"), report);
   writeFileSync(join(defaultReportDir, "report.md"), markdownReport(report));
   return report;
