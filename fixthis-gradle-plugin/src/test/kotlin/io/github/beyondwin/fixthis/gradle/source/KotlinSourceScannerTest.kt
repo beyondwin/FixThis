@@ -301,4 +301,67 @@ class KotlinSourceScannerTest {
             },
         )
     }
+
+    @Test
+    fun `does not emit layout renderer signals for same-name local calls without Compose layout imports`() {
+        val file = tempDir.newFile("LocalLayoutNames.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun LocalLayoutNames() {
+                    class Layout
+                    fun SubcomposeLayout(block: () -> Unit) {
+                        block()
+                    }
+
+                    val config = Layout()
+                    SubcomposeLayout {
+                        Text("Visible")
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+    }
+
+    @Test
+    fun `does not emit layout renderer signals inside nested block comments`() {
+        val file = tempDir.newFile("NestedCommentLayout.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+
+                @Composable
+                fun NestedCommentLayout() {
+                    /*
+                     * Outer comment starts before this Layout call.
+                     * Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                     * /* Inner block comment closes first. */
+                     * Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                     */
+                    Text("Visible")
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+    }
 }
