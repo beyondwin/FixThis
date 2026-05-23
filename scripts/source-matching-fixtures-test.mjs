@@ -442,6 +442,15 @@ test("markdownReport prints summary counts before fixture tables", () => {
   assert.match(text, /- Environment downgrade cases: 1/);
   assert.match(text, /- Failure counts: overconfident=1/);
   assert.match(text, /- Environment counts: device_unavailable=1/);
+
+  const summaryIndex = text.indexOf("## Summary");
+  const fixtureIndex = text.indexOf("## reply");
+  assert.notEqual(summaryIndex, -1, "expected markdown report to include a Summary section");
+  assert.notEqual(fixtureIndex, -1, "expected markdown report to include the reply fixture section");
+  assert.ok(
+    summaryIndex < fixtureIndex,
+    "expected markdown report Summary section to appear before fixture sections",
+  );
 });
 
 test("docs explain that fixture lab is local-only and gitignored", () => {
