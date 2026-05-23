@@ -122,6 +122,30 @@ test("validateManifest accepts trust calibration fields and rejects unsupported 
     }),
     /bad-risk-case expectedRiskFlags contains unsupported value NOT_A_REAL_RISK/,
   );
+
+  assert.throws(
+    () => validateManifest({
+      schemaVersion: 1,
+      fixtures: [{
+        id: "bad-warning",
+        repo: "https://github.com/android/compose-samples.git",
+        commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+        projectDir: "Reply",
+        modulePath: ":app",
+        variant: "debug",
+        applicationId: "com.example.reply",
+        cases: [{
+          id: "bad-warning-case",
+          mode: "source-index",
+          expectedTop3PathContains: "ReplyApp.kt",
+          mustWarn: ["NOT_A_REAL_WARNING"],
+          mustNotWarn: ["ALSO_NOT_A_REAL_WARNING"],
+          mustNotHighConfidence: "yes",
+        }],
+      }],
+    }),
+    /bad-warning-case mustWarn contains unsupported value NOT_A_REAL_WARNING.*bad-warning-case mustNotWarn contains unsupported value ALSO_NOT_A_REAL_WARNING.*bad-warning-case mustNotHighConfidence must be boolean/,
+  );
 });
 
 test("safeRelativePath rejects absolute paths and traversal", () => {
@@ -290,6 +314,28 @@ test("evaluateSourceIndexCase finds expected path and signal", () => {
   }, sourceIndex);
   assert.deepEqual(result.failures, []);
   assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "source_signal_present"]);
+});
+
+test("evaluateSourceIndexCase forwards trust expectations to the classifier", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+        line: 52,
+        signals: [],
+      },
+    ],
+  };
+  const result = evaluateSourceIndexCase({
+    id: "reply-main-activity-trust",
+    mode: "source-index",
+    expectedEntryPathContains: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+    mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+    mustNotHighConfidence: true,
+  }, sourceIndex);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "high_confidence_avoided"]);
 });
 
 test("evaluateSourceIndexCase reports missing signal", () => {

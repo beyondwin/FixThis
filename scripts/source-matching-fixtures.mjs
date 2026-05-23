@@ -343,11 +343,13 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
       line: entry.line || null,
       signals: entry.signals || [],
     })),
+    confidence: matchingEntries.length > 0 ? "medium" : undefined,
     warnings: [],
     environment: [],
   };
   const outcome = classifyCaseOutcome({
-    expectedTop3PathContains: pathNeedle,
+    ...testCase,
+    expectedTop3PathContains: testCase.expectedTop3PathContains || pathNeedle,
   }, observed);
 
   if (testCase.expectedSignal) {
