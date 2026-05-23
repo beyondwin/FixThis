@@ -230,13 +230,14 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         cleaned: String,
         isNearby: Boolean,
     ): Double {
-        val effectiveReason = if (
+        val effectiveReason = when {
             hit.signalKind == SourceSignalKind.STRING_RESOURCE_RESOLVED &&
-            reason == SourceMatchReason.SELECTED_TEXT
-        ) {
-            SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE
-        } else {
-            reason
+                reason == SourceMatchReason.SELECTED_TEXT ->
+                SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE
+            hit.signalKind == SourceSignalKind.LAMBDA_OWNER_FUNCTION &&
+                reason == SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE ->
+                SourceMatchReason.SELECTED_OWNER_FUNCTION
+            else -> reason
         }
         matchedTerms.add(cleaned)
         matchReasons.add(effectiveReason)
@@ -317,11 +318,26 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         legacyCandidates = testTags + symbols + listOfNotNull(excerpt),
     )
 
-    private fun SourceIndexEntry.conventionComposableWeightHit(composableName: String): WeightHit = signalOrLegacyWeightHit(
-        term = composableName,
-        kinds = setOf(SourceSignalKind.COMPOSABLE_SYMBOL, SourceSignalKind.STRICT_COMP_TEST_TAG),
-        legacyCandidates = symbols + listOf(file) + listOfNotNull(excerpt),
-    )
+    private fun SourceIndexEntry.conventionComposableWeightHit(composableName: String): WeightHit {
+        val (signalMatchWeight, signalKind) = bestSignalHit(
+            terms = listOf(composableName),
+            kinds = setOf(
+                SourceSignalKind.COMPOSABLE_SYMBOL,
+                SourceSignalKind.STRICT_COMP_TEST_TAG,
+                SourceSignalKind.LAMBDA_OWNER_FUNCTION,
+            ),
+        )
+        if (signalMatchWeight > 0.0) {
+            return WeightHit(
+                weight = if (signalKind == SourceSignalKind.LAMBDA_OWNER_FUNCTION) signalMatchWeight * 0.85 else signalMatchWeight,
+                signalKind = signalKind,
+                viaLegacy = false,
+            )
+        }
+
+        val legacyMatches = matchesAny(composableName, symbols + listOf(file) + listOfNotNull(excerpt))
+        return WeightHit(legacyWeight(legacyMatches), signalKind = null, viaLegacy = legacyMatches)
+    }
 
     private fun SourceIndexEntry.roleWeightHit(term: String): WeightHit = signalOrLegacyWeightHit(
         term = term,
@@ -474,6 +490,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             profile.hasSelectedUiText ||
                 profile.hasSelectedContentDescription ||
                 profile.hasSelectedStateDescription -> SelectionConfidence.MEDIUM
+            profile.hasSelectedOwnerFunction -> SelectionConfidence.MEDIUM
             profile.selectedStrongCount > 0 -> SelectionConfidence.MEDIUM
             else -> SelectionConfidence.LOW
         }
