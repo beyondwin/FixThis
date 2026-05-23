@@ -265,6 +265,31 @@ test("classifyCaseOutcome differentiates confidence and risk regressions", () =>
   );
 });
 
+test("classifyCaseOutcome fails every observed confidence outside the expected band", () => {
+  const cases = [
+    ["high", "medium", "underconfident"],
+    ["medium-or-high", "unknown", "underconfident"],
+    ["low-or-medium", "unknown", "underconfident"],
+    ["low", "medium", "overconfident"],
+    ["unknown", "low", "overconfident"],
+  ];
+
+  for (const [expectedConfidence, confidence, failure] of cases) {
+    assert.deepEqual(
+      classifyCaseOutcome({
+        expectedTop3PathContains: "Home.kt",
+        expectedConfidence,
+      }, {
+        candidates: [{ path: "sample/Home.kt" }],
+        confidence,
+        warnings: [],
+        riskFlags: [],
+      }).failures,
+      [failure],
+    );
+  }
+});
+
 test("classifyCaseOutcome downgrades unobserved trust expectations to environment", () => {
   assert.deepEqual(
     classifyCaseOutcome({

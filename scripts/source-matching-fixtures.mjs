@@ -12,7 +12,12 @@ export const fixtureRepoRoot = join(fixtureRoot, "repos");
 export const fixtureWorkRoot = join(fixtureRoot, "work");
 
 const fullShaPattern = /^[a-f0-9]{40}$/;
-const allowedConfidence = new Set(["high", "medium", "low", "unknown"]);
+const confidenceRank = new Map([
+  ["unknown", 0],
+  ["low", 1],
+  ["medium", 2],
+  ["high", 3],
+]);
 const confidenceExpectations = new Set(["high", "medium-or-high", "low-or-medium", "low", "unknown"]);
 const trustObservationNotConfigured = "trust_observation_not_configured";
 const targetWarnings = new Set([
@@ -151,10 +156,8 @@ export function classifyCaseOutcome(expectation, observed) {
   if (expectation.expectedConfidence && hasConfidenceObservation) {
     if (confidenceMatches(expectation.expectedConfidence, observed.confidence)) {
       metrics.push("confidence_calibrated");
-    } else if (observed.confidence === "high" && ["low-or-medium", "low", "unknown"].includes(expectation.expectedConfidence)) {
-      failures.push("overconfident");
-    } else if (observed.confidence === "low" && expectation.expectedConfidence === "medium-or-high") {
-      failures.push("underconfident");
+    } else {
+      failures.push(confidenceMismatchFailure(expectation.expectedConfidence, observed.confidence));
     }
   } else if (expectation.expectedConfidence) {
     addUnique(environment, trustObservationNotConfigured);
@@ -216,11 +219,24 @@ export function writeJson(path, value) {
 }
 
 function confidenceMatches(expected, actual) {
-  if (!allowedConfidence.has(actual)) return false;
-  if (expected === actual) return true;
-  if (expected === "medium-or-high") return actual === "medium" || actual === "high";
-  if (expected === "low-or-medium") return actual === "low" || actual === "medium";
-  return false;
+  const actualRank = confidenceRank.get(actual);
+  const bounds = confidenceExpectationBounds(expected);
+  return bounds !== null && actualRank !== undefined && actualRank >= bounds.min && actualRank <= bounds.max;
+}
+
+function confidenceMismatchFailure(expected, actual) {
+  const actualRank = confidenceRank.get(actual);
+  const bounds = confidenceExpectationBounds(expected);
+  if (bounds === null || actualRank === undefined) return "underconfident";
+  return actualRank > bounds.max ? "overconfident" : "underconfident";
+}
+
+function confidenceExpectationBounds(expected) {
+  if (!confidenceExpectations.has(expected)) return null;
+  if (expected === "medium-or-high") return { min: confidenceRank.get("medium"), max: confidenceRank.get("high") };
+  if (expected === "low-or-medium") return { min: confidenceRank.get("low"), max: confidenceRank.get("medium") };
+  const rank = confidenceRank.get(expected);
+  return { min: rank, max: rank };
 }
 
 function arrayOf(value) {
