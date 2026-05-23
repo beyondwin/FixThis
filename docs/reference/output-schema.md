@@ -72,6 +72,15 @@ not replace `targetEvidence` or `sourceCandidates`.
   `SOURCE_INDEX_STALE`, `SCREEN_FINGERPRINT_MISMATCH_FORCED`,
   `SCREEN_FINGERPRINT_UNAVAILABLE`, and `SENSITIVE_TEXT_REDACTED`.
 
+Agent-facing Markdown may render this confidence with action guidance. Precise
+and full Markdown use sentence guidance such as inspect the source candidate
+first, inspect and corroborate, treat source paths as hints only, or verify
+manually. Compact Markdown preserves `targetConfidence=<enum>` and emits a
+separate `targetAction=<token>` such as `inspect-source-first`,
+`inspect-and-corroborate`, `treat-source-paths-as-hints`, or
+`verify-manually`. These phrases and tokens are renderer output, not persisted
+JSON fields.
+
 ## Feedback Session Schema
 
 Feedback console sessions are returned by `fixthis_open_feedback_console` and served by the local console API. Top-level fields:
@@ -332,9 +341,14 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 - `staleReason`: optional string explaining the staleness verdict, e.g. `"excerpt mismatch"`, `"file not found on host"`, `"file not found on host; sourceRoot unresolved"`, `"file not found on host; multiple suffix matches"`, `"line out of range"`, `"path escapes project root"`, or `"file too large to verify"`.
 - `ownerComposable`: optional simple name of the enclosing `@Composable fun` for the indexed source entry. Markdown handoffs render this as `inside fun <name>` or compact `owner=<name>` when present.
 
-Generated source-index entries now include additive v2 typed `signals` while preserving the v1 fields (`symbols`, `text`, `contentDescriptions`, `testTags`, `stringResources`, `roles`, and `activityNames`). Current signal kinds are `COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`, `STRING_RESOURCE_RESOLVED`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`, `ARBITRARY_STRING_LITERAL`, and `LAMBDA_OWNER_FUNCTION`; each signal has a `value` and optional `confidenceWeight` defaulting to `1.0`. `STRING_RESOURCE_RESOLVED` is emitted on Kotlin `stringResource(R.string.name)` call sites when the default-locale value is available from `res/values/strings.xml`; `LAMBDA_OWNER_FUNCTION` records the enclosing composable function for indexed Kotlin entries.
+Generated source-index entries now include additive v2 typed `signals` while preserving the v1 fields (`symbols`, `text`, `contentDescriptions`, `testTags`, `stringResources`, `roles`, and `activityNames`). Current signal kinds are `COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`, `STRING_RESOURCE_RESOLVED`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`, `ARBITRARY_STRING_LITERAL`, `LAMBDA_OWNER_FUNCTION`, and `LAYOUT_RENDERER`; each signal has a `value` and optional `confidenceWeight` defaulting to `1.0`. `STRING_RESOURCE_RESOLVED` is emitted on Kotlin `stringResource(R.string.name)` call sites when the default-locale value is available from `res/values/strings.xml`; `LAMBDA_OWNER_FUNCTION` records the enclosing composable function for indexed Kotlin entries.
 
-Generated source indexes also include additive root metadata starting with source-index `schemaVersion: "1.1"`. Current generated source indexes use `schemaVersion: "1.2"` for resolved string-resource and owner-composable signals:
+`LAYOUT_RENDERER` source-index signals are typed call-site evidence for Compose
+`Layout` and `SubcomposeLayout` usage. Agents should interpret them with the
+owner composable and confidence warnings: a layout renderer signal alone is not
+an exact source-line guarantee.
+
+Generated source indexes also include additive root metadata starting with source-index `schemaVersion: "1.1"`. Current generated source indexes use `schemaVersion: "1.2"` for resolved string-resource, owner-composable, and layout-renderer signals:
 
 - `sourceRoot.kind`: source-root kind. Current value is `"gradle-project"`.
 - `sourceRoot.gradlePath`: Gradle project path that generated the index, such as `":app"`.
