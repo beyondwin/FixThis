@@ -202,8 +202,9 @@ candidate_line= "  " file ":" line "  conf=" lvl [ "  owner=" composable ] "  ma
                                                                           ↑ owner/margin/matched are first line only; runner-ups omit them
                                                                           ; file is stripped of source_root prefix when present
 caution_line  = "  note: " text                          ; emitted iff caution OR collision
-reliability_block = target_confidence_line warning_line*
+reliability_block = target_confidence_line target_action_line? warning_line*
 target_confidence_line = "  targetConfidence=" ("high" | "medium" | "low" | "unknown")
+target_action_line = "  targetAction=" ("inspect-source-first" | "inspect-and-corroborate" | "treat-source-paths-as-hints" | "verify-manually")
 warning_line   = "  warning: " text
 footer         = "---"
                  "agent_protocol:"
@@ -260,6 +261,9 @@ When no source candidates are available for the item, the source block consists 
 - `targetConfidence=` — optional target-level reliability. It describes how
   much the selected UI target can be trusted before editing; it is not task
   priority and is distinct from source-candidate `conf=`.
+- `targetAction=` — optional target-level action guidance. It is emitted as a
+  separate line so `targetConfidence=` remains a parseable enum-only confidence
+  token (`high`, `medium`, `low`, or `unknown`).
 - `warning:` — optional target-level caveats, such as visual-area-only,
   possible AndroidView/WebView interop, stale source index, forced screen
   mismatch, missing fingerprint, or sensitive text redaction.
