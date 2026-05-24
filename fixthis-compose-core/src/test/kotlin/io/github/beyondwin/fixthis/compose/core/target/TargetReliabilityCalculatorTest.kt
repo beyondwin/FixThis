@@ -123,6 +123,31 @@ class TargetReliabilityCalculatorTest {
         assertTrue(result.reasons.none { it.name.contains("PASSWORD", ignoreCase = true) })
     }
 
+    @Test
+    fun mediumSourceCandidateWithWeakRiskDoesNotRaiseTargetAboveMedium() {
+        val result = TargetReliabilityCalculator.calculate(
+            TargetReliabilityInput(
+                targetKind = TargetKind.NODE,
+                selectedNode = meaningfulNode(),
+                sourceCandidates = listOf(
+                    SourceCandidate(
+                        file = "sample/src/main/java/AdaptiveGrid.kt",
+                        line = 38,
+                        score = 0.72,
+                        matchReasons = listOf("selected testTag convention composable"),
+                        confidence = SelectionConfidence.MEDIUM,
+                        scoreMargin = 0.18,
+                        riskFlags = listOf(SourceCandidateRisk.ARBITRARY_LITERAL),
+                    ),
+                ),
+                screenFingerprintAvailable = true,
+            ),
+        )
+
+        assertEquals(TargetConfidence.MEDIUM, result.confidence)
+        assertTrue(result.reasons.contains(TargetReliabilityReason.MEDIUM_SOURCE_CANDIDATE))
+    }
+
     private fun meaningfulNode(
         text: List<String> = listOf("Pay now"),
         editableText: String? = null,

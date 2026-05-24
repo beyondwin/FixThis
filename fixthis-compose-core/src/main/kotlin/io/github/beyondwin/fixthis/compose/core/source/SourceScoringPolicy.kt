@@ -15,6 +15,7 @@ internal object SourceScoringPolicy {
             reasons.hasAny(
                 SourceMatchReason.SELECTED_TEST_TAG,
                 SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE,
+                SourceMatchReason.SELECTED_OWNER_FUNCTION,
             ) -> selectedTestTagRankingTier
             reasons.hasAny(
                 SourceMatchReason.SELECTED_TEXT,
@@ -41,6 +42,7 @@ internal object SourceScoringPolicy {
         SourceMatchReason.SELECTED_STATE_DESCRIPTION -> SELECTED_STATE_DESCRIPTION_SCORE
         SourceMatchReason.SELECTED_TEST_TAG -> SELECTED_TEST_TAG_SCORE
         SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE -> SELECTED_TEST_TAG_CONVENTION_SCORE
+        SourceMatchReason.SELECTED_OWNER_FUNCTION -> SELECTED_OWNER_FUNCTION_SCORE
         SourceMatchReason.SELECTED_ROLE -> SELECTED_ROLE_SCORE
         SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE -> SELECTED_RESOLVED_STRING_RESOURCE_SCORE
         SourceMatchReason.NEARBY_TEXT -> NEARBY_TEXT_SCORE
@@ -59,6 +61,7 @@ internal object SourceScoringPolicy {
     private const val SELECTED_STATE_DESCRIPTION_SCORE: Double = 38.0
     private const val SELECTED_TEST_TAG_SCORE: Double = 55.0
     private const val SELECTED_TEST_TAG_CONVENTION_SCORE: Double = 65.0
+    private const val SELECTED_OWNER_FUNCTION_SCORE: Double = 64.0
     private const val SELECTED_ROLE_SCORE: Double = 25.0
     private const val SELECTED_RESOLVED_STRING_RESOURCE_SCORE: Double = 48.0
     private const val NEARBY_TEXT_SCORE: Double = 24.0

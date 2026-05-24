@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import {
+  buildFixtureReport,
   classifyCaseOutcome,
   evaluateSourceIndexCase,
   fixturePaths,
@@ -76,6 +77,98 @@ test("validateManifest rejects floating commits and unsafe paths", () => {
   );
 });
 
+test("validateManifest accepts trust calibration fields and rejects unsupported risk flags", () => {
+  assert.doesNotThrow(() => validateManifest({
+    schemaVersion: 1,
+    fixtures: [{
+      id: "trusty",
+      repo: "https://github.com/android/compose-samples.git",
+      commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+      projectDir: "Reply",
+      modulePath: ":app",
+      variant: "debug",
+      applicationId: "com.example.reply",
+      cases: [{
+        id: "trust-case",
+        mode: "source-index",
+        expectedTop1PathContains: "ReplyApp.kt",
+        expectedTop3PathContains: ["ReplyApp.kt", "ReplyList.kt"],
+        expectedConfidence: "medium-or-high",
+        expectedRiskFlags: ["AMBIGUOUS"],
+        mustWarn: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+        mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+        mustNotHighConfidence: true,
+      }],
+    }],
+  }));
+
+  assert.throws(
+    () => validateManifest({
+      schemaVersion: 1,
+      fixtures: [{
+        id: "bad-risk",
+        repo: "https://github.com/android/compose-samples.git",
+        commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+        projectDir: "Reply",
+        modulePath: ":app",
+        variant: "debug",
+        applicationId: "com.example.reply",
+        cases: [{
+          id: "bad-risk-case",
+          mode: "source-index",
+          expectedTop3PathContains: "ReplyApp.kt",
+          expectedRiskFlags: ["NOT_A_REAL_RISK"],
+        }],
+      }],
+    }),
+    /bad-risk-case expectedRiskFlags contains unsupported value NOT_A_REAL_RISK/,
+  );
+
+  assert.throws(
+    () => validateManifest({
+      schemaVersion: 1,
+      fixtures: [{
+        id: "bad-warning",
+        repo: "https://github.com/android/compose-samples.git",
+        commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+        projectDir: "Reply",
+        modulePath: ":app",
+        variant: "debug",
+        applicationId: "com.example.reply",
+        cases: [{
+          id: "bad-warning-case",
+          mode: "source-index",
+          expectedTop3PathContains: "ReplyApp.kt",
+          mustWarn: ["NOT_A_REAL_WARNING"],
+          mustNotWarn: ["ALSO_NOT_A_REAL_WARNING"],
+          mustNotHighConfidence: "yes",
+        }],
+      }],
+    }),
+    /bad-warning-case mustWarn contains unsupported value NOT_A_REAL_WARNING.*bad-warning-case mustNotWarn contains unsupported value ALSO_NOT_A_REAL_WARNING.*bad-warning-case mustNotHighConfidence must be boolean/,
+  );
+});
+
+test("validateManifest accepts top1-only path expectations", () => {
+  assert.doesNotThrow(() => validateManifest({
+    schemaVersion: 1,
+    fixtures: [{
+      id: "top1-only",
+      repo: "https://github.com/android/compose-samples.git",
+      commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+      projectDir: "Reply",
+      modulePath: ":app",
+      variant: "debug",
+      applicationId: "com.example.reply",
+      cases: [{
+        id: "top1-case",
+        mode: "source-index",
+        expectedTop1PathContains: "ReplyApp.kt",
+      }],
+    }],
+  }));
+});
+
 test("safeRelativePath rejects absolute paths and traversal", () => {
   assert.equal(safeRelativePath("Reply"), "Reply");
   assert.equal(safeRelativePath("."), ".");
@@ -116,6 +209,138 @@ test("classifyCaseOutcome flags top hits, missing warnings, and overconfidence",
       warnings: [],
     }).metrics,
     ["top1_hit", "top3_hit", "confidence_calibrated"],
+  );
+});
+
+test("classifyCaseOutcome differentiates confidence and risk regressions", () => {
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop1PathContains: "Home.kt",
+      expectedTop3PathContains: "Home.kt",
+      expectedConfidence: "medium-or-high",
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "low",
+      warnings: [],
+      riskFlags: [],
+    }).failures,
+    ["underconfident"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedRiskFlags: ["ARBITRARY_LITERAL"],
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "medium",
+      warnings: [],
+      riskFlags: [],
+    }).failures,
+    ["missing_risk_flag"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "high",
+      warnings: [],
+      riskFlags: ["ARBITRARY_LITERAL"],
+    }).failures,
+    ["unexpected_high_confidence", "weak_evidence_promoted"],
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      warnings: [],
+      riskFlags: [],
+    }),
+    {
+      metrics: ["top1_hit", "top3_hit"],
+      failures: [],
+      environment: ["trust_observation_not_configured"],
+    },
+  );
+
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedRiskFlags: ["ARBITRARY_LITERAL"],
+      mustWarn: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      confidence: "medium",
+      warnings: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+      riskFlags: ["ARBITRARY_LITERAL"],
+    }).metrics,
+    ["top1_hit", "top3_hit", "risk_flag_present", "warning_present", "high_confidence_avoided"],
+  );
+});
+
+test("classifyCaseOutcome treats untyped fallback expectations as legacy fallback wire risk", () => {
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedRiskFlags: ["UNTYPED_FALLBACK"],
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      warnings: [],
+      riskFlags: ["LEGACY_FALLBACK"],
+    }).metrics,
+    ["top1_hit", "top3_hit", "risk_flag_present"],
+  );
+});
+
+test("classifyCaseOutcome fails every observed confidence outside the expected band", () => {
+  const cases = [
+    ["high", "medium", "underconfident"],
+    ["medium-or-high", "unknown", "underconfident"],
+    ["low-or-medium", "unknown", "underconfident"],
+    ["low", "medium", "overconfident"],
+    ["unknown", "low", "overconfident"],
+  ];
+
+  for (const [expectedConfidence, confidence, failure] of cases) {
+    assert.deepEqual(
+      classifyCaseOutcome({
+        expectedTop3PathContains: "Home.kt",
+        expectedConfidence,
+      }, {
+        candidates: [{ path: "sample/Home.kt" }],
+        confidence,
+        warnings: [],
+        riskFlags: [],
+      }).failures,
+      [failure],
+    );
+  }
+});
+
+test("classifyCaseOutcome downgrades unobserved trust expectations to environment", () => {
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedConfidence: "medium-or-high",
+      expectedRiskFlags: ["ARBITRARY_LITERAL"],
+      mustWarn: ["LOW_SOURCE_CANDIDATE_MARGIN"],
+      mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+      mustNotHighConfidence: true,
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+    }),
+    {
+      metrics: ["top1_hit", "top3_hit"],
+      failures: [],
+      environment: ["trust_observation_not_configured"],
+    },
   );
 });
 
@@ -187,6 +412,119 @@ test("evaluateSourceIndexCase finds expected path and signal", () => {
   assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "source_signal_present"]);
 });
 
+test("evaluateSourceIndexCase forwards trust expectations to the classifier", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+        line: 52,
+        signals: [],
+      },
+    ],
+  };
+  const result = evaluateSourceIndexCase({
+    id: "reply-main-activity-trust",
+    mode: "source-index",
+    expectedEntryPathContains: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+    expectedConfidence: "medium-or-high",
+    mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+    mustNotHighConfidence: true,
+  }, sourceIndex);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit"]);
+  assert.deepEqual(result.environment, ["trust_observation_not_configured"]);
+});
+
+test("evaluateSourceIndexCase supports top3-only path expectations", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+        line: 52,
+        signals: [],
+      },
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/ReplyList.kt",
+        line: 12,
+        signals: [],
+      },
+    ],
+  };
+
+  const result = evaluateSourceIndexCase({
+    id: "reply-list-top3",
+    mode: "source-index",
+    expectedTop3PathContains: "ReplyList.kt",
+  }, sourceIndex);
+
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.metrics, ["top3_hit"]);
+  assert.deepEqual(result.observed.candidates.map((candidate) => candidate.path), [
+    "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+    "Reply/app/src/main/java/com/example/reply/ui/ReplyList.kt",
+  ]);
+});
+
+test("evaluateSourceIndexCase preserves source index order for top1 expectations", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/Wrong.kt",
+        line: 12,
+        signals: [],
+      },
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/Expected.kt",
+        line: 52,
+        signals: [],
+      },
+    ],
+  };
+
+  const result = evaluateSourceIndexCase({
+    id: "reply-expected-top1",
+    mode: "source-index",
+    expectedTop1PathContains: "Expected.kt",
+    expectedTop3PathContains: "Expected.kt",
+  }, sourceIndex);
+
+  assert.deepEqual(result.failures, ["wrong_top1"]);
+  assert.deepEqual(result.metrics, ["top3_hit"]);
+  assert.deepEqual(result.observed.candidates.map((candidate) => candidate.path), [
+    "Reply/app/src/main/java/com/example/reply/ui/Wrong.kt",
+    "Reply/app/src/main/java/com/example/reply/ui/Expected.kt",
+  ]);
+});
+
+test("evaluateSourceIndexCase enforces expected entry separately from ranking targets", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "Reply/app/src/main/java/com/example/reply/ui/PresentRankingTarget.kt",
+        line: 12,
+        signals: [
+          { kind: "COMPOSABLE_SYMBOL", value: "WrongOwner" },
+        ],
+      },
+    ],
+  };
+
+  const result = evaluateSourceIndexCase({
+    id: "reply-missing-entry-with-present-ranking",
+    mode: "source-index",
+    expectedEntryPathContains: "MissingExpectedEntry.kt",
+    expectedTop3PathContains: "PresentRankingTarget.kt",
+    expectedSignal: { kind: "COMPOSABLE_SYMBOL", value: "ExpectedOwner" },
+  }, sourceIndex);
+
+  assert.deepEqual(result.metrics, ["top3_hit"]);
+  assert.deepEqual(result.failures, ["missing_top3", "missing_source_signal"]);
+});
+
 test("evaluateSourceIndexCase reports missing signal", () => {
   const result = evaluateSourceIndexCase({
     id: "missing",
@@ -216,6 +554,77 @@ test("markdownReport summarizes status, fixtures, and case failures", () => {
   assert.match(text, /Status: fail/);
   assert.match(text, /reply/);
   assert.match(text, /missing_top3/);
+});
+
+test("writeFixtureReport style summary separates failures and environment downgrades", () => {
+  const report = buildFixtureReport([{
+    fixtureId: "reply",
+    mode: "source-index",
+    status: "evaluated",
+    sourceIndexSchemaVersion: "1.2",
+    cases: [
+      {
+        caseId: "ok",
+        metrics: ["top3_hit", "confidence_calibrated"],
+        failures: [],
+        environment: [],
+      },
+      {
+        caseId: "drift",
+        metrics: [],
+        failures: ["fixture_drift"],
+        environment: ["upstream_path_missing"],
+      },
+    ],
+  }], "2026-05-24T00:00:00.000Z");
+
+  assert.equal(report.status, "fail");
+  assert.deepEqual(report.summary.failureCounts, { fixture_drift: 1 });
+  assert.deepEqual(report.summary.environmentCounts, { upstream_path_missing: 1 });
+  assert.equal(report.summary.totalCases, 2);
+  assert.equal(report.summary.failedCases, 1);
+  assert.equal(report.summary.environmentCases, 1);
+});
+
+test("markdownReport prints summary counts before fixture tables", () => {
+  const text = markdownReport({
+    schemaVersion: 1,
+    generatedAt: "2026-05-24T00:00:00.000Z",
+    status: "fail",
+    summary: {
+      totalCases: 2,
+      failedCases: 1,
+      environmentCases: 1,
+      failureCounts: { overconfident: 1 },
+      environmentCounts: { device_unavailable: 1 },
+    },
+    fixtures: [{
+      fixtureId: "reply",
+      status: "evaluated",
+      cases: [{
+        caseId: "bad-confidence",
+        metrics: [],
+        failures: ["overconfident"],
+        environment: ["device_unavailable"],
+      }],
+    }],
+  });
+
+  assert.match(text, /## Summary/);
+  assert.match(text, /- Total cases: 2/);
+  assert.match(text, /- Failed cases: 1/);
+  assert.match(text, /- Environment downgrade cases: 1/);
+  assert.match(text, /- Failure counts: overconfident=1/);
+  assert.match(text, /- Environment counts: device_unavailable=1/);
+
+  const summaryIndex = text.indexOf("## Summary");
+  const fixtureIndex = text.indexOf("## reply");
+  assert.notEqual(summaryIndex, -1, "expected markdown report to include a Summary section");
+  assert.notEqual(fixtureIndex, -1, "expected markdown report to include the reply fixture section");
+  assert.ok(
+    summaryIndex < fixtureIndex,
+    "expected markdown report Summary section to appear before fixture sections",
+  );
 });
 
 test("docs explain that fixture lab is local-only and gitignored", () => {

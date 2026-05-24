@@ -27,6 +27,66 @@ private const val SAMPLE_COMPONENT_PATH_PREFIX = "sample/src/main/java/io/github
 
 class FeedbackQueueFormatterTest {
     @Test
+    fun preciseMarkdownRendersTargetConfidenceActionGuidance() {
+        val session = SessionDto(
+            sessionId = "session-1",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Node("email-field", FixThisRect(0f, 0f, 100f, 40f)),
+                    comment = "Keep this field aligned",
+                    targetReliability = TargetReliability(confidence = TargetConfidence.HIGH),
+                ),
+                AnnotationDto(
+                    itemId = "item-2",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 2L,
+                    updatedAtEpochMillis = 2L,
+                    target = AnnotationTargetDto.Node("pay-button", FixThisRect(10f, 20f, 120f, 80f)),
+                    comment = "Make the button wider",
+                    targetReliability = TargetReliability(confidence = TargetConfidence.MEDIUM),
+                ),
+                AnnotationDto(
+                    itemId = "item-3",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 3L,
+                    updatedAtEpochMillis = 3L,
+                    target = AnnotationTargetDto.Area(FixThisRect(20f, 90f, 260f, 180f)),
+                    comment = "Fix native chart spacing",
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
+                ),
+                AnnotationDto(
+                    itemId = "item-4",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 4L,
+                    updatedAtEpochMillis = 4L,
+                    target = AnnotationTargetDto.Area(FixThisRect(30f, 190f, 280f, 240f)),
+                    comment = "Verify ambiguous visual spacing",
+                    targetReliability = TargetReliability(confidence = TargetConfidence.UNKNOWN),
+                ),
+            ),
+        )
+
+        val markdown = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
+
+        assertTrue(markdown.contains("Target confidence: high - inspect the source candidate first."))
+        assertTrue(markdown.contains("Target confidence: medium - inspect the candidate and corroborate with screenshot or surrounding code."))
+        assertTrue(markdown.contains("Target confidence: low - treat source paths as hints only."))
+        assertTrue(markdown.contains("Target confidence: unknown - verify manually before editing."))
+        assertTrue(markdown.contains("Warning: possible AndroidView/WebView area; source candidates may not explain rendered pixels"))
+    }
+
+    @Test
     fun preciseMarkdownRendersTargetReliabilityWarnings() {
         val session = SessionDto(
             sessionId = "session-1",

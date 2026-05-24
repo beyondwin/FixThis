@@ -6,6 +6,9 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Test
 import kotlin.test.assertTrue
@@ -70,6 +73,49 @@ class CopyPromptEditSurfaceRendererTest {
         assertTrue(editIndex >= 0)
         assertTrue(sourceIndex > editIndex)
         assertTrue(markdown.contains("note: source candidate identifies data text; editSurface identifies likely rendering code"))
+    }
+
+    @Test
+    fun compactHandoffSeparatesEditSurfaceFromSourceCandidateAndWarnsWhenLowConfidence() {
+        val targetNode = node(
+            "metric-label",
+            bounds = FixThisRect(79f, 1204f, 348f, 1241f),
+            text = listOf("Resolved this week"),
+        )
+        val item = AnnotationDto(
+            itemId = "item-1",
+            screenId = "screen-1",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            target = AnnotationTargetDto.Node(targetNode.uid, targetNode.boundsInWindow),
+            selectedNode = targetNode,
+            sourceCandidates = listOf(dataSourceCandidate("Resolved this week", 59)),
+            editSurfaceCandidates = listOf(
+                EditSurfaceCandidateDto(
+                    kind = EditSurfaceKindDto.TEXT_COLOR,
+                    role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt",
+                    line = 26,
+                    confidence = SelectionConfidence.MEDIUM,
+                    reasons = listOf(EditSurfaceReasonDto.STYLE_INTENT, EditSurfaceReasonDto.TARGET_OWNER),
+                    note = "source candidate identifies data text; editSurface identifies likely rendering code",
+                ),
+            ),
+            targetReliability = TargetReliability(
+                confidence = TargetConfidence.LOW,
+                warnings = listOf(TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN),
+            ),
+            comment = "여기 글자 파란색",
+            sequenceNumber = 1,
+        )
+
+        val markdown = CompactHandoffRenderer.render(oneItemSession(item))
+
+        assertTrue(markdown.contains("editSurface: textColor  role=layout-or-style -> sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt:26"))
+        assertTrue(markdown.contains("sample/src/main/java/io/github/beyondwin/fixthis/sample/model/FixThisDemoData.kt:59"))
+        assertTrue(markdown.contains("targetConfidence=low"))
+        assertTrue(markdown.contains("targetAction=treat-source-paths-as-hints"))
+        assertTrue(markdown.contains("warning: source candidates are close; verify before editing"))
     }
 
     @Test

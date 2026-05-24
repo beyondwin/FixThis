@@ -20,6 +20,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             .sortedWith(
                 compareByDescending<MatchScore> { it.sourceRankingTier }
                     .thenByDescending { it.rawScore }
+                    .thenByDescending { it.hasOwnerLayoutRendererSignal }
                     .thenBy { it.entry.file }
                     .thenBy { it.entry.line ?: Int.MAX_VALUE },
             )
@@ -168,7 +169,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
 
         // Post-processing: emit "arbitrary literal" or "untyped fallback" origin markers
         if (ctx.anyTermMatched) {
-            if (!ctx.anyTypedSignalNonLiteral && !ctx.anyUntypedFallbackOnly && ctx.anyArbitraryLiteralSignal) {
+            if (ctx.anyArbitraryLiteralSignal) {
                 matchReasons.add(SourceMatchReason.ARBITRARY_LITERAL)
             }
             if (!ctx.anyTypedSignalNonLiteral && !ctx.anyArbitraryLiteralSignal && ctx.anyUntypedFallbackOnly) {
@@ -230,13 +231,14 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         cleaned: String,
         isNearby: Boolean,
     ): Double {
-        val effectiveReason = if (
+        val effectiveReason = when {
             hit.signalKind == SourceSignalKind.STRING_RESOURCE_RESOLVED &&
-            reason == SourceMatchReason.SELECTED_TEXT
-        ) {
-            SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE
-        } else {
-            reason
+                reason == SourceMatchReason.SELECTED_TEXT ->
+                SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE
+            hit.signalKind == SourceSignalKind.LAMBDA_OWNER_FUNCTION &&
+                reason == SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE ->
+                SourceMatchReason.SELECTED_OWNER_FUNCTION
+            else -> reason
         }
         matchedTerms.add(cleaned)
         matchReasons.add(effectiveReason)
@@ -317,11 +319,26 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         legacyCandidates = testTags + symbols + listOfNotNull(excerpt),
     )
 
-    private fun SourceIndexEntry.conventionComposableWeightHit(composableName: String): WeightHit = signalOrLegacyWeightHit(
-        term = composableName,
-        kinds = setOf(SourceSignalKind.COMPOSABLE_SYMBOL, SourceSignalKind.STRICT_COMP_TEST_TAG),
-        legacyCandidates = symbols + listOf(file) + listOfNotNull(excerpt),
-    )
+    private fun SourceIndexEntry.conventionComposableWeightHit(composableName: String): WeightHit {
+        val (signalMatchWeight, signalKind) = bestSignalHit(
+            terms = listOf(composableName),
+            kinds = setOf(
+                SourceSignalKind.COMPOSABLE_SYMBOL,
+                SourceSignalKind.STRICT_COMP_TEST_TAG,
+                SourceSignalKind.LAMBDA_OWNER_FUNCTION,
+            ),
+        )
+        if (signalMatchWeight > 0.0) {
+            return WeightHit(
+                weight = if (signalKind == SourceSignalKind.LAMBDA_OWNER_FUNCTION) signalMatchWeight * 0.85 else signalMatchWeight,
+                signalKind = signalKind,
+                viaLegacy = false,
+            )
+        }
+
+        val legacyMatches = matchesAny(composableName, symbols + listOf(file) + listOfNotNull(excerpt))
+        return WeightHit(legacyWeight(legacyMatches), signalKind = null, viaLegacy = legacyMatches)
+    }
 
     private fun SourceIndexEntry.roleWeightHit(term: String): WeightHit = signalOrLegacyWeightHit(
         term = term,
@@ -394,6 +411,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             SourceSignalKind.ROLE,
             SourceSignalKind.ACTIVITY_NAME,
             -> 0.85
+            SourceSignalKind.LAYOUT_RENDERER -> 0.75
             SourceSignalKind.ARBITRARY_STRING_LITERAL -> 0.35
         }
 
@@ -422,6 +440,10 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private val MatchScore.sourceRankingTier: Int
         get() = SourceScoringPolicy.rankingTier(matchReasons)
 
+    private val MatchScore.hasOwnerLayoutRendererSignal: Boolean
+        get() = SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons &&
+            entry.signals.any { signal -> signal.kind == SourceSignalKind.LAYOUT_RENDERER }
+
     private fun MatchScore.toCandidate(
         index: Int,
         normalizedScores: List<Double>,
@@ -431,11 +453,19 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
         val capInfo = SourceRiskClassifier.applyCaps(profile, baseConfidence)
-        val (afterAmbiguity, ambiguousFlag) = applyAmbiguityDowngrade(
-            confidence = capInfo.confidence,
-            margin = margin,
-            totalCandidates = normalizedScores.size,
-        )
+        val (afterAmbiguity, ambiguousFlag) = if (
+            profile.hasSelectedOwnerFunction &&
+            capInfo.confidence == SelectionConfidence.MEDIUM &&
+            margin.isAmbiguous
+        ) {
+            SelectionConfidence.MEDIUM to SourceCandidateRisk.AMBIGUOUS
+        } else {
+            applyAmbiguityDowngrade(
+                confidence = capInfo.confidence,
+                margin = margin,
+                totalCandidates = normalizedScores.size,
+            )
+        }
         val flags = SourceCandidateRiskPrecedence.ordered(
             buildList {
                 ambiguousFlag?.let(::add)
@@ -474,6 +504,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             profile.hasSelectedUiText ||
                 profile.hasSelectedContentDescription ||
                 profile.hasSelectedStateDescription -> SelectionConfidence.MEDIUM
+            profile.hasSelectedOwnerFunction -> SelectionConfidence.MEDIUM
             profile.selectedStrongCount > 0 -> SelectionConfidence.MEDIUM
             else -> SelectionConfidence.LOW
         }

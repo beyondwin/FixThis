@@ -233,4 +233,196 @@ class KotlinSourceScannerTest {
         assertEquals(listOf("새로고침"), contentDescriptions)
         assertTrue(signals.any { it.kind == SourceSignalKindAsset.CONTENT_DESCRIPTION && it.value == "새로고침" })
     }
+
+    @Test
+    fun `indexes Layout and SubcomposeLayout renderer calls with owner function`() {
+        val file = tempDir.newFile("AdaptiveGrid.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+                import androidx.compose.ui.layout.SubcomposeLayout
+
+                @Composable
+                fun AdaptiveGrid() {
+                    Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                }
+
+                @Composable
+                fun DeferredTabs() {
+                    SubcomposeLayout { _, _ -> layout(0, 0) {} }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val layoutEntry = entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER && it.value == "Layout" }
+        }
+        val subcomposeEntry = entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER && it.value == "SubcomposeLayout" }
+        }
+
+        assertTrue(layoutEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "AdaptiveGrid" })
+        assertTrue(subcomposeEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "DeferredTabs" })
+    }
+
+    @Test
+    fun `does not emit layout renderer signals for comments strings or local declarations`() {
+        val file = tempDir.newFile("LayoutDecoys.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun LayoutDecoys() {
+                    // Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                    val template = "SubcomposeLayout { _, _ -> layout(0, 0) {} }"
+                    class Layout {}
+                    Text("Visible")
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+        assertTrue(
+            signals.any {
+                it.kind == SourceSignalKindAsset.ARBITRARY_STRING_LITERAL &&
+                    it.value == "SubcomposeLayout { _, _ -> layout(0, 0) {} }"
+            },
+        )
+    }
+
+    @Test
+    fun `does not emit layout renderer signals for same-name local calls without Compose layout imports`() {
+        val file = tempDir.newFile("LocalLayoutNames.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun LocalLayoutNames() {
+                    class Layout
+                    fun SubcomposeLayout(block: () -> Unit) {
+                        block()
+                    }
+
+                    val config = Layout()
+                    SubcomposeLayout {
+                        Text("Visible")
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+    }
+
+    @Test
+    fun `does not emit layout renderer signals for same-name local declarations even with Compose layout imports`() {
+        val file = tempDir.newFile("ShadowedLayoutNames.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+                import androidx.compose.ui.layout.SubcomposeLayout
+
+                @Composable
+                fun ShadowedLayoutNames() {
+                    class Layout
+                    fun SubcomposeLayout(block: () -> Unit) {
+                        block()
+                    }
+
+                    val config = Layout()
+                    SubcomposeLayout {
+                        Text("Visible")
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+    }
+
+    @Test
+    fun `does not emit layout renderer signal for Layout trailing lambda`() {
+        val file = tempDir.newFile("LayoutTrailingLambda.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+
+                @Composable
+                fun LayoutTrailingLambda() {
+                    Layout {
+                        Text("Visible")
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+    }
+
+    @Test
+    fun `does not emit layout renderer signals inside nested block comments`() {
+        val file = tempDir.newFile("NestedCommentLayout.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.material3.Text
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+
+                @Composable
+                fun NestedCommentLayout() {
+                    /*
+                     * Outer comment starts before this Layout call.
+                     * Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                     * /* Inner block comment closes first. */
+                     * Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                     */
+                    Text("Visible")
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val signals = entries.flatMap { it.signals }
+
+        assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+        assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
+    }
 }

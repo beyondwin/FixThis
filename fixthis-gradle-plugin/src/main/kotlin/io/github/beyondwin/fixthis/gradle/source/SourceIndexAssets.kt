@@ -54,6 +54,7 @@ internal enum class SourceSignalKindAsset {
     ARBITRARY_STRING_LITERAL,
     STRING_RESOURCE_RESOLVED,
     LAMBDA_OWNER_FUNCTION,
+    LAYOUT_RENDERER,
 }
 
 @Serializable

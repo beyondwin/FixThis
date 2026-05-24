@@ -7,6 +7,7 @@ internal data class EvidenceProfile(
     val reasons: Set<SourceMatchReason>,
 ) {
     val hasStrictCompTag: Boolean = SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE in reasons
+    val hasSelectedOwnerFunction: Boolean = SourceMatchReason.SELECTED_OWNER_FUNCTION in reasons
     val hasSelectedTestTag: Boolean = SourceMatchReason.SELECTED_TEST_TAG in reasons
     val hasSelectedUiText: Boolean = SourceMatchReason.SELECTED_TEXT in reasons
     val hasSelectedContentDescription: Boolean = SourceMatchReason.SELECTED_CONTENT_DESCRIPTION in reasons
@@ -20,6 +21,7 @@ internal data class EvidenceProfile(
     val hasAnySelected: Boolean =
         hasSelectedTestTag ||
             hasStrictCompTag ||
+            hasSelectedOwnerFunction ||
             hasSelectedUiText ||
             hasSelectedContentDescription ||
             hasSelectedStateDescription ||
@@ -52,7 +54,8 @@ internal data class EvidenceProfile(
 
     val selectedStrongCount: Int = if (hasStrictCompTag || hasSelectedTestTag) 1 else 0
     val distinctSelectedMediumKinds: Int =
-        (if (hasSelectedUiText) 1 else 0) +
+        (if (hasSelectedOwnerFunction) 1 else 0) +
+            (if (hasSelectedUiText) 1 else 0) +
             (if (hasSelectedContentDescription) 1 else 0) +
             (if (hasSelectedStateDescription) 1 else 0) +
             (if (hasSelectedStringResource || hasSelectedResolvedStringResource) 1 else 0) +

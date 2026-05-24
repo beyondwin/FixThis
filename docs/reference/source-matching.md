@@ -40,6 +40,17 @@ Each entry preserves the legacy field lists (`symbols`, `text`,
   stronger UI signal.
 - `LAMBDA_OWNER_FUNCTION`: the simple name of the enclosing `@Composable fun`
   for indexed entries inside a composable body.
+- `LAYOUT_RENDERER`: a `Layout(...)`, `SubcomposeLayout(...)`, or
+  `SubcomposeLayout { ... }` renderer call inside a composable owner. This is
+  used as call-site evidence; it does not by itself make a source candidate
+  high confidence.
+
+For layout renderer signals, direct unqualified calls are indexed only when
+`Layout`, `SubcomposeLayout`, or a wildcard import comes from
+`androidx.compose.ui.layout`. Qualified `androidx.compose.ui.layout.Layout`
+and `androidx.compose.ui.layout.SubcomposeLayout` calls are also recognized.
+Comments, strings, declarations, nested block comments, `Layout { ... }`
+trailing-lambda decoys, and same-name non-Compose local calls are ignored.
 
 ## Default String Resolution
 
@@ -67,6 +78,13 @@ composable body do not receive an owner.
 The scanner is not a Kotlin parser. Braces inside string literals can affect the
 brace-depth heuristic, matching the known limitations of the existing regex
 scanner.
+
+Layout renderer call sites inherit `LAMBDA_OWNER_FUNCTION` like other entries.
+When a selected target uses a strict `comp:<ComposableName>:...` test tag, the
+matcher may surface a `Layout` or `SubcomposeLayout` call inside that owner as a
+medium-confidence edit surface hint. The layout renderer signal is conservative
+typed evidence for where layout work may live, not a direct match signal or
+proof that selected pixels map exactly to that line.
 
 ## Agent Handoff
 

@@ -102,11 +102,21 @@ object FeedbackQueueFormatter {
 
     private fun StringBuilder.appendTargetReliability(reliability: TargetReliability?) {
         if (reliability == null) return
-        if (reliability.confidence == TargetConfidence.UNKNOWN && reliability.warnings.isEmpty()) return
-        appendLine("- Target confidence: ${reliability.confidence.name.lowercase()}")
+        if (reliability.confidence == TargetConfidence.UNKNOWN && reliability.warnings.isEmpty()) {
+            appendLine("- Target confidence: unknown - verify manually before editing.")
+            return
+        }
+        appendLine("- Target confidence: ${reliability.confidence.name.lowercase()} - ${reliability.preciseActionGuidance()}")
         reliability.warnings.forEach { warning ->
             appendLine("- Warning: ${warning.handoffMessage().inlineSafe()}")
         }
+    }
+
+    private fun TargetReliability.preciseActionGuidance(): String = when (confidence) {
+        TargetConfidence.HIGH -> "inspect the source candidate first."
+        TargetConfidence.MEDIUM -> "inspect the candidate and corroborate with screenshot or surrounding code."
+        TargetConfidence.LOW -> "treat source paths as hints only."
+        TargetConfidence.UNKNOWN -> "verify manually before editing."
     }
 
     private fun StringBuilder.appendLikelySource(
