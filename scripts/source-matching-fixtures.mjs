@@ -98,8 +98,8 @@ export function validateManifest(manifest) {
       if (entry.expectedConfidence && !confidenceExpectations.has(entry.expectedConfidence)) {
         errors.push(`${entry.id} expectedConfidence is unsupported`);
       }
-      if (!entry.expectedEntryPathContains && !entry.expectedTop3PathContains) {
-        errors.push(`${entry.id || "case"} must define expectedEntryPathContains or expectedTop3PathContains`);
+      if (!entry.expectedEntryPathContains && !entry.expectedTop1PathContains && !entry.expectedTop3PathContains) {
+        errors.push(`${entry.id || "case"} must define expectedEntryPathContains, expectedTop1PathContains, or expectedTop3PathContains`);
       }
       if (entry.expectedSignal) {
         if (!entry.expectedSignal.kind || !entry.expectedSignal.value) {
@@ -130,7 +130,7 @@ export function classifyCaseOutcome(expectation, observed) {
   const hasWarningObservation = hasOwn(observed, "warnings");
   const hasRiskObservation = hasOwn(observed, "riskFlags");
   const warnings = new Set(hasWarningObservation ? observed.warnings || [] : []);
-  const riskFlags = new Set(hasRiskObservation ? observed.riskFlags || [] : []);
+  const riskFlags = new Set(hasRiskObservation ? (observed.riskFlags || []).map(normalizeRiskFlag) : []);
   const top1Needles = arrayOf(
     expectation.expectedTop1PathContains
       || expectation.expectedEntryPathContains
@@ -163,7 +163,7 @@ export function classifyCaseOutcome(expectation, observed) {
     addUnique(environment, trustObservationNotConfigured);
   }
 
-  const expectedRiskFlags = expectation.expectedRiskFlags || [];
+  const expectedRiskFlags = (expectation.expectedRiskFlags || []).map(normalizeRiskFlag);
   if (expectedRiskFlags.length > 0 && !hasRiskObservation) {
     addUnique(environment, trustObservationNotConfigured);
   } else {
@@ -250,6 +250,10 @@ function hasOwn(value, key) {
 
 function addUnique(values, value) {
   if (!values.includes(value)) values.push(value);
+}
+
+function normalizeRiskFlag(value) {
+  return value === "UNTYPED_FALLBACK" ? "LEGACY_FALLBACK" : value;
 }
 
 function validateAllowedValues(values, allowed, fieldName, errors) {

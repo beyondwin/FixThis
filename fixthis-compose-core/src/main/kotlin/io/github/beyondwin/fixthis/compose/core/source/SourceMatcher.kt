@@ -20,6 +20,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             .sortedWith(
                 compareByDescending<MatchScore> { it.sourceRankingTier }
                     .thenByDescending { it.rawScore }
+                    .thenByDescending { it.hasOwnerLayoutRendererSignal }
                     .thenBy { it.entry.file }
                     .thenBy { it.entry.line ?: Int.MAX_VALUE },
             )
@@ -438,6 +439,10 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
 
     private val MatchScore.sourceRankingTier: Int
         get() = SourceScoringPolicy.rankingTier(matchReasons)
+
+    private val MatchScore.hasOwnerLayoutRendererSignal: Boolean
+        get() = SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons &&
+            entry.signals.any { signal -> signal.kind == SourceSignalKind.LAYOUT_RENDERER }
 
     private fun MatchScore.toCandidate(
         index: Int,

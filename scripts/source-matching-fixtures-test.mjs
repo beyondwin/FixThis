@@ -149,6 +149,26 @@ test("validateManifest accepts trust calibration fields and rejects unsupported 
   );
 });
 
+test("validateManifest accepts top1-only path expectations", () => {
+  assert.doesNotThrow(() => validateManifest({
+    schemaVersion: 1,
+    fixtures: [{
+      id: "top1-only",
+      repo: "https://github.com/android/compose-samples.git",
+      commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+      projectDir: "Reply",
+      modulePath: ":app",
+      variant: "debug",
+      applicationId: "com.example.reply",
+      cases: [{
+        id: "top1-case",
+        mode: "source-index",
+        expectedTop1PathContains: "ReplyApp.kt",
+      }],
+    }],
+  }));
+});
+
 test("safeRelativePath rejects absolute paths and traversal", () => {
   assert.equal(safeRelativePath("Reply"), "Reply");
   assert.equal(safeRelativePath("."), ".");
@@ -262,6 +282,20 @@ test("classifyCaseOutcome differentiates confidence and risk regressions", () =>
       riskFlags: ["ARBITRARY_LITERAL"],
     }).metrics,
     ["top1_hit", "top3_hit", "risk_flag_present", "warning_present", "high_confidence_avoided"],
+  );
+});
+
+test("classifyCaseOutcome treats untyped fallback expectations as legacy fallback wire risk", () => {
+  assert.deepEqual(
+    classifyCaseOutcome({
+      expectedTop3PathContains: "Home.kt",
+      expectedRiskFlags: ["UNTYPED_FALLBACK"],
+    }, {
+      candidates: [{ path: "sample/Home.kt" }],
+      warnings: [],
+      riskFlags: ["LEGACY_FALLBACK"],
+    }).metrics,
+    ["top1_hit", "top3_hit", "risk_flag_present"],
   );
 });
 

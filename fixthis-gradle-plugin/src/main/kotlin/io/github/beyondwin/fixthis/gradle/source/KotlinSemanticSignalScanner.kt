@@ -85,6 +85,7 @@ internal fun roleSignals(source: String): List<KotlinRoleSignal> = roleRegex.fin
 internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSignal> {
     val ignoredRanges = source.layoutRendererIgnoredRanges()
     val importedRenderers = source.importedComposeLayoutRenderers(ignoredRanges)
+    val localRendererDeclarations = source.localLayoutRendererDeclarationOffsets(ignoredRanges)
     return layoutRendererRegex.findAll(source)
         .mapNotNull { match ->
             if (ignoredRanges.any { range -> match.range.first in range } ||
@@ -100,7 +101,10 @@ internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSig
             val hasComposeQualifier = match.groupValues[1].isNotEmpty()
             if (!hasComposeQualifier) {
                 val isPartOfQualifiedCall = match.range.first > 0 && source[match.range.first - 1] == '.'
-                if (isPartOfQualifiedCall || renderer !in importedRenderers) {
+                val isShadowedByLocalDeclaration = localRendererDeclarations[renderer]
+                    ?.any { declarationOffset -> declarationOffset < match.range.first }
+                    ?: false
+                if (isPartOfQualifiedCall || renderer !in importedRenderers || isShadowedByLocalDeclaration) {
                     return@mapNotNull null
                 }
             }
@@ -181,6 +185,7 @@ private val roleRegex = Regex("\\brole\\s*=\\s*Role\\.([A-Za-z_][A-Za-z0-9_]*)")
 private val layoutRendererRegex = Regex("\\b(?:(androidx\\.compose\\.ui\\.layout)\\.)?(Layout|SubcomposeLayout)\\s*(\\(|\\{)")
 private val composeLayoutImportRegex = Regex("""(?m)^\s*import\s+androidx\.compose\.ui\.layout\.(Layout|SubcomposeLayout|\*)\s*$""")
 private val declarationKeywordBeforeRendererRegex = Regex("""\b(class|object|interface|fun)\s+$""")
+private val localLayoutRendererDeclarationRegex = Regex("""\b(?:class|object|interface|fun)\s+(Layout|SubcomposeLayout)\b""")
 private val layoutRendererNames = setOf("Layout", "SubcomposeLayout")
 
 private fun String.layoutRendererIgnoredRanges(): List<IntRange> = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
@@ -202,6 +207,13 @@ private fun String.importedComposeLayoutRenderers(ignoredRanges: List<IntRange>)
         }
     }
     .toSet()
+
+private fun String.localLayoutRendererDeclarationOffsets(ignoredRanges: List<IntRange>): Map<String, List<Int>> = localLayoutRendererDeclarationRegex.findAll(this)
+    .filterNot { match -> ignoredRanges.any { range -> match.range.first in range } }
+    .groupBy(
+        keySelector = { match -> match.groupValues[1] },
+        valueTransform = { match -> match.range.first },
+    )
 
 private fun String.commentRanges(): List<IntRange> {
     val stringRanges = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList()
