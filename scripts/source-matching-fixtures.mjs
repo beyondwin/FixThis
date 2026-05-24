@@ -20,6 +20,26 @@ const confidenceRank = new Map([
 ]);
 const confidenceExpectations = new Set(["high", "medium-or-high", "low-or-medium", "low", "unknown"]);
 const trustObservationNotConfigured = "trust_observation_not_configured";
+const manifestSchemaVersion = 2;
+const sourceIndexCaseFields = new Set([
+  "id",
+  "mode",
+  "expectedEntryPathContains",
+  "expectedTop1PathContains",
+  "expectedTop3PathContains",
+  "expectedSignal",
+]);
+const runtimeOnlyCaseFields = new Set([
+  "runtimeTarget",
+  "navigation",
+  "expectedConfidence",
+  "expectedSourceConfidence",
+  "expectedRiskFlags",
+  "mustWarn",
+  "mustNotWarn",
+  "mustNotHighConfidence",
+]);
+const runtimeTargetFields = new Set(["text", "testTag", "contentDescription", "role"]);
 const targetWarnings = new Set([
   "VISUAL_AREA_ONLY",
   "NO_MEANINGFUL_COMPOSE_TARGET",
@@ -79,7 +99,7 @@ export function loadManifest(path = defaultManifestPath) {
 export function validateManifest(manifest) {
   const errors = [];
   if (!manifest || typeof manifest !== "object") errors.push("manifest must be an object");
-  if (manifest?.schemaVersion !== 1) errors.push("schemaVersion must be 1");
+  if (manifest?.schemaVersion !== manifestSchemaVersion) errors.push(`schemaVersion must be ${manifestSchemaVersion}`);
   if (!Array.isArray(manifest?.fixtures) || manifest.fixtures.length === 0) {
     errors.push("fixtures must contain at least one fixture");
   }
@@ -94,23 +114,40 @@ export function validateManifest(manifest) {
     if (!Array.isArray(fixture.cases) || fixture.cases.length === 0) errors.push(`${fixture.id || "fixture"} cases must contain at least one case`);
     for (const entry of fixture.cases || []) {
       if (!entry.id || !/^[a-z0-9-]+$/.test(entry.id)) errors.push(`${fixture.id || "fixture"} case id must use lowercase slug syntax`);
-      if (entry.mode !== "source-index") errors.push(`${entry.id || "case"} mode must be source-index`);
-      if (entry.expectedConfidence && !confidenceExpectations.has(entry.expectedConfidence)) {
-        errors.push(`${entry.id} expectedConfidence is unsupported`);
+      if (!["source-index", "runtime-trust"].includes(entry.mode)) {
+        errors.push(`${entry.id || "case"} mode must be source-index or runtime-trust`);
       }
-      if (!entry.expectedEntryPathContains && !entry.expectedTop1PathContains && !entry.expectedTop3PathContains) {
-        errors.push(`${entry.id || "case"} must define expectedEntryPathContains, expectedTop1PathContains, or expectedTop3PathContains`);
-      }
-      if (entry.expectedSignal) {
-        if (!entry.expectedSignal.kind || !entry.expectedSignal.value) {
-          errors.push(`${entry.id || "case"} expectedSignal must include kind and value`);
+      if (entry.mode === "source-index") {
+        for (const field of Object.keys(entry)) {
+          if (runtimeOnlyCaseFields.has(field)) {
+            errors.push(`${entry.id || "case"} source-index case contains runtime-only field ${field}`);
+          } else if (!sourceIndexCaseFields.has(field)) {
+            errors.push(`${entry.id || "case"} source-index case contains unsupported field ${field}`);
+          }
+        }
+        if (!entry.expectedEntryPathContains && !entry.expectedTop1PathContains && !entry.expectedTop3PathContains) {
+          errors.push(`${entry.id || "case"} must define expectedEntryPathContains, expectedTop1PathContains, or expectedTop3PathContains`);
+        }
+        if (entry.expectedSignal) {
+          if (!entry.expectedSignal.kind || !entry.expectedSignal.value) {
+            errors.push(`${entry.id || "case"} expectedSignal must include kind and value`);
+          }
         }
       }
-      validateAllowedValues(entry.mustWarn, targetWarnings, `${entry.id || "case"} mustWarn`, errors);
-      validateAllowedValues(entry.mustNotWarn, targetWarnings, `${entry.id || "case"} mustNotWarn`, errors);
-      validateAllowedValues(entry.expectedRiskFlags, sourceRiskFlags, `${entry.id || "case"} expectedRiskFlags`, errors);
-      if (entry.mustNotHighConfidence !== undefined && typeof entry.mustNotHighConfidence !== "boolean") {
-        errors.push(`${entry.id || "case"} mustNotHighConfidence must be boolean`);
+      if (entry.mode === "runtime-trust") {
+        validateRuntimeTarget(entry.runtimeTarget, entry.id || "case", errors);
+        if (entry.expectedConfidence && !confidenceExpectations.has(entry.expectedConfidence)) {
+          errors.push(`${entry.id} expectedConfidence is unsupported`);
+        }
+        if (entry.expectedSourceConfidence && !confidenceExpectations.has(entry.expectedSourceConfidence)) {
+          errors.push(`${entry.id} expectedSourceConfidence is unsupported`);
+        }
+        validateAllowedValues(entry.expectedRiskFlags, sourceRiskFlags, `${entry.id || "case"} expectedRiskFlags`, errors);
+        validateAllowedValues(entry.mustWarn, targetWarnings, `${entry.id || "case"} mustWarn`, errors);
+        validateAllowedValues(entry.mustNotWarn, targetWarnings, `${entry.id || "case"} mustNotWarn`, errors);
+        if (entry.mustNotHighConfidence !== undefined && typeof entry.mustNotHighConfidence !== "boolean") {
+          errors.push(`${entry.id || "case"} mustNotHighConfidence must be boolean`);
+        }
       }
     }
   }
@@ -118,6 +155,25 @@ export function validateManifest(manifest) {
     throw new Error(errors.join("; "));
   }
   return manifest;
+}
+
+function validateRuntimeTarget(target, label, errors) {
+  if (!target || typeof target !== "object" || Array.isArray(target)) {
+    errors.push(`${label} runtime-trust case must define runtimeTarget`);
+    return;
+  }
+  const keys = Object.keys(target);
+  const supported = keys.filter((key) => runtimeTargetFields.has(key));
+  if (supported.length === 0) {
+    errors.push(`${label} runtimeTarget must include text, testTag, contentDescription, or role`);
+  }
+  for (const key of keys) {
+    if (!runtimeTargetFields.has(key)) {
+      errors.push(`${label} runtimeTarget contains unsupported field ${key}`);
+    } else if (typeof target[key] !== "string" || target[key].length === 0) {
+      errors.push(`${label} runtimeTarget.${key} must be a non-empty string`);
+    }
+  }
 }
 
 // F1-corrected: top1Needles falls back to expectedTop3PathContains; warning_absent NOT pushed as metric.
@@ -203,6 +259,36 @@ export function classifyCaseOutcome(expectation, observed) {
   return { metrics, failures, environment };
 }
 
+export function classifyRuntimeTrustOutcome(expectation, observed) {
+  const outcome = classifyCaseOutcome(expectation, observed);
+  if (expectation.expectedConfidence && !hasOwn(observed, "confidence")) {
+    removeLabel(outcome.environment, trustObservationNotConfigured);
+    addUnique(outcome.failures, "missing_confidence_observation");
+  }
+  if (expectation.expectedSourceConfidence) {
+    if (!hasOwn(observed, "sourceConfidence")) {
+      addUnique(outcome.failures, "missing_source_confidence_observation");
+    } else if (confidenceMatches(expectation.expectedSourceConfidence, observed.sourceConfidence)) {
+      addUnique(outcome.metrics, "source_confidence_calibrated");
+    } else {
+      addUnique(outcome.failures, confidenceMismatchFailure(expectation.expectedSourceConfidence, observed.sourceConfidence));
+    }
+  }
+  if ((expectation.expectedRiskFlags || []).length > 0 && !hasOwn(observed, "riskFlags")) {
+    removeLabel(outcome.environment, trustObservationNotConfigured);
+    addUnique(outcome.failures, "missing_risk_observation");
+  }
+  if (((expectation.mustWarn || []).length > 0 || (expectation.mustNotWarn || []).length > 0) && !hasOwn(observed, "warnings")) {
+    removeLabel(outcome.environment, trustObservationNotConfigured);
+    addUnique(outcome.failures, "missing_warning_observation");
+  }
+  if (expectation.mustNotHighConfidence === true && !hasOwn(observed, "confidence")) {
+    removeLabel(outcome.environment, trustObservationNotConfigured);
+    addUnique(outcome.failures, "missing_confidence_observation");
+  }
+  return outcome;
+}
+
 export function reportStatus(results) {
   if (results.some((result) => result.failures.length > 0)) return "fail";
   if (results.some((result) => result.environment.length > 0)) return "pass_with_environment_downgrade";
@@ -252,6 +338,11 @@ function addUnique(values, value) {
   if (!values.includes(value)) values.push(value);
 }
 
+function removeLabel(values, label) {
+  const index = values.indexOf(label);
+  if (index >= 0) values.splice(index, 1);
+}
+
 function normalizeRiskFlag(value) {
   return value === "UNTYPED_FALLBACK" ? "LEGACY_FALLBACK" : value;
 }
@@ -290,12 +381,13 @@ export function patchSettingsText(text, fixThisGradlePluginDir) {
   return `${text.slice(0, insertAt + 1)}${includeLine}\n${text.slice(insertAt + 1)}`;
 }
 
-export function patchAppBuildFileText(text) {
+export function patchAppBuildFileText(text, options = {}) {
+  const addDebugRuntime = options.addDebugRuntime === true;
   const pluginLine = '    id("io.github.beyondwin.fixthis.compose")';
   const configBlock = [
     "",
     "fixthis {",
-    "    addDebugRuntime.set(false)",
+    `    addDebugRuntime.set(${addDebugRuntime ? "true" : "false"})`,
     "    generateSourceIndex.set(true)",
     "    generateProjectMetadata.set(true)",
     "}",
@@ -308,7 +400,9 @@ export function patchAppBuildFileText(text) {
     const insertAt = next.indexOf("\n", pluginsMatch.index + pluginsMatch[0].length);
     next = `${next.slice(0, insertAt + 1)}${pluginLine}\n${next.slice(insertAt + 1)}`;
   }
-  if (!next.includes("addDebugRuntime.set(false)")) {
+  if (next.includes("addDebugRuntime.set(")) {
+    next = next.replace(/addDebugRuntime\.set\((true|false)\)/, `addDebugRuntime.set(${addDebugRuntime ? "true" : "false"})`);
+  } else {
     next = `${next.trimEnd()}\n${configBlock}`;
   }
   return next;
@@ -376,7 +470,13 @@ export function prepareFixture(fixture, options = {}) {
     settingsPath,
     patchSettingsText(readFileSync(settingsPath, "utf8"), join(repoRoot, "fixthis-gradle-plugin")),
   );
-  writeFileSync(appBuildPath, patchAppBuildFileText(readFileSync(appBuildPath, "utf8")));
+  writeFileSync(
+    appBuildPath,
+    patchAppBuildFileText(
+      readFileSync(appBuildPath, "utf8"),
+      { addDebugRuntime: options.addDebugRuntime === true },
+    ),
+  );
 
   return paths;
 }
@@ -431,7 +531,7 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
   }
   return {
     caseId: testCase.id,
-    mode: testCase.mode,
+    mode: "source-index",
     metrics: outcome.metrics,
     failures: outcome.failures,
     environment: outcome.environment,
@@ -442,7 +542,9 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
 }
 
 export function evaluateFixtureSourceIndex(fixture, sourceIndex) {
-  const cases = fixture.cases.map((testCase) => evaluateSourceIndexCase(testCase, sourceIndex));
+  const cases = fixture.cases
+    .filter((testCase) => testCase.mode === "source-index")
+    .map((testCase) => evaluateSourceIndexCase(testCase, sourceIndex));
   return {
     fixtureId: fixture.id,
     mode: "source-index",
@@ -464,12 +566,13 @@ function countLabels(cases, fieldName) {
 export function buildFixtureReport(fixtures, generatedAt = new Date().toISOString()) {
   const caseResults = fixtures.flatMap((fixture) => fixture.cases || []);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt,
     status: reportStatus(caseResults),
-    deviceBackedCapture: "not_configured",
     summary: {
       totalCases: caseResults.length,
+      sourceIndexCases: caseResults.filter((testCase) => testCase.mode === "source-index").length,
+      runtimeTrustCases: caseResults.filter((testCase) => testCase.mode === "runtime-trust").length,
       failedCases: caseResults.filter((testCase) => (testCase.failures || []).length > 0).length,
       environmentCases: caseResults.filter((testCase) => (testCase.environment || []).length > 0).length,
       failureCounts: countLabels(caseResults, "failures"),
@@ -491,6 +594,8 @@ export function markdownReport(report) {
     lines.push("## Summary");
     lines.push("");
     lines.push(`- Total cases: ${report.summary.totalCases}`);
+    lines.push(`- Source-index cases: ${report.summary.sourceIndexCases}`);
+    lines.push(`- Runtime-trust cases: ${report.summary.runtimeTrustCases}`);
     lines.push(`- Failed cases: ${report.summary.failedCases}`);
     lines.push(`- Environment downgrade cases: ${report.summary.environmentCases}`);
     lines.push(`- Failure counts: ${formatCounts(report.summary.failureCounts)}`);
@@ -543,8 +648,9 @@ export function runSourceIndexEvaluation(fixture) {
       fixtureId: fixture.id,
       mode: "source-index",
       status: "source_index_missing",
-      cases: fixture.cases.map((testCase) => ({
+      cases: fixture.cases.filter((testCase) => testCase.mode === "source-index").map((testCase) => ({
         caseId: testCase.id,
+        mode: "source-index",
         metrics: [],
         failures: ["source_index_missing"],
         environment: [],
@@ -555,6 +661,88 @@ export function runSourceIndexEvaluation(fixture) {
   return evaluateFixtureSourceIndex(fixture, sourceIndex);
 }
 
+export function runtimeFixtureInput(fixture, projectDir, strict = false) {
+  return {
+    projectDir,
+    packageName: fixture.applicationId,
+    strict,
+    cases: (fixture.cases || [])
+      .filter((testCase) => testCase.mode === "runtime-trust")
+      .map((testCase) => ({
+        caseId: testCase.id,
+        runtimeTarget: testCase.runtimeTarget,
+      })),
+  };
+}
+
+function hasRuntimeCases(fixture) {
+  return (fixture.cases || []).some((testCase) => testCase.mode === "runtime-trust");
+}
+
+export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
+  const casesById = new Map((runnerOutput.cases || []).map((testCase) => [testCase.caseId, testCase]));
+  const cases = fixture.cases
+    .filter((testCase) => testCase.mode === "runtime-trust")
+    .map((testCase) => {
+      const captured = casesById.get(testCase.id);
+      if (!captured) {
+        return {
+          caseId: testCase.id,
+          mode: "runtime-trust",
+          metrics: [],
+          failures: ["missing_runtime_case_output"],
+          environment: [],
+        };
+      }
+      if (captured.failures?.length || captured.environment?.length) {
+        return {
+          caseId: testCase.id,
+          mode: "runtime-trust",
+          metrics: [],
+          failures: captured.failures || [],
+          environment: captured.environment || [],
+          observed: captured.observed || null,
+        };
+      }
+      const outcome = classifyRuntimeTrustOutcome(testCase, captured.observed || {});
+      return {
+        caseId: testCase.id,
+        mode: "runtime-trust",
+        metrics: outcome.metrics,
+        failures: outcome.failures,
+        environment: outcome.environment,
+        observed: captured.observed,
+      };
+    });
+  return {
+    fixtureId: fixture.id,
+    mode: "runtime-trust",
+    status: cases.some((testCase) => testCase.failures.length > 0) ? "fail" : "evaluated",
+    cases,
+  };
+}
+
+export function runRuntimeTrustEvaluation(fixture, options = {}) {
+  const paths = prepareFixture(fixture, { stdio: "inherit", addDebugRuntime: true });
+  const strict = options.strict === true;
+  runCommand("./gradlew", [sourceIndexTaskPath(fixture), "--no-daemon"], { cwd: paths.projectWorkDir, stdio: "inherit" });
+  const installTask = `${fixture.modulePath}:install${variantTaskSuffix(fixture.variant)}`;
+  runCommand("./gradlew", [installTask, "--no-daemon"], { cwd: paths.projectWorkDir, stdio: "inherit" });
+
+  const inputPath = join(defaultReportDir, `${fixture.id}-runtime-input.json`);
+  const outputPath = join(defaultReportDir, `${fixture.id}-runtime-output.json`);
+  writeJson(inputPath, runtimeFixtureInput(fixture, paths.projectWorkDir, strict));
+  const args = [
+    ":fixthis-mcp:runRuntimeTrustFixture",
+    "--args",
+    `--input ${inputPath} --output ${outputPath}${strict ? " --strict" : ""}`,
+    "--no-daemon",
+  ];
+  runCommand("./gradlew", args, { cwd: repoRoot, stdio: "pipe" });
+  const runnerOutput = JSON.parse(readFileSync(outputPath, "utf8"));
+  return evaluateRuntimeTrustFixture(fixture, runnerOutput);
+}
+
 export function writeFixtureReport(fixtures) {
   const report = buildFixtureReport(fixtures);
   writeJson(join(defaultReportDir, "report.json"), report);
@@ -563,12 +751,12 @@ export function writeFixtureReport(fixtures) {
 }
 
 function usage() {
-  return "Usage: node scripts/source-matching-fixtures.mjs <prepare|run|report>";
+  return "Usage: node scripts/source-matching-fixtures.mjs <prepare|run|runtime|report> [--strict]";
 }
 
 export async function main(argv = process.argv.slice(2)) {
   const command = argv[0];
-  if (!command || !["prepare", "run", "report"].includes(command)) {
+  if (!command || !["prepare", "run", "runtime", "report"].includes(command)) {
     console.error(usage());
     return 2;
   }
@@ -608,12 +796,40 @@ export async function main(argv = process.argv.slice(2)) {
           mode: "source-index",
           status: "fixture_build_failed",
           error: error.message,
-          cases: fixture.cases.map((testCase) => ({
+          cases: fixture.cases.filter((testCase) => testCase.mode === "source-index").map((testCase) => ({
             caseId: testCase.id,
+            mode: "source-index",
             metrics: [],
             failures: ["fixture_build_failed"],
             environment: [],
           })),
+        });
+      }
+    }
+    const report = writeFixtureReport(fixtures);
+    return report.status === "fail" ? 1 : 0;
+  }
+  if (command === "runtime") {
+    const strict = argv.includes("--strict");
+    const fixtures = [];
+    for (const fixture of manifest.fixtures.filter(hasRuntimeCases)) {
+      try {
+        fixtures.push(runRuntimeTrustEvaluation(fixture, { strict }));
+      } catch (error) {
+        fixtures.push({
+          fixtureId: fixture.id,
+          mode: "runtime-trust",
+          status: strict ? "fail" : "environment_downgrade",
+          error: error.message,
+          cases: fixture.cases
+            .filter((testCase) => testCase.mode === "runtime-trust")
+            .map((testCase) => ({
+              caseId: testCase.id,
+              mode: "runtime-trust",
+              metrics: [],
+              failures: strict ? ["capture_failed"] : [],
+              environment: strict ? [] : ["capture_failed"],
+            })),
         });
       }
     }

@@ -48,6 +48,7 @@
     "handoff:eval:test": "./gradlew :fixthis-mcp:test --tests \"*HandoffEvaluationCorpusTest\" --tests \"*EditSurfaceRoleClassifierTest\" --tests \"*EditSurfaceCandidateServiceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersEditSurfaceRoleWhenPresent\" --no-daemon",
     "source-matching:fixtures:prepare": "node scripts/source-matching-fixtures.mjs prepare",
     "source-matching:fixtures": "node scripts/source-matching-fixtures.mjs run",
+    "source-matching:fixtures:runtime": "node scripts/source-matching-fixtures.mjs runtime",
     "source-matching:fixtures:report": "node scripts/source-matching-fixtures.mjs report",
     "source-matching:fixtures:test": "node --test scripts/source-matching-fixtures-test.mjs",
     "release:package:test": "node --test scripts/package-cli-release-test.mjs && node --test scripts/install-fixthis-test.mjs",

@@ -13,6 +13,13 @@ application {
     applicationName = "fixthis-mcp"
 }
 
+tasks.register<JavaExec>("runRuntimeTrustFixture") {
+    group = "verification"
+    description = "Runs repository-local runtime source matching trust fixture capture."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("io.github.beyondwin.fixthis.mcp.fixture.RuntimeTrustFixtureRunnerKt")
+}
+
 // Captured once at configuration time so BuildInfo.kt and the bundled console
 // app.js share the exact same SHA/epoch within a single build. Otherwise the
 // console staleness banner fires on freshly built JARs (the committed bundle's

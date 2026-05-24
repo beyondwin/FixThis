@@ -148,6 +148,38 @@ class TargetReliabilityCalculatorTest {
         assertTrue(result.reasons.contains(TargetReliabilityReason.MEDIUM_SOURCE_CANDIDATE))
     }
 
+    @Test
+    fun highRiskSourceCandidateCannotCreateHighTargetReliability() {
+        val result = TargetReliabilityCalculator.calculate(
+            TargetReliabilityInput(
+                targetKind = TargetKind.NODE,
+                selectedNode = meaningfulNode(),
+                sourceCandidates = listOf(
+                    SourceCandidate(
+                        file = "sample/src/main/java/ReplyListContent.kt",
+                        line = 95,
+                        score = 0.95,
+                        confidence = SelectionConfidence.HIGH,
+                        scoreMargin = 0.02,
+                        riskFlags = listOf(SourceCandidateRisk.AMBIGUOUS),
+                    ),
+                ),
+                targetEvidence = TargetEvidence(
+                    identityHint = IdentityHint(
+                        composableNameHint = "ReplyInboxScreen",
+                        source = IdentityHintSource.TEST_TAG_CONVENTION,
+                        confidence = IdentityHintConfidence.HIGH,
+                    ),
+                    evidenceQuality = EvidenceQuality.STRUCTURED,
+                ),
+                screenFingerprintAvailable = true,
+            ),
+        )
+
+        assertEquals(TargetConfidence.LOW, result.confidence)
+        assertTrue(result.warnings.contains(TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN))
+    }
+
     private fun meaningfulNode(
         text: List<String> = listOf("Pay now"),
         editableText: String? = null,

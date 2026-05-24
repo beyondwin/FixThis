@@ -244,6 +244,38 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun runtimeLikeWeakLiteralTargetDoesNotBecomeHighConfidence() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "$SAMPLE_SOURCE_PREFIX/ui/ReplyListContent.kt",
+                        line = 95,
+                        text = listOf("Compose"),
+                        signals = listOf(
+                            SourceSignal(
+                                kind = SourceSignalKind.ARBITRARY_STRING_LITERAL,
+                                value = "Compose",
+                                confidenceWeight = 1.0,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val top = matcher.match(
+            selectedNode = node(uid = "compose-fab", text = listOf("Compose"), role = "Button"),
+            nearbyNodes = emptyList(),
+            activityName = "com.example.reply.ui.MainActivity",
+        ).single()
+
+        assertEquals(SelectionConfidence.LOW, top.confidence)
+        assertTrue(top.riskFlags.contains(SourceCandidateRisk.ARBITRARY_LITERAL))
+        assertFalse(top.evidenceStrength == SourceEvidenceStrength.STRONG)
+    }
+
+    @Test
     fun conventionTestTagLiteralAndComposableMatchesDoNotStackScore() {
         val matcher = SourceMatcher(
             SourceIndex(

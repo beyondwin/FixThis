@@ -12,6 +12,8 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
+import io.github.beyondwin.fixthis.compose.core.source.SourceSignal
+import io.github.beyondwin.fixthis.compose.core.source.SourceSignalKind
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import java.io.File
 import kotlin.test.Test
@@ -173,6 +175,38 @@ class TargetEvidenceServiceTest {
                 .contains(TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET)
                 .not(),
         )
+    }
+
+    @Test
+    fun buildFeedbackItemProducesRuntimeTrustFieldsFromSyntheticSnapshotAndSourceIndex() {
+        val service = targetEvidenceService()
+        val selected = node(uid = "compose-fab", text = listOf("Compose"), role = "Button")
+        val screen = screenWith(selected)
+        val sourceIndex = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "Reply/app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
+                    line = 95,
+                    text = listOf("Compose"),
+                    signals = listOf(SourceSignal(SourceSignalKind.UI_TEXT, "Compose")),
+                ),
+            ),
+        )
+
+        val item = service.buildFeedbackItem(
+            screen = screen,
+            sourceIndex = sourceIndex,
+            targetType = FeedbackTargetType.NODE,
+            bounds = selected.boundsInWindow,
+            nodeUid = selected.uid,
+            comment = "Verify runtime trust",
+            allowBlankComment = false,
+            writtenStatus = AnnotationStatusDto.OPEN,
+        )
+
+        assertEquals(TargetConfidence.MEDIUM, item.targetReliability?.confidence)
+        assertTrue(item.sourceCandidates.isNotEmpty())
+        assertEquals(SelectionConfidence.MEDIUM, item.sourceCandidates.first().confidence)
     }
 
     private fun targetEvidenceService(projectRoot: File = File(".").canonicalFile): TargetEvidenceService = TargetEvidenceService(

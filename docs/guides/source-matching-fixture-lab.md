@@ -39,6 +39,18 @@ Run source-index evaluation:
 npm run source-matching:fixtures
 ```
 
+Run device-backed runtime trust evaluation:
+
+```bash
+npm run source-matching:fixtures:runtime
+```
+
+Run runtime trust evaluation as a strict local gate:
+
+```bash
+npm run source-matching:fixtures:runtime -- --strict
+```
+
 Print the latest Markdown report:
 
 ```bash
@@ -72,9 +84,12 @@ Important result labels:
 - `unexpected_warning`: a warning that should not appear was present.
 - `unexpected_high_confidence`: a case marked `mustNotHighConfidence` became high confidence.
 - `weak_evidence_promoted`: weak evidence carried a risk or warning but still became high confidence.
-- `trust_observation_not_configured`: the source-index fixture could not
-  observe confidence, risk, or warning expectations because device-backed
-  capture is not enabled.
+- `target_not_found`: runtime selector did not match a captured semantics node.
+- `target_ambiguous`: runtime selector matched more than one captured semantics node.
+- `missing_confidence_observation`: runtime target reliability confidence was absent.
+- `missing_source_confidence_observation`: runtime top source candidate confidence was absent.
+- `missing_risk_observation`: runtime source risk flags were absent.
+- `missing_warning_observation`: runtime target reliability warnings were absent.
 - `fixture_build_failed`: the external fixture did not build in this local environment.
 - `source_index_missing`: Gradle completed without producing the expected FixThis source index.
 
@@ -83,9 +98,13 @@ Reserved labels for future fixture contract work:
 - `fixture_drift`: the pinned upstream fixture no longer matches the case contract and should be re-pinned or corrected.
 - `case_contract_invalid`: the committed manifest case is invalid.
 
-Device-backed capture is not enabled in the first local lab implementation.
-Reports mark the top-level capture mode as `not_configured`, and case-level
-trust expectations that require runtime capture as `trust_observation_not_configured`.
+`trust_observation_not_configured` was the old source-index-only downgrade for
+runtime trust expectations. It is not valid in manifest schema v2. Source-index
+cases cannot contain runtime trust expectations, and runtime-trust cases report
+missing observations as explicit failures. When no device or capture session is
+available, the runtime command records environment downgrades such as
+`capture_failed`; `--strict` converts those downgrades into a non-zero local
+gate.
 
 ## Multi-Module Source-Index Aggregation
 
