@@ -72,7 +72,7 @@ fixture mode.
 4. Public MCP/session output contracts remain additive and compatible.
 5. Device-backed checks are opt-in because ADB, emulator state, startup UI, and
    sample app behavior can vary locally.
-6. Runtime failures must not be hidden behind source-index downgrade labels.
+6. Runtime failures must not be masked by source-index downgrade labels.
 
 ## Manifest Contract
 
@@ -180,10 +180,13 @@ launch, bridge, or capture unavailability.
 The JavaScript fixture runner remains the clone, work-copy, Gradle, and report
 orchestrator.
 
-Runtime-specific execution uses an internal `fixthis-cli` fixture subcommand
-instead of driving the browser console. The subcommand is for repository-local
-evaluation and is not documented as a public install flow. It reuses the same
-production services that create agent handoff evidence:
+Runtime-specific execution uses an internal `fixthis-mcp` JavaExec runner
+instead of driving the browser console. This avoids a CLI/MCP dependency cycle:
+`fixthis-mcp` already depends on `fixthis-cli` for bridge access, so the runtime
+fixture runner must live at the MCP/session boundary where target evidence is
+computed. The runner is for repository-local evaluation and is not documented as
+a public install flow. It reuses the same production services that create agent
+handoff evidence:
 
 1. Patch the fixture work copy with `addDebugRuntime.set(true)` and source-index
    generation enabled.
@@ -253,6 +256,7 @@ Failure labels:
 - `source_index_missing`
 - `app_install_failed`
 - `target_not_found`
+- `target_ambiguous`
 - `missing_confidence_observation`
 - `missing_source_confidence_observation`
 - `missing_risk_observation`
