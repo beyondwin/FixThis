@@ -183,8 +183,7 @@ private val composeLayoutImportRegex = Regex("""(?m)^\s*import\s+androidx\.compo
 private val declarationKeywordBeforeRendererRegex = Regex("""\b(class|object|interface|fun)\s+$""")
 private val layoutRendererNames = setOf("Layout", "SubcomposeLayout")
 
-private fun String.layoutRendererIgnoredRanges(): List<IntRange> =
-    kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
+private fun String.layoutRendererIgnoredRanges(): List<IntRange> = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
 
 private fun String.hasDeclarationKeywordBefore(offset: Int): Boolean {
     val lineStart = lastIndexOf('\n', startIndex = offset).let { index ->
@@ -193,17 +192,16 @@ private fun String.hasDeclarationKeywordBefore(offset: Int): Boolean {
     return declarationKeywordBeforeRendererRegex.containsMatchIn(substring(lineStart, offset))
 }
 
-private fun String.importedComposeLayoutRenderers(ignoredRanges: List<IntRange>): Set<String> =
-    composeLayoutImportRegex.findAll(this)
-        .filterNot { match -> ignoredRanges.any { range -> match.range.first in range } }
-        .flatMap { match ->
-            if (match.groupValues[1] == "*") {
-                layoutRendererNames
-            } else {
-                setOf(match.groupValues[1])
-            }
+private fun String.importedComposeLayoutRenderers(ignoredRanges: List<IntRange>): Set<String> = composeLayoutImportRegex.findAll(this)
+    .filterNot { match -> ignoredRanges.any { range -> match.range.first in range } }
+    .flatMap { match ->
+        if (match.groupValues[1] == "*") {
+            layoutRendererNames
+        } else {
+            setOf(match.groupValues[1])
         }
-        .toSet()
+    }
+    .toSet()
 
 private fun String.commentRanges(): List<IntRange> {
     val stringRanges = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList()

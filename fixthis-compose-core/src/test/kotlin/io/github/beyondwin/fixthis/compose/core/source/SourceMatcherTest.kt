@@ -878,6 +878,45 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun ambiguousOwnerFunctionMatchKeepsMediumConfidenceWithRiskFlag() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/AdaptiveGridPrimary.kt",
+                        line = 38,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.LAMBDA_OWNER_FUNCTION, "AdaptiveGrid"),
+                        ),
+                    ),
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/AdaptiveGridAlternate.kt",
+                        line = 42,
+                        signals = listOf(
+                            SourceSignal(
+                                SourceSignalKind.LAMBDA_OWNER_FUNCTION,
+                                "AdaptiveGrid",
+                                confidenceWeight = 0.95,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "tile", testTag = "comp:AdaptiveGrid:tile"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        assertEquals("sample/src/main/java/AdaptiveGridPrimary.kt", match.file)
+        assertEquals(SelectionConfidence.MEDIUM, match.confidence)
+        assertTrue(SourceCandidateRisk.AMBIGUOUS in match.riskFlags)
+        assertTrue(match.matchReasons.contains("selected owner composable"))
+    }
+
+    @Test
     fun ownerFunctionPlusArbitraryLiteralDoesNotBecomeHighConfidence() {
         val matcher = SourceMatcher(
             SourceIndex(

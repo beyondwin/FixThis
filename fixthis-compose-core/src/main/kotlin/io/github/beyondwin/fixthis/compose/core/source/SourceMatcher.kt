@@ -448,11 +448,19 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
         val capInfo = SourceRiskClassifier.applyCaps(profile, baseConfidence)
-        val (afterAmbiguity, ambiguousFlag) = applyAmbiguityDowngrade(
-            confidence = capInfo.confidence,
-            margin = margin,
-            totalCandidates = normalizedScores.size,
-        )
+        val (afterAmbiguity, ambiguousFlag) = if (
+            profile.hasSelectedOwnerFunction &&
+            capInfo.confidence == SelectionConfidence.MEDIUM &&
+            margin.isAmbiguous
+        ) {
+            SelectionConfidence.MEDIUM to SourceCandidateRisk.AMBIGUOUS
+        } else {
+            applyAmbiguityDowngrade(
+                confidence = capInfo.confidence,
+                margin = margin,
+                totalCandidates = normalizedScores.size,
+            )
+        }
         val flags = SourceCandidateRiskPrecedence.ordered(
             buildList {
                 ambiguousFlag?.let(::add)
