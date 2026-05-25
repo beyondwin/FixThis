@@ -27,7 +27,53 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
-No user-visible changes yet.
+### Added
+
+- Source-index generation now records a `LAYOUT_RENDERER` typed signal for
+  `Layout(...)` and `SubcomposeLayout(...)` call sites inside composable
+  owners. The matcher surfaces these as medium-confidence edit-surface hints
+  when a selected target uses a strict `comp:<ComposableName>:...` test tag.
+  The signal is conservative call-site evidence — it does not by itself make a
+  source candidate high confidence.
+- Compact handoff now clarifies source-matching trust by preserving the
+  `conf=` token on the rank-1 candidate and rendering trust caveats from
+  `caution` as a `note:` line. Markdown and full output continue to render
+  `inside fun <Composable>`; compact output renders `owner=<Composable>` on
+  the rank-1 line when available.
+- The local source-matching fixture lab (`docs/guides/source-matching-fixture-lab.md`)
+  now classifies regressions against expected fixture trust, fails on
+  unmatched confidence expectations, and reports fixture summary ordering
+  deterministically.
+- The fixture lab gained runtime trust evaluation: an additional
+  device-backed mode that exercises `RuntimeTargetResolver` and the runtime
+  trust observation pipeline against fixture indexes, and a strict local gate
+  invocation that fails fast on trust regressions.
+
+### Changed
+
+- Layout-renderer scanning is constrained to direct unqualified calls when
+  `Layout`, `SubcomposeLayout`, or a wildcard import comes from
+  `androidx.compose.ui.layout`, plus qualified `androidx.compose.ui.layout.*`
+  calls. Comments, strings, declarations, nested block comments,
+  `Layout { ... }` trailing-lambda decoys, and same-name non-Compose local
+  calls are ignored.
+- Owner-function source evidence is now explicitly capped at medium
+  confidence and a `UNTYPED_FALLBACK` risk is preserved when only untyped
+  signals match, preventing accidental promotion to high confidence.
+
+### Fixed
+
+- Compact handoff now preserves the source-matching confidence token on the
+  rank-1 candidate instead of dropping it when other compact fields are
+  emitted.
+- Ambiguous-owner source candidates retain their original confidence rather
+  than being collapsed to a lower bucket when the enclosing composable is
+  shared across multiple owners.
+- Layout-renderer scanning no longer emits false signals from non-Compose
+  calls, trailing-lambda decoys, or same-name local helpers.
+- Fixture-lab evaluation now preserves the original candidate order and
+  fails when expected fixture entries are missing, instead of silently
+  reporting partial coverage.
 
 ## [0.7.0] - 2026-05-19
 

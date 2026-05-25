@@ -17,7 +17,7 @@ pitch, scope, and sample-to-agent Quick Start.
 | Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) |
 | Navigate this repo with Graphify as an agent | [Agent Graphify workflow](guides/agent-graphify.md) |
 | Learn the browser annotation workflow | [Feedback console tour](guides/feedback-console-tour.md) |
-| Evaluate FixThis source matching on external Compose samples (local-only) | [Source matching fixture lab](guides/source-matching-fixture-lab.md) |
+| Evaluate FixThis source matching on external Compose samples — including device-backed runtime trust evaluation (local-only) | [Source matching fixture lab](guides/source-matching-fixture-lab.md) |
 | Understand the product and prompt rationale in one place | [Concept and handoff rationale](product/concept-and-handoff-rationale.md) |
 | Understand what FixThis is and is not | [Product concept](product/README.md) |
 | Understand why key product/technical choices were made | [Decision rationale](product/decision-rationale.md) |

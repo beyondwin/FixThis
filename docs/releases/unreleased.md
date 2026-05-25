@@ -7,7 +7,23 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-No user-visible changes yet after v0.7.0.
+- Compose `Layout(...)` / `SubcomposeLayout(...)` call sites are now indexed
+  as a typed `LAYOUT_RENDERER` signal and surfaced as medium-confidence
+  edit-surface hints for strict `comp:` test-tag selections, with conservative
+  scanning rules that avoid false signals from comments, strings, declarations,
+  and same-name non-Compose locals.
+- Compact handoff preserves the source-matching confidence token on the
+  rank-1 candidate and renders trust caveats as a `note:` line, making
+  source-matching trust legible from the compact prompt.
+- The local source-matching fixture lab classifies trust regressions, fails
+  on unmatched confidence expectations, and now supports a runtime trust
+  evaluation mode that exercises `RuntimeTargetResolver` against fixture
+  indexes (plus a strict local gate invocation for CI-like enforcement).
+  See [`docs/guides/source-matching-fixture-lab.md`](../guides/source-matching-fixture-lab.md).
+- Bug fixes preserve ambiguous-owner candidate confidence, original
+  fixture candidate order, and the `UNTYPED_FALLBACK` risk on weak
+  owner-function matches; owner-function source evidence is now explicitly
+  capped at medium confidence.
 
 ## Compatibility Notes
 
