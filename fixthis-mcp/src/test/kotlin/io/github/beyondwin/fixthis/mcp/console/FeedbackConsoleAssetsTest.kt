@@ -1,11 +1,23 @@
 package io.github.beyondwin.fixthis.mcp.console
 
+import java.io.File
 import java.io.IOException
+import java.nio.file.Files
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class FeedbackConsoleAssetsTest {
+    private val tempDir: File = Files.createTempDirectory("assets-cfg").toFile()
+
+    @AfterTest
+    fun cleanup() {
+        tempDir.deleteRecursively()
+    }
+
     private class CountingShaResolver(private val value: String?) : () -> String? {
         var calls: Int = 0
             private set
@@ -72,5 +84,26 @@ class FeedbackConsoleAssetsTest {
         assertEquals("cached-resource", assets.resource("index.html").toString(Charsets.UTF_8))
         assertEquals("cached-resource", assets.resource("index.html").toString(Charsets.UTF_8))
         assertEquals(1, reads)
+    }
+
+    @Test
+    fun packagedModeDoesNotSetDevReloadFlag() {
+        val html = FeedbackConsoleAssets.html(consoleAssetsDir = null)
+        assertTrue(html.contains("window.FixThisConsoleConfig"))
+        assertFalse(html.contains("devReloadEnabled: true"))
+    }
+
+    @Test
+    fun dirModeSetsDevReloadEnabledAndBuildHash() {
+        File(tempDir, "console-build-meta.json")
+            .writeText("""{"buildEpochMs":0,"gitSha":"abc1234"}""" + "\n")
+        File(tempDir, "index.html").writeText(
+            "<html><head><!-- FIXTHIS_STYLES --></head><body><!-- FIXTHIS_SCRIPT --></body></html>",
+        )
+        File(tempDir, "styles.css").writeText("")
+        File(tempDir, "app.js").writeText("")
+        val html = FeedbackConsoleAssets.html(tempDir)
+        assertTrue(html.contains("devReloadEnabled: true"), "dir mode must set devReloadEnabled")
+        assertTrue(html.contains("\"abc1234\""), "buildHash must be inlined from console-build-meta.json")
     }
 }

@@ -4,6 +4,10 @@ import java.io.File
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 internal class FeedbackConsoleAssets(
     private val shaResolver: () -> String? = ::defaultShaResolver,
@@ -69,13 +73,19 @@ internal class FeedbackConsoleAssets(
 
     fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String {
         val effectiveMeta = effectiveBuildMetaJson()
+        val devFields = if (consoleAssetsDir != null) {
+            val buildHash = readBuildHashFromDir(consoleAssetsDir).orEmpty()
+            """, devReloadEnabled: true, buildHash: "${buildHash.escapeJavaScriptString()}""""
+        } else {
+            ""
+        }
         return readText("index.html", consoleAssetsDir)
             .replace(StylesPlaceholder, "<style>\n${readText("styles.css", consoleAssetsDir)}\n</style>")
             .replace(
                 ScriptPlaceholder,
                 """
                     <script>
-                    window.FixThisConsoleConfig = { consoleToken: "${consoleToken.escapeJavaScriptString()}" };
+                    window.FixThisConsoleConfig = { consoleToken: "${consoleToken.escapeJavaScriptString()}"$devFields };
                     window.FixThisConsoleConfig.buildMeta = $effectiveMeta;
                     </script>
                     <script>
@@ -83,6 +93,18 @@ internal class FeedbackConsoleAssets(
                     </script>
                 """.trimIndent(),
             )
+    }
+
+    private fun readBuildHashFromDir(consoleAssetsDir: File): String? {
+        val metaFile = File(consoleAssetsDir, "console-build-meta.json")
+        if (!metaFile.isFile) return null
+        return try {
+            val element = Json.parseToJsonElement(metaFile.readText())
+            (element as? JsonObject)?.get("gitSha")?.jsonPrimitive?.contentOrNull
+        } catch (error: Exception) {
+            errSink("FeedbackConsoleAssets: failed to read console-build-meta.json: ${error.message}")
+            null
+        }
     }
 
     private fun readText(path: String, consoleAssetsDir: File?): String = resource(path, consoleAssetsDir).toString(Charsets.UTF_8)
