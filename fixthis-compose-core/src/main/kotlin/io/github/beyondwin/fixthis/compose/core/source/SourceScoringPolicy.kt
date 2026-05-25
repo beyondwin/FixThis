@@ -36,25 +36,7 @@ internal object SourceScoringPolicy {
         }
     }
 
-    fun bucketScore(reason: SourceMatchReason): Double = when (reason) {
-        SourceMatchReason.SELECTED_TEXT -> SELECTED_TEXT_SCORE
-        SourceMatchReason.SELECTED_CONTENT_DESCRIPTION -> SELECTED_CONTENT_DESCRIPTION_SCORE
-        SourceMatchReason.SELECTED_STATE_DESCRIPTION -> SELECTED_STATE_DESCRIPTION_SCORE
-        SourceMatchReason.SELECTED_TEST_TAG -> SELECTED_TEST_TAG_SCORE
-        SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE -> SELECTED_TEST_TAG_CONVENTION_SCORE
-        SourceMatchReason.SELECTED_OWNER_FUNCTION -> SELECTED_OWNER_FUNCTION_SCORE
-        SourceMatchReason.SELECTED_ROLE -> SELECTED_ROLE_SCORE
-        SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE -> SELECTED_RESOLVED_STRING_RESOURCE_SCORE
-        SourceMatchReason.NEARBY_TEXT -> NEARBY_TEXT_SCORE
-        SourceMatchReason.NEARBY_CONTENT_DESCRIPTION -> NEARBY_CONTENT_DESCRIPTION_SCORE
-        SourceMatchReason.NEARBY_TEST_TAG -> NEARBY_TEST_TAG_SCORE
-        SourceMatchReason.NEARBY_ROLE -> NEARBY_ROLE_SCORE
-        SourceMatchReason.ACTIVITY -> ACTIVITY_SCORE
-        SourceMatchReason.SELECTED_STRING_RESOURCE,
-        SourceMatchReason.ARBITRARY_LITERAL,
-        SourceMatchReason.UNTYPED_FALLBACK,
-        -> 0.0
-    }
+    fun bucketScore(reason: SourceMatchReason): Double = BUCKET_SCORES[reason] ?: 0.0
 
     private const val SELECTED_TEXT_SCORE: Double = 45.0
     private const val SELECTED_CONTENT_DESCRIPTION_SCORE: Double = 40.0
@@ -69,6 +51,22 @@ internal object SourceScoringPolicy {
     private const val NEARBY_TEST_TAG_SCORE: Double = 18.0
     private const val NEARBY_ROLE_SCORE: Double = 8.0
     private const val ACTIVITY_SCORE: Double = 15.0
+
+    private val BUCKET_SCORES: Map<SourceMatchReason, Double> = mapOf(
+        SourceMatchReason.SELECTED_TEXT to SELECTED_TEXT_SCORE,
+        SourceMatchReason.SELECTED_CONTENT_DESCRIPTION to SELECTED_CONTENT_DESCRIPTION_SCORE,
+        SourceMatchReason.SELECTED_STATE_DESCRIPTION to SELECTED_STATE_DESCRIPTION_SCORE,
+        SourceMatchReason.SELECTED_TEST_TAG to SELECTED_TEST_TAG_SCORE,
+        SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE to SELECTED_TEST_TAG_CONVENTION_SCORE,
+        SourceMatchReason.SELECTED_OWNER_FUNCTION to SELECTED_OWNER_FUNCTION_SCORE,
+        SourceMatchReason.SELECTED_ROLE to SELECTED_ROLE_SCORE,
+        SourceMatchReason.SELECTED_RESOLVED_STRING_RESOURCE to SELECTED_RESOLVED_STRING_RESOURCE_SCORE,
+        SourceMatchReason.NEARBY_TEXT to NEARBY_TEXT_SCORE,
+        SourceMatchReason.NEARBY_CONTENT_DESCRIPTION to NEARBY_CONTENT_DESCRIPTION_SCORE,
+        SourceMatchReason.NEARBY_TEST_TAG to NEARBY_TEST_TAG_SCORE,
+        SourceMatchReason.NEARBY_ROLE to NEARBY_ROLE_SCORE,
+        SourceMatchReason.ACTIVITY to ACTIVITY_SCORE,
+    )
 
     private fun Set<SourceMatchReason>.hasAny(vararg reasons: SourceMatchReason): Boolean = reasons.any { it in this }
 }

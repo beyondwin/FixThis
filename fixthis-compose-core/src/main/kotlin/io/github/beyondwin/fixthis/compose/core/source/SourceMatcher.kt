@@ -34,6 +34,8 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     }
 
     companion object {
+        private const val LAYOUT_RENDERER_BASE_WEIGHT: Double = 0.75
+
         fun match(
             sourceIndex: SourceIndex,
             selectedNode: FixThisNode?,
@@ -411,7 +413,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             SourceSignalKind.ROLE,
             SourceSignalKind.ACTIVITY_NAME,
             -> 0.85
-            SourceSignalKind.LAYOUT_RENDERER -> 0.75
+            SourceSignalKind.LAYOUT_RENDERER -> LAYOUT_RENDERER_BASE_WEIGHT
             SourceSignalKind.ARBITRARY_STRING_LITERAL -> 0.35
         }
 

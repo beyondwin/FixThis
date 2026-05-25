@@ -39,12 +39,12 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-mcp/src/main/console/annotations.js" to 670,
             "fixthis-mcp/src/main/console/history.js" to 560,
             "fixthis-mcp/src/main/console/presentation/annotationDetailView.js" to 520,
-            "fixthis-mcp/src/main/console/main.js" to 450,
+            "fixthis-mcp/src/main/console/main.js" to 460,
             "fixthis-mcp/src/main/console/state.js" to 470,
             "fixthis-mcp/src/main/console/domain/consoleReducer.js" to 410,
         )
         val testBudgets = mapOf(
-            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_400,
+            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_440,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_300,

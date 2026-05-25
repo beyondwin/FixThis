@@ -293,7 +293,7 @@ object CompactHandoffRenderer {
             effectiveMargin?.let { margin ->
                 sb.append("  margin=${"%.2f".format(margin)}")
             }
-            val tokens = candidate.matchReasons.mapNotNull { reasonTokenFor(it) }.distinct().take(4)
+            val tokens = candidate.matchReasons.mapNotNull(REASON_TOKENS::get).distinct().take(4)
             if (tokens.isNotEmpty()) {
                 sb.append("  matched=[${tokens.joinToString(", ")}]")
             }
@@ -302,23 +302,22 @@ object CompactHandoffRenderer {
         return sb.toString()
     }
 
-    private fun reasonTokenFor(reason: String): String? = when (reason) {
-        "selected text" -> "text"
-        "selected contentDescription" -> "contentDescription"
-        "selected testTag" -> "tag"
-        "selected testTag convention composable" -> "compTag"
-        "selected role" -> "role"
-        "selected resolved stringResource" -> "resolvedStringRes"
-        "nearby text" -> "nearbyText"
-        "nearby contentDescription" -> "nearbyContentDescription"
-        "nearby testTag" -> "nearbyTag"
-        "nearby role" -> "nearbyRole"
-        "activity" -> "activity"
-        "selected stringResource" -> "stringRes"
-        "arbitrary literal" -> "literal"
-        "legacy fallback" -> "legacy"
-        else -> null
-    }
+    private val REASON_TOKENS: Map<String, String> = mapOf(
+        "selected text" to "text",
+        "selected contentDescription" to "contentDescription",
+        "selected testTag" to "tag",
+        "selected testTag convention composable" to "compTag",
+        "selected role" to "role",
+        "selected resolved stringResource" to "resolvedStringRes",
+        "nearby text" to "nearbyText",
+        "nearby contentDescription" to "nearbyContentDescription",
+        "nearby testTag" to "nearbyTag",
+        "nearby role" to "nearbyRole",
+        "activity" to "activity",
+        "selected stringResource" to "stringRes",
+        "arbitrary literal" to "literal",
+        "legacy fallback" to "legacy",
+    )
 
     private fun compactUiLine(
         item: AnnotationDto,

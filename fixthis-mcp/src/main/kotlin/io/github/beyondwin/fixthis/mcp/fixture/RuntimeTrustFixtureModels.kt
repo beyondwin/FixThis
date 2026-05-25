@@ -58,10 +58,12 @@ data class RuntimeTrustCandidate(
 )
 
 object RuntimeTrustObservationMapper {
+    private const val MAX_OBSERVED_CANDIDATES: Int = 3
+
     fun fromAnnotation(item: AnnotationDto): RuntimeTrustObserved {
         val top = item.sourceCandidates.firstOrNull()
         return RuntimeTrustObserved(
-            candidates = item.sourceCandidates.take(3).map { candidate ->
+            candidates = item.sourceCandidates.take(MAX_OBSERVED_CANDIDATES).map { candidate ->
                 RuntimeTrustCandidate(
                     path = candidate.repoFile ?: candidate.file,
                     line = candidate.line,

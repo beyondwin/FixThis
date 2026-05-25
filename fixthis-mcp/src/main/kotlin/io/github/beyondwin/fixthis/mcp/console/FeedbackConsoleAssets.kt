@@ -98,13 +98,12 @@ internal class FeedbackConsoleAssets(
     private fun readBuildHashFromDir(consoleAssetsDir: File): String? {
         val metaFile = File(consoleAssetsDir, "console-build-meta.json")
         if (!metaFile.isFile) return null
-        return try {
+        return runCatching {
             val element = Json.parseToJsonElement(metaFile.readText())
             (element as? JsonObject)?.get("gitSha")?.jsonPrimitive?.contentOrNull
-        } catch (error: Exception) {
+        }.onFailure { error ->
             errSink("FeedbackConsoleAssets: failed to read console-build-meta.json: ${error.message}")
-            null
-        }
+        }.getOrNull()
     }
 
     private fun readText(path: String, consoleAssetsDir: File?): String = resource(path, consoleAssetsDir).toString(Charsets.UTF_8)

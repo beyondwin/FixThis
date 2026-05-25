@@ -47,24 +47,32 @@ internal class ConsoleAssetsWatcher(
     }
 
     private fun tick() {
-        try {
-            if (!metaFile.exists()) return
-            val mtime = metaFile.lastModified()
-            if (mtime == lastSeenMtime.get()) return
-            lastSeenMtime.set(mtime)
-            val hash = readCurrentHash() ?: return
-            val previous = lastEmittedHash.get()
-            if (hash == previous) return
-            lastEmittedHash.set(hash)
-            eventBus.emit(
-                "console-assets-changed",
-                buildJsonObject {
-                    put("buildHash", hash)
-                    put("at", now().toString())
-                },
-            )
-        } catch (error: Throwable) {
+        runCatching { pollOnce() }.onFailure { error ->
             diagnosticsSink("ConsoleAssetsWatcher: ${error::class.java.name}: ${error.message}\n")
+        }
+    }
+
+    private fun pollOnce() {
+        val hash = nextHashOrNull() ?: return
+        lastEmittedHash.set(hash)
+        eventBus.emit(
+            "console-assets-changed",
+            buildJsonObject {
+                put("buildHash", hash)
+                put("at", now().toString())
+            },
+        )
+    }
+
+    private fun nextHashOrNull(): String? {
+        if (!metaFile.exists()) return null
+        val mtime = metaFile.lastModified()
+        val previousMtime = lastSeenMtime.get()
+        return if (mtime == previousMtime) {
+            null
+        } else {
+            lastSeenMtime.set(mtime)
+            readCurrentHash()?.takeIf { it != lastEmittedHash.get() }
         }
     }
 
