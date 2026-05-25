@@ -26,6 +26,8 @@ private data class FeedbackConsoleServerConfig(
 ) {
     val packagedIndexHtml: String? =
         if (consoleAssetsDir == null) FeedbackConsoleAssets.html(null, consoleToken) else null
+    val assetsWatcher: ConsoleAssetsWatcher? =
+        consoleAssetsDir?.let { ConsoleAssetsWatcher(it, eventBus) }
 }
 
 class FeedbackConsoleServer private constructor(
@@ -33,6 +35,7 @@ class FeedbackConsoleServer private constructor(
     private val port: Int,
     private val consoleToken: String,
     private val routeTable: ConsoleRouteTable,
+    private val assetsWatcher: ConsoleAssetsWatcher?,
     private val diagnosticsSink: (String) -> Unit,
 ) {
     constructor(
@@ -61,6 +64,7 @@ class FeedbackConsoleServer private constructor(
         port = config.port,
         consoleToken = config.consoleToken,
         routeTable = consoleRouteTable(config),
+        assetsWatcher = config.assetsWatcher,
         diagnosticsSink = diagnosticsSink,
     )
 
@@ -74,6 +78,7 @@ class FeedbackConsoleServer private constructor(
         port = port,
         consoleToken = UUID.randomUUID().toString(),
         routeTable = ConsoleRouteTable(routes),
+        assetsWatcher = null,
         diagnosticsSink = diagnosticsSink,
     )
 
@@ -97,11 +102,13 @@ class FeedbackConsoleServer private constructor(
                 executor = requestExecutor
                 server = httpServer
             }
+        assetsWatcher?.start()
         url
     }
 
     fun stop() {
         synchronized(lock) {
+            assetsWatcher?.stop()
             server?.stop(0)
             server = null
             executor?.shutdownNow()

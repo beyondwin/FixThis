@@ -17,7 +17,9 @@ import java.net.URI
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.jsonPrimitive
 
 class FeedbackConsoleServerTest {
     @Test
@@ -311,6 +313,64 @@ class FeedbackConsoleServerTest {
             assertEquals(url, server.url)
             assertTrue(ConsoleHttpTestClient(url).get().contains("FixThis Feedback Console"))
         } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun startsConsoleAssetsWatcherOnlyInDirMode() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
+        val assetsDir = java.nio.file.Files.createTempDirectory("server-test-assets").toFile()
+        try {
+            java.io.File(assetsDir, "console-build-meta.json")
+                .writeText("""{"buildEpochMs":0,"gitSha":"start1"}""" + "\n")
+            java.io.File(assetsDir, "index.html").writeText("<html></html>")
+            java.io.File(assetsDir, "styles.css").writeText("")
+            java.io.File(assetsDir, "app.js").writeText("")
+
+            val bus = io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus()
+            val seen = java.util.concurrent.LinkedBlockingQueue<String>()
+            val sub = bus.subscribe { ev ->
+                if (ev.name == "console-assets-changed") {
+                    seen.put(ev.data["buildHash"]!!.jsonPrimitive.content)
+                }
+            }
+            val server = FeedbackConsoleServer(
+                service = service,
+                consoleAssetsDir = assetsDir,
+                eventBus = bus,
+            )
+            try {
+                server.start()
+                Thread.sleep(1100)
+                java.io.File(assetsDir, "console-build-meta.json")
+                    .writeText("""{"buildEpochMs":0,"gitSha":"updated2"}""" + "\n")
+                val seenHash = seen.poll(3, java.util.concurrent.TimeUnit.SECONDS)
+                assertEquals("updated2", seenHash)
+            } finally {
+                sub.close()
+                server.stop()
+            }
+        } finally {
+            assetsDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun doesNotStartWatcherWhenAssetsDirIsNull() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
+        val bus = io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus()
+        val seen = java.util.concurrent.LinkedBlockingQueue<String>()
+        val sub = bus.subscribe { ev ->
+            if (ev.name == "console-assets-changed") seen.put(ev.name)
+        }
+        val server = FeedbackConsoleServer(service = service, eventBus = bus)
+        try {
+            server.start()
+            Thread.sleep(800)
+            assertNull(seen.poll(200, java.util.concurrent.TimeUnit.MILLISECONDS))
+        } finally {
+            sub.close()
             server.stop()
         }
     }
