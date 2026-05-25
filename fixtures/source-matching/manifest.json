@@ -11,15 +11,15 @@
       "applicationId": "com.example.reply",
       "cases": [
         {
-          "id": "reply-main-activity-owner",
+          "id": "reply-app-owner",
           "mode": "source-index",
-          "expectedEntryPathContains": "Reply/app/src/main/java/com/example/reply/ui/MainActivity.kt",
+          "expectedEntryPathContains": "app/src/main/java/com/example/reply/ui/ReplyApp.kt",
           "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "ReplyApp" }
         },
         {
           "id": "reply-list-content-owner",
           "mode": "source-index",
-          "expectedEntryPathContains": "Reply/app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
+          "expectedEntryPathContains": "app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
           "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "ReplyEmailList" }
         },
         {
@@ -27,7 +27,7 @@
           "mode": "runtime-trust",
           "trustPurpose": "baseline external runtime target with visible button text and no interop warning",
           "runtimeTarget": { "text": "Compose", "role": "Button" },
-          "expectedTop3PathContains": "Reply/app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
+          "expectedTop3PathContains": "app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
           "expectedConfidence": "medium-or-high",
           "expectedSourceConfidence": "medium-or-high",
           "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"]
@@ -44,15 +44,15 @@
       "applicationId": "com.example.jetsnack",
       "cases": [
         {
-          "id": "jetsnack-home-owner",
+          "id": "jetsnack-bottom-bar-owner",
           "mode": "source-index",
-          "expectedEntryPathContains": "Jetsnack/app/src/main/java/com/example/jetsnack/ui/home/Home.kt",
-          "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "Home" }
+          "expectedEntryPathContains": "app/src/main/java/com/example/jetsnack/ui/home/Home.kt",
+          "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "JetsnackBottomBar" }
         },
         {
           "id": "jetsnack-search-category-copy",
           "mode": "source-index",
-          "expectedEntryPathContains": "Jetsnack/app/src/main/java/com/example/jetsnack/model/Search.kt",
+          "expectedEntryPathContains": "app/src/main/java/com/example/jetsnack/ui/home/search/Categories.kt",
           "expectedSignal": { "kind": "ARBITRARY_STRING_LITERAL", "value": "Desserts" }
         },
         {
@@ -60,7 +60,7 @@
           "mode": "runtime-trust",
           "trustPurpose": "external copy/data runtime target from a non-Reply Compose sample",
           "runtimeTarget": { "text": "Desserts" },
-          "expectedTop3PathContains": "Jetsnack/app/src/main/java/com/example/jetsnack/model/Search.kt",
+          "expectedTop3PathContains": "app/src/main/java/com/example/jetsnack/ui/home/search/Categories.kt",
           "expectedConfidence": "medium-or-high",
           "expectedSourceConfidence": "low-or-medium",
           "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"]
@@ -79,13 +79,13 @@
         {
           "id": "nia-for-you-title-resource",
           "mode": "source-index",
-          "expectedEntryPathContains": "feature/foryou/src/main/res/values/strings.xml",
-          "expectedSignal": { "kind": "STRING_RESOURCE_RESOLVED", "value": "For you" }
+          "expectedEntryPathContains": "feature/foryou/api/src/main/res/values/strings.xml",
+          "expectedSignal": { "kind": "STRING_RESOURCE", "value": "feature_foryou_api_title" }
         },
         {
           "id": "nia-navigation-component-owner",
           "mode": "source-index",
-          "expectedEntryPathContains": "core/designsystem/src/main/kotlin/com/google/samples/apps/nowinandroid/core/designsystem/component/NiaNavigation.kt",
+          "expectedEntryPathContains": "core/designsystem/src/main/kotlin/com/google/samples/apps/nowinandroid/core/designsystem/component/Navigation.kt",
           "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "NiaNavigationBar" }
         }
       ]

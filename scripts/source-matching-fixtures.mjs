@@ -531,6 +531,17 @@ export function prepareFixture(fixture, options = {}) {
   return paths;
 }
 
+function entryPathHaystack(entry) {
+  const parts = [];
+  if (typeof entry.file === "string") parts.push(entry.file);
+  if (typeof entry.repoFile === "string") parts.push(entry.repoFile);
+  return parts;
+}
+
+function entryMatchesNeedle(entry, needle) {
+  return entryPathHaystack(entry).some((candidate) => candidate.includes(needle));
+}
+
 export function evaluateSourceIndexCase(testCase, sourceIndex) {
   const entries = Array.isArray(sourceIndex?.entries) ? sourceIndex.entries : [];
   const expectedEntryNeedles = arrayOf(testCase.expectedEntryPathContains);
@@ -544,17 +555,17 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
   ];
   const hasRankingExpectation = rankingExpectationNeedles.length > 0;
   const matchingEntries = entries.filter((entry) =>
-    typeof entry.file === "string" &&
-    pathNeedles.some((needle) => entry.file.includes(needle)),
+    pathNeedles.some((needle) => entryMatchesNeedle(entry, needle)),
   );
   const expectedEntryMatches = entries.filter((entry) =>
-    typeof entry.file === "string" &&
-    expectedEntryNeedles.some((needle) => entry.file.includes(needle)),
+    expectedEntryNeedles.some((needle) => entryMatchesNeedle(entry, needle)),
   );
   const candidateEntries = hasRankingExpectation ? entries : matchingEntries;
   const observed = {
     candidates: candidateEntries.slice(0, 3).map((entry) => ({
-      path: entry.file,
+      path: typeof entry.repoFile === "string" && entry.repoFile.length > 0
+        ? entry.repoFile
+        : entry.file,
       line: entry.line || null,
       signals: entry.signals || [],
     })),
@@ -563,7 +574,7 @@ export function evaluateSourceIndexCase(testCase, sourceIndex) {
   const outcome = classifyCaseOutcome(testCase, observed);
 
   if (expectedEntryNeedles.length > 0 && !expectedEntryNeedles.every((needle) =>
-    expectedEntryMatches.some((entry) => entry.file.includes(needle))
+    expectedEntryMatches.some((entry) => entryMatchesNeedle(entry, needle))
   )) {
     addUnique(outcome.failures, "missing_top3");
   }
