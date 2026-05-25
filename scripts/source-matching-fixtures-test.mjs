@@ -48,13 +48,20 @@ test("package.json exposes local fixture scripts", () => {
 test("fixture manifest uses schema v2 with separated source-index and runtime-trust cases", () => {
   const manifest = readJson("fixtures/source-matching/manifest.json");
   assert.equal(manifest.schemaVersion, 2);
-  assert.equal(manifest.fixtures.length, 3);
+  assert.equal(manifest.fixtures.length, 4);
   const cases = manifest.fixtures.flatMap((fixture) => fixture.cases);
   assert.ok(cases.some((entry) => entry.mode === "source-index"));
   assert.ok(cases.some((entry) => entry.mode === "runtime-trust"));
   for (const fixture of manifest.fixtures) {
-    assert.match(fixture.repo, /^https:\/\/github\.com\/android\//);
-    assert.match(fixture.commit, /^[a-f0-9]{40}$/);
+    const source = fixture.source || "external-github";
+    assert.ok(["external-github", "local-project"].includes(source));
+    if (source === "external-github") {
+      assert.match(fixture.repo, /^https:\/\/github\.com\/android\//);
+      assert.match(fixture.commit, /^[a-f0-9]{40}$/);
+    } else {
+      assert.equal(fixture.repo, undefined);
+      assert.equal(fixture.commit, undefined);
+    }
     assert.ok(fixture.id.length > 0);
     assert.ok(fixture.projectDir.length > 0);
     assert.ok(fixture.modulePath.startsWith(":"));
@@ -70,6 +77,10 @@ test("fixture manifest uses schema v2 with separated source-index and runtime-tr
     assert.equal(entry.mustNotWarn, undefined);
     assert.equal(entry.mustNotHighConfidence, undefined);
     assert.equal(entry.runtimeTarget, undefined);
+  }
+  for (const entry of cases.filter((testCase) => testCase.mode === "runtime-trust")) {
+    assert.equal(typeof entry.trustPurpose, "string");
+    assert.ok(entry.trustPurpose.length > 0);
   }
 });
 
@@ -137,6 +148,75 @@ test("validateManifest requires runtimeTarget on runtime-trust cases", () => {
       }],
     }),
     /missing-runtime-target runtime-trust case must define runtimeTarget/,
+  );
+});
+
+test("validateManifest requires trustPurpose on runtime-trust cases", () => {
+  assert.throws(
+    () => validateManifest({
+      schemaVersion: 2,
+      fixtures: [{
+        id: "reply",
+        repo: "https://github.com/android/compose-samples.git",
+        commit: "d3ff757b289f7036815978a8f7b16706ee3423b0",
+        projectDir: "Reply",
+        modulePath: ":app",
+        variant: "debug",
+        applicationId: "com.example.reply",
+        cases: [{
+          id: "missing-purpose",
+          mode: "runtime-trust",
+          runtimeTarget: { text: "Compose" },
+          expectedTop3PathContains: "ReplyListContent.kt",
+          expectedConfidence: "medium-or-high",
+        }],
+      }],
+    }),
+    /missing-purpose runtime-trust case must define trustPurpose/,
+  );
+});
+
+test("validateManifest accepts local-project fixtures with moduleDir", () => {
+  assert.doesNotThrow(() => validateManifest({
+    schemaVersion: 2,
+    fixtures: [{
+      id: "fixthis-sample",
+      source: "local-project",
+      projectDir: ".",
+      modulePath: ":app",
+      moduleDir: "sample",
+      variant: "debug",
+      applicationId: "io.github.beyondwin.fixthis.sample",
+      cases: [{
+        id: "fixthis-sample-home-primary-runtime",
+        mode: "runtime-trust",
+        trustPurpose: "controlled local strict component identity case",
+        runtimeTarget: { testTag: "comp:HomePrimaryAction:primary" },
+        expectedTop3PathContains: "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+        expectedConfidence: "medium-or-high",
+        expectedSourceConfidence: "medium-or-high",
+        mustNotWarn: ["POSSIBLE_VIEW_INTEROP"],
+      }],
+    }],
+  }));
+});
+
+test("validateManifest rejects unsupported fixture sources and unsafe moduleDir", () => {
+  assert.throws(
+    () => validateManifest({
+      schemaVersion: 2,
+      fixtures: [{
+        id: "bad-local",
+        source: "zip-file",
+        projectDir: ".",
+        modulePath: ":app",
+        moduleDir: "../sample",
+        variant: "debug",
+        applicationId: "io.github.beyondwin.fixthis.sample",
+        cases: [{ id: "bad", mode: "source-index", expectedTop3PathContains: "HomeScreen.kt" }],
+      }],
+    }),
+    /bad-local source must be external-github or local-project.*bad-local moduleDir escapes fixture root/,
   );
 });
 
@@ -660,6 +740,37 @@ test("evaluateSourceIndexCase reports missing signal", () => {
     expectedSignal: { kind: "COMPOSABLE_SYMBOL", value: "Missing" },
   }, { entries: [] });
   assert.deepEqual(result.failures, ["missing_top3", "missing_source_signal"]);
+});
+
+test("markdownReport renders runtime trust purpose when present", () => {
+  const text = markdownReport({
+    schemaVersion: 2,
+    generatedAt: "2026-05-25T00:00:00.000Z",
+    status: "pass",
+    summary: {
+      totalCases: 1,
+      sourceIndexCases: 0,
+      runtimeTrustCases: 1,
+      failedCases: 0,
+      environmentCases: 0,
+      failureCounts: {},
+      environmentCounts: {},
+    },
+    fixtures: [{
+      fixtureId: "fixthis-sample",
+      status: "evaluated",
+      cases: [{
+        caseId: "fixthis-sample-home-primary-runtime",
+        mode: "runtime-trust",
+        trustPurpose: "controlled local strict component identity case",
+        metrics: ["top3_hit"],
+        failures: [],
+        environment: [],
+      }],
+    }],
+  });
+  assert.match(text, /Purpose/);
+  assert.match(text, /controlled local strict component identity case/);
 });
 
 test("markdownReport summarizes status, fixtures, and case failures", () => {
