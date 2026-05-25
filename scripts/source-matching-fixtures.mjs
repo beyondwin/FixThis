@@ -880,6 +880,7 @@ export async function main(argv = process.argv.slice(2)) {
             .map((testCase) => ({
               caseId: testCase.id,
               mode: "runtime-trust",
+              trustPurpose: testCase.trustPurpose,
               metrics: [],
               failures: strict ? ["capture_failed"] : [],
               environment: strict ? [] : ["capture_failed"],
