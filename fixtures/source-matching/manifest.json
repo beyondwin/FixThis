@@ -25,6 +25,7 @@
         {
           "id": "reply-compose-fab-runtime",
           "mode": "runtime-trust",
+          "trustPurpose": "verify Reply compose FAB resolves to its owning composable with calibrated trust signals",
           "runtimeTarget": { "text": "Compose", "role": "Button" },
           "expectedTop3PathContains": "Reply/app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
           "expectedConfidence": "medium-or-high",
@@ -76,6 +77,27 @@
           "mode": "source-index",
           "expectedEntryPathContains": "core/designsystem/src/main/kotlin/com/google/samples/apps/nowinandroid/core/designsystem/component/NiaNavigation.kt",
           "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "NiaNavigationBar" }
+        }
+      ]
+    },
+    {
+      "id": "fixthis-sample",
+      "source": "local-project",
+      "projectDir": ".",
+      "modulePath": ":sample",
+      "moduleDir": "sample",
+      "variant": "debug",
+      "applicationId": "io.github.beyondwin.fixthis.sample",
+      "cases": [
+        {
+          "id": "fixthis-sample-home-primary-runtime",
+          "mode": "runtime-trust",
+          "trustPurpose": "controlled local strict component identity case",
+          "runtimeTarget": { "testTag": "comp:HomePrimaryAction:primary" },
+          "expectedTop3PathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+          "expectedConfidence": "medium-or-high",
+          "expectedSourceConfidence": "medium-or-high",
+          "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"]
         }
       ]
     }

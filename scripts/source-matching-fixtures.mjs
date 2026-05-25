@@ -21,6 +21,9 @@ const confidenceRank = new Map([
 const confidenceExpectations = new Set(["high", "medium-or-high", "low-or-medium", "low", "unknown"]);
 const trustObservationNotConfigured = "trust_observation_not_configured";
 const manifestSchemaVersion = 2;
+const externalFixtureSource = "external-github";
+const localFixtureSource = "local-project";
+const fixtureSources = new Set([externalFixtureSource, localFixtureSource]);
 const sourceIndexCaseFields = new Set([
   "id",
   "mode",
@@ -32,12 +35,20 @@ const sourceIndexCaseFields = new Set([
 const runtimeOnlyCaseFields = new Set([
   "runtimeTarget",
   "navigation",
+  "trustPurpose",
   "expectedConfidence",
   "expectedSourceConfidence",
   "expectedRiskFlags",
   "mustWarn",
   "mustNotWarn",
   "mustNotHighConfidence",
+]);
+const runtimeTrustCaseFields = new Set([
+  "id",
+  "mode",
+  ...runtimeOnlyCaseFields,
+  "expectedTop1PathContains",
+  "expectedTop3PathContains",
 ]);
 const runtimeTargetFields = new Set(["text", "testTag", "contentDescription", "role"]);
 const targetWarnings = new Set([
@@ -88,7 +99,9 @@ export function sourceIndexTaskPath(fixture) {
 }
 
 export function generatedSourceIndexPath(projectRoot, fixture) {
-  const moduleDir = fixture.modulePath.replace(/^:/, "").replaceAll(":", "/");
+  const moduleDir = fixture.moduleDir
+    ? safeRelativePath(fixture.moduleDir, `${fixture.id || "fixture"} moduleDir`)
+    : fixture.modulePath.replace(/^:/, "").replaceAll(":", "/");
   return join(projectRoot, moduleDir, "build/generated/fixthis", fixture.variant, "assets/fixthis/fixthis-source-index.json");
 }
 
@@ -105,9 +118,21 @@ export function validateManifest(manifest) {
   }
   for (const fixture of manifest?.fixtures || []) {
     if (!fixture.id || !/^[a-z0-9-]+$/.test(fixture.id)) errors.push("fixture id must use lowercase slug syntax");
-    if (!fixture.repo || !fixture.repo.startsWith("https://github.com/android/")) errors.push(`${fixture.id || "fixture"} repo must be an Android HTTPS GitHub URL`);
-    if (!fullShaPattern.test(fixture.commit || "")) errors.push(`${fixture.id || "fixture"} commit must be a 40-character SHA`);
+    const source = fixture.source || externalFixtureSource;
+    if (!fixtureSources.has(source)) {
+      errors.push(`${fixture.id || "fixture"} source must be external-github or local-project`);
+    }
+    if (source === externalFixtureSource) {
+      if (!fixture.repo || !fixture.repo.startsWith("https://github.com/android/")) errors.push(`${fixture.id || "fixture"} repo must be an Android HTTPS GitHub URL`);
+      if (!fullShaPattern.test(fixture.commit || "")) errors.push(`${fixture.id || "fixture"} commit must be a 40-character SHA`);
+    } else {
+      if (fixture.repo !== undefined) errors.push(`${fixture.id || "fixture"} local-project fixture must not define repo`);
+      if (fixture.commit !== undefined) errors.push(`${fixture.id || "fixture"} local-project fixture must not define commit`);
+    }
     try { safeRelativePath(fixture.projectDir, `${fixture.id || "fixture"} projectDir`); } catch (error) { errors.push(error.message); }
+    if (fixture.moduleDir !== undefined) {
+      try { safeRelativePath(fixture.moduleDir, `${fixture.id || "fixture"} moduleDir`); } catch (error) { errors.push(error.message); }
+    }
     if (!fixture.modulePath || !fixture.modulePath.startsWith(":")) errors.push(`${fixture.id || "fixture"} modulePath must start with :`);
     if (!fixture.variant) errors.push(`${fixture.id || "fixture"} variant must be present`);
     if (!fixture.applicationId) errors.push(`${fixture.id || "fixture"} applicationId must be present`);
@@ -135,6 +160,14 @@ export function validateManifest(manifest) {
         }
       }
       if (entry.mode === "runtime-trust") {
+        for (const field of Object.keys(entry)) {
+          if (!runtimeTrustCaseFields.has(field)) {
+            errors.push(`${entry.id || "case"} runtime-trust case contains unsupported field ${field}`);
+          }
+        }
+        if (typeof entry.trustPurpose !== "string" || entry.trustPurpose.length === 0) {
+          errors.push(`${entry.id || "case"} runtime-trust case must define trustPurpose`);
+        }
         validateRuntimeTarget(entry.runtimeTarget, entry.id || "case", errors);
         if (entry.expectedConfidence && !confidenceExpectations.has(entry.expectedConfidence)) {
           errors.push(`${entry.id} expectedConfidence is unsupported`);
@@ -359,7 +392,21 @@ export function repoCacheKey(repoUrl) {
   return createHash("sha1").update(repoUrl).digest("hex").slice(0, 12);
 }
 
+function isLocalProjectFixture(fixture) {
+  return (fixture.source || externalFixtureSource) === localFixtureSource;
+}
+
 export function fixturePaths(fixture) {
+  if (isLocalProjectFixture(fixture)) {
+    const projectWorkDir = fixture.projectDir === "."
+      ? repoRoot
+      : join(repoRoot, safeRelativePath(fixture.projectDir, `${fixture.id} projectDir`));
+    return {
+      repoDir: repoRoot,
+      workDir: repoRoot,
+      projectWorkDir,
+    };
+  }
   const repoDir = join(fixtureRepoRoot, `${repoCacheKey(fixture.repo)}`);
   const workDir = join(fixtureWorkRoot, fixture.id);
   const projectWorkDir = fixture.projectDir === "."
@@ -432,6 +479,9 @@ export function runCommand(command, args, options = {}) {
 
 export function prepareFixture(fixture, options = {}) {
   const paths = fixturePaths(fixture);
+  if (isLocalProjectFixture(fixture)) {
+    return paths;
+  }
   ensureDir(fixtureRepoRoot);
   ensureDir(fixtureWorkRoot);
 
@@ -610,11 +660,12 @@ export function markdownReport(report) {
       lines.push(`- Source index schema: ${fixture.sourceIndexSchemaVersion}`);
     }
     lines.push("");
-    lines.push("| Case | Metrics | Failures | Environment |");
-    lines.push("| --- | --- | --- | --- |");
+    lines.push("| Case | Purpose | Metrics | Failures | Environment |");
+    lines.push("| --- | --- | --- | --- | --- |");
     for (const testCase of fixture.cases || []) {
       lines.push([
         testCase.caseId,
+        testCase.trustPurpose || "-",
         (testCase.metrics || []).join(", ") || "-",
         (testCase.failures || []).join(", ") || "-",
         (testCase.environment || []).join(", ") || "-",
@@ -689,6 +740,7 @@ export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
         return {
           caseId: testCase.id,
           mode: "runtime-trust",
+          trustPurpose: testCase.trustPurpose,
           metrics: [],
           failures: ["missing_runtime_case_output"],
           environment: [],
@@ -698,6 +750,7 @@ export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
         return {
           caseId: testCase.id,
           mode: "runtime-trust",
+          trustPurpose: testCase.trustPurpose,
           metrics: [],
           failures: captured.failures || [],
           environment: captured.environment || [],
@@ -708,6 +761,7 @@ export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
       return {
         caseId: testCase.id,
         mode: "runtime-trust",
+        trustPurpose: testCase.trustPurpose,
         metrics: outcome.metrics,
         failures: outcome.failures,
         environment: outcome.environment,

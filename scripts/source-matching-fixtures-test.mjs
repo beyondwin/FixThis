@@ -234,6 +234,7 @@ test("validateManifest accepts runtime trust calibration fields and rejects unsu
       cases: [{
         id: "trust-case",
         mode: "runtime-trust",
+        trustPurpose: "calibrated trust signals for compose FAB",
         runtimeTarget: { text: "Compose", role: "Button" },
         expectedTop3PathContains: ["ReplyApp.kt", "ReplyList.kt"],
         expectedConfidence: "medium-or-high",
