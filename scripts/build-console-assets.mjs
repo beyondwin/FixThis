@@ -1,8 +1,17 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  watch,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { build as esbuild } from 'esbuild';
 
@@ -151,21 +160,21 @@ export function assertContractSymbols(output, symbols = CONTRACT_SYMBOLS) {
   }
 }
 
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+// Use pathToFileURL so paths with spaces (e.g. ~/Library/Application Support/...)
+// produce the same percent-encoded URL as import.meta.url.
+const isMainModule = import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMainModule) {
   main().catch((e) => { console.error(e); process.exit(1); });
 }
 
-async function main() {
+async function buildOnce({ reproducible } = {}) {
   const onDisk = consoleSourceFiles(sourceDir);
 
-  // Enforce that every non-entry-point module has a // @requires header.
   for (const name of onDisk) {
     if (name === 'main.js') continue;
     const content = readFileSync(resolve(sourceDir, name), 'utf8');
     if (!/^\s*\/\/\s*@requires\s+/m.test(content)) {
-      console.error(`ERROR: fixthis-mcp/src/main/console/${name} has no // @requires header.`);
-      process.exit(1);
+      throw new Error(`fixthis-mcp/src/main/console/${name} has no // @requires header.`);
     }
   }
 
@@ -174,36 +183,26 @@ async function main() {
     const content = readFileSync(resolve(sourceDir, name), 'utf8');
     graph.set(name, { content, deps: parseRequires(content) });
   }
-
   const sources = topoSort(graph);
-
-  // Compute build metadata for the sidecar JSON.
-  const epochMs = Math.floor(Date.now() / 60000) * 60000;
-
-  let gitSha;
-  try {
-    gitSha = execSync('git rev-parse --short HEAD', {
-      cwd: root,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-      .toString()
-      .trim();
-  } catch (_) {
-    gitSha = 'unknown';
-  }
-
   const entries = sources.map((name) => {
     const path = resolve(sourceDir, name);
     return `//#region ${name}\n${readFileSync(path, 'utf8').trimEnd()}\n//#endregion ${name}\n`;
   });
-
   const concatenated = entries.join('\n');
 
   const target = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
   const mapPath = `${target}.map`;
   const metaPath = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
-  const reproducible = process.env.FIXTHIS_BUNDLE_REPRODUCIBLE === '1'
-    || process.argv.includes('--check');
+
+  const epochMs = Math.floor(Date.now() / 60000) * 60000;
+  let gitSha;
+  try {
+    gitSha = execSync('git rev-parse --short HEAD', {
+      cwd: root, stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString().trim();
+  } catch (_) {
+    gitSha = 'unknown';
+  }
   const meta = reproducible
     ? { buildEpochMs: 0, gitSha: 'reproducible' }
     : { buildEpochMs: epochMs, gitSha };
@@ -211,18 +210,10 @@ async function main() {
 
   const result = await esbuild({
     stdin: { contents: concatenated, loader: 'js', sourcefile: 'app.js' },
-    bundle: false,
-    write: false,
-    outfile: target,
-    minify: false,
-    minifyWhitespace: true,
-    minifySyntax: true,
-    minifyIdentifiers: true,
-    target: ['es2020'],
-    sourcemap: 'linked',
-    legalComments: 'inline',
+    bundle: false, write: false, outfile: target, minify: false,
+    minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: true,
+    target: ['es2020'], sourcemap: 'linked', legalComments: 'inline',
   });
-
   const jsBytes = result.outputFiles.find((f) => f.path.endsWith('.js')).contents;
   const mapBytes = result.outputFiles.find((f) => f.path.endsWith('.map')).contents;
 
@@ -232,48 +223,88 @@ async function main() {
   const RAW_BUDGET_BYTES = 225 * 1024;
   const GZIP_BUDGET_BYTES = 58 * 1024;
   if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
-    console.error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (225 KiB).`);
-    process.exit(1);
+    throw new Error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (225 KiB).`);
   }
   const gzBytes = gzipSync(Buffer.from(jsBytes), { level: 9 }).byteLength;
   if (gzBytes > GZIP_BUDGET_BYTES) {
-    console.error(`Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (58 KiB).`);
+    throw new Error(`Bundle (gzipped) is ${gzBytes} bytes, exceeds gzip budget of ${GZIP_BUDGET_BYTES} bytes (58 KiB).`);
+  }
+
+  return { target, mapPath, metaPath, jsBytes, mapBytes, metaSerialized };
+}
+
+function atomicWrite(path, bytes) {
+  const tmp = `${path}.tmp-${process.pid}-${Date.now()}`;
+  writeFileSync(tmp, bytes);
+  renameSync(tmp, path);
+}
+
+function commitArtifacts({ target, mapPath, metaPath, jsBytes, mapBytes, metaSerialized }) {
+  mkdirSync(dirname(target), { recursive: true });
+  atomicWrite(target, jsBytes);
+  atomicWrite(mapPath, mapBytes);
+  atomicWrite(metaPath, metaSerialized);
+}
+
+function runCheck(built) {
+  const { target, mapPath, metaPath, jsBytes, mapBytes, metaSerialized } = built;
+  if (!existsSync(target)) {
+    console.error('Generated console app.js is missing. Run node scripts/build-console-assets.mjs.');
     process.exit(1);
   }
-
-  if (process.argv.includes('--check')) {
-    if (!existsSync(target)) {
-      console.error('Generated console app.js is missing. Run node scripts/build-console-assets.mjs.');
-      process.exit(1);
-    }
-    const current = readFileSync(target);
-    if (!Buffer.from(jsBytes).equals(current)) {
-      console.error('Generated console app.js is out of date. Run node scripts/build-console-assets.mjs.');
-      process.exit(1);
-    }
-    if (!existsSync(mapPath)) {
-      console.error('Generated console app.js.map is missing. Run node scripts/build-console-assets.mjs.');
-      process.exit(1);
-    }
-    const currentMap = readFileSync(mapPath);
-    if (!Buffer.from(mapBytes).equals(currentMap)) {
-      console.error('Generated console app.js.map is out of date. Run node scripts/build-console-assets.mjs.');
-      process.exit(1);
-    }
-    if (!existsSync(metaPath)) {
-      console.error('Generated console-build-meta.json is missing. Run FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs.');
-      process.exit(1);
-    }
-    const currentMeta = readFileSync(metaPath, 'utf8');
-    if (currentMeta !== metaSerialized) {
-      console.error('Generated console-build-meta.json is out of date. Run FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs.');
-      process.exit(1);
-    }
-    process.exit(0);
+  if (!Buffer.from(jsBytes).equals(readFileSync(target))) {
+    console.error('Generated console app.js is out of date. Run node scripts/build-console-assets.mjs.');
+    process.exit(1);
   }
+  if (!existsSync(mapPath) || !Buffer.from(mapBytes).equals(readFileSync(mapPath))) {
+    console.error('Generated console app.js.map is out of date. Run node scripts/build-console-assets.mjs.');
+    process.exit(1);
+  }
+  if (!existsSync(metaPath) || readFileSync(metaPath, 'utf8') !== metaSerialized) {
+    console.error('Generated console-build-meta.json is out of date. Run FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs.');
+    process.exit(1);
+  }
+  process.exit(0);
+}
 
-  mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, jsBytes);
-  writeFileSync(mapPath, mapBytes);
-  writeFileSync(metaPath, metaSerialized);
+async function runWatch() {
+  const debounceMs = 100;
+  let timer = null;
+  const rebuild = async () => {
+    try {
+      const built = await buildOnce({
+        reproducible: process.env.FIXTHIS_BUNDLE_REPRODUCIBLE === '1',
+      });
+      commitArtifacts(built);
+      console.log(`[watch] rebuilt at ${new Date().toISOString()}`);
+    } catch (err) {
+      console.error(`[watch] rebuild failed: ${err.message}`);
+    }
+  };
+  const schedule = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(rebuild, debounceMs);
+  };
+  await rebuild();
+  const watcher = watch(sourceDir, { recursive: true }, (_event, filename) => {
+    if (filename && filename.endsWith('.js')) schedule();
+  });
+  process.on('SIGINT', () => { watcher.close(); process.exit(0); });
+  process.on('SIGTERM', () => { watcher.close(); process.exit(0); });
+}
+
+async function main() {
+  if (process.argv.includes('--watch')) {
+    await runWatch();
+    return;
+  }
+  const built = await buildOnce({
+    reproducible: process.env.FIXTHIS_BUNDLE_REPRODUCIBLE === '1'
+      || process.argv.includes('--check'),
+  });
+  if (process.argv.includes('--check')) {
+    runCheck(built);
+    return;
+  }
+  commitArtifacts(built);
 }
