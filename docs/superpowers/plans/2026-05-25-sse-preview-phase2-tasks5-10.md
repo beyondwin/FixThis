@@ -204,6 +204,7 @@ git commit -m "test: lock runtime fixture purpose contracts"
 **Files:**
 - Modify: `scripts/source-matching-fixtures.mjs`
 - Modify: `fixtures/source-matching/manifest.json`
+- Modify: `scripts/source-matching-fixtures-test.mjs`
 
 - [ ] **Step 1: Add fixture source constants and runtime case fields**
 
@@ -449,7 +450,15 @@ After Step 3 turns on the `trustPurpose` requirement, the existing `reply-compos
 
 Leave every other field of that case unchanged. Do not introduce any new fixture, case, or `source`/`moduleDir` field here — those land in Task 7.
 
-- [ ] **Step 9: Run fixture tests and verify they pass**
+- [ ] **Step 9: Backfill `trustPurpose` on pre-existing runtime-trust test fixtures**
+
+After Step 3 turns on the `trustPurpose` requirement, three pre-existing tests in `scripts/source-matching-fixtures-test.mjs` exercise `validateManifest` with runtime-trust cases that lack `trustPurpose`. Add a single `trustPurpose` field to each affected case so they continue to test their original concern (calibration field acceptance, risk-flag rejection, warning rejection) under the new validator. Do not change any other assertions or unrelated tests.
+
+In `validateManifest accepts runtime trust calibration fields and rejects unsupported risk flags` (around line 143), add `trustPurpose: "pre-existing calibration coverage"` to the `cases[0]` object whose id is `trust-case`. Apply the same minimal edit to any other pre-existing test in that file that constructs a runtime-trust case via `validateManifest` and asserts `doesNotThrow` — give those cases a short `trustPurpose` such as `"pre-existing risk-flag coverage"` or `"pre-existing warning coverage"`. For `assert.throws` tests that should keep throwing on unrelated concerns (e.g., `bad-risk-case`, `bad-warning`), only add `trustPurpose` if leaving it absent would mask the original assertion under the new requirement; otherwise leave them unchanged.
+
+Do not touch any task_5-locked tests (`requires trustPurpose on runtime-trust cases`, `accepts local-project fixtures with moduleDir`, `rejects unsupported fixture sources and unsafe moduleDir`, `markdownReport renders runtime trust purpose when present`).
+
+- [ ] **Step 10: Run fixture tests and verify they pass**
 
 Run:
 
@@ -457,12 +466,12 @@ Run:
 npm run source-matching:fixtures:test
 ```
 
-Expected: PASS. Both the new Task 5 contracts and the previously passing `reply-compose-fab-runtime` case must validate cleanly under the new `trustPurpose` requirement.
+Expected: PASS. Both the new Task 5 contracts and the previously passing `reply-compose-fab-runtime` case must validate cleanly under the new `trustPurpose` requirement, and the pre-existing tests must continue to assert their original behavior with the minimal `trustPurpose` backfill from Step 9.
 
-- [ ] **Step 10: Commit the fixture runner support**
+- [ ] **Step 11: Commit the fixture runner support**
 
 ```bash
-git add scripts/source-matching-fixtures.mjs fixtures/source-matching/manifest.json
+git add scripts/source-matching-fixtures.mjs fixtures/source-matching/manifest.json scripts/source-matching-fixtures-test.mjs
 git commit -m "feat: support documented local runtime fixtures"
 ```
 
