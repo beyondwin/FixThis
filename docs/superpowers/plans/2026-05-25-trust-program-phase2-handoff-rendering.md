@@ -1244,6 +1244,18 @@ Assert both renderers carry the same trust-essential tokens for a shared `Annota
 **Files:**
 - Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterPhase2Test.kt`
 
+**Required imports for this task** (the test references `handoffMessage`, an extension on `TargetReliabilityWarning` defined in `fixthis-compose-core/src/main/kotlin/.../model/Models.kt`). Ensure the test file's import block contains:
+
+```kotlin
+import io.github.beyondwin.fixthis.compose.core.format.DetailMode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.compose.core.model.handoffMessage
+import kotlin.test.Test
+import kotlin.test.assertTrue
+```
+
+Omitting the `handoffMessage` import causes `Unresolved reference 'handoffMessage'` at `compileTestKotlin`. The extension MUST be imported — it cannot be qualified inline as a method call without being in scope.
+
 - [ ] **Step 1: Write the failing test**
 
 ```kotlin
