@@ -6,6 +6,7 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
+import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.model.handoffMessage
 import io.github.beyondwin.fixthis.mcp.console.enrichSessionWithStaleness
 import kotlinx.serialization.json.JsonObject
@@ -55,7 +56,7 @@ object FeedbackQueueFormatter {
         appendTarget(item)
         appendLine()
         appendLine("Likely Source:")
-        appendLikelySource(item.sourceCandidates, item.target, detailMode.sourceCandidateLimit())
+        appendLikelySource(item, item.target, detailMode.sourceCandidateLimit())
         appendLine()
     }
 
@@ -110,6 +111,29 @@ object FeedbackQueueFormatter {
         reliability.warnings.forEach { warning ->
             appendLine("- Warning: ${warning.handoffMessage().inlineSafe()}")
         }
+        appendActionLines(reliability.warnings)
+    }
+
+    private fun TargetReliabilityWarning.actionLineText(): String? = when (this) {
+        TargetReliabilityWarning.VISUAL_AREA_ONLY ->
+            "use screenshot/bounds first, then check whether Compose source explains the pixels."
+        TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP ->
+            "treat source candidates as hints only; AndroidView/WebView may own the pixels."
+        TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET ->
+            "no Compose semantics node covers this — search by surrounding labels."
+        TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED ->
+            "source candidates were ranked without the redacted text — corroborate before editing."
+        TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN,
+        TargetReliabilityWarning.SOURCE_INDEX_STALE,
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED,
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE -> null
+    }
+
+    private fun StringBuilder.appendActionLines(warnings: List<TargetReliabilityWarning>) {
+        TargetReliabilityWarning.entries
+            .filter { it in warnings }
+            .mapNotNull { it.actionLineText() }
+            .forEach { appendLine("- Action: $it") }
     }
 
     private fun TargetReliability.preciseActionGuidance(): String = when (confidence) {
@@ -120,14 +144,23 @@ object FeedbackQueueFormatter {
     }
 
     private fun StringBuilder.appendLikelySource(
-        sourceCandidates: List<SourceCandidate>,
+        item: AnnotationDto,
         target: AnnotationTargetDto,
         maxCandidates: Int,
     ) {
-        if (sourceCandidates.isEmpty()) {
+        val sourceCandidates = item.sourceCandidates
+        val editSurfaceCandidates = item.editSurfaceCandidates
+        if (sourceCandidates.isEmpty() && editSurfaceCandidates.isEmpty()) {
             appendLine("No source candidate from current evidence; search by target labels and request.")
             return
         }
+        if (sourceCandidates.isEmpty()) {
+            appendLine("No source candidate; edit-surface hints:")
+            val pairing = buildEditSurfacePairing(sourceCandidates, editSurfaceCandidates)
+            renderEditSurfaceList(pairing.orphans)
+            return
+        }
+        val pairing = buildEditSurfacePairing(sourceCandidates, editSurfaceCandidates)
         sourceCandidates.take(maxCandidates).forEachIndexed { index, candidate ->
             appendLine(
                 "${index + 1}. `${candidate.fileWithLineAndOwner()}` " +
@@ -138,6 +171,60 @@ object FeedbackQueueFormatter {
             }
             if (candidate.matchReasons.isNotEmpty()) {
                 appendLine("   - reasons: ${candidate.matchReasons.joinToString(", ")}")
+            }
+            pairing.paired[index]?.let { appendEditSurfaceSubLines(it) }
+        }
+        sourceCandidates.firstOrNull()?.caution
+            ?.takeIf { it.isNotBlank() }
+            ?.let { appendLine("- note: ${it.inlineSafe()}") }
+        if (pairing.orphans.isNotEmpty()) {
+            appendLine("Edit Surfaces (unpaired):")
+            renderEditSurfaceList(pairing.orphans)
+        }
+    }
+
+    private fun StringBuilder.renderEditSurfaceList(entries: List<EditSurfaceCandidateDto>) {
+        entries.forEachIndexed { index, edit ->
+            val kindToken = edit.kind.token()
+            val roleToken = edit.role?.let { " role=${it.token()}" }.orEmpty()
+            val locator = if (edit.line != null) "${edit.file}:${edit.line}" else edit.file
+            val confToken = edit.confidence.name.lowercase()
+            val whyToken = edit.reasons.joinToString(",") { it.name.lowercase().replace("_", "-") }
+            appendLine(
+                "${index + 1}. $kindToken$roleToken -> `${locator.inlineSafe()}` (conf=$confToken, why=$whyToken)",
+            )
+            edit.note?.takeIf { it.isNotBlank() }?.let {
+                appendLine("   - edit-note: ${it.inlineSafe()}")
+            }
+        }
+    }
+
+    private fun EditSurfaceKindDto.token(): String = when (this) {
+        EditSurfaceKindDto.CONTAINER_COLOR -> "containerColor"
+        EditSurfaceKindDto.TEXT_COLOR -> "textColor"
+        EditSurfaceKindDto.TYPOGRAPHY -> "typography"
+        EditSurfaceKindDto.SPACING -> "spacing"
+        EditSurfaceKindDto.CHIP_COLOR -> "chipColor"
+        EditSurfaceKindDto.COMPONENT_RENDERER -> "componentRenderer"
+        EditSurfaceKindDto.UNKNOWN -> "unknown"
+    }
+
+    private fun EditSurfaceRoleDto.token(): String = name.lowercase().replace("_", "-")
+
+    private fun EditSurfaceCandidateDto.markdownEditLine(): String {
+        val kindToken = kind.token()
+        val roleToken = role?.let { " role=${it.token()}" }.orEmpty()
+        val locator = if (line != null) "$file:$line" else file
+        val confToken = confidence.name.lowercase()
+        val whyToken = reasons.joinToString(",") { it.name.lowercase().replace("_", "-") }
+        return "edit: $kindToken$roleToken -> `${locator.inlineSafe()}` (conf=$confToken, why=$whyToken)"
+    }
+
+    private fun StringBuilder.appendEditSurfaceSubLines(paired: List<EditSurfaceCandidateDto>) {
+        for (edit in paired) {
+            appendLine("   - ${edit.markdownEditLine()}")
+            edit.note?.takeIf { it.isNotBlank() }?.let {
+                appendLine("   - edit-note: ${it.inlineSafe()}")
             }
         }
     }
@@ -160,4 +247,41 @@ object FeedbackQueueFormatter {
         .ifBlank { "none captured" }
 
     private fun FixThisNode.semanticLabels(): List<String> = text + listOfNotNull(editableText) + contentDescription + listOfNotNull(testTag, role)
+
+    internal data class EditSurfacePairing(
+        val paired: Map<Int, List<EditSurfaceCandidateDto>>,
+        val orphans: List<EditSurfaceCandidateDto>,
+    )
+
+    private const val EDIT_SURFACE_PAIR_CAP = 2
+    private const val EDIT_SURFACE_ORPHAN_CAP = 2
+
+    private fun buildEditSurfacePairing(
+        sourceCandidates: List<SourceCandidate>,
+        editSurfaceCandidates: List<EditSurfaceCandidateDto>,
+    ): EditSurfacePairing {
+        val paired = mutableMapOf<Int, MutableList<EditSurfaceCandidateDto>>()
+        val orphans = mutableListOf<EditSurfaceCandidateDto>()
+        for (edit in editSurfaceCandidates) {
+            if (edit.file.isBlank()) {
+                orphans.add(edit)
+                continue
+            }
+            val matchIndex = sourceCandidates.indexOfFirst { it.file == edit.file }
+            if (matchIndex >= 0) {
+                paired.getOrPut(matchIndex) { mutableListOf() }.add(edit)
+            } else {
+                orphans.add(edit)
+            }
+        }
+        val cappedPaired = paired.mapValues { (_, list) -> list.take(EDIT_SURFACE_PAIR_CAP) }
+        val cappedOrphans = orphans.take(EDIT_SURFACE_ORPHAN_CAP)
+        return EditSurfacePairing(cappedPaired, cappedOrphans)
+    }
+
+    // Test-only entry point. Forwards to the private helper above.
+    internal fun buildEditSurfacePairingForTest(
+        sourceCandidates: List<SourceCandidate>,
+        editSurfaceCandidates: List<EditSurfaceCandidateDto>,
+    ): EditSurfacePairing = buildEditSurfacePairing(sourceCandidates, editSurfaceCandidates)
 }

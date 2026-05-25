@@ -60,6 +60,28 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - `RestartReconnectIntegrationTest` asserts that a draft area-feedback item,
   its captured screen, and the current session survive a server stop +
   restart against the same `.fixthis/` project root.
+- The fixture-lab manifest now declares two fixture sources —
+  `external-github` (existing clone+patch flow) and `local-project` (in-tree
+  modules such as the `fixthis-sample`, addressed by an optional `moduleDir`
+  rooted under the repo). Unsupported sources and unsafe `moduleDir` paths
+  are rejected at manifest validation.
+- Runtime-trust fixture cases now require a `trustPurpose` description that
+  is rendered as a `Purpose` column in the markdown fixture report. The
+  focused runtime set is Reply (`reply-compose-fab-runtime`), the
+  in-repo `fixthis-sample` local-project case, and a Jetsnack desserts
+  copy/data runtime case.
+- A new browser-reliability proof (`scripts/console-browser-reliability.mjs`)
+  asserts that a single preview push over SSE refreshes the screen with no
+  polling fallback fetch, exercising the new SSE-first preview contract.
+- Trust program Phase 2 expands the PRECISE handoff renderer:
+  source candidates are now paired with `edit:` sub-lines and an
+  `edit-note:` bullet for warnings; orphan edit surfaces and the
+  empty-source case render an `edit-surface hints` block; the rank-1
+  source caution surfaces as a `- note:` line; and reliability warnings
+  `VISUAL_AREA_ONLY`, `POSSIBLE_VIEW_INTEROP`, `NO_MEANINGFUL_COMPOSE_TARGET`,
+  and `SENSITIVE_TEXT_REDACTED` emit explicit `- Action:` lines. Compact
+  and PRECISE outputs stay token-equivalent for trust-essential tokens,
+  and pre-Phase 2 sessions (no edit-surface data) remain byte-stable.
 
 ### Changed
 
@@ -72,6 +94,19 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Owner-function source evidence is now explicitly capped at medium
   confidence and a `UNTYPED_FALLBACK` risk is preserved when only untyped
   signals match, preventing accidental promotion to high confidence.
+- Console preview refresh is now SSE-first: visibility-resume and boot
+  refreshes only run when SSE is disconnected and a polling interval is
+  configured (`shouldAutoFetchPreviewFallback()`). A live SSE connection no
+  longer triggers redundant `/preview` fetches when the tab becomes
+  visible. The push-first preview contract docs and architecture notes were
+  updated to describe the new behavior.
+- Detekt findings cleared without behavior changes: `SourceScoringPolicy`
+  bucket scoring is a single map lookup, `SourceMatcher`'s LAYOUT_RENDERER
+  weight is a named constant, `CompactHandoffRenderer` reason tokens live in
+  a private map, `ConsoleAssetsWatcher.tick` and
+  `FeedbackConsoleAssets.readBuildHashFromDir` use `runCatching` instead of
+  broad `catch (Throwable)`, and `RuntimeTrustObservationMapper` exposes a
+  named `MAX_OBSERVED_CANDIDATES` constant.
 
 ### Fixed
 
@@ -86,6 +121,21 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Fixture-lab evaluation now preserves the original candidate order and
   fails when expected fixture entries are missing, instead of silently
   reporting partial coverage.
+- The source-index fixture evaluator now matches manifest paths against
+  both `entry.file` (module-internal) and `entry.repoFile` (repo-rooted),
+  so monorepo-prefixed fixtures (Reply, Jetsnack, NIA) no longer report a
+  spurious `missing_top3` outcome. The observed candidate path is the
+  repo-rooted form when available.
+- Fixture manifest re-pinned to current upstream: Reply renamed
+  `MainActivity` owner → `ReplyApp`; Jetsnack `Home` composable →
+  `JetsnackBottomBar`; Jetsnack search now points at `Categories.kt`;
+  NIA `for-you` title resource pinned to `feature/foryou/api/...`; NIA
+  navigation pinned to `designsystem/.../Navigation.kt`. Runtime cases
+  drop the monorepo prefix to match `repoFile` semantics.
+- The runtime-trust `capture_failed` environment-downgrade branch now
+  propagates `trustPurpose` so the markdown fixture report's `Purpose`
+  column is populated in the common no-device-available local case
+  instead of rendering `-`.
 
 ## [0.7.0] - 2026-05-19
 

@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -67,6 +68,32 @@ class HandoffEvaluationCorpusTest {
             assertTrue(markdown.contains("role=${case.expectedRole.renderToken()}"), "Missing role for ${case.id}")
         }
         assertTrue(markdown.length <= 6500, "v0.6 corpus handoff is ${markdown.length} chars; budget is 6500")
+    }
+
+    @Test
+    fun precise_renderingExposesPairedEditSurfacesForCorpusItems() {
+        val corpus = HandoffEvaluationFixtures.loadCorpus()
+        val itemsWithEditSurfaces = corpus.cases
+            .map { HandoffEvaluationFixtures.annotationFor(it) }
+            .filter { it.editSurfaceCandidates.isNotEmpty() }
+        if (itemsWithEditSurfaces.isEmpty()) return
+        val session = SessionDto(
+            sessionId = "phase2-precise",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = corpus.cases.map { HandoffEvaluationFixtures.screenFor(it) },
+            items = itemsWithEditSurfaces.mapIndexed { idx, item -> item.copy(sequenceNumber = idx + 1) },
+        )
+        val md = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
+        for (item in itemsWithEditSurfaces) {
+            val top = item.editSurfaceCandidates.first()
+            assertTrue(
+                md.contains(top.file),
+                "PRECISE must surface edit-surface file ${top.file} for item ${item.itemId}\n$md",
+            )
+        }
     }
 
     private fun EditSurfaceRoleDto.renderToken(): String = name.lowercase().replace("_", "-")

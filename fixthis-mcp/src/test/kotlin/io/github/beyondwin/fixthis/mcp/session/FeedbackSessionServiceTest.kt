@@ -983,8 +983,14 @@ class FeedbackSessionServiceTest {
             val item = updated.items.single()
             assertTrue(item.sourceCandidates.isEmpty())
             val markdown = FeedbackQueueFormatter.toMarkdown(updated)
-            assertTrue(markdown.contains("No source candidate from current evidence"))
-            assertFalse(markdown.contains(".kt:"))
+            assertTrue(
+                markdown.contains("No source candidate from current evidence") ||
+                    markdown.contains("No source candidate; edit-surface hints:"),
+                "expected empty-source hint header, got:\n$markdown",
+            )
+            if (item.editSurfaceCandidates.isEmpty()) {
+                assertFalse(markdown.contains(".kt:"))
+            }
         }
     }
 
