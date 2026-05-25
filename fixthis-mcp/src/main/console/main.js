@@ -1,4 +1,4 @@
-// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, events.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, editorBackButton.js, inspectorFooterActions.js, pendingRecoveryUi.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
+// @requires state.js, connection.js, devices.js, preview.js, annotations.js, history.js, prompt.js, rendering.js, sessions-polling.js, events.js, shortcuts.js, draftUseCases.js, draftCommandQueue.js, editorBackButton.js, inspectorFooterActions.js, pendingRecoveryUi.js, serverBuildChip.js, application/consoleStore.js, application/consoleEffects.js, adapters/browserPorts.js, adapters/browserRenderer.js
             let pendingRecovery = null;
             const canonicalPorts = createBrowserConsolePorts({
               requestJson,
@@ -434,6 +434,7 @@
 
             initializePreviewIntervalSelect();
             applyPreviewZoom();
+            mountServerBuildChip();
             refresh()
               .then(() => {
                 loadPendingRecoveryForCurrentSession();

@@ -1,5 +1,6 @@
-// @requires state.js, connection.js, devices.js, preview.js, history.js, rendering.js, sessions-polling.js, sse.js
+// @requires state.js, connection.js, devices.js, preview.js, history.js, rendering.js, sessions-polling.js, sse.js, devReload.js, serverBuildChip.js
             let consoleEventsSource = null;
+            let consoleEventsHasOpenedBefore = false;
             function startConsoleEvents() {
               if (typeof EventSource === 'undefined' || consoleEventsSource) return;
               const source = consoleEventsSource = new EventSource('/api/events');
@@ -8,6 +9,24 @@
               source.onopen = () => {
                 setConsoleEventsConnected(true);
                 stopLivePreviewPolling();
+                const wasReconnect = consoleEventsHasOpenedBefore;
+                consoleEventsHasOpenedBefore = true;
+                if (wasReconnect) {
+                  fetch('/api/server-version', { cache: 'no-store' })
+                    .then((res) => res.ok ? res.json() : null)
+                    .then((payload) => {
+                      const node = getServerBuildChipNode();
+                      if (!node) return;
+                      updateServerBuildChipState(node, {
+                        state: 'connected',
+                        buildHash: payload?.serverGitSha,
+                      });
+                    })
+                    .catch(() => {
+                      const node = getServerBuildChipNode();
+                      if (node) updateServerBuildChipState(node, { state: 'connected' });
+                    });
+                }
               };
               const activeSessionId = () => state.session?.sessionId || null;
               const matchesActiveSession = (data) => Boolean(data?.sessionId && data.sessionId === state.session?.sessionId);
@@ -54,10 +73,13 @@
               });
               on('devices-updated', (data) => renderDeviceList(data.devices || data));
               on('connection-updated', (data) => data.connection && applyConnectionStatus(data.connection));
+              on('console-assets-changed', (data) => handleConsoleAssetsChanged(data));
               source.addEventListener('replay-overflow', () => refresh().catch(showError));
               source.onerror = () => {
                 setConsoleEventsConnected(false);
                 if (state.connection && !state.connection.sessionsPollingPaused) setSessionsPollingPaused(true);
                 startLivePreviewPolling();
+                const node = getServerBuildChipNode();
+                if (node) updateServerBuildChipState(node, { state: 'reconnecting' });
               };
             }
