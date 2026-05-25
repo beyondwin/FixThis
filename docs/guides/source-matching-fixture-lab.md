@@ -25,6 +25,21 @@ build/reports/fixthis-source-matching/
 
 These paths are gitignored.
 
+## Runtime Trust Case Purpose
+
+Every `runtime-trust` case includes `trustPurpose`. The field explains which
+trust failure mode the case protects, such as baseline runtime confidence,
+controlled local component identity, external copy/data matching, selector
+drift, or warning/risk observation. Reports render this purpose so failures are
+actionable without reopening the manifest.
+
+The lab supports two fixture sources:
+
+- `external-github` fixtures clone a pinned Android sample repository into
+  `.fixthis/eval-fixtures/`.
+- `local-project` fixtures run against this checkout, currently for the bundled
+  FixThis sample app. They do not clone or patch the project.
+
 ## Commands
 
 Prepare fixtures:
@@ -62,6 +77,12 @@ Run fast offline tests for the runner:
 ```bash
 npm run source-matching:fixtures:test
 ```
+
+The initial runtime set covers Reply as the external happy path, the bundled
+FixThis sample app as a controlled local component-identity case, and Jetsnack
+as a non-Reply copy/data case. Now in Android remains source-index-only until a
+stable launch-state runtime selector is verified without coordinates, scroll
+setup, account state, network state, or fragile timing.
 
 ## Reading Results
 

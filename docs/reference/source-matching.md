@@ -92,6 +92,14 @@ proof that selected pixels map exactly to that line.
 Markdown handoffs render it as `inside fun <Composable>` in precise/full output
 and as `owner=<Composable>` on the rank-1 compact candidate when available.
 
+## Runtime Trust Fixtures
+
+Runtime trust fixtures are local-only checks that install a debug app, capture a
+real screen through the MCP/session path, resolve a semantics target, and
+validate observed `sourceCandidates` plus `targetReliability`. They complement
+source-index fixtures; they do not replace the fast build-time source-index
+checks and they are not a CI or release requirement.
+
 ## Untyped Fallback Evidence
 
 When an entry matches only through the preserved untyped source-index fields
