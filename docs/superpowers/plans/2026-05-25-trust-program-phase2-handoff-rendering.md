@@ -1300,9 +1300,8 @@ git commit -m "test(handoff): assert compact and precise renderers share key tru
 Verify the existing `HandoffEvaluationCorpusTest` still passes. If any corpus case carries `editSurfaceCandidates` or `caution` that Phase 2 now renders into PRECISE output, update or add an assertion accordingly.
 
 **Files:**
-- Read: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffEvaluationCorpusTest.kt`
+- Write: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffEvaluationCorpusTest.kt`
 - Read: `fixthis-mcp/src/test/resources/handoff-eval/v06-corpus.json`
-- Modify only if assertions broke: `HandoffEvaluationCorpusTest.kt`
 
 - [ ] **Step 1: Run the existing corpus test**
 
