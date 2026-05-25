@@ -176,6 +176,7 @@ npm run console:build:test          # build-console-assets unit tests
 npm run console:build:watch:test    # build-console-assets --watch loop test
 npm run console:devReload:test      # console-assets-changed SSE handler test
 npm run console:serverBuildChip:test # server build chip render/transition test
+npm run console:innerloop:test      # aggregate of the three above (gated in console:test:fast / :all)
 ```
 
 > As of 2026-05-14, `ConsoleFeedbackItemRoutesTest.kt` was split into seven
