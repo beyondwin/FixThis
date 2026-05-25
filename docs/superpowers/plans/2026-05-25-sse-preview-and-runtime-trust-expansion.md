@@ -537,6 +537,7 @@ git commit -m "test: lock runtime fixture purpose contracts"
 
 **Files:**
 - Modify: `scripts/source-matching-fixtures.mjs`
+- Modify: `fixtures/source-matching/manifest.json`
 
 - [ ] **Step 1: Add fixture source constants and runtime case fields**
 
@@ -758,7 +759,31 @@ lines.push([
 ].join(" | ").replace(/^/, "| ").replace(/$/, " |"));
 ```
 
-- [ ] **Step 8: Run fixture tests and verify they pass**
+- [ ] **Step 8: Backfill `trustPurpose` on the existing Reply runtime-trust case**
+
+After Step 3 turns on the `trustPurpose` requirement, the existing `reply-compose-fab-runtime` case in `fixtures/source-matching/manifest.json` violates the new validator. Update that case in place by adding a `trustPurpose` field immediately after `mode` so the runtime case documents what it asserts:
+
+```json
+{
+  "id": "reply-compose-fab-runtime",
+  "mode": "runtime-trust",
+  "trustPurpose": "external Compose Material button identity case proving runtime trust matches the source-index winner",
+  "runtimeTarget": {
+    "text": "Compose",
+    "role": "Button"
+  },
+  "expectedTop3PathContains": "Reply/app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
+  "expectedConfidence": "medium-or-high",
+  "expectedSourceConfidence": "medium-or-high",
+  "mustNotWarn": [
+    "POSSIBLE_VIEW_INTEROP"
+  ]
+}
+```
+
+Leave every other field of that case unchanged. Do not introduce any new fixture, case, or `source`/`moduleDir` field here — those land in Task 7.
+
+- [ ] **Step 9: Run fixture tests and verify they pass**
 
 Run:
 
@@ -766,12 +791,12 @@ Run:
 npm run source-matching:fixtures:test
 ```
 
-Expected: PASS.
+Expected: PASS. Both the new Task 5 contracts and the previously passing `reply-compose-fab-runtime` case must validate cleanly under the new `trustPurpose` requirement.
 
-- [ ] **Step 9: Commit the fixture runner support**
+- [ ] **Step 10: Commit the fixture runner support**
 
 ```bash
-git add scripts/source-matching-fixtures.mjs
+git add scripts/source-matching-fixtures.mjs fixtures/source-matching/manifest.json
 git commit -m "feat: support documented local runtime fixtures"
 ```
 
