@@ -127,6 +127,26 @@ async function testLatePreviewIsolation() {
   });
 }
 
+async function testSsePreviewPushDoesNotPollPreview() {
+  await withBrowser(async ({ fixture, context }) => {
+    const page = await openConsolePage(context, fixture.url);
+    await waitUntil(() => fixture.eventClientCount() >= 1);
+    const before = fixture.previewRequestCount();
+    fixture.emitPreviewReady('session-1', { previewId: 'sse-push-only' });
+    await page.waitForFunction(
+      () => window.FixThisConsoleDebug.getState().preview?.previewId === 'sse-push-only',
+      null,
+      { timeout: 8000 },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    assert.equal(
+      fixture.previewRequestCount(),
+      before,
+      'connected EventSource should update preview without fallback /api/preview polling',
+    );
+  });
+}
+
 async function testEventSourceReconnectRecovery() {
   await withBrowser(async ({ fixture, context }) => {
     const page = await openConsolePage(context, fixture.url);
@@ -210,6 +230,7 @@ async function testRepeatedSaveToMcpIdempotency() {
 async function run() {
   await testTwoTabSseSync();
   await testLatePreviewIsolation();
+  await testSsePreviewPushDoesNotPollPreview();
   await testEventSourceReconnectRecovery();
   await testStalePreviewSaveRequiresConfirmation();
   await testRepeatedSaveToMcpIdempotency();

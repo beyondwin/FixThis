@@ -66,6 +66,10 @@
               return configuredPreviewIntervalMs() != null && shouldPollPreview();
             }
 
+            function shouldAutoFetchPreviewFallback() {
+              return shouldAutoFetchPreview() && shouldUsePreviewFallbackPolling();
+            }
+
             // livePreviewTimer is a closure-scoped browser timer handle.
             // It is not reducer state (not pure), so it lives here rather
             // than in previewFsm.js.

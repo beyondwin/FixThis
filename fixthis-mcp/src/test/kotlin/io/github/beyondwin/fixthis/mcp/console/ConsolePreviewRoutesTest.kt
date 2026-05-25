@@ -301,14 +301,17 @@ class ConsolePreviewRoutesTest {
     @Test
     fun consoleHtmlClearsSavedPreviewAndDoesNotAutoFetchWhenManual() {
         val html = ConsoleSourceFixtures.readAll()
-
         assertTrue(html.contains("setConsolePreview(null);"))
         assertTrue(html.contains("function shouldAutoFetchPreview()"))
+        assertTrue(html.contains("function shouldAutoFetchPreviewFallback()"))
         assertTrue(html.contains("return configuredPreviewIntervalMs() != null && shouldPollPreview();"))
+        assertTrue(html.contains("return shouldAutoFetchPreview() && shouldUsePreviewFallbackPolling();"))
         assertTrue(
-            html.contains("if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);"),
+            html.contains("if (!document.hidden && shouldAutoFetchPreviewFallback()) refreshPreview().catch(showError);"),
         )
-        assertTrue(html.contains("if (shouldAutoFetchPreview()) return refreshPreview();"))
+        assertTrue(html.contains("if (shouldAutoFetchPreviewFallback()) return refreshPreview();"))
+        assertFalse(html.contains("if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);"))
+        assertFalse(html.contains("if (shouldAutoFetchPreview()) return refreshPreview();"))
         assertFalse(html.contains("if (!document.hidden && shouldPollPreview()) refreshPreview().catch(showError);"))
         assertFalse(html.contains("if (shouldPollPreview()) return refreshPreview();"))
     }

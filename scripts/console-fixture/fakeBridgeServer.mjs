@@ -473,6 +473,9 @@ export async function startFakeBridge(options = {}) {
         currentFingerprint: conflict.currentFingerprint || 'current-fingerprint',
       };
     },
+    previewRequestCount: () => requestLog.filter((entry) =>
+      entry.method === 'GET' && entry.path === '/api/preview'
+    ).length,
     eventClientCount: () => eventClients.size,
     runScenario: async ({ scenario, overrides = {} } = {}) => {
       if (!SCENARIOS[scenario]) {

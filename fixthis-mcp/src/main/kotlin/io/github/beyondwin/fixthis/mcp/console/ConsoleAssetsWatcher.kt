@@ -33,7 +33,10 @@ internal class ConsoleAssetsWatcher(
             Thread(task, "fixthis-console-assets-watcher").apply { isDaemon = true }
         }
         service.scheduleWithFixedDelay(
-            ::tick, pollIntervalMillis, pollIntervalMillis, TimeUnit.MILLISECONDS,
+            ::tick,
+            pollIntervalMillis,
+            pollIntervalMillis,
+            TimeUnit.MILLISECONDS,
         )
         executor = service
     }

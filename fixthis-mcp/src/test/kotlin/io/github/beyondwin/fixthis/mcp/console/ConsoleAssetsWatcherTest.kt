@@ -15,7 +15,9 @@ import kotlin.test.assertNotNull
 class ConsoleAssetsWatcherTest {
     private val tempDir: File = Files.createTempDirectory("console-assets-watcher").toFile()
 
-    @AfterTest fun cleanup() { tempDir.deleteRecursively() }
+    @AfterTest fun cleanup() {
+        tempDir.deleteRecursively()
+    }
 
     private fun writeMeta(hash: String) {
         File(tempDir, "console-build-meta.json")
@@ -29,7 +31,10 @@ class ConsoleAssetsWatcherTest {
         val seen = mutableListOf<ConsoleEvent>()
         val latch = CountDownLatch(1)
         val subscription = bus.subscribe { ev ->
-            if (ev.name == "console-assets-changed") { seen += ev; latch.countDown() }
+            if (ev.name == "console-assets-changed") {
+                seen += ev
+                latch.countDown()
+            }
         }
         val watcher = ConsoleAssetsWatcher(tempDir, bus, pollIntervalMillis = 50)
         try {

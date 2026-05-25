@@ -10,6 +10,7 @@ import io.github.beyondwin.fixthis.mcp.fixtures.rawHttpResponseCode
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetSocketAddress
@@ -19,7 +20,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.serialization.json.jsonPrimitive
 
 class FeedbackConsoleServerTest {
     @Test

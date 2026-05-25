@@ -81,7 +81,7 @@
               }
             });
             document.addEventListener('visibilitychange', () => {
-              if (!document.hidden && shouldAutoFetchPreview()) refreshPreview().catch(showError);
+              if (!document.hidden && shouldAutoFetchPreviewFallback()) refreshPreview().catch(showError);
               if (!document.hidden && state.selectedDeviceSerial) sendBridgeHeartbeat().catch(handleHeartbeatError);
               startLivePreviewPolling();
               startSessionsPolling();
@@ -438,7 +438,7 @@
             refresh()
               .then(() => {
                 loadPendingRecoveryForCurrentSession();
-                if (shouldAutoFetchPreview()) return refreshPreview();
+                if (shouldAutoFetchPreviewFallback()) return refreshPreview();
                 return null;
               })
               .then(() => {

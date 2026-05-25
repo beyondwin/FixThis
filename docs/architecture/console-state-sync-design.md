@@ -258,10 +258,11 @@ surface remains the visible fallback indicator.
   `refreshSessions`.
 - Acceptance: the original 2026-05-10 bug stays fixed; manual `Cmd-R` no longer required after server-side async closes; multi-tab consoles stay in sync.
 
-**Phase 2 — fold `livePreviewPolling` into SSE (remaining)**
-- Replace `setInterval`-based preview polling with `preview-ready` event subscription.
-- Removes one whole subsystem (`livePreviewPolling`, `previewRequestGeneration`, `previewRequestContextGeneration`) — net code deletion.
-- Acceptance: preview latency drops from poll-interval-bounded to push-bounded; preview no longer fights with explicit refresh paths.
+**Phase 2 — fold `livePreviewPolling` into SSE (shipped)**
+- `preview-ready` SSE events are the normal automatic preview update path.
+- `livePreviewPolling` remains only as a fallback adapter while EventSource is disconnected or unavailable.
+- Manual refresh and explicit recovery paths still call `/api/preview` directly.
+- Acceptance: connected consoles receive preview updates through SSE without waiting for the polling interval, while disconnected consoles still recover through fallback polling.
 
 **Phase 3 — retire pull paths (remaining)**
 - Remove `refreshSessions()` calls from happy-path mutation handlers, leaving only the manual refresh button and the SSE-failure fallback.

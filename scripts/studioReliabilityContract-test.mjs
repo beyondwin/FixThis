@@ -9,6 +9,8 @@ const reducer = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/domain/
 const draftUseCases = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/draftUseCases.js'), 'utf8');
 const polling = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/pollingBrowserAdapter.js'), 'utf8');
 const annotations = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
+const main = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
+const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
 
 function body(source, signature) {
   const start = source.indexOf(signature);
@@ -80,4 +82,13 @@ test('SSE connection state is explicit and controls preview fallback polling', (
   assert.match(events, /setConsoleEventsConnected\(true\)/);
   assert.match(events, /setConsoleEventsConnected\(false\)/);
   assert.match(events, /startLivePreviewPolling\(\)/);
+});
+
+test('automatic preview refreshes are fallback-only while SSE is connected', () => {
+  assert.match(previewSource, /function shouldAutoFetchPreviewFallback\(\)/);
+  assert.match(previewSource, /return shouldAutoFetchPreview\(\) && shouldUsePreviewFallbackPolling\(\);/);
+  assert.match(main, /if \(!document\.hidden && shouldAutoFetchPreviewFallback\(\)\) refreshPreview\(\)\.catch\(showError\);/);
+  assert.match(main, /if \(shouldAutoFetchPreviewFallback\(\)\) return refreshPreview\(\);/);
+  assert.doesNotMatch(main, /if \(!document\.hidden && shouldAutoFetchPreview\(\)\) refreshPreview\(\)\.catch\(showError\);/);
+  assert.doesNotMatch(main, /if \(shouldAutoFetchPreview\(\)\) return refreshPreview\(\);/);
 });
