@@ -128,6 +128,27 @@
   headers. Once the stream is open, keep-alive or event write failures caused by
   client disconnect close the subscription quietly.
 
+### `console-assets-changed` (dir-mode only)
+
+Emitted by the server when `console-build-meta.json` mtime advances under the
+`--console-assets-dir` watch path. Payload:
+
+```json
+{ "buildHash": "<short git sha from console-build-meta.json>", "at": "<iso-8601>" }
+```
+
+The packaged JAR never emits this event. The browser handler reloads only when
+`payload.buildHash !== window.FixThisConsoleConfig.buildHash`.
+
+### `FixThisConsoleConfig` (dir-mode additions)
+
+- `devReloadEnabled: true` — set only when the server is started with
+  `--console-assets-dir`. Required for the browser to act on
+  `console-assets-changed`.
+- `buildHash: <short git sha>` — mirrored from the inlined
+  `console-build-meta.json` so the browser can dedup reload signals and the
+  server build chip can display the current bundle SHA.
+
 ## Device Semantics
 
 - The device-chip `x` clears only FixThis's active device selection and owned bridge resources.

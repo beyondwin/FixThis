@@ -48,6 +48,18 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   device-backed mode that exercises `RuntimeTargetResolver` and the runtime
   trust observation pipeline against fixture indexes, and a strict local gate
   invocation that fails fast on trust regressions.
+- Console JS inner loop now supports auto-rebundle on edit via
+  `node scripts/build-console-assets.mjs --watch`. When the server is started
+  with `--console-assets-dir`, a new `ConsoleAssetsWatcher` polls
+  `console-build-meta.json` mtime and pushes a `console-assets-changed` event
+  over `/api/events`; the browser auto-reloads after each successful rebuild.
+  The packaged JAR is unchanged and never emits the event.
+- Console top bar now shows a server build chip
+  (`connected · build sha=<short>` / `reconnecting…`) so maintainers can
+  confirm that `restart-console.sh` delivered a new server build.
+- `RestartReconnectIntegrationTest` asserts that a draft area-feedback item,
+  its captured screen, and the current session survive a server stop +
+  restart against the same `.fixthis/` project root.
 
 ### Changed
 

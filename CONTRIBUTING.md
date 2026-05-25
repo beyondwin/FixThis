@@ -75,6 +75,32 @@ scripts/fixthis-console-dev.sh io.github.beyondwin.fixthis.sample    # explicit 
 
 Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
 
+### `node scripts/build-console-assets.mjs --watch` — auto-rebundle on JS edit
+
+Pair this with `scripts/fixthis-console-dev.sh` (which runs the server with
+`--console-assets-dir`) for a no-touch JS edit loop. Save a JS file under
+`fixthis-mcp/src/main/console/` and the bundle, source map, and
+`console-build-meta.json` are atomically rewritten. The console server polls
+`console-build-meta.json` mtime and pushes a `console-assets-changed` event
+over `/api/events`; the browser auto-reloads when the bundle hash differs.
+The reload signal is gated on `--console-assets-dir`; the packaged JAR never
+reloads itself.
+
+```bash
+node scripts/build-console-assets.mjs --watch
+```
+
+Stop with Ctrl-C. After stopping, the on-disk artifacts already satisfy
+`node scripts/build-console-assets.mjs --check`, so no extra command is
+needed before pushing.
+
+### Server build chip
+
+The console top bar shows a small chip with the current server build SHA and
+reconnect state (`connected · build sha=<short>` → `reconnecting…` →
+`connected · build sha=<new>`). Use it to confirm that
+`bash scripts/restart-console.sh` actually delivered a new server build.
+
 ### Documentation consistency check (required)
 
 After editing `package.json`, README, AGENTS.md, or this file, run:
@@ -147,6 +173,9 @@ npm run console:browser:reliability # browser reliability proof
 npm run console:harness:test        # scenario matrix harness unit tests
 npm run console:fsm:test            # connection FSM harness
 npm run console:build:test          # build-console-assets unit tests
+npm run console:build:watch:test    # build-console-assets --watch loop test
+npm run console:devReload:test      # console-assets-changed SSE handler test
+npm run console:serverBuildChip:test # server build chip render/transition test
 ```
 
 > As of 2026-05-14, `ConsoleFeedbackItemRoutesTest.kt` was split into seven
