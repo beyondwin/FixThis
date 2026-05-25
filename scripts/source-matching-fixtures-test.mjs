@@ -84,6 +84,18 @@ test("fixture manifest uses schema v2 with separated source-index and runtime-tr
   }
 });
 
+test("runtime trust manifest includes focused Reply, local sample, and Jetsnack cases", () => {
+  const manifest = readJson("fixtures/source-matching/manifest.json");
+  const cases = manifest.fixtures.flatMap((fixture) => fixture.cases.map((testCase) => ({
+    fixtureId: fixture.id,
+    ...testCase,
+  })));
+
+  assert.ok(cases.some((testCase) => testCase.fixtureId === "reply" && testCase.id === "reply-compose-fab-runtime"));
+  assert.ok(cases.some((testCase) => testCase.fixtureId === "fixthis-sample" && testCase.id === "fixthis-sample-home-primary-runtime"));
+  assert.ok(cases.some((testCase) => testCase.fixtureId === "jetsnack" && testCase.id === "jetsnack-desserts-runtime"));
+});
+
 test("validateManifest rejects floating commits and unsafe paths", () => {
   assert.throws(
     () => validateManifest({

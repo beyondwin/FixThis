@@ -25,7 +25,7 @@
         {
           "id": "reply-compose-fab-runtime",
           "mode": "runtime-trust",
-          "trustPurpose": "verify Reply compose FAB resolves to its owning composable with calibrated trust signals",
+          "trustPurpose": "baseline external runtime target with visible button text and no interop warning",
           "runtimeTarget": { "text": "Compose", "role": "Button" },
           "expectedTop3PathContains": "Reply/app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
           "expectedConfidence": "medium-or-high",
@@ -54,6 +54,16 @@
           "mode": "source-index",
           "expectedEntryPathContains": "Jetsnack/app/src/main/java/com/example/jetsnack/model/Search.kt",
           "expectedSignal": { "kind": "ARBITRARY_STRING_LITERAL", "value": "Desserts" }
+        },
+        {
+          "id": "jetsnack-desserts-runtime",
+          "mode": "runtime-trust",
+          "trustPurpose": "external copy/data runtime target from a non-Reply Compose sample",
+          "runtimeTarget": { "text": "Desserts" },
+          "expectedTop3PathContains": "Jetsnack/app/src/main/java/com/example/jetsnack/model/Search.kt",
+          "expectedConfidence": "medium-or-high",
+          "expectedSourceConfidence": "low-or-medium",
+          "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"]
         }
       ]
     },
@@ -84,7 +94,7 @@
       "id": "fixthis-sample",
       "source": "local-project",
       "projectDir": ".",
-      "modulePath": ":sample",
+      "modulePath": ":app",
       "moduleDir": "sample",
       "variant": "debug",
       "applicationId": "io.github.beyondwin.fixthis.sample",
