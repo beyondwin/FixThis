@@ -53,6 +53,9 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
     abstract val redactEditableText: Property<Boolean>
 
     @get:Input
+    abstract val runtimeCompatibleSourceIndex: Property<Boolean>
+
+    @get:Input
     abstract val generateSourceIndex: Property<Boolean>
 
     @get:Input
@@ -73,6 +76,7 @@ abstract class GenerateFixThisSourceIndexTask : DefaultTask() {
                 rootProjectDirectory = rootProjectDirectory.get().asFile,
                 projectPath = projectPath.get(),
                 json = json,
+                includeLayoutRendererSignals = runtimeCompatibleSourceIndex.orNull != true,
             )
             val entries = generator.generate(
                 kotlinFiles = kotlinSourceFiles.files.flatMap { it.kotlinFiles() },

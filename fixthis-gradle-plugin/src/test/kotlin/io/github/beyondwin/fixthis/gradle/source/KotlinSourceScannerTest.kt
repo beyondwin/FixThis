@@ -270,6 +270,33 @@ class KotlinSourceScannerTest {
     }
 
     @Test
+    fun `can suppress layout renderer signals for runtime-compatible fixture assets`() {
+        val file = tempDir.newFile("LayoutRenderersSuppressed.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+
+                @Composable
+                fun AdaptiveGrid() {
+                    Layout(content = {}, measurePolicy = { _, _ -> layout(0, 0) {} })
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(
+            tempDir.root,
+            tempDir.root,
+            json,
+            includeLayoutRendererSignals = false,
+        ).scan(file)
+
+        assertTrue(entries.flatMap { it.signals }.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
+    }
+
+    @Test
     fun `does not emit layout renderer signals for comments strings or local declarations`() {
         val file = tempDir.newFile("LayoutDecoys.kt").apply {
             writeText(

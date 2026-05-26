@@ -8,10 +8,16 @@ internal class SourceIndexGenerator(
     rootProjectDirectory: File,
     private val projectPath: String,
     json: Json,
+    includeLayoutRendererSignals: Boolean = true,
 ) {
     private val projectDirectory = projectDirectory.canonicalFile
     private val rootProjectDirectory = rootProjectDirectory.canonicalFile
-    private val kotlinScanner = KotlinSourceScanner(projectDirectory, rootProjectDirectory, json)
+    private val kotlinScanner = KotlinSourceScanner(
+        projectDirectory,
+        rootProjectDirectory,
+        json,
+        includeLayoutRendererSignals = includeLayoutRendererSignals,
+    )
     private val xmlScanner = XmlStringResourceScanner(projectDirectory, rootProjectDirectory)
 
     fun generate(kotlinFiles: List<File>, xmlFiles: List<File>): SourceIndexAsset {

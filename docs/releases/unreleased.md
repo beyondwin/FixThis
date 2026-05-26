@@ -23,7 +23,7 @@ GitHub Release page and registry listings as release evidence.
   `Purpose` column), and the manifest accepts two fixture sources:
   `external-github` (clone+patch) and `local-project` (in-tree modules
   addressed by an optional `moduleDir`). Focused runtime set: Reply, the
-  in-repo `fixthis-sample` local-project case, and a Jetsnack desserts
+  in-repo `fixthis-sample` local-project case, and a Jetsnack filters
   case. See [`docs/guides/source-matching-fixture-lab.md`](../guides/source-matching-fixture-lab.md).
 - The fixture-lab source-index evaluator now matches manifest paths
   against both `entry.file` and `entry.repoFile`, so monorepo-prefixed

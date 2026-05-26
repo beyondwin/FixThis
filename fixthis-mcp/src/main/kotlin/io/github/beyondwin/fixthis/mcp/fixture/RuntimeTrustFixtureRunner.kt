@@ -5,7 +5,10 @@ import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.tools.CliFixThisBridge
+import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.system.exitProcess
@@ -52,10 +55,26 @@ fun main(args: Array<String>) {
     }
 }
 
-class RuntimeTrustFixtureRunner {
+data class RuntimeCaptureRetryPolicy(
+    val maxAttempts: Int = 10,
+    val retryDelayMillis: Long = 250,
+) {
+    init {
+        require(maxAttempts >= 1) { "maxAttempts must be at least 1" }
+        require(retryDelayMillis >= 0) { "retryDelayMillis must be non-negative" }
+    }
+}
+
+class RuntimeTrustFixtureRunner(
+    private val bridgeFactory: (File) -> FixThisBridge = { projectRoot ->
+        CliFixThisBridge(BridgeClient(projectRoot = projectRoot))
+    },
+    private val captureRetryPolicy: RuntimeCaptureRetryPolicy = RuntimeCaptureRetryPolicy(),
+    private val delay: suspend (Long) -> Unit = { delayMillis -> kotlinx.coroutines.delay(delayMillis) },
+) {
     fun run(input: RuntimeTrustFixtureInput): RuntimeTrustFixtureOutput = runBlocking {
         val projectRoot = File(input.projectDir).canonicalFile
-        val bridge = CliFixThisBridge(BridgeClient(projectRoot = projectRoot))
+        val bridge = bridgeFactory(projectRoot)
         val service = FeedbackSessionService(
             bridge = bridge,
             store = FeedbackSessionStore(),
@@ -66,7 +85,7 @@ class RuntimeTrustFixtureRunner {
         runCatching { bridge.launchApp(input.packageName) }.getOrElse {
             return@runBlocking environmentOutput(input, "app_launch_failed")
         }
-        val screen = runCatching { service.captureScreen(session.sessionId) }.getOrElse {
+        val screen = captureScreenWithRetry(service, session.sessionId).getOrElse {
             return@runBlocking environmentOutput(input, "capture_failed")
         }
 
@@ -93,6 +112,26 @@ class RuntimeTrustFixtureRunner {
             status = if (cases.any { it.failures.isNotEmpty() }) "fail" else "evaluated",
             cases = cases,
         )
+    }
+
+    private suspend fun captureScreenWithRetry(
+        service: FeedbackSessionService,
+        sessionId: String,
+    ): Result<SnapshotDto> {
+        var lastFailure: Throwable? = null
+        repeat(captureRetryPolicy.maxAttempts) { attempt ->
+            try {
+                return Result.success(service.captureScreen(sessionId))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                lastFailure = error
+                if (attempt < captureRetryPolicy.maxAttempts - 1) {
+                    delay(captureRetryPolicy.retryDelayMillis)
+                }
+            }
+        }
+        return Result.failure(lastFailure ?: IllegalStateException("captureScreen failed without an exception"))
     }
 
     private fun environmentOutput(input: RuntimeTrustFixtureInput, label: String): RuntimeTrustFixtureOutput = RuntimeTrustFixtureOutput(

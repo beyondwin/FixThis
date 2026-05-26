@@ -27,6 +27,7 @@ internal class FakeFixThisBridge(
     private val devicesError: Throwable? = null,
     private val heartbeatError: Throwable? = null,
     private val statusProvider: (() -> JsonObject)? = null,
+    private val captureErrorForAttempt: ((Int) -> Throwable?)? = null,
     private val snapshotMutator: (callIndex: Int, payload: JsonObject) -> JsonObject = { _, payload -> payload },
 ) : FixThisBridge {
     val resolvedOverrides = mutableListOf<String?>()
@@ -108,10 +109,15 @@ internal class FakeFixThisBridge(
         destinationDirectory: File?,
     ): JsonObject {
         captureError?.let { throw it }
+        val nextCaptureCount = captureCount + 1
+        captureErrorForAttempt?.invoke(nextCaptureCount)?.let { error ->
+            captureCount = nextCaptureCount
+            throw error
+        }
         lastCaptureSessionId = sessionId
         lastCaptureScreenId = screenId
         lastCaptureDestination = destinationDirectory?.absolutePath
-        captureCount += 1
+        captureCount = nextCaptureCount
         val payload = buildJsonObject {
             put("activity", "MainActivity")
             put("sourceIndexAvailable", sourceIndexAvailable)

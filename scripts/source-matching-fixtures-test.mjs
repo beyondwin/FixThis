@@ -15,6 +15,9 @@ import {
   patchSettingsText,
   reportStatus,
   runtimeFixtureInput,
+  runtimeInstallGradleArgs,
+  runtimeSourceIndexGradleArgs,
+  runtimeTrustFixtureGradleArgs,
   safeRelativePath,
   validateManifest,
   variantTaskSuffix,
@@ -93,7 +96,7 @@ test("runtime trust manifest includes focused Reply, local sample, and Jetsnack 
 
   assert.ok(cases.some((testCase) => testCase.fixtureId === "reply" && testCase.id === "reply-compose-fab-runtime"));
   assert.ok(cases.some((testCase) => testCase.fixtureId === "fixthis-sample" && testCase.id === "fixthis-sample-home-primary-runtime"));
-  assert.ok(cases.some((testCase) => testCase.fixtureId === "jetsnack" && testCase.id === "jetsnack-desserts-runtime"));
+  assert.ok(cases.some((testCase) => testCase.fixtureId === "jetsnack" && testCase.id === "jetsnack-filters-runtime"));
 });
 
 test("validateManifest rejects floating commits and unsafe paths", () => {
@@ -609,6 +612,45 @@ test("runtimeFixtureInput contains only runtime-trust cases", () => {
   assert.equal(input.packageName, "com.example.reply");
   assert.equal(input.projectDir, "/tmp/reply");
   assert.deepEqual(input.cases, [{ caseId: "runtime", runtimeTarget: { text: "Compose" } }]);
+});
+
+test("runtimeTrustFixtureGradleArgs passes application arguments as one Gradle args value", () => {
+  assert.deepEqual(
+    runtimeTrustFixtureGradleArgs("/tmp/input.json", "/tmp/output.json", true),
+    [
+      ":fixthis-mcp:runRuntimeTrustFixture",
+      "--args=--input /tmp/input.json --output /tmp/output.json --strict",
+      "--no-daemon",
+    ],
+  );
+});
+
+test("runtimeInstallGradleArgs requests runtime-compatible source index output", () => {
+  assert.deepEqual(
+    runtimeInstallGradleArgs({
+      modulePath: ":app",
+      variant: "debug",
+    }),
+    [
+      ":app:installDebug",
+      "-Pfixthis.runtimeCompatibleSourceIndex=true",
+      "--no-daemon",
+    ],
+  );
+});
+
+test("runtimeSourceIndexGradleArgs requests runtime-compatible source index output", () => {
+  assert.deepEqual(
+    runtimeSourceIndexGradleArgs({
+      modulePath: ":app",
+      variant: "debug",
+    }),
+    [
+      ":app:generateDebugFixThisSourceIndex",
+      "-Pfixthis.runtimeCompatibleSourceIndex=true",
+      "--no-daemon",
+    ],
+  );
 });
 
 test("evaluateSourceIndexCase finds expected path and signal", () => {

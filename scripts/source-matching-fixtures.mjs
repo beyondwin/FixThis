@@ -737,6 +737,32 @@ export function runtimeFixtureInput(fixture, projectDir, strict = false) {
   };
 }
 
+export function runtimeTrustFixtureGradleArgs(inputPath, outputPath, strict = false) {
+  return [
+    ":fixthis-mcp:runRuntimeTrustFixture",
+    `--args=--input ${inputPath} --output ${outputPath}${strict ? " --strict" : ""}`,
+    "--no-daemon",
+  ];
+}
+
+const runtimeCompatibleSourceIndexFlag = "-Pfixthis.runtimeCompatibleSourceIndex=true";
+
+export function runtimeSourceIndexGradleArgs(fixture) {
+  return [
+    sourceIndexTaskPath(fixture),
+    runtimeCompatibleSourceIndexFlag,
+    "--no-daemon",
+  ];
+}
+
+export function runtimeInstallGradleArgs(fixture) {
+  return [
+    `${fixture.modulePath}:install${variantTaskSuffix(fixture.variant)}`,
+    runtimeCompatibleSourceIndexFlag,
+    "--no-daemon",
+  ];
+}
+
 function hasRuntimeCases(fixture) {
   return (fixture.cases || []).some((testCase) => testCase.mode === "runtime-trust");
 }
@@ -790,19 +816,13 @@ export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
 export function runRuntimeTrustEvaluation(fixture, options = {}) {
   const paths = prepareFixture(fixture, { stdio: "inherit", addDebugRuntime: true });
   const strict = options.strict === true;
-  runCommand("./gradlew", [sourceIndexTaskPath(fixture), "--no-daemon"], { cwd: paths.projectWorkDir, stdio: "inherit" });
-  const installTask = `${fixture.modulePath}:install${variantTaskSuffix(fixture.variant)}`;
-  runCommand("./gradlew", [installTask, "--no-daemon"], { cwd: paths.projectWorkDir, stdio: "inherit" });
+  runCommand("./gradlew", runtimeSourceIndexGradleArgs(fixture), { cwd: paths.projectWorkDir, stdio: "inherit" });
+  runCommand("./gradlew", runtimeInstallGradleArgs(fixture), { cwd: paths.projectWorkDir, stdio: "inherit" });
 
   const inputPath = join(defaultReportDir, `${fixture.id}-runtime-input.json`);
   const outputPath = join(defaultReportDir, `${fixture.id}-runtime-output.json`);
   writeJson(inputPath, runtimeFixtureInput(fixture, paths.projectWorkDir, strict));
-  const args = [
-    ":fixthis-mcp:runRuntimeTrustFixture",
-    "--args",
-    `--input ${inputPath} --output ${outputPath}${strict ? " --strict" : ""}`,
-    "--no-daemon",
-  ];
+  const args = runtimeTrustFixtureGradleArgs(inputPath, outputPath, strict);
   runCommand("./gradlew", args, { cwd: repoRoot, stdio: "pipe" });
   const runnerOutput = JSON.parse(readFileSync(outputPath, "utf8"));
   return evaluateRuntimeTrustFixture(fixture, runnerOutput);

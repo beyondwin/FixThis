@@ -26,10 +26,10 @@
           "id": "reply-compose-fab-runtime",
           "mode": "runtime-trust",
           "trustPurpose": "baseline external runtime target with visible button text and no interop warning",
-          "runtimeTarget": { "text": "Compose", "role": "Button" },
-          "expectedTop3PathContains": "app/src/main/java/com/example/reply/ui/ReplyListContent.kt",
-          "expectedConfidence": "medium-or-high",
-          "expectedSourceConfidence": "medium-or-high",
+          "runtimeTarget": { "contentDescription": "Compose", "role": "Button" },
+          "expectedTop3PathContains": "app/src/main/res/values/strings.xml",
+          "expectedConfidence": "low-or-medium",
+          "expectedSourceConfidence": "low-or-medium",
           "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"]
         }
       ]
@@ -56,12 +56,12 @@
           "expectedSignal": { "kind": "ARBITRARY_STRING_LITERAL", "value": "Desserts" }
         },
         {
-          "id": "jetsnack-desserts-runtime",
+          "id": "jetsnack-filters-runtime",
           "mode": "runtime-trust",
-          "trustPurpose": "external copy/data runtime target from a non-Reply Compose sample",
-          "runtimeTarget": { "text": "Desserts" },
-          "expectedTop3PathContains": "app/src/main/java/com/example/jetsnack/ui/home/search/Categories.kt",
-          "expectedConfidence": "medium-or-high",
+          "trustPurpose": "external resource-backed runtime target from a non-Reply Compose sample",
+          "runtimeTarget": { "contentDescription": "Filters", "role": "Button" },
+          "expectedTop3PathContains": "app/src/main/java/com/example/jetsnack/ui/components/Filters.kt",
+          "expectedConfidence": "low-or-medium",
           "expectedSourceConfidence": "low-or-medium",
           "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"]
         }

@@ -12,6 +12,7 @@ object RuntimeTargetResolver {
     fun resolve(screen: SnapshotDto, selector: RuntimeTargetSelector): FixThisNode {
         val matches = screen.roots
             .flatMap { it.mergedNodes }
+            .filter { node -> node.boundsInWindow.width > 0f && node.boundsInWindow.height > 0f }
             .filter { node -> selector.matches(node) }
             .sortedWith(
                 compareBy<FixThisNode> { it.rootIndex }

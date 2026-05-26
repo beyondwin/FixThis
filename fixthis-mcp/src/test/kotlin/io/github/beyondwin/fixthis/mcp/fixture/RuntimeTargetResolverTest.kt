@@ -36,6 +36,18 @@ class RuntimeTargetResolverTest {
         assertEquals("target_ambiguous", error.code)
     }
 
+    @Test
+    fun ignoresZeroSizeNodesWhenResolvingRuntimeTargets() {
+        val screen = screenWith(
+            node(uid = "hidden-compose", text = listOf("Compose"), role = "Button", bounds = FixThisRect(0f, 0f, 0f, 0f)),
+            node(uid = "visible-compose", text = listOf("Compose"), role = "Button"),
+        )
+
+        val resolved = RuntimeTargetResolver.resolve(screen, RuntimeTargetSelector(text = "Compose", role = "Button"))
+
+        assertEquals("visible-compose", resolved.uid)
+    }
+
     private fun screenWith(vararg nodes: FixThisNode): SnapshotDto = SnapshotDto(
         screenId = "screen-1",
         capturedAtEpochMillis = 1L,
@@ -47,12 +59,13 @@ class RuntimeTargetResolverTest {
         uid: String,
         text: List<String> = emptyList(),
         role: String? = null,
+        bounds: FixThisRect = FixThisRect(10f, 20f, 120f, 80f),
     ): FixThisNode = FixThisNode(
         uid = uid,
         composeNodeId = uid.hashCode(),
         rootIndex = 0,
         treeKind = TreeKind.MERGED,
-        boundsInWindow = FixThisRect(10f, 20f, 120f, 80f),
+        boundsInWindow = bounds,
         text = text,
         role = role,
     )

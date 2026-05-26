@@ -80,9 +80,10 @@ npm run source-matching:fixtures:test
 
 The initial runtime set covers Reply as the external happy path, the bundled
 FixThis sample app as a controlled local component-identity case, and Jetsnack
-as a non-Reply copy/data case. Now in Android remains source-index-only until a
-stable launch-state runtime selector is verified without coordinates, scroll
-setup, account state, network state, or fragile timing.
+as a non-Reply resource-backed launch-screen case. Now in Android remains
+source-index-only until a stable launch-state runtime selector is verified
+without coordinates, scroll setup, account state, network state, or fragile
+timing.
 
 ## Reading Results
 

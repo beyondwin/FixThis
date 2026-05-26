@@ -7,6 +7,7 @@ internal class KotlinSourceScanner(
     projectDirectory: File,
     rootProjectDirectory: File,
     private val json: Json,
+    private val includeLayoutRendererSignals: Boolean = true,
 ) {
     private val projectDirectory = projectDirectory.canonicalFile
     private val rootProjectDirectory = rootProjectDirectory.canonicalFile
@@ -97,15 +98,17 @@ internal class KotlinSourceScanner(
             packageName = packageName,
             classDeclarations = classDeclarations,
         )
-        collectLayoutRendererSignals(
-            file = file,
-            source = source,
-            lines = lines,
-            lineStartOffsets = lineStartOffsets,
-            entriesByLine = entriesByLine,
-            packageName = packageName,
-            classDeclarations = classDeclarations,
-        )
+        if (includeLayoutRendererSignals) {
+            collectLayoutRendererSignals(
+                file = file,
+                source = source,
+                lines = lines,
+                lineStartOffsets = lineStartOffsets,
+                entriesByLine = entriesByLine,
+                packageName = packageName,
+                classDeclarations = classDeclarations,
+            )
+        }
         collectSemanticModifierSignals(source, stringResourceResolver) { range ->
             entriesByLine.entryFor(
                 file = file,

@@ -118,6 +118,11 @@ class FixThisGradlePlugin : Plugin<Project> {
         task.runtimeVersion.set(extension.runtimeVersion)
         task.includeScreenshots.set(extension.includeScreenshots)
         task.redactEditableText.set(extension.redactEditableText)
+        task.runtimeCompatibleSourceIndex.set(
+            project.providers.gradleProperty(RuntimeCompatibleSourceIndexProperty)
+                .map { value -> value.toBoolean() }
+                .orElse(false),
+        )
         task.generateSourceIndex.set(extension.generateSourceIndex)
         task.generateProjectMetadata.set(extension.generateProjectMetadata)
     }
@@ -236,6 +241,8 @@ internal fun fixThisSetupTaskName(variantName: String): String = if (variantName
 }
 
 internal fun fixThisSidekickCoordinate(runtimeVersion: String): String = "io.github.beyondwin:fixthis-compose-sidekick:$runtimeVersion"
+
+internal const val RuntimeCompatibleSourceIndexProperty: String = "fixthis.runtimeCompatibleSourceIndex"
 
 private fun String.capitalized(): String = replaceFirstChar { char ->
     if (char.isLowerCase()) char.titlecase() else char.toString()
