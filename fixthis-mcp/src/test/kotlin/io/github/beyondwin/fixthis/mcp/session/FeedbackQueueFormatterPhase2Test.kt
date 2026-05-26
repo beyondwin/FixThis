@@ -134,7 +134,7 @@ class FeedbackQueueFormatterPhase2Test {
         val item = annotationWith(
             sourceCandidates = listOf(sourceCandidate(file = "app/A.kt")),
             editSurfaceCandidates = listOf(
-                editSurface(file = "app/A.kt", line = 1),          // paired (eaten by Task 3)
+                editSurface(file = "app/A.kt", line = 1), // paired (eaten by Task 3)
                 editSurface(
                     file = "theme/Colors.kt",
                     line = 42,
@@ -175,7 +175,7 @@ class FeedbackQueueFormatterPhase2Test {
             editSurfaceCandidates = listOf(
                 editSurface(file = "x1.kt", line = 1),
                 editSurface(file = "x2.kt", line = 2),
-                editSurface(file = "x3.kt", line = 3),  // dropped by orphan cap
+                editSurface(file = "x3.kt", line = 3), // dropped by orphan cap
             ),
             targetReliability = null,
         )
@@ -416,12 +416,11 @@ class FeedbackQueueFormatterPhase2Test {
     private fun reliability(
         confidence: io.github.beyondwin.fixthis.compose.core.model.TargetConfidence,
         warnings: List<io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning>,
-    ): io.github.beyondwin.fixthis.compose.core.model.TargetReliability =
-        io.github.beyondwin.fixthis.compose.core.model.TargetReliability(
-            confidence = confidence,
-            reasons = emptyList(),
-            warnings = warnings,
-        )
+    ): io.github.beyondwin.fixthis.compose.core.model.TargetReliability = io.github.beyondwin.fixthis.compose.core.model.TargetReliability(
+        confidence = confidence,
+        reasons = emptyList(),
+        warnings = warnings,
+    )
 
     @Test
     fun pairing_groupsByExactFileAndCapsAtTwo() {
@@ -430,10 +429,10 @@ class FeedbackQueueFormatterPhase2Test {
         val edits = listOf(
             editSurface(file = "app/A.kt", line = 10),
             editSurface(file = "app/A.kt", line = 20),
-            editSurface(file = "app/A.kt", line = 30),  // dropped by cap
+            editSurface(file = "app/A.kt", line = 30), // dropped by cap
             editSurface(file = "app/B.kt", line = 40),
             editSurface(file = "app/UNMATCHED.kt", line = 50),
-            editSurface(file = "", line = 60),          // orphan: blank file
+            editSurface(file = "", line = 60), // orphan: blank file
         )
         val pairing = FeedbackQueueFormatter.buildEditSurfacePairingForTest(
             sourceCandidates = listOf(src1, src2),
@@ -450,14 +449,13 @@ class FeedbackQueueFormatterPhase2Test {
         confidence: io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence =
             io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence.MEDIUM,
         caution: String? = null,
-    ): io.github.beyondwin.fixthis.compose.core.model.SourceCandidate =
-        io.github.beyondwin.fixthis.compose.core.model.SourceCandidate(
-            file = file,
-            line = line,
-            score = 1.0,
-            confidence = confidence,
-            caution = caution,
-        )
+    ): io.github.beyondwin.fixthis.compose.core.model.SourceCandidate = io.github.beyondwin.fixthis.compose.core.model.SourceCandidate(
+        file = file,
+        line = line,
+        score = 1.0,
+        confidence = confidence,
+        caution = caution,
+    )
 
     @Suppress("LongParameterList")
     private fun editSurface(

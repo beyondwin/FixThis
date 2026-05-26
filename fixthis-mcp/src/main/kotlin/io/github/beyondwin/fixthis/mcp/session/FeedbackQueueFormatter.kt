@@ -126,7 +126,8 @@ object FeedbackQueueFormatter {
         TargetReliabilityWarning.LOW_SOURCE_CANDIDATE_MARGIN,
         TargetReliabilityWarning.SOURCE_INDEX_STALE,
         TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED,
-        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE -> null
+        TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE,
+        -> null
     }
 
     private fun StringBuilder.appendActionLines(warnings: List<TargetReliabilityWarning>) {
