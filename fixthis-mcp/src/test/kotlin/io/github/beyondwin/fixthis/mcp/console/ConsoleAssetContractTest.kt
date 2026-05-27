@@ -385,14 +385,12 @@ class ConsoleAssetContractTest {
         // not state.session. Deleting a saved annotation or editing it (status change)
         // updates state.session in place but left sessionSummaries stale, so the active
         // card kept showing the old "1 open" badge after the panel had emptied. Both code
-        // paths must call refreshSessions() so the summary cache is rehydrated.
-        // Both functions previously already had refreshSessions() in the non-matching
-        // (else) branch only. Adding it to the matching branch means the call must appear
-        // twice in each body — once per branch.
-        val deleteCount = Regex("refreshSessions\\(\\)").findAll(deleteSavedEvidenceItem).count()
-        val applyCount = Regex("refreshSessions\\(\\)").findAll(applySavedSessionUpdate).count()
-        assertEquals(2, deleteCount, "deleteSavedEvidenceItem should call refreshSessions() in both branches")
-        assertEquals(2, applyCount, "applySavedSessionUpdate should call refreshSessions() in both branches")
+        // paths must refresh summaries when SSE is unavailable so the summary cache is
+        // rehydrated without adding redundant pull refreshes while events are healthy.
+        val deleteCount = Regex("refreshSessionsWhenEventsDisconnected\\(\\)").findAll(deleteSavedEvidenceItem).count()
+        val applyCount = Regex("refreshSessionsWhenEventsDisconnected\\(\\)").findAll(applySavedSessionUpdate).count()
+        assertEquals(2, deleteCount, "deleteSavedEvidenceItem should use the SSE-aware refresh in both branches")
+        assertEquals(2, applyCount, "applySavedSessionUpdate should use the SSE-aware refresh in both branches")
     }
 
     @Test

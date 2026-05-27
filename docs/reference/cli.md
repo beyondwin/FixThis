@@ -91,7 +91,18 @@ fixthis doctor --project-dir . --json
 |------|---------|-------------|
 | `--package` | — | Android applicationId to diagnose. |
 | `--project-dir` | `.` | Project root containing `.fixthis/project.json`. |
-| `--json` | off | Print a structured report with stable check names, status, message, and fix fields. |
+| `--json` | off | Print JSON with top-level `readiness` / `nextAction` and per-check status/fix data. |
+
+The JSON report shape is stable for agents:
+
+- `schemaVersion`
+- `ok`
+- `packageName` when resolved
+- `readiness`: first failed check's readiness object, or `READY` when all
+  checks pass
+- `nextAction`: same action as `readiness.nextAction`
+- `checks[]`: stable check rows with `name`, `label`, `status`, optional
+  `message`, optional `fix`, and optional per-check `readiness`
 
 ## `fixthis init`
 
@@ -172,7 +183,7 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--skip-gradle-plugin` | off | Do not modify the app module build file. |
 | `--plugin-version` | `0.7.0` | FixThis Gradle plugin version to apply. |
 | `--allow-global` | off | Permit writes to global config files (e.g. `~/.codex/config.toml`) when run outside an Android project. Default: refuse the global write and exit with PARTIAL. |
-| `--json` | off | Emit a structured JSON report on stdout (`schemaVersion`, `ok`, `applied[]`, `skipped[]`, `errors[]`, `next[]`) instead of the human-readable summary. |
+| `--json` | off | Emit JSON (`schemaVersion`, `ok`, `applied[]`, `skipped[]`, `errors[]`, `next[]`, optional `readiness`, `nextAction`, and `restartRequired`). |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
 
 Target selection is shared with `fixthis setup`: `claude` plans only the
@@ -197,6 +208,10 @@ agent setup. The primary next step is:
 ```bash
 fixthis doctor --project-dir . --json
 ```
+
+In JSON mode, `nextAction` prefers `readiness.nextAction` when present. This
+keeps restart guidance and the runnable doctor verification step from
+contradicting each other after MCP config files are written.
 
 Run `./gradlew fixthisSetup` only as a recovery or manual refresh command when
 doctor reports `NEEDS_INSTALL` or missing generated metadata.

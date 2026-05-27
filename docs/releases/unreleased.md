@@ -67,6 +67,19 @@ GitHub Release page and registry listings as release evidence.
   healthy, and exposes local event-stream diagnostics for release evidence.
 - Planned V1 hardening now ties source-trust calibration, agent install
   recovery, and local evidence profiles to explicit release evidence.
+- Agent setup and diagnostics now share a top-level readiness contract:
+  `fixthis doctor --json` and `install-agent --json` both expose
+  `readiness` plus `nextAction`, so agents can continue from one machine-readable
+  next step instead of inferring from individual checks.
+- Local evidence profiles (`npm run evidence:fast`, `evidence:trust`,
+  `evidence:console`, and `evidence:release`) write JSON and Markdown reports
+  under `build/reports/fixthis-evidence/`. The runner auto-detects common
+  Android SDK locations and defers runtime trust checks when no ready device is
+  available unless strict runtime mode is requested.
+- Clean architecture hardening moves target-evidence assembly into the pure
+  core module and splits MCP session target validation, preview fingerprint
+  policy, and save-reservation tracking into focused collaborators. Architecture
+  tests now enforce the core dependency boundary and ratcheted hotspot budgets.
 
 ## Compatibility Notes
 
@@ -97,7 +110,14 @@ Before tagging the next release, run the current contributor checklist in
 npm run ci:local
 ```
 
-That command covers the required Gradle matrix, release-readiness checks,
+For named local evidence reports, use:
+
+```bash
+npm run evidence:fast -- --dry-run
+npm run evidence:test
+```
+
+`npm run ci:local` covers the required Gradle matrix, release-readiness checks,
 console bundle freshness, console JS tests, package installer tests, and
 whitespace checks. If a release changes CLI commands or agent-facing setup
 docs, also run:

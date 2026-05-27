@@ -84,13 +84,19 @@ class TargetEvidenceService(
         allowBlankComment: Boolean,
         missingNodeContext: String = "screen",
     ): ValidatedFeedbackTarget = targetValidator.validate(
-        screen = screen,
-        targetType = targetType,
-        bounds = bounds,
-        nodeUid = nodeUid,
-        comment = comment,
-        allowBlankComment = allowBlankComment,
-        missingNodeContext = missingNodeContext,
+        FeedbackTargetValidationRequest(
+            screen = screen,
+            selection = FeedbackTargetSelection(
+                targetType = targetType,
+                bounds = bounds,
+                nodeUid = nodeUid,
+            ),
+            options = FeedbackTargetValidationOptions(
+                comment = comment,
+                allowBlankComment = allowBlankComment,
+                missingNodeContext = missingNodeContext,
+            ),
+        ),
     )
 
     fun buildFeedbackItem(

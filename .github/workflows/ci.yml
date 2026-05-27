@@ -23,6 +23,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+
       - name: Install JS dependencies
         run: npm ci
 
@@ -41,8 +47,26 @@ jobs:
       - name: Check console asset bundle
         run: node scripts/build-console-assets.mjs --check
 
+      - name: Check console surface z-index tokens
+        run: bash scripts/check-surface-zindex.sh
+
       - name: Check console JavaScript syntax
         run: node --check fixthis-mcp/src/main/resources/console/app.js
+
+      - name: Run release evidence contract tests
+        run: npm run release:v06:evidence:test
+
+      - name: Run agent bootstrap contract tests
+        run: npm run docs:agent-bootstrap:test
+
+      - name: Run evidence runner tests
+        run: npm run evidence:test
+
+      - name: Run first-run smoke contract tests
+        run: npm run first-run:smoke:test
+
+      - name: Run required-check observation tests
+        run: npm run checks:observation:test
 
       - name: Run console JavaScript tests
         run: npm run console:test:all

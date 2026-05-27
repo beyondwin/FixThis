@@ -240,6 +240,21 @@ with the CI result immediately.
 The full command set is:
 
 ```bash
+node scripts/check-doc-consistency.mjs
+node scripts/check-release-readiness.mjs
+npm run release:v06:evidence:test
+npm run docs:agent-bootstrap:test
+npm run evidence:test
+npm run first-run:smoke:test
+npm run detekt:baseline:check
+npm run checks:observation:test
+node scripts/build-console-assets.mjs --check
+bash scripts/check-surface-zindex.sh
+node --check fixthis-mcp/src/main/resources/console/app.js
+npm run console:test:all
+node --test scripts/fixthis-smoke-test.mjs
+npm run release:package:test
+npm run perf:test
 ./gradlew \
   spotlessCheck \
   detekt \
@@ -252,17 +267,7 @@ The full command set is:
   :fixthis-cli:installDist \
   :fixthis-mcp:installDist \
   --no-daemon
-node scripts/build-console-assets.mjs --check
-bash scripts/check-surface-zindex.sh
-node scripts/check-doc-consistency.mjs
-node scripts/check-release-readiness.mjs
-npm run release:version:check
-npm run release:compat:test
-node --check fixthis-mcp/src/main/resources/console/app.js
-npm run release:package:test
-# All console JS tests (single source of truth is scripts/console-tests.json).
-node scripts/run-console-tests.mjs availability canonical pending beforeunload undo activity preview draft session harness
-# Equivalent to `npm run console:test:all`; edit the JSON, not this command line.
+node scripts/check-whitespace.mjs diff --check <base>..HEAD
 node scripts/check-whitespace.mjs diff --check
 ```
 
@@ -270,10 +275,10 @@ node scripts/check-whitespace.mjs diff --check
 claiming Maven Central or Gradle Plugin Portal publication before artifacts are
 actually visible.
 
-`release:version:check` verifies that current public install docs, CLI defaults,
-npm metadata, and MCP Registry metadata all match `FIXTHIS_VERSION` in
-`gradle.properties`. `release:compat:test` verifies that the Android SDK levels
-and compatibility docs match the version catalog.
+`release:v06:evidence:test` includes version and compatibility checks. It
+verifies that current public install docs, CLI defaults, npm metadata, MCP
+Registry metadata, Android SDK levels, and compatibility docs match the
+version catalog and `FIXTHIS_VERSION` in `gradle.properties`.
 
 When touching feedback-session switching, saved overlays, pending recovery, or
 undo/redo context, also run the focused session-scope harnesses:

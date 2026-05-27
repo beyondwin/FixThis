@@ -120,15 +120,16 @@ class RuntimeTrustFixtureRunner(
     ): Result<SnapshotDto> {
         var lastFailure: Throwable? = null
         repeat(captureRetryPolicy.maxAttempts) { attempt ->
-            try {
-                return Result.success(service.captureScreen(sessionId))
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Throwable) {
-                lastFailure = error
-                if (attempt < captureRetryPolicy.maxAttempts - 1) {
-                    delay(captureRetryPolicy.retryDelayMillis)
+            val result = runCatching { service.captureScreen(sessionId) }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
                 }
+            if (result.isSuccess) {
+                return result
+            }
+            lastFailure = result.exceptionOrNull()
+            if (attempt < captureRetryPolicy.maxAttempts - 1) {
+                delay(captureRetryPolicy.retryDelayMillis)
             }
         }
         return Result.failure(lastFailure ?: IllegalStateException("captureScreen failed without an exception"))

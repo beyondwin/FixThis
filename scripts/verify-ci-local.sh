@@ -134,6 +134,7 @@ if [[ "$MODE" == "prepush" ]]; then
     run_step "node scripts/check-doc-consistency.mjs"
     run_step "npm run detekt:baseline:check"
     run_step "node scripts/build-console-assets.mjs --check"
+    run_step "bash scripts/check-surface-zindex.sh"
     run_step "node --check fixthis-mcp/src/main/resources/console/app.js"
     run_step "npm run console:test:fast"
 else
@@ -146,6 +147,7 @@ else
     run_step "npm run detekt:baseline:check"
     run_step "npm run checks:observation:test"
     run_step "node scripts/build-console-assets.mjs --check"
+    run_step "bash scripts/check-surface-zindex.sh"
     run_step "node --check fixthis-mcp/src/main/resources/console/app.js"
     run_step "npm run console:test:all"
     run_step "node --test scripts/fixthis-smoke-test.mjs"

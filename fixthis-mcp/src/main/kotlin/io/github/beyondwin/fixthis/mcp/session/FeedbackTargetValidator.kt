@@ -11,28 +11,45 @@ data class ValidatedFeedbackTarget(
     val evidenceNodes: List<FixThisNode>,
 )
 
+data class FeedbackTargetSelection(
+    val targetType: FeedbackTargetType,
+    val bounds: FixThisRect,
+    val nodeUid: String?,
+)
+
+data class FeedbackTargetValidationOptions(
+    val comment: String,
+    val allowBlankComment: Boolean,
+    val missingNodeContext: String = "screen",
+)
+
+data class FeedbackTargetValidationRequest(
+    val screen: SnapshotDto,
+    val selection: FeedbackTargetSelection,
+    val options: FeedbackTargetValidationOptions,
+)
+
 class FeedbackTargetValidator {
-    fun validate(
-        screen: SnapshotDto,
-        targetType: FeedbackTargetType,
-        bounds: FixThisRect,
-        nodeUid: String?,
-        comment: String,
-        allowBlankComment: Boolean,
-        missingNodeContext: String = "screen",
-    ): ValidatedFeedbackTarget {
-        if (!allowBlankComment) {
-            require(comment.isNotBlank()) { "Feedback comment must not be blank" }
+    fun validate(request: FeedbackTargetValidationRequest): ValidatedFeedbackTarget {
+        val selection = request.selection
+        val options = request.options
+        if (!options.allowBlankComment) {
+            require(options.comment.isNotBlank()) { "Feedback comment must not be blank" }
         }
-        val selectedNode = selectedNodeFor(screen, targetType, nodeUid, missingNodeContext)
-        val storedBounds = selectedNode?.boundsInWindow ?: bounds
+        val selectedNode = selectedNodeFor(
+            request.screen,
+            selection.targetType,
+            selection.nodeUid,
+            options.missingNodeContext,
+        )
+        val storedBounds = selectedNode?.boundsInWindow ?: selection.bounds
         validateFinitePositiveBounds(storedBounds)
-        validateBoundsInsideScreenshot(screen, storedBounds)
+        validateBoundsInsideScreenshot(request.screen, storedBounds)
         return ValidatedFeedbackTarget(
-            targetType = targetType,
+            targetType = selection.targetType,
             selectedNode = selectedNode,
             storedBounds = storedBounds,
-            evidenceNodes = evidenceNodesFor(screen, targetType, storedBounds, selectedNode),
+            evidenceNodes = evidenceNodesFor(request.screen, selection.targetType, storedBounds, selectedNode),
         )
     }
 
@@ -140,8 +157,7 @@ class FeedbackTargetValidator {
 
 private fun SnapshotDto.allNodes(): List<FixThisNode> = roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }
 
-private fun FixThisRect.intersects(other: FixThisRect): Boolean =
-    left < other.right && right > other.left && top < other.bottom && bottom > other.top
+private fun FixThisRect.intersects(other: FixThisRect): Boolean = left < other.right && right > other.left && top < other.bottom && bottom > other.top
 
 private fun FixThisRect.intersectionArea(other: FixThisRect): Float {
     val width = (minOf(right, other.right) - maxOf(left, other.left)).coerceAtLeast(0f)

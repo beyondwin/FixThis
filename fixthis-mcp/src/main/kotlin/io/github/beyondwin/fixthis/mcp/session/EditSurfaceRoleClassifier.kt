@@ -67,17 +67,15 @@ internal object EditSurfaceRoleClassifier {
             }
     }
 
-    private fun hasCopyOrDataSourceEvidence(item: AnnotationDto): Boolean =
-        item.sourceCandidates.any { candidate ->
-            candidate.matchReasons.any { reason ->
-                reason == "selected stringResource" || reason == "selected resolved stringResource"
-            }
+    private fun hasCopyOrDataSourceEvidence(item: AnnotationDto): Boolean = item.sourceCandidates.any { candidate ->
+        candidate.matchReasons.any { reason ->
+            reason == "selected stringResource" || reason == "selected resolved stringResource"
         }
+    }
 
-    private fun hasLayoutRendererContext(item: AnnotationDto): Boolean =
-        item.sourceCandidates.any { candidate ->
-            candidate.matchReasons.contains("layout renderer context")
-        }
+    private fun hasLayoutRendererContext(item: AnnotationDto): Boolean = item.sourceCandidates.any { candidate ->
+        candidate.matchReasons.contains("layout renderer context")
+    }
 
     private fun looksLikeCopyIntent(comment: String): Boolean {
         val normalized = comment.lowercase()

@@ -15,12 +15,18 @@ class FeedbackTargetValidatorTest {
     fun rejectsBlankCommentWhenBlankCommentsAreNotAllowed() {
         val error = assertFailsWith<IllegalArgumentException> {
             validator.validate(
-                screen = screenWith(node("title", bounds = FixThisRect(10f, 10f, 100f, 60f), text = listOf("Title"))),
-                targetType = FeedbackTargetType.AREA,
-                bounds = FixThisRect(10f, 10f, 100f, 60f),
-                nodeUid = null,
-                comment = "",
-                allowBlankComment = false,
+                FeedbackTargetValidationRequest(
+                    screen = screenWith(node("title", bounds = FixThisRect(10f, 10f, 100f, 60f), text = listOf("Title"))),
+                    selection = FeedbackTargetSelection(
+                        targetType = FeedbackTargetType.AREA,
+                        bounds = FixThisRect(10f, 10f, 100f, 60f),
+                        nodeUid = null,
+                    ),
+                    options = FeedbackTargetValidationOptions(
+                        comment = "",
+                        allowBlankComment = false,
+                    ),
+                ),
             )
         }
 
@@ -31,13 +37,19 @@ class FeedbackTargetValidatorTest {
     fun reportsMissingNodeWithProvidedContext() {
         val error = assertFailsWith<IllegalArgumentException> {
             validator.validate(
-                screen = screenWith(),
-                targetType = FeedbackTargetType.NODE,
-                bounds = FixThisRect(10f, 10f, 100f, 60f),
-                nodeUid = "missing",
-                comment = "Fix label",
-                allowBlankComment = false,
-                missingNodeContext = "preview",
+                FeedbackTargetValidationRequest(
+                    screen = screenWith(),
+                    selection = FeedbackTargetSelection(
+                        targetType = FeedbackTargetType.NODE,
+                        bounds = FixThisRect(10f, 10f, 100f, 60f),
+                        nodeUid = "missing",
+                    ),
+                    options = FeedbackTargetValidationOptions(
+                        comment = "Fix label",
+                        allowBlankComment = false,
+                        missingNodeContext = "preview",
+                    ),
+                ),
             )
         }
 
@@ -50,12 +62,18 @@ class FeedbackTargetValidatorTest {
         val nearby = node("nearby", bounds = FixThisRect(120f, 10f, 220f, 60f), text = listOf("Settings"))
 
         val target = validator.validate(
-            screen = screenWith(selected, nearby),
-            targetType = FeedbackTargetType.NODE,
-            bounds = FixThisRect(0f, 0f, 1f, 1f),
-            nodeUid = "selected",
-            comment = "Fix save",
-            allowBlankComment = false,
+            FeedbackTargetValidationRequest(
+                screen = screenWith(selected, nearby),
+                selection = FeedbackTargetSelection(
+                    targetType = FeedbackTargetType.NODE,
+                    bounds = FixThisRect(0f, 0f, 1f, 1f),
+                    nodeUid = "selected",
+                ),
+                options = FeedbackTargetValidationOptions(
+                    comment = "Fix save",
+                    allowBlankComment = false,
+                ),
+            ),
         )
 
         assertEquals(selected, target.selectedNode)
@@ -69,23 +87,35 @@ class FeedbackTargetValidatorTest {
         val near = node("near", bounds = FixThisRect(230f, 230f, 280f, 280f), text = listOf("Near"))
 
         val overlappingTarget = validator.validate(
-            screen = screenWith(near, overlap),
-            targetType = FeedbackTargetType.AREA,
-            bounds = FixThisRect(30f, 30f, 90f, 90f),
-            nodeUid = null,
-            comment = "Fix area",
-            allowBlankComment = false,
+            FeedbackTargetValidationRequest(
+                screen = screenWith(near, overlap),
+                selection = FeedbackTargetSelection(
+                    targetType = FeedbackTargetType.AREA,
+                    bounds = FixThisRect(30f, 30f, 90f, 90f),
+                    nodeUid = null,
+                ),
+                options = FeedbackTargetValidationOptions(
+                    comment = "Fix area",
+                    allowBlankComment = false,
+                ),
+            ),
         )
 
         assertEquals(listOf(overlap), overlappingTarget.evidenceNodes)
 
         val fallbackTarget = validator.validate(
-            screen = screenWith(near, overlap),
-            targetType = FeedbackTargetType.AREA,
-            bounds = FixThisRect(180f, 180f, 220f, 220f),
-            nodeUid = null,
-            comment = "Fix empty area",
-            allowBlankComment = false,
+            FeedbackTargetValidationRequest(
+                screen = screenWith(near, overlap),
+                selection = FeedbackTargetSelection(
+                    targetType = FeedbackTargetType.AREA,
+                    bounds = FixThisRect(180f, 180f, 220f, 220f),
+                    nodeUid = null,
+                ),
+                options = FeedbackTargetValidationOptions(
+                    comment = "Fix empty area",
+                    allowBlankComment = false,
+                ),
+            ),
         )
 
         assertEquals(listOf(near, overlap), fallbackTarget.evidenceNodes.take(2))

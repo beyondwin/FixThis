@@ -81,9 +81,9 @@ test('full render rebuilds history summaries from current state', () => {
   assert.match(fullRender, /renderSessionRegions\(\);[\s\S]*?renderPreviewRegion\(\);[\s\S]*?renderInspectorRegion\(\);/);
 });
 
-test('copy prompt refreshes session summaries after marking items handed off', () => {
+test('copy prompt refreshes session summaries through SSE-aware fallback after marking items handed off', () => {
   const copy = body(promptSource, 'async function copyPrompt()');
-  assert.match(copy, /const updated = await markItemsHandedOff\(sessionId,\s*itemIds\);[\s\S]*?setConsoleSession\(updated\);[\s\S]*?await refreshSessions\(\);[\s\S]*?renderInspectorRegion\(\);/);
+  assert.match(copy, /const updated = await markItemsHandedOff\(sessionId,\s*itemIds\);[\s\S]*?setConsoleSession\(updated\);[\s\S]*?await refreshSessionsWhenEventsDisconnected\(\);[\s\S]*?renderInspectorRegion\(\);/);
 });
 
 test('history open count does not double-count in-progress items', () => {

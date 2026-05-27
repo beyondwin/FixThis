@@ -64,11 +64,10 @@ class TargetBoundaryContextFormatterTest {
     fun sensitiveNearbyNodesDoNotLeakTextOrEditableContent() {
         val item = interopAreaItem(
             nearbyNodes = listOf(
-                node(
+                sensitiveNode(
                     uid = "password",
                     text = listOf("secret-token"),
                     editableText = "secret-token",
-                    isSensitive = true,
                     testTag = "comp:LoginField:password",
                 ),
             ),
@@ -113,11 +112,9 @@ class TargetBoundaryContextFormatterTest {
     private fun node(
         uid: String,
         text: List<String> = emptyList(),
-        editableText: String? = null,
         testTag: String? = null,
         role: String? = null,
         bounds: FixThisRect = FixThisRect(0f, 0f, 120f, 80f),
-        isSensitive: Boolean = false,
     ): FixThisNode = FixThisNode(
         uid = uid,
         composeNodeId = uid.hashCode(),
@@ -125,9 +122,24 @@ class TargetBoundaryContextFormatterTest {
         treeKind = TreeKind.MERGED,
         boundsInWindow = bounds,
         text = text,
-        editableText = editableText,
         role = role,
         testTag = testTag,
-        isSensitive = isSensitive,
+    )
+
+    private fun sensitiveNode(
+        uid: String,
+        text: List<String>,
+        editableText: String?,
+        testTag: String?,
+    ): FixThisNode = FixThisNode(
+        uid = uid,
+        composeNodeId = uid.hashCode(),
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(0f, 0f, 120f, 80f),
+        text = text,
+        editableText = editableText,
+        testTag = testTag,
+        isSensitive = true,
     )
 }

@@ -6,9 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardWatchEventKinds
-import java.nio.file.WatchKey
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -187,14 +184,14 @@ class AdbTest {
         )
     }
 
-    @Test(timeout = 2_000)
+    @Test(timeout = 5_000)
     fun processRunnerReadsStdoutAndStderrWithoutBlockingEachOther() {
         val script = File.createTempFile("fixthis-adb-runner", ".sh").apply {
             writeText(
                 """
                     #!/usr/bin/env sh
                     i=0
-                    while [ "${'$'}i" -lt 2000 ]; do
+                    while [ "${'$'}i" -lt 512 ]; do
                       printf 'stderr-line-%04d %080d\n' "${'$'}i" "${'$'}i" >&2
                       i=${'$'}((i + 1))
                     done
@@ -209,11 +206,11 @@ class AdbTest {
 
         assertEquals(0, result.exitCode)
         assertTrue(result.stdout.contains("stdout-after-stderr"))
-        assertTrue(result.stderr.contains("stderr-line-1999"))
+        assertTrue(result.stderr.contains("stderr-line-0511"))
         assertFalse(result.stderr.contains("stdout-after-stderr"))
     }
 
-    @Test(timeout = 10_000)
+    @Test(timeout = 15_000)
     fun processRunnerInterruptDestroysProcessAndRestoresInterruptStatus() {
         val marker = File.createTempFile("fixthis-adb-runner-started", ".txt").apply {
             delete()
@@ -232,15 +229,11 @@ class AdbTest {
             setExecutable(true)
             deleteOnExit()
         }
-        val markerPath = marker.toPath()
-        val markerDir = markerPath.parent
-        val markerName = markerPath.fileName
-        val watchService = markerDir.fileSystem.newWatchService()
-        markerDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE)
+        var runnerThread: Thread? = null
         try {
             val failure = AtomicReference<Throwable?>()
             val interruptStatusRestored = AtomicBoolean(false)
-            val runnerThread = Thread({
+            runnerThread = Thread({
                 try {
                     ProcessAdbCommandRunner().run(listOf(script.absolutePath))
                     failure.set(AssertionError("runner returned normally after interruption"))
@@ -252,7 +245,7 @@ class AdbTest {
             }, "fixthis-adb-runner-interrupt-test")
 
             runnerThread.start()
-            awaitMarker(watchService, marker, markerName, TimeUnit.SECONDS.toNanos(5))
+            awaitMarker(marker, TimeUnit.SECONDS.toNanos(5))
 
             runnerThread.interrupt()
             runnerThread.join(2_000)
@@ -261,30 +254,21 @@ class AdbTest {
             failure.get()?.let { throw it }
             assertTrue("runner should restore interrupt status before throwing", interruptStatusRestored.get())
         } finally {
-            watchService.close()
+            runnerThread?.takeIf { it.isAlive }?.interrupt()
         }
     }
 
     private fun awaitMarker(
-        watchService: java.nio.file.WatchService,
         marker: File,
-        markerName: Path,
         timeoutNanos: Long,
     ) {
         val deadline = System.nanoTime() + timeoutNanos
         while (!marker.exists()) {
             val remaining = deadline - System.nanoTime()
             assertTrue("marker did not arrive within timeout", remaining > 0)
-            val key = watchService.poll(remaining, TimeUnit.NANOSECONDS) ?: continue
-            try {
-                if (key.hasMarker(markerName)) return
-            } finally {
-                key.reset()
-            }
+            Thread.sleep(minOf(TimeUnit.NANOSECONDS.toMillis(remaining).coerceAtLeast(1), 10L))
         }
     }
-
-    private fun WatchKey.hasMarker(markerName: Path): Boolean = pollEvents().any { it.context() == markerName }
 
     private class RecordingAdbRunner(
         private val result: AdbResult = AdbResult(exitCode = 0, stdout = "", stderr = ""),

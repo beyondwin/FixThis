@@ -37,6 +37,12 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   source candidate high confidence.
 - Documented the V1 trust/install/inner-loop hardening evidence pack for the
   next implementation cycle.
+- `fixthis doctor --json` now emits top-level `readiness` and `nextAction`
+  fields, matching the first-run readiness contract used by generated agent
+  setup files and the feedback console.
+- Local evidence profiles are available through `npm run evidence:*`; they
+  write JSON and Markdown reports under `build/reports/fixthis-evidence/` and
+  defer device-backed runtime trust checks unless `--strict-runtime` is set.
 - Compact handoff now clarifies source-matching trust by preserving the
   `conf=` token on the rank-1 candidate and rendering trust caveats from
   `caution` as a `note:` line. Markdown and full output continue to render
@@ -105,6 +111,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Owner-function source evidence is now explicitly capped at medium
   confidence and a `UNTYPED_FALLBACK` risk is preserved when only untyped
   signals match, preventing accidental promotion to high confidence.
+- `install-agent --json` now prefers `readiness.nextAction` for its top-level
+  `nextAction`, so agents do not get contradictory restart and verification
+  guidance after setup writes MCP config.
 - Console preview refresh is now SSE-first: visibility-resume and boot
   refreshes only run when SSE is disconnected and a polling interval is
   configured (`shouldAutoFetchPreviewFallback()`). A live SSE connection no
@@ -124,6 +133,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   `FeedbackConsoleAssets.readBuildHashFromDir` use `runCatching` instead of
   broad `catch (Throwable)`, and `RuntimeTrustObservationMapper` exposes a
   named `MAX_OBSERVED_CANDIDATES` constant.
+- Clean architecture hardening moved target-evidence assembly into
+  `:fixthis-compose-core` and split MCP session validation, preview
+  fingerprinting, and save-reservation tracking into focused collaborators.
+  Module-boundary and hotspot tests now ratchet those boundaries.
 
 ### Fixed
 
