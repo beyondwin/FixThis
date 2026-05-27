@@ -74,6 +74,41 @@ class DoctorCommandTest {
     }
 
     @Test
+    fun doctorJsonReportCarriesTopLevelReadinessAndNextAction() {
+        val report = renderDoctorJsonReport(
+            DoctorReport(
+                packageName = "com.example",
+                checks = listOf(
+                    DoctorCheckResult(
+                        name = "android_project_found",
+                        label = "Android project",
+                        ok = true,
+                    ),
+                    DoctorCheckResult(
+                        name = "device_connected",
+                        label = "Device connected",
+                        ok = false,
+                        message = "No ready Android device or emulator is connected.",
+                        fix = "Start an emulator.",
+                        readiness = FirstRunReadinessCatalog.deviceBlocked(
+                            cause = "No ready Android device or emulator is connected.",
+                            fix = "Start an emulator.",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val obj = Json.parseToJsonElement(report).jsonObject
+        assertEquals("false", obj.getValue("ok").jsonPrimitive.content)
+        assertEquals("Start an emulator.", obj.getValue("nextAction").jsonPrimitive.content)
+        assertEquals(
+            "DEVICE_BLOCKED",
+            obj.getValue("readiness").jsonObject.getValue("state").jsonPrimitive.content,
+        )
+    }
+
+    @Test
     fun doctorMapsNoDeviceToDeviceBlockedReadiness() {
         val readiness = readinessForDoctorCheck(
             name = "device_connected",
@@ -130,7 +165,7 @@ class DoctorCommandTest {
         try {
             val cmd = DoctorCommand()
             try {
-                cmd.parse(arrayOf("--project-dir", java.io.File.createTempFile("fxt", "").parentFile.absolutePath))
+                cmd.parse(arrayOf("--project-dir", java.nio.file.Files.createTempDirectory("fxt").toFile().absolutePath))
             } catch (_: Throwable) {
                 // doctor exits non-zero on missing project; we just want stdout
             }

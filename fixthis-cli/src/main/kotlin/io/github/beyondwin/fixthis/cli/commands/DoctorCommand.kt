@@ -120,6 +120,10 @@ internal data class DoctorReport(
     val checks: List<DoctorCheckResult>,
 ) {
     val ok: Boolean = checks.all { it.ok }
+    val readiness: FirstRunReadiness
+        get() = checks.firstOrNull { !it.ok }?.readiness ?: FirstRunReadinessCatalog.ready(
+            details = packageName?.let { mapOf("packageName" to it) } ?: emptyMap(),
+        )
 }
 
 internal data class DoctorCheckResult(
@@ -194,6 +198,11 @@ internal fun renderDoctorJsonReport(report: DoctorReport): String = fixThisJson.
         put("schemaVersion", "1.0")
         put("ok", report.ok)
         report.packageName?.let { put("packageName", it) }
+        put(
+            "readiness",
+            fixThisJson.encodeToJsonElement(FirstRunReadiness.serializer(), report.readiness).jsonObject,
+        )
+        put("nextAction", report.readiness.nextAction)
         put(
             "checks",
             buildJsonArray {
