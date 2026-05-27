@@ -19,7 +19,8 @@
             }
 
             function shouldPollSessions() {
-              return !document.hidden &&
+              return shouldUseSessionFallbackPolling() &&
+                !document.hidden &&
                 pollingUseCases.getState().pendingMutationCount === 0 &&
                 !isEditingAnnotation();
             }

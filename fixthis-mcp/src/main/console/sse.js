@@ -22,6 +22,10 @@
               return !consoleEventsConnected;
             }
 
+            function shouldUseSessionFallbackPolling() {
+              return !consoleEventsConnected;
+            }
+
             // Returns true (and emits a diagnostic warn) when msg.sessionId no
             // longer matches the active session; callers MUST early-return
             // without mutating state or notifying. Broadcasts without a

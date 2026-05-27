@@ -9,6 +9,8 @@
               source.onopen = () => {
                 setConsoleEventsConnected(true);
                 stopLivePreviewPolling();
+                stopSessionsPolling();
+                if (state.connection?.sessionsPollingPaused) setSessionsPollingPaused(false);
                 const wasReconnect = consoleEventsHasOpenedBefore;
                 consoleEventsHasOpenedBefore = true;
                 if (wasReconnect) {
@@ -89,6 +91,7 @@
                 setConsoleEventsConnected(false);
                 if (state.connection && !state.connection.sessionsPollingPaused) setSessionsPollingPaused(true);
                 startLivePreviewPolling();
+                startSessionsPolling();
                 const node = getServerBuildChipNode();
                 if (node) updateServerBuildChipState(node, { state: 'reconnecting' });
               };

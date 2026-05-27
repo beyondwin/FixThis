@@ -134,3 +134,14 @@ test('sessions-updated events apply pushed summary without pull refresh while SS
   assert.match(events, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
   assert.doesNotMatch(events, /on\('sessions-updated'[\s\S]*refreshSessions\(\)\.catch\(showError\)/);
 });
+
+test('session polling is fallback-only while SSE is healthy', () => {
+  const sse = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/sse.js'), 'utf8');
+  const sessionsPolling = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/sessions-polling.js'), 'utf8');
+  const events = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/events.js'), 'utf8');
+
+  assert.match(sse, /function shouldUseSessionFallbackPolling\(\)/);
+  assert.match(sessionsPolling, /shouldUseSessionFallbackPolling\(\)/);
+  assert.match(events, /source\.onopen = \(\) => \{[\s\S]*stopSessionsPolling\(\);/);
+  assert.match(events, /source\.onerror = \(\) => \{[\s\S]*startSessionsPolling\(\);/);
+});
