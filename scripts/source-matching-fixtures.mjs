@@ -763,8 +763,22 @@ export function runtimeInstallGradleArgs(fixture) {
   ];
 }
 
-function hasRuntimeCases(fixture) {
+export function hasRuntimeCases(fixture) {
   return (fixture.cases || []).some((testCase) => testCase.mode === "runtime-trust");
+}
+
+export function runtimeFixtures(manifest) {
+  return (manifest.fixtures || []).filter(hasRuntimeCases);
+}
+
+export function installRuntimeFixture(fixture, options = {}) {
+  const prepare = options.prepare || prepareFixture;
+  const run = options.run || runCommand;
+  const stdio = options.stdio || "inherit";
+  const paths = prepare(fixture, { stdio, addDebugRuntime: true });
+  run("./gradlew", runtimeSourceIndexGradleArgs(fixture), { cwd: paths.projectWorkDir, stdio });
+  run("./gradlew", runtimeInstallGradleArgs(fixture), { cwd: paths.projectWorkDir, stdio });
+  return paths;
 }
 
 export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
@@ -814,10 +828,8 @@ export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
 }
 
 export function runRuntimeTrustEvaluation(fixture, options = {}) {
-  const paths = prepareFixture(fixture, { stdio: "inherit", addDebugRuntime: true });
   const strict = options.strict === true;
-  runCommand("./gradlew", runtimeSourceIndexGradleArgs(fixture), { cwd: paths.projectWorkDir, stdio: "inherit" });
-  runCommand("./gradlew", runtimeInstallGradleArgs(fixture), { cwd: paths.projectWorkDir, stdio: "inherit" });
+  const paths = installRuntimeFixture(fixture, { stdio: "inherit" });
 
   const inputPath = join(defaultReportDir, `${fixture.id}-runtime-input.json`);
   const outputPath = join(defaultReportDir, `${fixture.id}-runtime-output.json`);
@@ -897,7 +909,7 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === "runtime") {
     const strict = argv.includes("--strict");
     const fixtures = [];
-    for (const fixture of manifest.fixtures.filter(hasRuntimeCases)) {
+    for (const fixture of runtimeFixtures(manifest)) {
       try {
         fixtures.push(runRuntimeTrustEvaluation(fixture, { strict }));
       } catch (error) {

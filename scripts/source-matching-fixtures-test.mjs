@@ -10,11 +10,13 @@ import {
   classifyRuntimeTrustOutcome,
   evaluateSourceIndexCase,
   fixturePaths,
+  installRuntimeFixture,
   markdownReport,
   patchAppBuildFileText,
   patchSettingsText,
   reportStatus,
   runtimeFixtureInput,
+  runtimeFixtures,
   runtimeInstallGradleArgs,
   runtimeSourceIndexGradleArgs,
   runtimeTrustFixtureGradleArgs,
@@ -659,6 +661,60 @@ test("runtimeSourceIndexGradleArgs requests runtime-compatible source index outp
       "--no-daemon",
     ],
   );
+});
+
+test("runtimeFixtures returns only installable runtime-trust fixtures in manifest order", () => {
+  const manifest = {
+    fixtures: [
+      { id: "source-only", cases: [{ id: "source", mode: "source-index" }] },
+      { id: "runtime-a", cases: [{ id: "runtime", mode: "runtime-trust", runtimeTarget: { text: "A" } }] },
+      { id: "runtime-b", cases: [{ id: "runtime", mode: "runtime-trust", runtimeTarget: { text: "B" } }] },
+    ],
+  };
+
+  assert.deepEqual(runtimeFixtures(manifest).map((fixture) => fixture.id), ["runtime-a", "runtime-b"]);
+});
+
+test("installRuntimeFixture prepares runtime source index before installing debug app", () => {
+  const calls = [];
+  const fixture = {
+    id: "reply",
+    modulePath: ":app",
+    variant: "debug",
+    applicationId: "com.example.reply",
+    cases: [{ id: "runtime", mode: "runtime-trust", runtimeTarget: { text: "Inbox" } }],
+  };
+  const paths = { projectWorkDir: "/tmp/reply" };
+
+  const result = installRuntimeFixture(fixture, {
+    prepare: (input, options) => {
+      calls.push({ type: "prepare", fixtureId: input.id, addDebugRuntime: options.addDebugRuntime });
+      return paths;
+    },
+    run: (command, args, options) => {
+      calls.push({ type: "run", command, args, cwd: options.cwd, stdio: options.stdio });
+    },
+    stdio: "pipe",
+  });
+
+  assert.equal(result.projectWorkDir, "/tmp/reply");
+  assert.deepEqual(calls, [
+    { type: "prepare", fixtureId: "reply", addDebugRuntime: true },
+    {
+      type: "run",
+      command: "./gradlew",
+      args: [":app:generateDebugFixThisSourceIndex", "-Pfixthis.runtimeCompatibleSourceIndex=true", "--no-daemon"],
+      cwd: "/tmp/reply",
+      stdio: "pipe",
+    },
+    {
+      type: "run",
+      command: "./gradlew",
+      args: [":app:installDebug", "-Pfixthis.runtimeCompatibleSourceIndex=true", "--no-daemon"],
+      cwd: "/tmp/reply",
+      stdio: "pipe",
+    },
+  ]);
 });
 
 test("evaluateSourceIndexCase finds expected path and signal", () => {
