@@ -26,6 +26,19 @@ class ModuleBoundaryTest {
     }
 
     @Test
+    fun composeCoreTargetPoliciesDoNotImportMcpSessionDtos() {
+        val forbidden = Regex("""^import io\.github\.beyondwin\.fixthis\.mcp\.session\.""")
+        val offenders = kotlinFiles("fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/target")
+            .flatMap { file ->
+                file.readLines().mapIndexedNotNull { index, line ->
+                    if (forbidden.containsMatchIn(line)) "${file.relativeTo(root)}:${index + 1}: $line" else null
+                }
+            }
+
+        assertTrue(offenders.isEmpty(), offenders.joinToString(separator = "\n"))
+    }
+
+    @Test
     fun composeCoreDomainDoesNotImportContractModels() {
         val forbidden = Regex("""^import io\.github\.beyondwin\.fixthis\.compose\.core\.model\.""")
         val offenders = kotlinFiles(coreDomainSourceRoot)
