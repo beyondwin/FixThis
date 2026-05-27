@@ -4,6 +4,8 @@ import {
   assertCopiedPrompt,
   assertSessionHandedOffItems,
   buildReport,
+  expectedComments,
+  itemIdsFromCopiedPrompt,
   mcpToolRequest,
   parseArgs,
   parseMcpToolResponse,
@@ -11,6 +13,7 @@ import {
   selectRuntimeFixtures,
   statusForEnvironment,
   summarizeApps,
+  withAndroidEnvironment,
 } from "./real-copy-prompt-smoke.mjs";
 
 const manifest = {
@@ -131,6 +134,43 @@ test("parseMcpToolResponse decodes JSON text content", () => {
     consoleUrl: "http://127.0.0.1:1234/",
     sessionId: "session-1",
   });
+});
+
+test("expectedComments creates deterministic app-specific comments", () => {
+  assert.deepEqual(expectedComments({ id: "fixthis-sample" }), [
+    "FixThis Sample copy prompt smoke annotation 1",
+    "FixThis Sample copy prompt smoke annotation 2",
+  ]);
+});
+
+test("itemIdsFromCopiedPrompt extracts copied item ids from compact Markdown", () => {
+  const markdown = [
+    "agent_protocol: fixthis-feedback/v1",
+    "- id: ann-1",
+    "  comment: First",
+    "id: ann-2",
+    "comment: Second",
+  ].join("\n");
+
+  assert.deepEqual(itemIdsFromCopiedPrompt(markdown), ["ann-1", "ann-2"]);
+});
+
+test("withAndroidEnvironment merges Android SDK env into child process options", () => {
+  assert.deepEqual(
+    withAndroidEnvironment(
+      { cwd: "/tmp/project", stdio: "pipe", env: { EXISTING: "1" } },
+      { envPatch: { ANDROID_HOME: "/sdk", PATH: "/sdk/platform-tools:/bin" } },
+    ),
+    {
+      cwd: "/tmp/project",
+      stdio: "pipe",
+      env: {
+        EXISTING: "1",
+        ANDROID_HOME: "/sdk",
+        PATH: "/sdk/platform-tools:/bin",
+      },
+    },
+  );
 });
 
 test("summarizeApps and buildReport aggregate pass fail and deferred rows", () => {

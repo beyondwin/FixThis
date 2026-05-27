@@ -5,6 +5,7 @@ import { delimiter, join } from "node:path";
 import test from "node:test";
 import {
   expandProfile,
+  parseReadyAndroidDevice,
   planRun,
   renderDryRun,
   resolveAndroidEnvironment,
@@ -32,6 +33,11 @@ test("trust profile includes source matching and runtime strict as deferrable", 
   assert.equal(runtime.requiresAndroid, true);
 });
 
+test("android device parser returns the first ready adb device", () => {
+  assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\tdevice\nphone-1\toffline\n"), "emulator-5554");
+  assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\toffline\n"), null);
+});
+
 test("android readiness falls back to common macOS SDK and injects platform-tools", () => {
   const calls = [];
   const sdk = "/Users/test/Library/Android/sdk";
@@ -51,6 +57,7 @@ test("android readiness falls back to common macOS SDK and injects platform-tool
   });
 
   assert.equal(result.ready, true);
+  assert.equal(result.device, "emulator-5554");
   assert.equal(result.envPatch.ANDROID_HOME, sdk);
   assert.equal(result.envPatch.ANDROID_SDK_ROOT, sdk);
   assert.equal(result.envPatch.PATH.split(delimiter)[0], join(sdk, "platform-tools"));

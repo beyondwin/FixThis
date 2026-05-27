@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import process from "node:process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
@@ -78,6 +78,17 @@ export function assertCopiedPrompt(markdown, expectedComments) {
     idLineCount,
     promptChars: markdown.length,
   };
+}
+
+export function itemIdsFromCopiedPrompt(markdown) {
+  const ids = [];
+  const pattern = /(^|\n)\s*-?\s*id:\s*["']?([^"'\n\r]+)/g;
+  let match;
+  while ((match = pattern.exec(markdown)) !== null) {
+    const id = match[2].trim();
+    if (id) ids.push(id);
+  }
+  return ids;
 }
 
 export function assertSessionHandedOffItems(session, itemIds) {
@@ -161,6 +172,53 @@ export function writeReports(report, reportDir) {
   writeFileSync(join(reportDir, "report.md"), renderMarkdownReport(report));
 }
 
+export function withAndroidEnvironment(options = {}, environment = {}) {
+  return {
+    ...options,
+    env: {
+      ...(options.env || {}),
+      ...(environment.envPatch || {}),
+    },
+  };
+}
+
+function relativeArtifactPath(reportDir, path) {
+  const rel = relative(reportDir, path);
+  return rel.startsWith("..") ? path : rel;
+}
+
+function artifactPaths(reportDir, fixtureId) {
+  const artifactDir = join(reportDir, "artifacts");
+  mkdirSync(artifactDir, { recursive: true });
+  return {
+    artifactDir,
+    promptPath: join(artifactDir, `${fixtureId}-prompt.md`),
+    screenshotPath: join(artifactDir, `${fixtureId}-after-copy.png`),
+    statePath: join(artifactDir, `${fixtureId}-session.json`),
+  };
+}
+
+function fixtureLabel(fixtureId) {
+  const labels = new Map([
+    ["reply", "Reply"],
+    ["jetsnack", "Jetsnack"],
+    ["fixthis-sample", "FixThis Sample"],
+  ]);
+  if (labels.has(fixtureId)) return labels.get(fixtureId);
+  return fixtureId
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function expectedComments(fixture) {
+  const label = fixtureLabel(fixture.id);
+  return [
+    `${label} copy prompt smoke annotation 1`,
+    `${label} copy prompt smoke annotation 2`,
+  ];
+}
+
 export function mcpToolRequest(id, name, args) {
   return {
     jsonrpc: "2.0",
@@ -177,10 +235,14 @@ export function parseMcpToolResponse(message) {
   return JSON.parse(text);
 }
 
-async function startMcpServer({ mcpBin, projectDir, packageName }) {
+async function startMcpServer({ mcpBin, projectDir, packageName, environment }) {
   const child = spawn(mcpBin, ["--project-dir", projectDir, "--package", packageName], {
     cwd: repoRoot,
     stdio: ["pipe", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      ...withAndroidEnvironment({}, environment).env,
+    },
   });
   const stderr = [];
   child.stderr.setEncoding("utf8");
@@ -263,6 +325,210 @@ function ensureMcpDistribution() {
   return join(repoRoot, "fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp");
 }
 
+async function readyDiagnostics(page) {
+  return await page.evaluate(() => {
+    const card = document.getElementById("connectionCard");
+    const image = document.getElementById("snapshotImage");
+    return {
+      connectionState: card?.dataset.connectionState || null,
+      connectionText: card?.textContent?.replace(/\s+/g, " ").trim() || null,
+      imagePresent: Boolean(image),
+      imageComplete: Boolean(image?.complete),
+      naturalWidth: image?.naturalWidth || 0,
+      naturalHeight: image?.naturalHeight || 0,
+      error: document.getElementById("error")?.textContent || null,
+    };
+  });
+}
+
+async function previewImageReady(page) {
+  return await page.evaluate(() => {
+    const image = document.getElementById("snapshotImage");
+    return Boolean(image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0);
+  });
+}
+
+async function ensurePreviewImage(page, timeoutMs = 90_000) {
+  const deadline = Date.now() + timeoutMs;
+  let lastCaptureClickAt = 0;
+  while (Date.now() < deadline) {
+    if (await previewImageReady(page)) return;
+    const canCapture = await page.evaluate(() => {
+      const action = document.getElementById("connectionPrimaryAction");
+      return Boolean(action && !action.disabled);
+    });
+    const now = Date.now();
+    if (canCapture && now - lastCaptureClickAt > 2_000) {
+      lastCaptureClickAt = now;
+      await page.evaluate(() => document.getElementById("connectionPrimaryAction")?.click());
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error(`Preview image did not become ready: ${JSON.stringify(await readyDiagnostics(page))}`);
+}
+
+async function waitForReadyConsole(page) {
+  await page.waitForSelector("#connectionPrimaryAction", { timeout: 60_000 });
+  const connectionState = await page.getAttribute("#connectionCard", "data-connection-state");
+  if (connectionState !== "ready") {
+    await page.evaluate(() => document.getElementById("connectionPrimaryAction")?.click());
+  }
+  try {
+    await page.waitForFunction(
+      () => document.getElementById("connectionCard")?.dataset.connectionState === "ready",
+      undefined,
+      { timeout: 60_000 },
+    );
+    await ensurePreviewImage(page);
+  } catch (error) {
+    throw new Error(`Console did not reach ready preview state: ${error.message}; diagnostics=${JSON.stringify(await readyDiagnostics(page))}`);
+  }
+}
+
+async function dragAreaAnnotation(page, box, index) {
+  const anchors = [
+    { x: 0.2, y: 0.22 },
+    { x: 0.55, y: 0.62 },
+  ];
+  const anchor = anchors[index] || { x: 0.25, y: 0.25 };
+  const startX = box.x + box.width * anchor.x;
+  const startY = box.y + box.height * anchor.y;
+  const endX = Math.min(box.x + box.width * 0.92, startX + box.width * 0.26);
+  const endY = Math.min(box.y + box.height * 0.92, startY + box.height * 0.18);
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(endX, endY, { steps: 5 });
+  await page.mouse.up();
+}
+
+async function addAnnotation(page, comment, index) {
+  if (await page.getAttribute("#snapshot", "data-tool-mode") !== "annotate") {
+    const startAnnotating = page.locator("[data-start-annotating]").first();
+    if (await startAnnotating.count() > 0 && await startAnnotating.isVisible()) {
+      await startAnnotating.click();
+    } else {
+      await page.click("#annotateToolButton");
+    }
+    await page.waitForSelector("#snapshot[data-tool-mode=\"annotate\"]", { timeout: 20_000 });
+  }
+  const box = await page.locator("#snapshotImage").boundingBox();
+  if (!box) throw new Error("Snapshot image is not visible");
+  await dragAreaAnnotation(page, box, index);
+  try {
+    await page.waitForFunction(
+      (expectedCount) => document.querySelectorAll(".selection-box.annotation-pin").length >= expectedCount,
+      index + 1,
+      { timeout: 20_000 },
+    );
+  } catch {
+    throw new Error(`Expected at least ${index + 1} annotation pins after drag: ${JSON.stringify(await pendingDiagnostics(page))}`);
+  }
+  await page.waitForSelector("#annotationCommentInput", { timeout: 20_000 });
+  await page.fill("#annotationCommentInput", comment);
+  try {
+    await page.waitForFunction(
+      (expected) => {
+        const inputMatches = document.getElementById("annotationCommentInput")?.value === expected;
+        const draftItems = window.FixThisConsoleDebug?.getDraftWorkspace?.()?.items || [];
+        return inputMatches && draftItems.some((item) => item.comment === expected);
+      },
+      comment,
+      { timeout: 20_000 },
+    );
+  } catch {
+    throw new Error(`Pending annotation comment did not persist for ${comment}: ${JSON.stringify(await pendingDiagnostics(page))}`);
+  }
+  const backToAnnotations = page.locator("[data-back-annotations]").first();
+  if (await backToAnnotations.count() > 0) {
+    await backToAnnotations.click();
+    await page.waitForFunction(
+      () => !document.getElementById("annotationCommentInput"),
+      undefined,
+      { timeout: 10_000 },
+    );
+  }
+}
+
+async function pendingDiagnostics(page) {
+  return await page.evaluate(() => ({
+    pins: document.querySelectorAll(".selection-box.annotation-pin").length,
+    toolMode: document.getElementById("snapshot")?.dataset.toolMode || null,
+    pendingText: document.getElementById("pendingItems")?.textContent?.replace(/\s+/g, " ").trim() || null,
+    commentValue: document.getElementById("annotationCommentInput")?.value || null,
+    focusedElement: document.activeElement?.id || document.activeElement?.tagName || null,
+    error: document.getElementById("error")?.textContent || null,
+  }));
+}
+
+async function waitForHandedOffState(page, itemIds) {
+  await page.waitForFunction(
+    (ids) => {
+      const items = window.FixThisConsoleDebug?.getState?.()?.session?.items || [];
+      return ids.length >= 2 && ids.every((id) => {
+        const item = items.find((candidate) => candidate.itemId === id);
+        return Number.isFinite(item?.lastHandedOffAtEpochMillis);
+      });
+    },
+    itemIds,
+    { timeout: 30_000 },
+  );
+}
+
+async function browserCopyPromptFlow({ consoleUrl, fixture, reportDir, headed }) {
+  const comments = expectedComments(fixture);
+  const paths = artifactPaths(reportDir, fixture.id);
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch({ headless: !headed });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const consoleMessages = [];
+  page.on("console", (message) => consoleMessages.push(`${message.type()}: ${message.text()}`));
+  page.on("pageerror", (error) => consoleMessages.push(`pageerror: ${error.message}`));
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        async writeText(text) {
+          window.__fixthisCopiedText = text;
+        },
+      },
+      configurable: true,
+    });
+  });
+
+  try {
+    await page.goto(consoleUrl, { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await waitForReadyConsole(page);
+    await addAnnotation(page, comments[0], 0);
+    await addAnnotation(page, comments[1], 1);
+    await page.waitForFunction(() => !document.getElementById("copyPromptButton").disabled, undefined, { timeout: 20_000 });
+    await page.click("#copyPromptButton");
+    await page.waitForFunction(() => window.__fixthisCopiedText?.includes("agent_protocol:"), undefined, { timeout: 30_000 });
+    const copiedText = await page.evaluate(() => window.__fixthisCopiedText);
+    const promptStats = assertCopiedPrompt(copiedText, comments);
+    const itemIds = itemIdsFromCopiedPrompt(copiedText);
+    await waitForHandedOffState(page, itemIds);
+    const state = await page.evaluate(() => window.FixThisConsoleDebug?.getState?.()?.session);
+    writeFileSync(paths.promptPath, copiedText);
+    writeFileSync(paths.statePath, `${JSON.stringify(state, null, 2)}\n`);
+    await page.screenshot({ path: paths.screenshotPath, fullPage: true });
+    const sessionStats = assertSessionHandedOffItems(state, itemIds);
+    return {
+      ...promptStats,
+      ...sessionStats,
+      promptPath: relativeArtifactPath(reportDir, paths.promptPath),
+      screenshotPath: relativeArtifactPath(reportDir, paths.screenshotPath),
+      statePath: relativeArtifactPath(reportDir, paths.statePath),
+    };
+  } catch (error) {
+    try {
+      await page.screenshot({ path: paths.screenshotPath, fullPage: true });
+    } catch {}
+    const detail = consoleMessages.length > 0 ? `${error.message}; console=${consoleMessages.join(" | ")}` : error.message;
+    throw new Error(detail);
+  } finally {
+    await browser.close();
+  }
+}
+
 async function runSelectedFixture(fixture, options) {
   const app = {
     fixtureId: fixture.id,
@@ -272,12 +538,18 @@ async function runSelectedFixture(fixture, options) {
   };
   let mcp = null;
   try {
-    const paths = installRuntimeFixture(fixture, { stdio: "inherit" });
+    const runWithAndroidEnvironment = (command, args, runOptions = {}) =>
+      runCommand(command, args, withAndroidEnvironment(runOptions, options.environment));
+    const paths = installRuntimeFixture(fixture, {
+      stdio: "inherit",
+      run: runWithAndroidEnvironment,
+    });
     app.projectDir = paths.projectWorkDir;
     mcp = await startMcpServer({
       mcpBin: options.mcpBin,
       projectDir: paths.projectWorkDir,
       packageName: fixture.applicationId,
+      environment: options.environment,
     });
     const opened = await mcp.callTool("fixthis_open_feedback_console", {
       packageName: fixture.applicationId,
@@ -285,6 +557,13 @@ async function runSelectedFixture(fixture, options) {
     });
     app.sessionId = opened.sessionId;
     app.consoleUrl = opened.consoleUrl;
+    const browserStats = await browserCopyPromptFlow({
+      consoleUrl: opened.consoleUrl,
+      fixture,
+      reportDir: options.reportDir,
+      headed: options.headed,
+    });
+    Object.assign(app, browserStats);
     app.status = "pass";
     return app;
   } catch (error) {

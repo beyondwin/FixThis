@@ -103,6 +103,11 @@ function sdkCandidates({ env, homeDir, platform }) {
   return [...new Set(candidates.filter((value) => typeof value === "string" && value.trim()))];
 }
 
+export function parseReadyAndroidDevice(stdout = "") {
+  const match = stdout.match(/\n(\S+)\s+device\b/);
+  return match?.[1] || null;
+}
+
 export function resolveAndroidEnvironment({
   env = process.env,
   homeDir = process.env.HOME,
@@ -135,10 +140,12 @@ export function resolveAndroidEnvironment({
     encoding: "utf8",
     env: { ...process.env, ...env, ...envPatch },
   });
+  const device = parseReadyAndroidDevice(adb.stdout);
   return {
-    ready: adb.status === 0 && /\n\S+\s+device\b/.test(adb.stdout),
+    ready: adb.status === 0 && Boolean(device),
     reason: "Android SDK or ready emulator is unavailable.",
     envPatch,
+    device,
   };
 }
 
