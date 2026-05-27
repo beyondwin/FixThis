@@ -132,6 +132,7 @@ async function testSsePreviewPushDoesNotPollPreview() {
     const page = await openConsolePage(context, fixture.url);
     await waitUntil(() => fixture.eventClientCount() >= 1);
     const before = fixture.previewRequestCount();
+    const sessionPullsBefore = countSessionPulls(fixture);
     fixture.emitPreviewReady('session-1', { previewId: 'sse-push-only' });
     await page.waitForFunction(
       () => window.FixThisConsoleDebug.getState().preview?.previewId === 'sse-push-only',
@@ -143,6 +144,15 @@ async function testSsePreviewPushDoesNotPollPreview() {
       fixture.previewRequestCount(),
       before,
       'connected EventSource should update preview without fallback /api/preview polling',
+    );
+    const redundantSessionPulls = fixture.getRequestLog().filter((entry) =>
+      entry.method === 'GET' &&
+      (entry.path === '/api/session' || entry.path === '/api/sessions')
+    );
+    assert.equal(
+      countSessionPulls(fixture),
+      sessionPullsBefore,
+      `healthy SSE flow should not perform redundant session pulls, got ${JSON.stringify(redundantSessionPulls)}`,
     );
   });
 }
