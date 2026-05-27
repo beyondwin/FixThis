@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
 
 export const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 export const defaultManifestPath = join(repoRoot, "fixtures/source-matching/manifest.json");
@@ -781,6 +782,16 @@ export function installRuntimeFixture(fixture, options = {}) {
   return paths;
 }
 
+function withEnvironmentPatch(options = {}, envPatch = {}) {
+  return {
+    ...options,
+    env: {
+      ...(options.env || {}),
+      ...envPatch,
+    },
+  };
+}
+
 export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
   const casesById = new Map((runnerOutput.cases || []).map((testCase) => [testCase.caseId, testCase]));
   const cases = fixture.cases
@@ -829,13 +840,19 @@ export function evaluateRuntimeTrustFixture(fixture, runnerOutput) {
 
 export function runRuntimeTrustEvaluation(fixture, options = {}) {
   const strict = options.strict === true;
-  const paths = installRuntimeFixture(fixture, { stdio: "inherit" });
+  const envPatch = options.envPatch || {};
+  const run = options.run || runCommand;
+  const install = options.install || installRuntimeFixture;
+  const reportDir = options.reportDir || defaultReportDir;
+  const runWithEnvironment = (command, args, runOptions = {}) =>
+    run(command, args, withEnvironmentPatch(runOptions, envPatch));
+  const paths = install(fixture, { stdio: "inherit", run: runWithEnvironment });
 
-  const inputPath = join(defaultReportDir, `${fixture.id}-runtime-input.json`);
-  const outputPath = join(defaultReportDir, `${fixture.id}-runtime-output.json`);
+  const inputPath = join(reportDir, `${fixture.id}-runtime-input.json`);
+  const outputPath = join(reportDir, `${fixture.id}-runtime-output.json`);
   writeJson(inputPath, runtimeFixtureInput(fixture, paths.projectWorkDir, strict));
   const args = runtimeTrustFixtureGradleArgs(inputPath, outputPath, strict);
-  runCommand("./gradlew", args, { cwd: repoRoot, stdio: "pipe" });
+  runWithEnvironment("./gradlew", args, { cwd: repoRoot, stdio: "pipe" });
   const runnerOutput = JSON.parse(readFileSync(outputPath, "utf8"));
   return evaluateRuntimeTrustFixture(fixture, runnerOutput);
 }
@@ -908,10 +925,11 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (command === "runtime") {
     const strict = argv.includes("--strict");
+    const androidEnvironment = resolveAndroidEnvironment();
     const fixtures = [];
     for (const fixture of runtimeFixtures(manifest)) {
       try {
-        fixtures.push(runRuntimeTrustEvaluation(fixture, { strict }));
+        fixtures.push(runRuntimeTrustEvaluation(fixture, { strict, envPatch: androidEnvironment.envPatch }));
       } catch (error) {
         fixtures.push({
           fixtureId: fixture.id,

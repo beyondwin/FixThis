@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -15,6 +16,7 @@ import {
   patchAppBuildFileText,
   patchSettingsText,
   reportStatus,
+  runRuntimeTrustEvaluation,
   runtimeFixtureInput,
   runtimeFixtures,
   runtimeInstallGradleArgs,
@@ -715,6 +717,55 @@ test("installRuntimeFixture prepares runtime source index before installing debu
       stdio: "pipe",
     },
   ]);
+});
+
+test("runRuntimeTrustEvaluation passes Android env patch to fixture install and runner", () => {
+  const reportDir = mkdtempSync(join(tmpdir(), "fixthis-runtime-trust-"));
+  const calls = [];
+  const fixture = {
+    id: "reply",
+    modulePath: ":app",
+    variant: "debug",
+    applicationId: "com.example.reply",
+    cases: [{
+      id: "runtime",
+      mode: "runtime-trust",
+      trustPurpose: "env propagation",
+      runtimeTarget: { text: "Inbox" },
+    }],
+  };
+
+  try {
+    const result = runRuntimeTrustEvaluation(fixture, {
+      strict: true,
+      reportDir,
+      envPatch: { ANDROID_HOME: "/sdk", PATH: "/sdk/platform-tools:/bin" },
+      install: (input, options) => {
+        calls.push({ type: "install", fixtureId: input.id });
+        options.run("./gradlew", [":app:installDebug"], {
+          cwd: "/tmp/reply",
+          stdio: "inherit",
+          env: { EXISTING: "1" },
+        });
+        return { projectWorkDir: "/tmp/reply" };
+      },
+      run: (command, args, options) => {
+        calls.push({ type: "run", command, args, env: options.env });
+        const outputArg = args.find((arg) => arg.startsWith("--args="));
+        const outputPath = outputArg?.match(/--output\s+(\S+)/)?.[1];
+        if (outputPath) {
+          writeFileSync(outputPath, JSON.stringify({ cases: [{ caseId: "runtime", observed: {} }] }));
+        }
+      },
+    });
+
+    assert.equal(result.status, "evaluated");
+    assert.equal(calls[1].env.EXISTING, "1");
+    assert.ok(calls.slice(1).every((call) => call.env.ANDROID_HOME === "/sdk"));
+    assert.ok(calls.slice(1).every((call) => call.env.PATH === "/sdk/platform-tools:/bin"));
+  } finally {
+    rmSync(reportDir, { recursive: true, force: true });
+  }
 });
 
 test("evaluateSourceIndexCase finds expected path and signal", () => {
