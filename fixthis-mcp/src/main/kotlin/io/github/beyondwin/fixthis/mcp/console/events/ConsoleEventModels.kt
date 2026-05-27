@@ -16,3 +16,15 @@ data class ConsoleEventReplay(
     val overflow: Boolean,
     val oldestAvailableEventId: Long?,
 )
+
+@Serializable
+data class ConsoleEventBusStats(
+    val emittedEvents: Long,
+    val openedSubscriptions: Long,
+    val closedSubscriptions: Long,
+    val activeSubscriptions: Int,
+    val replayRequests: Long,
+    val replayOverflowCount: Long,
+    val oldestAvailableEventId: Long?,
+    val newestEventId: Long?,
+)

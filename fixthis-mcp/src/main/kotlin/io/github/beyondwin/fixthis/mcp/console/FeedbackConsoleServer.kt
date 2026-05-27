@@ -125,6 +125,7 @@ class FeedbackConsoleServer private constructor(
             listOf(
                 ServerVersionRoutes(),
                 ConsoleEventRoutes(config.service, config.eventBus),
+                ConsoleEventDiagnosticsRoutes(config.eventBus),
                 SessionRoutes(
                     service = config.service,
                     consoleAssetsDir = config.consoleAssetsDir,

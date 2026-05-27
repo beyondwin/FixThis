@@ -8,8 +8,10 @@ import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.concurrent.LinkedBlockingQueue
@@ -154,6 +156,30 @@ class ConsoleEventsRoutesTest {
             val previewEvent = generateSequence { seen.poll(1, TimeUnit.SECONDS) }
                 .first { it.name == "preview-ready" }
             assertEquals("session-1", previewEvent.data.getValue("sessionId").jsonPrimitive.content)
+        } finally {
+            server.stop()
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun eventDiagnosticsEndpointReturnsBusStats() {
+        val fixture = newConsoleSessionFixtureWithTempRoot(
+            idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next,
+        )
+        val bus = ConsoleEventBus(clock = { 1L })
+        val server = FeedbackConsoleServer(fixture.service, eventBus = bus)
+        try {
+            server.start()
+            bus.emit("sessions-updated", buildJsonObject { put("sessionId", "session-1") })
+
+            val connection = URI("${server.url}/api/events/diagnostics").toURL().openConnection() as HttpURLConnection
+            connection.connectTimeout = 1000
+            connection.readTimeout = 1000
+
+            assertEquals(200, connection.responseCode)
+            val payload = Json.parseToJsonElement(connection.inputStream.bufferedReader().readText()).jsonObject
+            assertEquals("1", payload.getValue("emittedEvents").jsonPrimitive.content)
         } finally {
             server.stop()
             fixture.close()

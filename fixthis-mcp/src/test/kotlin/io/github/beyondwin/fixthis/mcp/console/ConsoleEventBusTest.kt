@@ -31,4 +31,23 @@ class ConsoleEventBusTest {
         assertTrue(replay.overflow)
         assertEquals(2L, replay.oldestAvailableEventId)
     }
+
+    @Test
+    fun statsTrackEmitsSubscribersReplayAndOverflow() {
+        val bus = ConsoleEventBus(ringSize = 1, clock = { 123L })
+        val subscription = bus.subscribe { }
+        bus.emit("a", buildJsonObject { put("value", 1) })
+        bus.emit("b", buildJsonObject { put("value", 2) })
+        val replay = bus.eventsAfter(0L)
+        subscription.close()
+
+        assertTrue(replay.overflow)
+        val stats = bus.stats()
+        assertEquals(2L, stats.emittedEvents)
+        assertEquals(1L, stats.openedSubscriptions)
+        assertEquals(1L, stats.closedSubscriptions)
+        assertEquals(0, stats.activeSubscriptions)
+        assertEquals(1L, stats.replayRequests)
+        assertEquals(1L, stats.replayOverflowCount)
+    }
 }
