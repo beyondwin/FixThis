@@ -1,8 +1,5 @@
 package io.github.beyondwin.fixthis.mcp.session
 
-import io.github.beyondwin.fixthis.compose.core.identity.IdentityHintFactory
-import io.github.beyondwin.fixthis.compose.core.identity.OccurrenceCalculator
-import io.github.beyondwin.fixthis.compose.core.model.EvidenceQuality
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
@@ -11,8 +8,9 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetKind
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
-import io.github.beyondwin.fixthis.compose.core.source.SourceInterpretationFactory
 import io.github.beyondwin.fixthis.compose.core.source.SourceMatcher
+import io.github.beyondwin.fixthis.compose.core.target.TargetEvidenceFactory
+import io.github.beyondwin.fixthis.compose.core.target.TargetEvidenceInput
 import io.github.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
@@ -163,33 +161,18 @@ class TargetEvidenceService(
         selectedNode: FixThisNode?,
         screen: SnapshotDto,
         sourceCandidates: List<SourceCandidate>,
-    ): TargetEvidence {
-        val identityHint = IdentityHintFactory.from(selectedNode)
-        val occurrence = OccurrenceCalculator.calculate(
+    ): TargetEvidence = TargetEvidenceFactory.build(
+        TargetEvidenceInput(
+            targetKind = when (targetType) {
+                FeedbackTargetType.AREA -> TargetKind.AREA
+                FeedbackTargetType.NODE -> TargetKind.NODE
+            },
             selectedNode = selectedNode,
-            nodes = screen.roots.flatMap { root -> root.mergedNodes },
-            identityHint = identityHint,
-        )
-        return TargetEvidence(
-            identityHint = identityHint,
-            occurrence = occurrence,
-            sourceInterpretation = SourceInterpretationFactory.from(sourceCandidates),
-            evidenceQuality = if (identityHint != null || occurrence != null || sourceCandidates.isNotEmpty()) {
-                EvidenceQuality.STRUCTURED
-            } else {
-                EvidenceQuality.BASIC
-            },
+            mergedNodes = screen.roots.flatMap { root -> root.mergedNodes },
+            sourceCandidates = sourceCandidates,
             screenshotKinds = screen.screenshot.availableKinds(),
-            warnings = buildList {
-                if (targetType == FeedbackTargetType.AREA) {
-                    add("Occurrence is not applicable for visual area selections.")
-                }
-                if (targetType == FeedbackTargetType.NODE && selectedNode == null) {
-                    add("No selected semantics node was available for target evidence.")
-                }
-            },
-        )
-    }
+        ),
+    )
 
     fun targetReliabilityFor(
         screen: SnapshotDto,
