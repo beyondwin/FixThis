@@ -220,6 +220,26 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`npm run release:v06:evidence:test`',
 );
+requireIncludes(
+  'R24.trust-sync-release-hardening-section',
+  'docs/contributing/release-readiness.md',
+  '## Trust Sync Release Hardening Evidence',
+);
+requireIncludes(
+  'R25.trust-sync-boundary-guidance-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run handoff:eval:test`',
+);
+requireIncludes(
+  'R26.trust-sync-sse-browser-proof-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run console:browser:reliability`',
+);
+requireIncludes(
+  'R27.trust-sync-event-diagnostics-command',
+  'docs/contributing/release-readiness.md',
+  '`./gradlew :fixthis-mcp:test --tests "*ConsoleEventBusTest" --tests "*ConsoleEventsRoutesTest" --no-daemon`',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

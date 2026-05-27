@@ -62,6 +62,9 @@ GitHub Release page and registry listings as release evidence.
   source-only contract remains byte-stable for older sessions, and the
   empty-source preview retains its "do not invent source" invariant while
   permitting Compose-derived edit-surface hints.
+- Trust-sync hardening now makes interop and visual-area boundaries explicit in
+  agent handoffs, reduces item/handoff mutation pull refreshes while SSE is
+  healthy, and exposes local event-stream diagnostics for release evidence.
 
 ## Compatibility Notes
 

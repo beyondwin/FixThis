@@ -82,6 +82,12 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   and `SENSITIVE_TEXT_REDACTED` emit explicit `- Action:` lines. Compact
   and PRECISE outputs stay token-equivalent for trust-essential tokens,
   and pre-Phase 2 sessions (no edit-surface data) remain byte-stable.
+- Handoffs now render explicit target-boundary guidance for visual-area,
+  no-meaningful-Compose-target, and possible AndroidView/WebView cases so
+  agents treat source candidates as context rather than exact edit ownership
+  when target evidence is weak.
+- The feedback console exposes local `/api/events/diagnostics` counters for
+  event emissions, subscribers, replay requests, and overflow recovery.
 
 ### Changed
 
@@ -100,6 +106,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   longer triggers redundant `/preview` fetches when the tab becomes
   visible. The push-first preview contract docs and architecture notes were
   updated to describe the new behavior.
+- Item and handoff mutation flows now skip redundant `/api/session` and
+  `/api/sessions` refreshes while EventSource is healthy, keeping pull refresh
+  as the manual and SSE-recovery path.
 - Detekt findings cleared without behavior changes: `SourceScoringPolicy`
   bucket scoring is a single map lookup, `SourceMatcher`'s LAYOUT_RENDERER
   weight is a named constant, `CompactHandoffRenderer` reason tokens live in

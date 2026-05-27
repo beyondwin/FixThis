@@ -92,6 +92,26 @@ Required v0.6 evidence before tagging:
 - `bash scripts/check-docs-cli-surface.sh`
 - `npm run checks:observation -- --json`
 
+## Trust Sync Release Hardening Evidence
+
+The trust-sync hardening line may be claimed only when each claim below has
+matching local evidence from the release commit.
+
+| Claim | Required evidence |
+| --- | --- |
+| Interop and visual-area handoffs avoid exact-source overclaiming. | `npm run handoff:eval:test` plus `./gradlew :fixthis-mcp:test --tests "*TargetBoundaryGuidanceTest" --tests "*FeedbackQueueFormatterPhase2Test" --tests "*CompactHandoffRendererTest" --no-daemon`. |
+| SSE is the happy-path console sync channel for item and handoff mutations. | `node --test scripts/studioReliabilityContract-test.mjs` and `npm run console:browser:reliability`. |
+| Event-stream diagnostics expose local event count, reconnect/subscriber, replay, and overflow state. | `./gradlew :fixthis-mcp:test --tests "*ConsoleEventBusTest" --tests "*ConsoleEventsRoutesTest" --no-daemon`. |
+| Release and agent-install docs match the supported public surfaces. | `node scripts/check-release-readiness.mjs`, `bash scripts/check-docs-cli-surface.sh`, `npm run docs:agent-bootstrap:test`, and `npm run release:version:check`. |
+
+Connected runtime trust evidence remains local-only. If Android SDK or an
+unlocked emulator is unavailable, record the runtime command as deferred rather
+than implying it passed:
+
+```bash
+npm run source-matching:fixtures:runtime -- --strict
+```
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.
