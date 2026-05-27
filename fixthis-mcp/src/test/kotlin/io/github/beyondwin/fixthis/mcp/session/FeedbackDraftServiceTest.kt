@@ -213,6 +213,47 @@ class FeedbackDraftServiceTest {
     }
 
     @Test
+    fun invalidPreviewSaveReleasesReservationSoRetryCanSucceed() = runBlocking {
+        val fixture = draftFixture(
+            ids = arrayOf("session-1", "preview-1", "screen-1", "item-1"),
+            prefix = "fixthis-draft-reservation-release-",
+        )
+        val session = fixture.store.openSession("io.github.beyondwin.fixthis.sample", fixture.root.absolutePath)
+        val preview = fixture.previewCaptureService.capturePreview(session)
+
+        assertFailsWith<IllegalArgumentException> {
+            fixture.draftService.savePreviewFeedbackItems(
+                sessionId = session.sessionId,
+                previewId = preview.previewId,
+                items = listOf(
+                    AnnotationDraftDto(
+                        targetType = FeedbackTargetType.NODE,
+                        nodeUid = "missing-node",
+                        bounds = FixThisRect(1f, 1f, 10f, 10f),
+                        comment = "Invalid node",
+                    ),
+                ),
+                allowBlankComments = false,
+            )
+        }
+
+        val updated = fixture.draftService.savePreviewFeedbackItems(
+            sessionId = session.sessionId,
+            previewId = preview.previewId,
+            items = listOf(
+                AnnotationDraftDto(
+                    targetType = FeedbackTargetType.AREA,
+                    bounds = FixThisRect(112f, 426f, 351f, 588f),
+                    comment = "Retry succeeds",
+                ),
+            ),
+            allowBlankComments = false,
+        )
+
+        assertEquals(listOf("Retry succeeds"), updated.items.map { it.comment })
+    }
+
+    @Test
     fun fallbackPreviewSaveRejectsInvalidPendingItemsBeforeReadingSourceIndex() = runBlocking {
         fun assertInvalidFallbackItemDoesNotReadSourceIndex(
             item: AnnotationDraftDto,

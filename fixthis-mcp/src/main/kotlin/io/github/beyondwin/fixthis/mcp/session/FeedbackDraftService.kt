@@ -37,11 +37,6 @@ internal data class PreviewSaveFingerprintCheck(
     val clientFrozenFingerprintMismatched: Boolean = false,
 )
 
-private data class PreviewSaveSlot(
-    val inFlightKey: String,
-    val cachedPreview: PreviewRecord?,
-)
-
 internal data class PreviewFeedbackSaveResult(
     val session: SessionDto,
     val fingerprintUnavailableReason: String?,
@@ -58,8 +53,7 @@ class FeedbackDraftService(
     private val targetEvidenceService: TargetEvidenceService,
     private val screenshotArtifactPromoter: ScreenshotArtifactPromoter,
 ) {
-    private val lock = Any()
-    private val previewSavesInFlight = mutableSetOf<String>()
+    private val previewSaveReservations = PreviewSaveReservationTracker(previewCache)
 
     fun addAreaFeedback(
         sessionId: String,
@@ -232,19 +226,7 @@ class FeedbackDraftService(
         sessionId: String,
         previewId: String,
         fallbackScreen: SnapshotDto?,
-    ): PreviewSaveSlot {
-        val inFlightKey = "$sessionId:$previewId"
-        return synchronized(lock) {
-            val record = previewCache.get(sessionId, previewId)
-            if (record == null && fallbackScreen == null) {
-                throw FeedbackSessionException("PREVIEW_NOT_FOUND: Unknown preview: $previewId")
-            }
-            if (!previewSavesInFlight.add(inFlightKey)) {
-                throw FeedbackSessionException("PREVIEW_SAVE_IN_PROGRESS: Preview is already being saved: $previewId")
-            }
-            PreviewSaveSlot(inFlightKey = inFlightKey, cachedPreview = record)
-        }
-    }
+    ): PreviewSaveSlot = previewSaveReservations.reserve(sessionId, previewId, fallbackScreen)
 
     internal fun commitPreviewFeedbackSave(
         reservation: PreviewFeedbackSaveReservation,
@@ -282,10 +264,11 @@ class FeedbackDraftService(
             feedbackItems,
             eventMetadata = eventMetadata,
         )
-        val removedPreview = synchronized(lock) {
-            previewSavesInFlight.remove(reservation.inFlightKey)
-            previewCache.remove(reservation.sessionId, reservation.previewId)
-        }
+        val removedPreview = previewSaveReservations.complete(
+            sessionId = reservation.sessionId,
+            previewId = reservation.previewId,
+            inFlightKey = reservation.inFlightKey,
+        )
         removedPreview?.deletePreviewCacheDirectory()
         PreviewFeedbackSaveResult(updated, fingerprintUnavailableReason)
     } catch (error: Throwable) {
@@ -345,9 +328,7 @@ class FeedbackDraftService(
     }
 
     private fun releasePreviewSaveReservation(inFlightKey: String) {
-        synchronized(lock) {
-            previewSavesInFlight.remove(inFlightKey)
-        }
+        previewSaveReservations.release(inFlightKey)
     }
 
     private fun validatePreviewPendingItems(
