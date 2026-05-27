@@ -114,6 +114,36 @@ class ConsoleEventsRoutesTest {
     }
 
     @Test
+    fun sessionUpdatedEventsCarrySummaryPayloadForPushFirstSidebar() {
+        val fixture = newConsoleSessionFixtureWithTempRoot(
+            idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next,
+        )
+        val bus = ConsoleEventBus(clock = { 1L })
+        val seen = LinkedBlockingQueue<ConsoleEvent>()
+        bus.subscribe { event -> seen += event }
+        val server = FeedbackConsoleServer(fixture.service, eventBus = bus)
+        try {
+            server.start()
+            val connection = URI("${server.url}/api/session/open").toURL().openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty(CONSOLE_TOKEN_HEADER, server.consoleTokenForTests())
+            connection.setRequestProperty("content-type", "application/json")
+            connection.doOutput = true
+            connection.outputStream.use { it.write("""{"newSession":true}""".toByteArray()) }
+            assertEquals(200, connection.responseCode)
+
+            val sessionsEvent = generateSequence { seen.poll(1, TimeUnit.SECONDS) }
+                .first { it.name == "sessions-updated" }
+            val summary = sessionsEvent.data.getValue("summary").jsonObject
+            assertEquals("session-1", summary.getValue("sessionId").jsonPrimitive.content)
+            assertEquals("active", summary.getValue("status").jsonPrimitive.content)
+        } finally {
+            server.stop()
+            fixture.close()
+        }
+    }
+
+    @Test
     fun previewDeviceAndConnectionRoutesEmitEvents() {
         val fixture = newConsoleSessionFixtureWithTempRoot(
             idGenerator = FakeIds("session-1", "preview-1", "preview-screen-1").next,
