@@ -240,6 +240,21 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`./gradlew :fixthis-mcp:test --tests "*ConsoleEventBusTest" --tests "*ConsoleEventsRoutesTest" --no-daemon`',
 );
+requireIncludes(
+  'R28.v1-trust-install-inner-loop-section',
+  'docs/contributing/release-readiness.md',
+  '## V1 Trust, Install, And Inner-Loop Evidence',
+);
+requireIncludes(
+  'R29.v1-evidence-runner-fast-profile',
+  'docs/contributing/release-readiness.md',
+  '`npm run evidence:fast -- --dry-run`',
+);
+requireIncludes(
+  'R30.v1-current-channel-only-claim',
+  'docs/contributing/release-readiness.md',
+  'This evidence pack does not add PyPI, Docker, or any new package channel.',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

@@ -112,6 +112,21 @@ than implying it passed:
 npm run source-matching:fixtures:runtime -- --strict
 ```
 
+## V1 Trust, Install, And Inner-Loop Evidence
+
+The V1 umbrella hardening line may be claimed only when each area below has
+matching local evidence from the release commit. This evidence pack does not add PyPI, Docker, or any new package channel.
+
+| Claim | Required evidence |
+| --- | --- |
+| Source trust avoids overconfident layout, copy/data, visual-area, and interop guidance. | `./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon`, `npm run handoff:eval:test`, and `npm run source-matching:fixtures:test`. |
+| Agent-first setup reports a recoverable next action from install through doctor. | `./gradlew :fixthis-cli:test --tests "*InstallAgentJsonReportTest" --tests "*DoctorCommandTest" --tests "*AgentSetupFilesTest" --no-daemon` and `npm run docs:agent-bootstrap:test`. |
+| Local evidence profiles are available without hiding canonical commands. | `npm run evidence:fast -- --dry-run`, `npm run evidence:test`, and `node scripts/check-release-readiness.mjs`. |
+
+Runtime trust remains local-only. If Android SDK or an unlocked emulator is
+unavailable, record `npm run source-matching:fixtures:runtime -- --strict` as
+deferred rather than implying it passed.
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.

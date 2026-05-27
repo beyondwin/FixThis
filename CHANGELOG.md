@@ -35,6 +35,8 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   when a selected target uses a strict `comp:<ComposableName>:...` test tag.
   The signal is conservative call-site evidence — it does not by itself make a
   source candidate high confidence.
+- Documented the V1 trust/install/inner-loop hardening evidence pack for the
+  next implementation cycle.
 - Compact handoff now clarifies source-matching trust by preserving the
   `conf=` token on the rank-1 candidate and rendering trust caveats from
   `caution` as a `note:` line. Markdown and full output continue to render

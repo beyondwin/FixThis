@@ -89,4 +89,22 @@ class AgentSetupFilesTest {
         assertTrue("doctor should come before console", doctorIndex < consoleIndex)
         assertTrue(text.contains("Restart Claude Code or Codex"))
     }
+
+    @Test
+    fun setupJsonAndMarkdownKeepDoctorBeforeConsole() {
+        val root = tempFolder.newFolder("proj")
+        AgentSetupFiles.write(
+            projectRoot = root,
+            packageName = "com.example.app",
+            serverName = "fixthis",
+            dryRun = false,
+            echo = {},
+        )
+
+        val jsonText = java.io.File(root, ".fixthis/agent-setup.json").readText()
+        val mdText = java.io.File(root, ".fixthis/agent-setup.md").readText()
+
+        assertTrue(jsonText.indexOf("fixthis doctor --project-dir") < jsonText.indexOf("fixthis_open_feedback_console"))
+        assertTrue(mdText.indexOf("fixthis doctor --project-dir . --json") < mdText.indexOf("fixthis_open_feedback_console"))
+    }
 }

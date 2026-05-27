@@ -65,6 +65,8 @@ GitHub Release page and registry listings as release evidence.
 - Trust-sync hardening now makes interop and visual-area boundaries explicit in
   agent handoffs, reduces item/handoff mutation pull refreshes while SSE is
   healthy, and exposes local event-stream diagnostics for release evidence.
+- Planned V1 hardening now ties source-trust calibration, agent install
+  recovery, and local evidence profiles to explicit release evidence.
 
 ## Compatibility Notes
 
