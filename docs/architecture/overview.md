@@ -42,6 +42,9 @@ Pure Kotlin module. Houses common contracts not directly tied to the Android run
 - `identity/*`: strict `comp:<ComposableName>:<variant>` testTag convention, stable target identity hints, occurrence ordinal/count calculation.
 - `selection/NodeSelector.kt`: scores the semantics node under a tap coordinate. Accounts for click action, meaningful text/contentDescription/role/testTag, merged tree membership, center proximity, and root-like penalty.
 - `selection/NearbyNodeCollector.kt`: collects meaningful nodes around the selected node as context, with deduplication.
+- `target/TargetReliabilityCalculator.kt`, `target/TargetEvidenceFactory.kt`:
+  pure target confidence, warning, evidence-quality, identity, occurrence, and
+  source-interpretation policy used by outer session adapters.
 - `source/SourceIndex.kt`, `source/SourceMatcher.kt`: matches the source index produced by the Gradle plugin against semantics evidence.
 - `source/SourceMatchReason.kt`, `SourceScoringPolicy.kt`,
   `SourceConfidencePolicy.kt`, `EvidenceProfile.kt`, and
@@ -149,6 +152,10 @@ MCP stdio server and local feedback console server.
   preview capture, persisted evidence capture, navigation, annotation save,
   target evidence derivation, handoff, and resolve through focused
   collaborators.
+- `session/FeedbackTargetValidator.kt` and
+  `session/PreviewFingerprintPolicy.kt`: keep target validation and preview
+  fingerprint decisions focused and testable while `FeedbackDraftService`
+  coordinates persistence.
 - `session/EditSurfaceCandidateService.kt`,
   `session/EditSurfaceRoleClassifier.kt`, and
   `session/CompactHandoffRenderer.kt`: derive likely visual/style edit

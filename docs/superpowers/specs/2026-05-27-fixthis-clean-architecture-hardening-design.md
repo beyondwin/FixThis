@@ -1,7 +1,7 @@
 # FixThis Clean Architecture Hardening Design
 
 Date: 2026-05-27
-Status: Ready for user review
+Status: Implemented
 Scope: one execution-ready architecture hardening spec covering MCP session
 boundaries, source/target trust policy extraction, and module dependency
 governance.
@@ -38,6 +38,11 @@ track extracts source matching and target reliability rules that are currently
 harder to test because they are mixed with MCP DTO or bridge concerns. The
 third track adds lightweight architecture checks so the improved boundaries do
 not drift back.
+
+Implementation note: the first implementation pass extracted preview
+fingerprint policy, preview save reservation tracking, core target evidence
+assembly, MCP target validation, and architecture drift checks while preserving
+external contracts.
 
 ## Goals
 
