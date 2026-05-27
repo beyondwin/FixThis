@@ -99,6 +99,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   source ownership.
 - The feedback console exposes local `/api/events/diagnostics` counters for
   event emissions, subscribers, replay requests, and overflow recovery.
+- A real Copy Prompt smoke (`npm run real-copy-prompt:smoke -- --strict`)
+  now installs Reply, Jetsnack, and the bundled sample app, opens the MCP
+  feedback console, creates written annotations, clicks `Copy Prompt`, and
+  verifies copied Markdown plus local handoff timestamps.
 
 ### Changed
 
@@ -166,6 +170,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   propagates `trustPurpose` so the markdown fixture report's `Purpose`
   column is populated in the common no-device-available local case
   instead of rendering `-`.
+- Android-connected evidence now normalizes both `ANDROID_HOME` and
+  `ANDROID_SDK_ROOT` to the detected SDK with bundled `adb`, preventing stale
+  shell environment values from breaking runtime fixture installs.
 
 ## [0.7.0] - 2026-05-19
 

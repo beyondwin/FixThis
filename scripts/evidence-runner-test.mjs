@@ -86,6 +86,8 @@ test("android readiness prefers an SDK candidate with bundled adb", () => {
   });
 
   assert.equal(result.ready, true);
+  assert.equal(result.envPatch.ANDROID_HOME, validSdk);
+  assert.equal(result.envPatch.ANDROID_SDK_ROOT, validSdk);
   assert.equal(result.envPatch.PATH.split(delimiter)[0], join(validSdk, "platform-tools"));
 });
 

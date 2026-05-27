@@ -135,8 +135,8 @@ export function resolveAndroidEnvironment({
   const adbFromSdk = join(platformTools, adbName);
   const adbCommand = exists(adbFromSdk) ? adbFromSdk : "adb";
   const envPatch = {
-    ANDROID_HOME: env.ANDROID_HOME || sdk,
-    ANDROID_SDK_ROOT: env.ANDROID_SDK_ROOT || sdk,
+    ANDROID_HOME: sdk,
+    ANDROID_SDK_ROOT: sdk,
     PATH: [platformTools, env.PATH].filter(Boolean).join(delimiter),
   };
   const adb = spawn(adbCommand, ["devices"], {

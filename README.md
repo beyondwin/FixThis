@@ -117,6 +117,13 @@ In the console:
 You are done when the console shows a numbered annotation and you have either
 copied compact Markdown or saved a local MCP handoff.
 
+Maintainers can validate that same real Copy Prompt path across the runtime
+fixtures with a connected emulator or device:
+
+```bash
+npm run real-copy-prompt:smoke -- --strict
+```
+
 ## Pick Your Path
 
 | Goal | Start here |
