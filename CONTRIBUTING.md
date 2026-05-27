@@ -150,7 +150,8 @@ npm run evidence:release
 ```
 
 The runner is a convenience layer over canonical commands. If a profile fails,
-rerun the failed command printed in the summary. Runtime trust checks are
+rerun the failed command printed in the summary. Android-connected trust checks,
+including runtime source trust and the real Copy Prompt browser smoke, are
 reported as deferred when Android SDK or a ready emulator is unavailable unless
 the profile is run with `--strict-runtime`.
 
@@ -378,6 +379,13 @@ Connected-device verification is manual until the project has a reliable device 
 
 ```bash
 scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
+```
+
+Run the real Copy Prompt browser smoke when validating feedback-console
+annotation handoff behavior on installed debug apps:
+
+```bash
+npm run real-copy-prompt:smoke -- --strict
 ```
 
 For host-only validation, use:

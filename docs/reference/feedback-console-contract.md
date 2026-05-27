@@ -58,6 +58,9 @@
 - Clicking a Compose node or dragging a visual area while a draft is frozen creates a browser-side pending annotation and focuses its detail editor immediately.
 - `Add annotation` is reserved for the transient pending-target state where a target exists but has not yet been committed; it must not appear while editing an existing draft annotation.
 - `Copy Prompt` persists written pending annotations when needed, then copies compact agent-facing prompt text.
+- `Copy Prompt` marks copied items with `lastHandedOffAtEpochMillis` so the
+  browser can show prompt-handoff history, but it does not require or imply
+  `delivery: sent`.
 - `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
 - `Clear Draft` deletes unsent draft feedback after confirmation.
 - Live preview frames are transient. Persisted `screens` are evidence snapshots, not every preview frame.
