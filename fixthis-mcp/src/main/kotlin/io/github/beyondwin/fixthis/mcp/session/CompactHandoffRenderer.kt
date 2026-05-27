@@ -202,6 +202,9 @@ object CompactHandoffRenderer {
         TargetBoundaryGuidance.from(item).compactToken?.let { token ->
             appendLine("  targetBoundary=$token")
         }
+        TargetBoundaryContextFormatter.compactLine(item)?.let { line ->
+            appendLine("  $line")
+        }
         appendLine(compactUiLine(item, context.isOverlap, context.instanceLabel, context.dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendEditSurfaceBlock(item)

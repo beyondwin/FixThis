@@ -154,6 +154,9 @@ object FeedbackQueueFormatter {
         TargetBoundaryGuidance.from(item).preciseLines.forEach { line ->
             appendLine(line)
         }
+        TargetBoundaryContextFormatter.preciseLines(item).forEach { line ->
+            appendLine(line)
+        }
         if (sourceCandidates.isEmpty() && editSurfaceCandidates.isEmpty()) {
             appendLine("No source candidate from current evidence; search by target labels and request.")
             return

@@ -422,6 +422,42 @@ class FeedbackQueueFormatterPhase2Test {
     }
 
     @Test
+    fun boundaryContext_preciseRendersBeforeLikelySourceCandidates() {
+        val host = io.github.beyondwin.fixthis.compose.core.model.FixThisNode(
+            uid = "host",
+            composeNodeId = 10,
+            rootIndex = 0,
+            treeKind = io.github.beyondwin.fixthis.compose.core.model.TreeKind.MERGED,
+            boundsInWindow = FixThisRect(0f, 80f, 320f, 260f),
+            text = listOf("Revenue"),
+            testTag = "comp:NativeChartHost:chart",
+        )
+        val item = annotationWith(
+            sourceCandidates = listOf(sourceCandidate(file = "sample/NativeChartHost.kt")),
+            editSurfaceCandidates = emptyList(),
+            targetReliability = reliability(
+                confidence = io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.LOW,
+                warnings = listOf(
+                    io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP,
+                ),
+            ),
+        ).copy(
+            target = AnnotationTargetDto.Area(FixThisRect(40f, 120f, 220f, 220f)),
+            nearbyNodes = listOf(host),
+        )
+
+        val md = FeedbackQueueFormatter.toMarkdown(sessionOf(item), DetailMode.PRECISE)
+
+        val boundaryIndex = md.indexOf("- Boundary: possible AndroidView/WebView target")
+        val contextIndex = md.indexOf("- Boundary context: nearest Compose context")
+        val sourceIndex = md.indexOf("1. `sample/NativeChartHost.kt`")
+        assertTrue(boundaryIndex >= 0, "missing boundary guidance\n$md")
+        assertTrue(contextIndex > boundaryIndex, "context must follow boundary guidance\n$md")
+        assertTrue(sourceIndex > contextIndex, "source candidates must follow boundary context\n$md")
+        assertTrue(md.contains("it does not prove Compose owns the selected pixels"), md)
+    }
+
+    @Test
     fun boundaryGuidance_visualAreaNoSourceDoesNotInventSource() {
         val item = AnnotationDto(
             itemId = "area-no-source",

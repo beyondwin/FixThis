@@ -2346,6 +2346,39 @@ class CompactHandoffRendererTest {
         assertTrue(markdown.contains("  targetAction=treat-source-paths-as-hints"), markdown)
     }
 
+    @Test
+    fun compactHandoffRendersInteropBoundaryContextFromNearbyComposeHost() {
+        val host = FixThisNode(
+            uid = "host",
+            composeNodeId = 10,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(0f, 80f, 320f, 260f),
+            testTag = "comp:NativeChartHost:chart",
+            role = "Image",
+        )
+        val item = AnnotationDto(
+            itemId = "interop-item",
+            screenId = "screen-1",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            target = AnnotationTargetDto.Area(FixThisRect(40f, 120f, 220f, 220f)),
+            nearbyNodes = listOf(host),
+            comment = "Fix the native chart spacing",
+            targetReliability = TargetReliability(
+                confidence = TargetConfidence.LOW,
+                warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+            ),
+        )
+        val session = oneItemSession(item)
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("targetBoundary=interop-risk"), markdown)
+        assertTrue(markdown.contains("boundaryContext: tag=\"comp:NativeChartHost:chart\"; role=Image"), markdown)
+        assertTrue(markdown.contains("targetAction=treat-source-paths-as-hints"), markdown)
+    }
+
     private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(
         sessionId = "session-one-item",
         packageName = "io.github.beyondwin.fixthis.sample",
