@@ -147,6 +147,45 @@ async function testSsePreviewPushDoesNotPollPreview() {
   });
 }
 
+function countSessionPulls(fixture) {
+  return fixture.getRequestLog().filter((entry) =>
+    entry.method === 'GET' && (entry.path === '/api/session' || entry.path === '/api/sessions')
+  ).length;
+}
+
+async function testSaveToMcpDoesNotPullSessionsWhenSseIsConnected() {
+  await withBrowser(async ({ fixture, context }) => {
+    const page = await openConsolePage(context, fixture.url);
+    await waitUntil(() => fixture.eventClientCount() >= 1);
+    await page.waitForFunction(
+      () => typeof isConsoleEventsConnected === 'function' && isConsoleEventsConnected(),
+      null,
+      { timeout: 8000 },
+    );
+    await createDraftAnnotation(page, 'Persist through SSE without extra pull refresh');
+    await page.waitForFunction(
+      () => typeof isConsoleEventsConnected === 'function' && isConsoleEventsConnected(),
+      null,
+      { timeout: 8000 },
+    );
+    const before = countSessionPulls(fixture);
+
+    await page.click('#sendAgentButton');
+    await page.waitForFunction(
+      () => window.FixThisConsoleDebug.getState().session?.items?.some((item) => item.delivery === 'sent'),
+      null,
+      { timeout: 8000 },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    assert.equal(
+      countSessionPulls(fixture),
+      before,
+      `healthy EventSource Save to MCP should not issue extra /api/session or /api/sessions pulls; log=${JSON.stringify(fixture.getRequestLog())}`,
+    );
+  });
+}
+
 async function testEventSourceReconnectRecovery() {
   await withBrowser(async ({ fixture, context }) => {
     const page = await openConsolePage(context, fixture.url);
@@ -231,6 +270,7 @@ async function run() {
   await testTwoTabSseSync();
   await testLatePreviewIsolation();
   await testSsePreviewPushDoesNotPollPreview();
+  await testSaveToMcpDoesNotPullSessionsWhenSseIsConnected();
   await testEventSourceReconnectRecovery();
   await testStalePreviewSaveRequiresConfirmation();
   await testRepeatedSaveToMcpIdempotency();

@@ -99,7 +99,7 @@ test('item and handoff mutation paths use SSE-aware session refresh fallback', (
   const history = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
 
   assert.match(history, /async function refreshSessionsWhenEventsDisconnected\(\)/);
-  assert.match(history, /if \(isConsoleEventsConnected\(\)\) return state\.sessionSummaries \|\| \[\];/);
+  assert.match(history, /if \(isConsoleEventsConnected\(\) \|\| wasConsoleEventsRecentlyConnected\(\)\) return state\.sessionSummaries \|\| \[\];/);
 
   const savedUpdate = body(annotations, 'function applySavedSessionUpdate(updatedSession, sessionId)');
   assert.doesNotMatch(savedUpdate, /refreshSessions\(\)\.catch\(showError\)/);

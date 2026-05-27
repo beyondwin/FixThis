@@ -2,14 +2,20 @@
             // sse.js — late-SSE-message session-equality gate and connection
             // state for preview fallback polling.
             let consoleEventsConnected = false;
+            let consoleEventsLastConnectedAt = 0;
 
             function setConsoleEventsConnected(connected) {
               consoleEventsConnected = connected === true;
+              if (consoleEventsConnected) consoleEventsLastConnectedAt = Date.now();
               return consoleEventsConnected;
             }
 
             function isConsoleEventsConnected() {
               return consoleEventsConnected;
+            }
+
+            function wasConsoleEventsRecentlyConnected(maxAgeMs = 1000) {
+              return consoleEventsLastConnectedAt > 0 && (Date.now() - consoleEventsLastConnectedAt) <= maxAgeMs;
             }
 
             function shouldUsePreviewFallbackPolling() {

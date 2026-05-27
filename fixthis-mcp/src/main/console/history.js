@@ -377,7 +377,7 @@
             }
 
             async function refreshSessionsWhenEventsDisconnected() {
-              if (isConsoleEventsConnected()) return state.sessionSummaries || [];
+              if (isConsoleEventsConnected() || wasConsoleEventsRecentlyConnected()) return state.sessionSummaries || [];
               return refreshSessions();
             }
 
