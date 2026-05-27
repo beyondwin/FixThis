@@ -4,7 +4,9 @@ import {
   assertCopiedPrompt,
   assertSessionHandedOffItems,
   buildReport,
+  mcpToolRequest,
   parseArgs,
+  parseMcpToolResponse,
   renderMarkdownReport,
   selectRuntimeFixtures,
   statusForEnvironment,
@@ -99,6 +101,35 @@ test("assertSessionHandedOffItems counts copied items with last handoff timestam
   assert.deepEqual(assertSessionHandedOffItems(session, ["ann-1", "ann-2"]), {
     itemCount: 3,
     handedOffCount: 2,
+  });
+});
+
+test("mcpToolRequest builds a tools/call JSON-RPC request", () => {
+  assert.deepEqual(mcpToolRequest(7, "fixthis_open_feedback_console", { packageName: "com.example.reply", newSession: true }), {
+    jsonrpc: "2.0",
+    id: 7,
+    method: "tools/call",
+    params: {
+      name: "fixthis_open_feedback_console",
+      arguments: { packageName: "com.example.reply", newSession: true },
+    },
+  });
+});
+
+test("parseMcpToolResponse decodes JSON text content", () => {
+  const response = {
+    id: 2,
+    result: {
+      content: [{
+        type: "text",
+        text: JSON.stringify({ consoleUrl: "http://127.0.0.1:1234/", sessionId: "session-1" }),
+      }],
+    },
+  };
+
+  assert.deepEqual(parseMcpToolResponse(response), {
+    consoleUrl: "http://127.0.0.1:1234/",
+    sessionId: "session-1",
   });
 });
 

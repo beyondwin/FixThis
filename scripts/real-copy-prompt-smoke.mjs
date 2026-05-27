@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { spawn } from "node:child_process";
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import {
   installRuntimeFixture,
@@ -159,6 +161,99 @@ export function writeReports(report, reportDir) {
   writeFileSync(join(reportDir, "report.md"), renderMarkdownReport(report));
 }
 
+export function mcpToolRequest(id, name, args) {
+  return {
+    jsonrpc: "2.0",
+    id,
+    method: "tools/call",
+    params: { name, arguments: args },
+  };
+}
+
+export function parseMcpToolResponse(message) {
+  if (message.error) throw new Error(JSON.stringify(message.error));
+  const text = message.result?.content?.find((entry) => entry.type === "text")?.text;
+  if (!text) throw new Error("MCP response did not include text content");
+  return JSON.parse(text);
+}
+
+async function startMcpServer({ mcpBin, projectDir, packageName }) {
+  const child = spawn(mcpBin, ["--project-dir", projectDir, "--package", packageName], {
+    cwd: repoRoot,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  const stderr = [];
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk) => stderr.push(chunk));
+
+  const closed = new Promise((resolveClose) => child.once("close", resolveClose));
+  const rl = createInterface({ input: child.stdout });
+  const pending = new Map();
+  rl.on("line", (line) => {
+    if (!line.trim()) return;
+    let message;
+    try {
+      message = JSON.parse(line);
+    } catch {
+      return;
+    }
+    const slot = pending.get(message.id);
+    if (!slot) return;
+    pending.delete(message.id);
+    slot.resolve(message);
+  });
+
+  let nextId = 1;
+  function send(message) {
+    child.stdin.write(`${JSON.stringify(message)}\n`);
+  }
+  async function request(message, timeoutMs = 30_000) {
+    const id = message.id;
+    const promise = new Promise((resolveMessage, reject) => {
+      const timeout = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error(`Timed out waiting for MCP response ${id}: ${stderr.join("").trim()}`));
+      }, timeoutMs);
+      pending.set(id, {
+        resolve: (value) => {
+          clearTimeout(timeout);
+          resolveMessage(value);
+        },
+      });
+    });
+    send(message);
+    return promise;
+  }
+
+  await request({
+    jsonrpc: "2.0",
+    id: nextId++,
+    method: "initialize",
+    params: {
+      protocolVersion: "2024-11-05",
+      clientInfo: { name: "real-copy-prompt-smoke", version: "0" },
+      capabilities: {},
+    },
+  });
+  send({ jsonrpc: "2.0", method: "notifications/initialized", params: {} });
+
+  return {
+    async callTool(name, args) {
+      return parseMcpToolResponse(await request(mcpToolRequest(nextId++, name, args)));
+    },
+    async close() {
+      rl.close();
+      child.stdin.end();
+      if (!child.killed) child.kill("SIGTERM");
+      await Promise.race([
+        closed,
+        new Promise((resolveClose) => setTimeout(resolveClose, 5_000)),
+      ]);
+      if (!child.killed) child.kill("SIGKILL");
+    },
+  };
+}
+
 function androidDeviceName(environment) {
   return environment.device || environment.serial || null;
 }
@@ -168,21 +263,35 @@ function ensureMcpDistribution() {
   return join(repoRoot, "fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp");
 }
 
-async function runSelectedFixture(fixture) {
+async function runSelectedFixture(fixture, options) {
   const app = {
     fixtureId: fixture.id,
     packageName: fixture.applicationId,
     status: "fail",
     failures: [],
   };
+  let mcp = null;
   try {
     const paths = installRuntimeFixture(fixture, { stdio: "inherit" });
     app.projectDir = paths.projectWorkDir;
+    mcp = await startMcpServer({
+      mcpBin: options.mcpBin,
+      projectDir: paths.projectWorkDir,
+      packageName: fixture.applicationId,
+    });
+    const opened = await mcp.callTool("fixthis_open_feedback_console", {
+      packageName: fixture.applicationId,
+      newSession: true,
+    });
+    app.sessionId = opened.sessionId;
+    app.consoleUrl = opened.consoleUrl;
     app.status = "pass";
     return app;
   } catch (error) {
     app.failures.push(error.message);
     return app;
+  } finally {
+    await mcp?.close?.();
   }
 }
 
@@ -215,12 +324,12 @@ export async function runSmoke(options) {
     return { report, exitCode: preflight.exitCode };
   }
 
-  await ensureMcpDistribution();
+  const mcpBin = await ensureMcpDistribution();
   const manifest = loadManifest();
   const fixtures = selectRuntimeFixtures(manifest, options.fixtureIds);
   const apps = [];
   for (const fixture of fixtures) {
-    apps.push(await runSelectedFixture(fixture, { ...options, environment }));
+    apps.push(await runSelectedFixture(fixture, { ...options, environment, mcpBin }));
   }
   const report = buildReport({
     strict: options.strict,
