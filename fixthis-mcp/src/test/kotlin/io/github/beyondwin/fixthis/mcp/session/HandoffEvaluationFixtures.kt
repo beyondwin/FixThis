@@ -31,6 +31,7 @@ internal data class HandoffEvaluationCase(
     val selectedRole: String? = null,
     val selectedTestTag: String? = null,
     val targetWarnings: List<String> = emptyList(),
+    val expectedBoundaryToken: String? = null,
     val sourceCandidates: List<HandoffEvaluationSourceCandidate> = emptyList(),
     val expectedRole: EditSurfaceRoleDto,
     val expectedTop3Contains: String? = null,

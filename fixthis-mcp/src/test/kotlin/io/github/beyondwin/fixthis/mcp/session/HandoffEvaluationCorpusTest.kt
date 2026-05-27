@@ -96,5 +96,35 @@ class HandoffEvaluationCorpusTest {
         }
     }
 
+    @Test
+    fun corpusItemsRenderBoundaryGuidanceWhenExpected() {
+        val corpus = HandoffEvaluationFixtures.loadCorpus()
+        val items = corpus.cases.map { HandoffEvaluationFixtures.annotationFor(it) }
+        val session = SessionDto(
+            sessionId = "handoff-boundary-eval",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = corpus.cases.map { HandoffEvaluationFixtures.screenFor(it) },
+            items = items.mapIndexed { index, item -> item.copy(sequenceNumber = index + 1) },
+        )
+
+        val compact = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+        val precise = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
+
+        corpus.cases.filter { it.expectedBoundaryToken != null }.forEach { case ->
+            val expectedToken = requireNotNull(case.expectedBoundaryToken)
+            assertTrue(
+                compact.contains("targetBoundary=$expectedToken"),
+                "COMPACT missing boundary token for ${case.id}\n$compact",
+            )
+            assertTrue(
+                precise.contains("- Boundary:"),
+                "PRECISE missing boundary guidance for ${case.id}\n$precise",
+            )
+        }
+    }
+
     private fun EditSurfaceRoleDto.renderToken(): String = name.lowercase().replace("_", "-")
 }

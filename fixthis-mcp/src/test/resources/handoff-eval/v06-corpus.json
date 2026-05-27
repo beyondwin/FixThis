@@ -80,6 +80,7 @@
       "targetType": "area",
       "sourceCandidates": [],
       "expectedRole": "VISUAL_AREA",
+      "expectedBoundaryToken": "visual-area",
       "expectedTop3Contains": null,
       "allowHighConfidence": false
     },
@@ -90,6 +91,7 @@
       "targetWarnings": ["POSSIBLE_VIEW_INTEROP"],
       "sourceCandidates": [],
       "expectedRole": "INTEROP_RISK",
+      "expectedBoundaryToken": "interop-risk",
       "expectedTop3Contains": null,
       "allowHighConfidence": false
     },
