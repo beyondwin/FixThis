@@ -62,6 +62,8 @@
     "source-matching:fixtures:runtime": "node scripts/source-matching-fixtures.mjs runtime",
     "source-matching:fixtures:report": "node scripts/source-matching-fixtures.mjs report",
     "source-matching:fixtures:test": "node --test scripts/source-matching-fixtures-test.mjs",
+    "real-copy-prompt:smoke": "node scripts/real-copy-prompt-smoke.mjs",
+    "real-copy-prompt:smoke:test": "node --test scripts/real-copy-prompt-smoke-test.mjs",
     "release:package:test": "node --test scripts/package-cli-release-test.mjs && node --test scripts/install-fixthis-test.mjs",
     "release:npm:test": "node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs",
     "release:compat:test": "node --test scripts/android-compatibility-docs-test.mjs",
