@@ -376,6 +376,11 @@
               return response.sessions || [];
             }
 
+            async function refreshSessionsWhenEventsDisconnected() {
+              if (isConsoleEventsConnected()) return state.sessionSummaries || [];
+              return refreshSessions();
+            }
+
             async function refresh() {
               error.textContent = '';
               await refreshSessions();

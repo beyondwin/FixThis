@@ -117,7 +117,7 @@
                         try {
                             const updated = await markItemsHandedOff(sessionId, itemIds);
                             setConsoleSession(updated);
-                            await refreshSessions();
+                            await refreshSessionsWhenEventsDisconnected();
                             renderInspectorRegion();
                         } catch (markError) {
                             showWarning('Copied, but MCP handoff status was not updated. Copy again after the connection recovers to update item state.');
@@ -163,7 +163,7 @@
                         comment.value = '';
                         resetComposer();
                         clearPreview();
-                        await refreshSessions();
+                        await refreshSessionsWhenEventsDisconnected();
                         render();
                         sent = true;
                     } finally {

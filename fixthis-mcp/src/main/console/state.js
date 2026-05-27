@@ -244,7 +244,7 @@
                 setWorkspace: replaceDraftWorkspace,
                 onStaleResponse: () => {
                   showWarning('An older draft save finished after newer edits. Your latest local edits are still here.');
-                  refreshSessions().catch(showError);
+                  refreshSessionsWhenEventsDisconnected().catch(showError);
                 },
                 onError: showError,
               });

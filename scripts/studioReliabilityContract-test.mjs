@@ -11,6 +11,8 @@ const polling = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/polling
 const annotations = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/annotations.js'), 'utf8');
 const main = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/main.js'), 'utf8');
 const previewSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
+const prompt = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/prompt.js'), 'utf8');
+const stateSource = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/state.js'), 'utf8');
 
 function body(source, signature) {
   const start = source.indexOf(signature);
@@ -91,4 +93,33 @@ test('automatic preview refreshes are fallback-only while SSE is connected', () 
   assert.match(main, /if \(shouldAutoFetchPreviewFallback\(\)\) return refreshPreview\(\);/);
   assert.doesNotMatch(main, /if \(!document\.hidden && shouldAutoFetchPreview\(\)\) refreshPreview\(\)\.catch\(showError\);/);
   assert.doesNotMatch(main, /if \(shouldAutoFetchPreview\(\)\) return refreshPreview\(\);/);
+});
+
+test('item and handoff mutation paths use SSE-aware session refresh fallback', () => {
+  const history = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
+
+  assert.match(history, /async function refreshSessionsWhenEventsDisconnected\(\)/);
+  assert.match(history, /if \(isConsoleEventsConnected\(\)\) return state\.sessionSummaries \|\| \[\];/);
+
+  const savedUpdate = body(annotations, 'function applySavedSessionUpdate(updatedSession, sessionId)');
+  assert.doesNotMatch(savedUpdate, /refreshSessions\(\)\.catch\(showError\)/);
+  assert.match(savedUpdate, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
+
+  const deleteSaved = body(annotations, 'async function deleteSavedEvidenceItem(itemId');
+  assert.doesNotMatch(deleteSaved, /refreshSessions\(\)\.catch\(showError\)/);
+  assert.match(deleteSaved, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
+
+  const persistPending = body(annotations, 'async function persistPendingFeedbackItems(options = {})');
+  assert.doesNotMatch(persistPending, /await refreshSessions\(\);/);
+  assert.match(persistPending, /await refreshSessionsWhenEventsDisconnected\(\);/);
+
+  const copyPromptBody = body(prompt, 'async function copyPrompt()');
+  assert.doesNotMatch(copyPromptBody, /await refreshSessions\(\);/);
+  assert.match(copyPromptBody, /await refreshSessionsWhenEventsDisconnected\(\);/);
+
+  const sendAgentBody = body(prompt, 'async function sendAgentPrompt()');
+  assert.doesNotMatch(sendAgentBody, /await refreshSessions\(\);/);
+  assert.match(sendAgentBody, /await refreshSessionsWhenEventsDisconnected\(\);/);
+
+  assert.match(stateSource, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
 });

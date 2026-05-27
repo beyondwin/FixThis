@@ -505,9 +505,9 @@
                 setConsoleSession(updatedSession);
                 renderCurrentSessionList();
                 updateComposerState();
-                refreshSessions().catch(showError);
+                refreshSessionsWhenEventsDisconnected().catch(showError);
               } else {
-                refreshSessions().catch(showError);
+                refreshSessionsWhenEventsDisconnected().catch(showError);
               }
               return updatedSession;
             }
@@ -543,9 +543,9 @@
                 renderPreviewOnly();
                 renderInspectorRegion();
                 renderCurrentSessionList();
-                refreshSessions().catch(showError);
+                refreshSessionsWhenEventsDisconnected().catch(showError);
               } else {
-                refreshSessions().catch(showError);
+                refreshSessionsWhenEventsDisconnected().catch(showError);
               }
             }
 
@@ -623,7 +623,7 @@
                 if (onlyWrittenComments && keepResidualDraftActive) saveResidualPinOnlyDraft(residualPinOnlyItems, { keepActive: true });
                 return state.session;
               }
-              await refreshSessions();
+              await refreshSessionsWhenEventsDisconnected();
               return state.session;
             }
 
