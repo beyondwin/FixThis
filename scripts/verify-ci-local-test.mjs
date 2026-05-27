@@ -34,6 +34,7 @@ test("--fast lists the quick CI mirror without Gradle", () => {
     "node scripts/check-release-readiness.mjs",
     "npm run release:v06:evidence:test",
     "npm run docs:agent-bootstrap:test",
+    "npm run evidence:test",
     "npm run first-run:smoke:test",
     "npm run detekt:baseline:check",
     "npm run checks:observation:test",
