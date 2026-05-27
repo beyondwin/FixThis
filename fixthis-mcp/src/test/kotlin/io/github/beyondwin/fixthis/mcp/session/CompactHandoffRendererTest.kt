@@ -2322,6 +2322,30 @@ class CompactHandoffRendererTest {
         assertTrue(markdown.contains("role=layout-or-style"))
     }
 
+    @Test
+    fun compactHandoffRendersTargetBoundaryTokenForInteropRisk() {
+        val markdown = CompactHandoffRenderer.render(
+            oneItemSession(
+                AnnotationDto(
+                    itemId = "item-boundary",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                    comment = "Fix native chart spacing",
+                    sequenceNumber = 1,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(markdown.contains("  targetBoundary=interop-risk"), markdown)
+        assertTrue(markdown.contains("  targetAction=treat-source-paths-as-hints"), markdown)
+    }
+
     private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(
         sessionId = "session-one-item",
         packageName = "io.github.beyondwin.fixthis.sample",

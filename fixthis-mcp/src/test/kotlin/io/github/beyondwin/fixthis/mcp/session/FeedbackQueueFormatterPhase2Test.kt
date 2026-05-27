@@ -399,6 +399,54 @@ class FeedbackQueueFormatterPhase2Test {
         )
     }
 
+    @Test
+    fun boundaryGuidance_rendersBeforeLikelySourceForInteropRisk() {
+        val item = annotationWith(
+            sourceCandidates = listOf(sourceCandidate(file = "sample/DiagnosticsScreen.kt")),
+            editSurfaceCandidates = emptyList(),
+            targetReliability = reliability(
+                confidence = io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.LOW,
+                warnings = listOf(
+                    io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP,
+                ),
+            ),
+        )
+
+        val md = FeedbackQueueFormatter.toMarkdown(sessionOf(item), DetailMode.PRECISE)
+
+        val boundaryIndex = md.indexOf("- Boundary: possible AndroidView/WebView target")
+        val sourceIndex = md.indexOf("1. `sample/DiagnosticsScreen.kt`")
+        assertTrue(boundaryIndex >= 0, "missing boundary guidance\n$md")
+        assertTrue(sourceIndex > boundaryIndex, "boundary guidance must precede source candidates\n$md")
+        assertTrue(md.contains("- Boundary action: inspect the Compose parent or native view boundary before editing."))
+    }
+
+    @Test
+    fun boundaryGuidance_visualAreaNoSourceDoesNotInventSource() {
+        val item = AnnotationDto(
+            itemId = "area-no-source",
+            screenId = "screen-1",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 160f, 80f)),
+            sourceCandidates = emptyList(),
+            editSurfaceCandidates = emptyList(),
+            comment = "Tighten this empty area",
+            targetReliability = reliability(
+                confidence = io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.LOW,
+                warnings = listOf(
+                    io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning.VISUAL_AREA_ONLY,
+                ),
+            ),
+        )
+
+        val md = FeedbackQueueFormatter.toMarkdown(sessionOf(item), DetailMode.PRECISE)
+
+        assertTrue(md.contains("- Boundary: visual area target; do not infer an exact Compose owner from nearby labels."))
+        assertTrue(md.contains("No source candidate from current evidence; search by target labels and request."))
+        assertTrue(!md.contains("Likely Source:\n1."), "must not invent a source candidate\n$md")
+    }
+
     private fun renderWith(
         warnings: List<io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning>,
     ): String {

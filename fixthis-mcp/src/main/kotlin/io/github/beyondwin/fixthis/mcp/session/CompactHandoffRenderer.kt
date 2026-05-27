@@ -199,6 +199,9 @@ object CompactHandoffRenderer {
         appendLine("  id: ${item.itemId}")
         val owner = TargetOwnerResolver.resolve(item, context.screen)
         appendLine("  ${TargetSummaryFormatter.render(item, owner)}")
+        TargetBoundaryGuidance.from(item).compactToken?.let { token ->
+            appendLine("  targetBoundary=$token")
+        }
         appendLine(compactUiLine(item, context.isOverlap, context.instanceLabel, context.dupRefMarker))
         item.screenshotCrop?.desktopCropPath?.let { appendLine("crop: ${it.inlineSafe()}") }
         appendEditSurfaceBlock(item)
