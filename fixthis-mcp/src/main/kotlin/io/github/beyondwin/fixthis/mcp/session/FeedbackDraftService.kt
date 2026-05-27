@@ -6,9 +6,6 @@ import io.github.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculat
 import io.github.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 
 internal data class PreviewFeedbackSaveReservation(
     val sessionId: String,
@@ -261,16 +258,9 @@ class FeedbackDraftService(
         reservation: PreviewFeedbackSaveReservation,
         fingerprintCheck: PreviewSaveFingerprintCheck = PreviewSaveFingerprintCheck(),
     ): PreviewFeedbackSaveResult = try {
-        enforceFingerprintMatch(
-            fingerprintCheck.frozenFingerprint,
-            fingerprintCheck.currentFingerprint,
-            fingerprintCheck.forceMismatchOverride,
-        )
-        val fingerprintUnavailableReason = fingerprintUnavailableReason(
-            fingerprintCheck.frozenFingerprint,
-            fingerprintCheck.currentFingerprint,
-        )
-        val eventMetadata = previewSaveEventMetadata(
+        PreviewFingerprintPolicy.enforce(fingerprintCheck)
+        val fingerprintUnavailableReason = PreviewFingerprintPolicy.unavailableReason(fingerprintCheck)
+        val eventMetadata = PreviewFingerprintPolicy.eventMetadata(
             fingerprintCheck = fingerprintCheck,
             fingerprintUnavailableReason = fingerprintUnavailableReason,
         )
@@ -345,14 +335,10 @@ class FeedbackDraftService(
     private fun previewReliabilityWarnings(
         fingerprintCheck: PreviewSaveFingerprintCheck,
         fingerprintUnavailableReason: String?,
-    ): List<TargetReliabilityWarning> = buildList {
-        if (fingerprintCheck.forceMismatchOverride) {
-            add(TargetReliabilityWarning.SCREEN_FINGERPRINT_MISMATCH_FORCED)
-        }
-        if (fingerprintUnavailableReason != null) {
-            add(TargetReliabilityWarning.SCREEN_FINGERPRINT_UNAVAILABLE)
-        }
-    }
+    ): List<TargetReliabilityWarning> = PreviewFingerprintPolicy.reliabilityWarnings(
+        fingerprintCheck = fingerprintCheck,
+        fingerprintUnavailableReason = fingerprintUnavailableReason,
+    )
 
     internal fun cancelPreviewFeedbackSave(reservation: PreviewFeedbackSaveReservation) {
         releasePreviewSaveReservation(reservation.inFlightKey)
@@ -361,38 +347,6 @@ class FeedbackDraftService(
     private fun releasePreviewSaveReservation(inFlightKey: String) {
         synchronized(lock) {
             previewSavesInFlight.remove(inFlightKey)
-        }
-    }
-
-    private fun enforceFingerprintMatch(
-        frozenFingerprint: String?,
-        currentFingerprint: String?,
-        forceMismatchOverride: Boolean,
-    ) {
-        if (forceMismatchOverride || frozenFingerprint == null || currentFingerprint == null) return
-        if (frozenFingerprint != currentFingerprint) {
-            throw ScreenFingerprintMismatch(frozenFingerprint, currentFingerprint)
-        }
-    }
-
-    private fun fingerprintUnavailableReason(frozenFingerprint: String?, currentFingerprint: String?): String? = when {
-        frozenFingerprint == null && currentFingerprint == null -> "frozen_and_current_fingerprint_unavailable"
-        frozenFingerprint == null -> "frozen_fingerprint_unavailable"
-        currentFingerprint == null -> "current_fingerprint_unavailable"
-        else -> null
-    }
-
-    private fun previewSaveEventMetadata(
-        fingerprintCheck: PreviewSaveFingerprintCheck,
-        fingerprintUnavailableReason: String?,
-    ): JsonObject = buildJsonObject {
-        if (fingerprintCheck.forceMismatchOverride) put("forceMismatchOverride", true)
-        if (fingerprintUnavailableReason != null) {
-            put("fingerprintUnavailableReason", fingerprintUnavailableReason)
-        }
-        put("frozenFingerprintSource", fingerprintCheck.frozenFingerprintSource)
-        if (fingerprintCheck.clientFrozenFingerprintMismatched) {
-            put("clientFrozenFingerprintMismatched", true)
         }
     }
 
