@@ -92,6 +92,28 @@ class InstallAgentJsonReportTest {
     }
 
     @Test
+    fun topLevelNextActionPrefersReadinessNextActionWhenProvided() {
+        val rendered = InstallAgentJsonReport.render(
+            applied = emptyList(),
+            skipped = emptyList(),
+            errors = emptyList(),
+            next = listOf("restart your agent", "fixthis doctor --project-dir /repo --json"),
+            readiness = FirstRunReadinessCatalog.configRecoverable(
+                cause = "Setup completed; verify with doctor.",
+            ).copy(
+                nextAction = "fixthis doctor --project-dir /repo --json",
+            ),
+            restartRequired = true,
+        )
+
+        val obj = Json.parseToJsonElement(rendered).jsonObject
+        assertEquals(
+            "fixthis doctor --project-dir /repo --json",
+            obj.getValue("nextAction").jsonPrimitive.content,
+        )
+    }
+
+    @Test
     fun emptyReportIsOk() {
         val rendered = InstallAgentJsonReport.render(
             applied = listOf(

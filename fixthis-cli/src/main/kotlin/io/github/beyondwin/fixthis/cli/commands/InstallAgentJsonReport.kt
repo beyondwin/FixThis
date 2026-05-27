@@ -97,7 +97,8 @@ internal object InstallAgentJsonReport {
                 },
             )
             put("next", buildJsonArray { next.forEach { add(it) } })
-            next.firstOrNull()?.let { put("nextAction", it) }
+            val preferredNextAction = readiness?.nextAction ?: next.firstOrNull()
+            preferredNextAction?.let { put("nextAction", it) }
             putReadiness(readiness)
             put("restartRequired", restartRequired)
         }
