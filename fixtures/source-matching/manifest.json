@@ -108,6 +108,12 @@
           "expectedConfidence": "medium-or-high",
           "expectedSourceConfidence": "medium-or-high",
           "mustNotWarn": ["POSSIBLE_VIEW_INTEROP"]
+        },
+        {
+          "id": "fixthis-sample-copy-data-source-index",
+          "mode": "source-index",
+          "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+          "expectedSignal": { "kind": "ARBITRARY_STRING_LITERAL", "value": "Refresh" }
         }
       ]
     }

@@ -99,6 +99,14 @@ test("runtime trust manifest includes focused Reply, local sample, and Jetsnack 
   assert.ok(cases.some((testCase) => testCase.fixtureId === "jetsnack" && testCase.id === "jetsnack-filters-runtime"));
 });
 
+test("manifest includes local copy-data source trust case", () => {
+  const manifest = readJson("fixtures/source-matching/manifest.json");
+  const local = manifest.fixtures.find((fixture) => fixture.id === "fixthis-sample");
+  assert.ok(local, "fixthis-sample fixture is required");
+  const ids = new Set(local.cases.map((entry) => entry.id));
+  assert.ok(ids.has("fixthis-sample-copy-data-source-index"));
+});
+
 test("validateManifest rejects floating commits and unsafe paths", () => {
   assert.throws(
     () => validateManifest({

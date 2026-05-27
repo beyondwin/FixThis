@@ -54,6 +54,12 @@ Run source-index evaluation:
 npm run source-matching:fixtures
 ```
 
+The local `fixthis-sample-copy-data-source-index` case protects V1 trust
+hardening by keeping copy/data text evidence visible in the source index
+without requiring a device-backed runtime observation. Layout-renderer evidence
+is protected by `KotlinSourceScannerTest` and `SourceMatcherTest`, where the
+scanner and matcher can control layout-specific source snippets directly.
+
 Run device-backed runtime trust evaluation:
 
 ```bash
