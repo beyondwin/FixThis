@@ -137,6 +137,23 @@ record the decision in `docs/architecture/adr/` before changing the guard.
 Prefer fixing new detekt findings over expanding a baseline; remove stale
 baseline entries when a refactor makes them disappear.
 
+### Local Evidence Profiles
+
+Use the evidence runner when you want a named local validation profile with a
+JSON and Markdown report under `build/reports/fixthis-evidence/`.
+
+```bash
+npm run evidence:fast -- --dry-run
+npm run evidence:trust
+npm run evidence:console
+npm run evidence:release
+```
+
+The runner is a convenience layer over canonical commands. If a profile fails,
+rerun the failed command printed in the summary. Runtime trust checks are
+reported as deferred when Android SDK or a ready emulator is unavailable unless
+the profile is run with `--strict-runtime`.
+
 ### Focused Test Loops
 
 Use focused loops while iterating, then run the full local checklist before

@@ -255,6 +255,11 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   'This evidence pack does not add PyPI, Docker, or any new package channel.',
 );
+requireIncludes(
+  'R31.v1-evidence-runner-contributing',
+  'CONTRIBUTING.md',
+  'npm run evidence:fast -- --dry-run',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

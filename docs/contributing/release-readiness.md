@@ -127,6 +127,10 @@ Runtime trust remains local-only. If Android SDK or an unlocked emulator is
 unavailable, record `npm run source-matching:fixtures:runtime -- --strict` as
 deferred rather than implying it passed.
 
+The evidence runner writes local reports under
+`build/reports/fixthis-evidence/`; those reports are useful release-issue
+attachments but are not committed.
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.
