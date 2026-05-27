@@ -19,6 +19,7 @@ class HandoffEvaluationCorpusTest {
                 "spacing-layout",
                 "visual-area-gap",
                 "interop-risk",
+                "interop-risk-with-compose-host",
                 "ambiguous-repeated-text",
             ),
             corpus.cases.map { it.id },
@@ -124,6 +125,30 @@ class HandoffEvaluationCorpusTest {
                 "PRECISE missing boundary guidance for ${case.id}\n$precise",
             )
         }
+    }
+
+    @Test
+    fun corpusInteropHostCaseRendersBoundaryContext() {
+        val case = HandoffEvaluationFixtures.loadCorpus().cases.single { it.id == "interop-risk-with-compose-host" }
+        val item = HandoffEvaluationFixtures.annotationFor(case)
+        val session = SessionDto(
+            sessionId = "handoff-boundary-context-eval",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(HandoffEvaluationFixtures.screenFor(case)),
+            items = listOf(item.copy(sequenceNumber = 1)),
+        )
+
+        val compact = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
+        val precise = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
+
+        assertTrue(compact.contains("boundaryContext: tag=\"comp:NativeChartHost:chart\""), compact)
+        assertTrue(
+            precise.contains("- Boundary context: nearest Compose context tag=\"comp:NativeChartHost:chart\""),
+            precise,
+        )
     }
 
     private fun EditSurfaceRoleDto.renderToken(): String = name.lowercase().replace("_", "-")

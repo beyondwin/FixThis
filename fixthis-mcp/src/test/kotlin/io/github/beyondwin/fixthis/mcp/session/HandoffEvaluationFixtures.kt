@@ -32,6 +32,7 @@ internal data class HandoffEvaluationCase(
     val selectedTestTag: String? = null,
     val targetWarnings: List<String> = emptyList(),
     val expectedBoundaryToken: String? = null,
+    val nearbyNodes: List<HandoffEvaluationNode> = emptyList(),
     val sourceCandidates: List<HandoffEvaluationSourceCandidate> = emptyList(),
     val expectedRole: EditSurfaceRoleDto,
     val expectedTop3Contains: String? = null,
@@ -48,6 +49,14 @@ internal data class HandoffEvaluationSourceCandidate(
     val matchReasons: List<String> = emptyList(),
     val matchedTerms: List<String> = emptyList(),
     val ownerComposable: String? = null,
+)
+
+@Serializable
+internal data class HandoffEvaluationNode(
+    val uid: String,
+    val text: List<String> = emptyList(),
+    val role: String? = null,
+    val testTag: String? = null,
 )
 
 internal object HandoffEvaluationFixtures {
@@ -87,6 +96,7 @@ internal object HandoffEvaluationFixtures {
         } else {
             AnnotationTargetDto.Node(requireNotNull(node).uid, bounds)
         }
+        val nearbyNodes = case.nearbyNodes.map { it.toNode(case.id) }
         val sourceCandidates = case.sourceCandidates.map { it.toSourceCandidate() }
         val item = AnnotationDto(
             itemId = "item-${case.id}",
@@ -95,14 +105,19 @@ internal object HandoffEvaluationFixtures {
             updatedAtEpochMillis = 1L,
             target = target,
             selectedNode = node,
+            nearbyNodes = nearbyNodes,
             sourceCandidates = sourceCandidates,
             comment = case.comment,
             targetReliability = reliabilityFor(case),
         )
-        return item.copy(editSurfaceCandidates = EditSurfaceCandidateService.build(item, screenFor(case, node)))
+        return item.copy(editSurfaceCandidates = EditSurfaceCandidateService.build(item, screenFor(case, node, nearbyNodes)))
     }
 
-    fun screenFor(case: HandoffEvaluationCase, node: FixThisNode? = null): SnapshotDto = SnapshotDto(
+    fun screenFor(
+        case: HandoffEvaluationCase,
+        node: FixThisNode? = null,
+        nearbyNodes: List<FixThisNode> = emptyList(),
+    ): SnapshotDto = SnapshotDto(
         screenId = "screen-${case.id}",
         capturedAtEpochMillis = 1L,
         displayName = "Eval",
@@ -110,7 +125,7 @@ internal object HandoffEvaluationFixtures {
             SnapshotRootDto(
                 rootIndex = 0,
                 boundsInWindow = FixThisRect(0f, 0f, 400f, 800f),
-                mergedNodes = listOfNotNull(node),
+                mergedNodes = listOfNotNull(node) + nearbyNodes,
             ),
         ),
     )
@@ -124,6 +139,18 @@ internal object HandoffEvaluationFixtures {
         matchReasons = matchReasons,
         matchedTerms = matchedTerms,
         ownerComposable = ownerComposable,
+    )
+
+    private fun HandoffEvaluationNode.toNode(caseId: String): FixThisNode = FixThisNode(
+        uid = uid,
+        composeNodeId = "$caseId-$uid".hashCode(),
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(0f, 80f, 320f, 260f),
+        text = text,
+        role = role,
+        testTag = testTag,
+        path = listOf("root", uid),
     )
 
     private fun reliabilityFor(case: HandoffEvaluationCase): TargetReliability? {

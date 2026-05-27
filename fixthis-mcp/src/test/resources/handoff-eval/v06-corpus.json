@@ -96,6 +96,35 @@
       "allowHighConfidence": false
     },
     {
+      "id": "interop-risk-with-compose-host",
+      "comment": "Fix the native chart spacing",
+      "targetType": "area",
+      "targetWarnings": ["POSSIBLE_VIEW_INTEROP"],
+      "nearbyNodes": [
+        {
+          "uid": "native-chart-host",
+          "text": ["Revenue"],
+          "role": "Image",
+          "testTag": "comp:NativeChartHost:chart"
+        }
+      ],
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/NativeChartHost.kt",
+          "line": 31,
+          "score": 62.0,
+          "confidence": "MEDIUM",
+          "matchReasons": ["nearby testTag"],
+          "matchedTerms": ["NativeChartHost"],
+          "ownerComposable": "NativeChartHost"
+        }
+      ],
+      "expectedRole": "INTEROP_RISK",
+      "expectedBoundaryToken": "interop-risk",
+      "expectedTop3Contains": "NativeChartHost.kt",
+      "allowHighConfidence": false
+    },
+    {
       "id": "ambiguous-repeated-text",
       "comment": "Change this status copy",
       "targetType": "node",
