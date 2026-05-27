@@ -89,6 +89,52 @@ class EditSurfaceRoleClassifierTest {
         assertEquals(SelectionConfidence.LOW, role.confidenceCap)
     }
 
+    @Test
+    fun classifiesSelectedStringResourceEvidenceAsCopyOrData() {
+        val item = item(
+            comment = "Make it clearer",
+            selectedNode = node(text = listOf("Continue"), role = "Button"),
+            candidates = listOf(
+                candidate(
+                    "CheckoutStrings.kt",
+                    reasons = listOf("selected resolved stringResource"),
+                    terms = listOf("Continue"),
+                ),
+            ),
+        )
+
+        val role = EditSurfaceRoleClassifier.classify(
+            item,
+            EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)),
+        )
+
+        assertEquals(EditSurfaceRoleDto.COPY_OR_DATA, role.role)
+        assertEquals(SelectionConfidence.MEDIUM, role.confidenceCap)
+    }
+
+    @Test
+    fun classifiesLayoutRendererContextAsLayoutOrStyleWhenIntentIsUnknown() {
+        val item = item(
+            comment = "This grid feels cramped",
+            selectedNode = node(testTag = "comp:AdaptiveGrid:tile"),
+            candidates = listOf(
+                candidate(
+                    "AdaptiveGrid.kt",
+                    reasons = listOf("selected owner composable", "layout renderer context"),
+                    owner = "AdaptiveGrid",
+                ),
+            ),
+        )
+
+        val role = EditSurfaceRoleClassifier.classify(
+            item,
+            EditIntentAnalyzer.analyze(item, screenWith(item.selectedNode!!)),
+        )
+
+        assertEquals(EditSurfaceRoleDto.LAYOUT_OR_STYLE, role.role)
+        assertEquals(SelectionConfidence.LOW, role.confidenceCap)
+    }
+
     private fun item(
         comment: String,
         selectedNode: FixThisNode,

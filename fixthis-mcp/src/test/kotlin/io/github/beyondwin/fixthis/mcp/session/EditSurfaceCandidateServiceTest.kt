@@ -18,7 +18,7 @@ class EditSurfaceCandidateServiceTest {
         val item = item(
             comment = "여기 보라색",
             selectedNode = chip,
-            sourceCandidates = listOf(
+            candidates = listOf(
                 sourceCandidate(
                     file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt",
                     matchedTerms = listOf("StatusChip"),
@@ -42,7 +42,7 @@ class EditSurfaceCandidateServiceTest {
         val item = item(
             comment = "Rename this to Checkout",
             selectedNode = button,
-            sourceCandidates = listOf(
+            candidates = listOf(
                 sourceCandidate(
                     file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/PrimaryButton.kt",
                     matchedTerms = listOf("PrimaryButton"),
@@ -63,7 +63,7 @@ class EditSurfaceCandidateServiceTest {
         val item = item(
             comment = "여기 글자 파란색",
             selectedNode = label,
-            sourceCandidates = listOf(
+            candidates = listOf(
                 sourceCandidate(
                     file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt",
                     matchedTerms = listOf("MetricCard"),
@@ -85,7 +85,7 @@ class EditSurfaceCandidateServiceTest {
         val item = item(
             comment = "Rename this button to Checkout",
             selectedNode = button,
-            sourceCandidates = listOf(
+            candidates = listOf(
                 sourceCandidate(
                     file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/CheckoutScreen.kt",
                     matchedTerms = listOf("Continue"),
@@ -119,10 +119,54 @@ class EditSurfaceCandidateServiceTest {
         assertEquals(SelectionConfidence.LOW, candidates.single().confidence)
     }
 
+    @Test
+    fun selectedStringResourceCandidateBuildsCopyOrDataSurface() {
+        val button = node(uid = "button", text = listOf("Continue"), role = "Button")
+        val item = item(
+            comment = "Make it clearer",
+            selectedNode = button,
+            candidates = listOf(
+                candidate(
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/CheckoutStrings.kt",
+                    reasons = listOf("selected resolved stringResource"),
+                    terms = listOf("Continue"),
+                ),
+            ),
+        )
+
+        val candidates = EditSurfaceCandidateService.build(item, screenWith(button))
+
+        assertEquals(EditSurfaceRoleDto.COPY_OR_DATA, candidates.single().role)
+        assertEquals(EditSurfaceKindDto.COMPONENT_RENDERER, candidates.single().kind)
+        assertEquals(EditSurfaceReasonDto.SELECTED_TEXT_RENDERER, candidates.single().reasons.single())
+    }
+
+    @Test
+    fun layoutRendererContextBuildsLowConfidenceLayoutSurface() {
+        val tile = node(uid = "tile", testTag = "comp:AdaptiveGrid:tile")
+        val item = item(
+            comment = "This grid feels cramped",
+            selectedNode = tile,
+            candidates = listOf(
+                candidate(
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/AdaptiveGrid.kt",
+                    reasons = listOf("selected owner composable", "layout renderer context"),
+                    owner = "AdaptiveGrid",
+                ),
+            ),
+        )
+
+        val candidates = EditSurfaceCandidateService.build(item, screenWith(tile))
+
+        assertEquals(EditSurfaceRoleDto.LAYOUT_OR_STYLE, candidates.single().role)
+        assertEquals(EditSurfaceKindDto.SPACING, candidates.single().kind)
+        assertEquals(SelectionConfidence.LOW, candidates.single().confidence)
+    }
+
     private fun item(
         comment: String,
         selectedNode: FixThisNode,
-        sourceCandidates: List<SourceCandidate>,
+        candidates: List<SourceCandidate>,
     ): AnnotationDto = AnnotationDto(
         itemId = "item-${selectedNode.uid}",
         screenId = "screen-1",
@@ -130,7 +174,7 @@ class EditSurfaceCandidateServiceTest {
         updatedAtEpochMillis = 1L,
         target = AnnotationTargetDto.Node(selectedNode.uid, selectedNode.boundsInWindow),
         selectedNode = selectedNode,
-        sourceCandidates = sourceCandidates,
+        sourceCandidates = candidates,
         comment = comment,
     )
 
@@ -138,6 +182,7 @@ class EditSurfaceCandidateServiceTest {
         uid: String,
         text: List<String> = emptyList(),
         testTag: String? = null,
+        role: String? = null,
         bounds: FixThisRect = FixThisRect(0f, 0f, 120f, 80f),
         path: List<String> = listOf("root", uid),
     ): FixThisNode = FixThisNode(
@@ -147,6 +192,7 @@ class EditSurfaceCandidateServiceTest {
         treeKind = TreeKind.MERGED,
         boundsInWindow = bounds,
         text = text,
+        role = role,
         testTag = testTag,
         path = path,
     )
@@ -170,5 +216,20 @@ class EditSurfaceCandidateServiceTest {
         matchReasons = listOf("selected text"),
         confidence = SelectionConfidence.MEDIUM,
         ownerComposable = ownerComposable,
+    )
+
+    private fun candidate(
+        file: String,
+        reasons: List<String>,
+        terms: List<String> = emptyList(),
+        owner: String? = null,
+    ): SourceCandidate = SourceCandidate(
+        file = file,
+        line = 12,
+        score = 0.8,
+        confidence = SelectionConfidence.MEDIUM,
+        matchReasons = reasons,
+        matchedTerms = terms,
+        ownerComposable = owner,
     )
 }

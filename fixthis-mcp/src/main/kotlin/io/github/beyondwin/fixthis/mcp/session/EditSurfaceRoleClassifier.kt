@@ -21,16 +21,16 @@ internal object EditSurfaceRoleClassifier {
             confidenceCap = SelectionConfidence.LOW,
             note = "visual area selection has no precise semantics node",
         )
-        intent.primaryKind == EditSurfaceKindDto.SPACING -> decision(
+        looksLikeCopyIntent(item.comment) || hasCopyOrDataSourceEvidence(item) -> decision(
+            role = EditSurfaceRoleDto.COPY_OR_DATA,
+            confidenceCap = SelectionConfidence.MEDIUM,
+        )
+        intent.primaryKind == EditSurfaceKindDto.SPACING || hasLayoutRendererContext(item) -> decision(
             role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
             confidenceCap = SelectionConfidence.LOW,
         )
         intent.primaryKind in styleKinds() && hasComponentSignal(item) -> decision(
             role = EditSurfaceRoleDto.COMPONENT_DEFINITION,
-            confidenceCap = SelectionConfidence.MEDIUM,
-        )
-        looksLikeCopyIntent(item.comment) -> decision(
-            role = EditSurfaceRoleDto.COPY_OR_DATA,
             confidenceCap = SelectionConfidence.MEDIUM,
         )
         else -> decision(
@@ -66,6 +66,18 @@ internal object EditSurfaceRoleClassifier {
                     candidate.matchReasons.contains("selected testTag convention composable")
             }
     }
+
+    private fun hasCopyOrDataSourceEvidence(item: AnnotationDto): Boolean =
+        item.sourceCandidates.any { candidate ->
+            candidate.matchReasons.any { reason ->
+                reason == "selected stringResource" || reason == "selected resolved stringResource"
+            }
+        }
+
+    private fun hasLayoutRendererContext(item: AnnotationDto): Boolean =
+        item.sourceCandidates.any { candidate ->
+            candidate.matchReasons.contains("layout renderer context")
+        }
 
     private fun looksLikeCopyIntent(comment: String): Boolean {
         val normalized = comment.lowercase()

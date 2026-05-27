@@ -17,7 +17,8 @@ internal object EditSurfaceCandidateService {
         val candidates = when {
             item.sourceCandidates.isEmpty() -> listOf(emptySourceCandidate(intent, roleDecision))
             intent.primaryKind == EditSurfaceKindDto.UNKNOWN &&
-                roleDecision.role != EditSurfaceRoleDto.COPY_OR_DATA -> emptyList()
+                roleDecision.role != EditSurfaceRoleDto.COPY_OR_DATA &&
+                roleDecision.role != EditSurfaceRoleDto.LAYOUT_OR_STYLE -> emptyList()
             else -> sourceCandidates(item, screen, intent, roleDecision)
         }
         return candidates.distinctBy { it.file to it.line }.take(2)
@@ -30,9 +31,14 @@ internal object EditSurfaceCandidateService {
         roleDecision: EditSurfaceRoleDecision,
     ): List<EditSurfaceCandidateDto> {
         val candidates = mutableListOf<EditSurfaceCandidateDto>()
+        if (roleDecision.role == EditSurfaceRoleDto.LAYOUT_OR_STYLE) {
+            spacingCandidate(item, intent, roleDecision)?.let { candidates += it }
+        }
         ownerCandidate(item, screen, intent, roleDecision)?.let { candidates += it }
         selectedTextCandidate(item, intent, roleDecision).takeIf { candidates.isEmpty() }?.let { candidates += it }
-        spacingCandidate(item, intent, roleDecision)?.let { candidates += it }
+        if (roleDecision.role != EditSurfaceRoleDto.LAYOUT_OR_STYLE) {
+            spacingCandidate(item, intent, roleDecision)?.let { candidates += it }
+        }
         return candidates
     }
 
@@ -87,7 +93,13 @@ internal object EditSurfaceCandidateService {
         intent: EditIntent,
         roleDecision: EditSurfaceRoleDecision,
     ): EditSurfaceCandidateDto? = item.sourceCandidates
-        .firstOrNull { it.matchReasons.contains("selected text") }
+        .firstOrNull { candidate ->
+            candidate.matchReasons.any { reason ->
+                reason == "selected text" ||
+                    reason == "selected stringResource" ||
+                    reason == "selected resolved stringResource"
+            }
+        }
         ?.toEditSurface(
             kind = normalizedKind(intent),
             roleDecision = roleDecision,
@@ -100,8 +112,11 @@ internal object EditSurfaceCandidateService {
         intent: EditIntent,
         roleDecision: EditSurfaceRoleDecision,
     ): EditSurfaceCandidateDto? {
-        if (intent.primaryKind == EditSurfaceKindDto.SPACING) {
-            return item.sourceCandidates.firstOrNull()
+        if (intent.primaryKind == EditSurfaceKindDto.SPACING || roleDecision.role == EditSurfaceRoleDto.LAYOUT_OR_STYLE) {
+            val source = item.sourceCandidates.firstOrNull { candidate ->
+                candidate.matchReasons.contains("layout renderer context")
+            } ?: item.sourceCandidates.firstOrNull()
+            return source
                 ?.toEditSurface(
                     kind = EditSurfaceKindDto.SPACING,
                     roleDecision = roleDecision,
