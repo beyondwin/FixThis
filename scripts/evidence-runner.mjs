@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { delimiter, dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -87,18 +87,67 @@ export function renderDryRun(plan) {
   return `${lines.join("\n")}\n`;
 }
 
-function androidReady() {
-  const sdk = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT;
-  if (!sdk) return false;
-  const adb = spawnSync("adb", ["devices"], { cwd: repoRoot, encoding: "utf8" });
-  return adb.status === 0 && /\n\S+\s+device\b/.test(adb.stdout);
+function adbExecutableName(platform = process.platform) {
+  return platform === "win32" ? "adb.exe" : "adb";
 }
 
-function runCommand(command) {
+function sdkCandidates({ env, homeDir, platform }) {
+  const candidates = [env.ANDROID_HOME, env.ANDROID_SDK_ROOT];
+  if (homeDir) {
+    if (platform === "darwin") {
+      candidates.push(join(homeDir, "Library/Android/sdk"));
+    } else if (platform === "linux") {
+      candidates.push(join(homeDir, "Android/Sdk"));
+    }
+  }
+  return [...new Set(candidates.filter((value) => typeof value === "string" && value.trim()))];
+}
+
+export function resolveAndroidEnvironment({
+  env = process.env,
+  homeDir = process.env.HOME,
+  platform = process.platform,
+  exists = existsSync,
+  spawn = spawnSync,
+} = {}) {
+  const adbName = adbExecutableName(platform);
+  const candidates = sdkCandidates({ env, homeDir, platform });
+  const sdkWithAdb = candidates.find((candidate) => exists(join(candidate, "platform-tools", adbName)));
+  const sdk = sdkWithAdb ?? candidates.find((candidate) => candidate === env.ANDROID_HOME || candidate === env.ANDROID_SDK_ROOT);
+  if (!sdk) {
+    return {
+      ready: false,
+      reason: "Android SDK is unavailable.",
+      envPatch: {},
+    };
+  }
+
+  const platformTools = join(sdk, "platform-tools");
+  const adbFromSdk = join(platformTools, adbName);
+  const adbCommand = exists(adbFromSdk) ? adbFromSdk : "adb";
+  const envPatch = {
+    ANDROID_HOME: env.ANDROID_HOME || sdk,
+    ANDROID_SDK_ROOT: env.ANDROID_SDK_ROOT || sdk,
+    PATH: [platformTools, env.PATH].filter(Boolean).join(delimiter),
+  };
+  const adb = spawn(adbCommand, ["devices"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: { ...process.env, ...env, ...envPatch },
+  });
+  return {
+    ready: adb.status === 0 && /\n\S+\s+device\b/.test(adb.stdout),
+    reason: "Android SDK or ready emulator is unavailable.",
+    envPatch,
+  };
+}
+
+function runCommand(command, envPatch = {}) {
   const started = Date.now();
   const result = spawnSync("bash", ["-lc", command], {
     cwd: repoRoot,
     encoding: "utf8",
+    env: { ...process.env, ...envPatch },
     stdio: "pipe",
   });
   return {
@@ -168,19 +217,20 @@ export function runPlan(plan, options = {}) {
   const startedAt = new Date().toISOString();
   const steps = [];
   let status = "passed";
-  const canRunAndroid = androidReady();
+  const androidEnvironment = options.androidEnvironment ?? resolveAndroidEnvironment();
+  const runStep = options.runCommandFn ?? runCommand;
 
   for (const entry of plan.steps) {
-    if (entry.requiresAndroid && !canRunAndroid && !plan.strictRuntime) {
+    if (entry.requiresAndroid && !androidEnvironment.ready && !plan.strictRuntime) {
       steps.push({
         ...entry,
         status: "deferred",
         durationMs: 0,
-        reason: "Android SDK or ready emulator is unavailable.",
+        reason: androidEnvironment.reason,
       });
       continue;
     }
-    const result = runCommand(entry.command);
+    const result = runStep(entry.command, entry.requiresAndroid ? androidEnvironment.envPatch : {});
     steps.push({ ...entry, ...result });
     if (result.status === "failed") {
       status = "failed";
