@@ -341,6 +341,17 @@
               });
             }
 
+            function applySessionSummaryFromPayload(summary) {
+              if (!summary || !summary.sessionId) return state.sessionSummaries || [];
+              const existing = state.sessionSummaries || [];
+              const found = existing.some(session => session.sessionId === summary.sessionId);
+              const next = found
+                ? existing.map(session => session.sessionId === summary.sessionId ? summary : session)
+                : [summary, ...existing];
+              renderSessionsListFromPayload(next);
+              return next;
+            }
+
             function renderSessionsList() {
               const activeId = state.session?.sessionId;
               const navigationInFlight = isSessionNavigationInFlight();

@@ -123,3 +123,14 @@ test('item and handoff mutation paths use SSE-aware session refresh fallback', (
 
   assert.match(stateSource, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
 });
+
+test('sessions-updated events apply pushed summary without pull refresh while SSE is healthy', () => {
+  const events = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/events.js'), 'utf8');
+  const history = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
+
+  assert.match(history, /function applySessionSummaryFromPayload\(summary\)/);
+  assert.match(events, /if \(data\.summary\) \{/);
+  assert.match(events, /applySessionSummaryFromPayload\(data\.summary\);/);
+  assert.match(events, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
+  assert.doesNotMatch(events, /on\('sessions-updated'[\s\S]*refreshSessions\(\)\.catch\(showError\)/);
+});

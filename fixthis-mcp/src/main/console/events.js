@@ -63,7 +63,17 @@
                 loadPendingRecoveryForCurrentSession();
                 render();
               });
-              on('sessions-updated', (data) => data.sessions?.sessions ? renderSessionsListFromPayload(data.sessions.sessions) : refreshSessions().catch(showError));
+              on('sessions-updated', (data) => {
+                if (data.summary) {
+                  applySessionSummaryFromPayload(data.summary);
+                  return;
+                }
+                if (data.sessions?.sessions) {
+                  renderSessionsListFromPayload(data.sessions.sessions);
+                  return;
+                }
+                refreshSessionsWhenEventsDisconnected().catch(showError);
+              });
               on('preview-ready', (data) => {
                 if (!data.preview || draftFlow()) return;
                 applyLivePreview(data.preview, {
