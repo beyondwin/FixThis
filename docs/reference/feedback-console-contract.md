@@ -86,6 +86,13 @@
   automatic update path. Fallback preview polling runs only while `/api/events`
   is disconnected or unavailable, and both paths route through the same
   preview-application function and active-session fence.
+- `sessions-updated` SSE events carry a `summary` payload for the changed
+  session when the server already has authoritative session state. The browser
+  upserts that summary locally instead of fetching `/api/sessions` while
+  EventSource is healthy.
+- Interop boundary handoffs may include a `boundaryContext` line derived from
+  nearby Compose semantics. This context helps locate a likely Compose host,
+  but it is not exact AndroidView/WebView source ownership.
 - Deleting a feedback session clears browser-local draft recovery for that
   session, including schema-v2 workspace entries.
 - `Copy Prompt` / `Save to MCP` can persist the subset of pending annotations

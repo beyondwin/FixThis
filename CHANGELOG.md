@@ -88,6 +88,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   no-meaningful-Compose-target, and possible AndroidView/WebView cases so
   agents treat source candidates as context rather than exact edit ownership
   when target evidence is weak.
+- Interop-risk handoffs now render nearby Compose boundary context so agents
+  can inspect the likely host without treating it as exact AndroidView/WebView
+  source ownership.
 - The feedback console exposes local `/api/events/diagnostics` counters for
   event emissions, subscribers, replay requests, and overflow recovery.
 
@@ -111,6 +114,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Item and handoff mutation flows now skip redundant `/api/session` and
   `/api/sessions` refreshes while EventSource is healthy, keeping pull refresh
   as the manual and SSE-recovery path.
+- The feedback console now applies pushed session summaries from `/api/events`
+  and keeps session polling as an EventSource fallback instead of steady-state
+  background traffic.
 - Detekt findings cleared without behavior changes: `SourceScoringPolicy`
   bucket scoring is a single map lookup, `SourceMatcher`'s LAYOUT_RENDERER
   weight is a named constant, `CompactHandoffRenderer` reason tokens live in

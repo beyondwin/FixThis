@@ -61,8 +61,10 @@ same agent-first setup flow.
 ### Deeper AndroidView and interop awareness
 
 FixThis currently warns when a selected target may cross a View/WebView
-boundary. Future work should expose richer subtree evidence instead of only
-lowering target confidence.
+boundary. V1 now renders nearby Compose boundary context and keeps source
+candidates as context for AndroidView/WebView-risk selections. Future interop
+work should continue toward richer subtree evidence instead of exact XML/View
+source targeting.
 
 ### Finish SSE-driven console state sync
 
@@ -71,8 +73,9 @@ Phase 1 pushes session, device, connection, and preview updates over
 is disconnected. Session and preview events are fenced by active `sessionId`,
 and SSE plus fallback polling share one preview-application path.
 
-Remaining work is to reduce redundant pull refreshes and eventually retire the
-preview polling fallback once the event stream has enough production evidence.
+Remaining SSE work is to keep observing fallback behavior and remove more
+manual recovery code only after local evidence shows it is unused. Healthy
+EventSource sessions no longer rely on automatic preview or session polling.
 See [Console state sync](../architecture/console-state-sync-design.md).
 
 ### Smarter source matching

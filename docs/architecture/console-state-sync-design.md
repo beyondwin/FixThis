@@ -16,7 +16,7 @@ The console keeps two pieces of session state on the client:
 
 | Piece | Source | Drives |
 | --- | --- | --- |
-| `state.sessionSummaries` | `GET /api/sessions` (server-aggregated `FeedbackSessionSummary` list) | Sidebar History rows, working pips, session ordinals |
+| `state.sessionSummaries` | SSE `snapshot` / `sessions-updated.summary`, or fallback `GET /api/sessions` | Sidebar History rows, working pips, session ordinals |
 | `state.session` | `GET /api/session`, `POST /api/session/open`, `POST /api/agent-handoffs`, `POST /api/items/...` | Top-toolbar counter, right ANNOTATIONS panel, preview overlay, Copy Prompt / Save to MCP payload |
 
 These two are written by separate code paths and historically went out of sync.
@@ -65,17 +65,19 @@ async function refreshSessions() {
 
 `refresh()` no longer fetches `/api/session` itself — `refreshSessions()` owns that responsibility.
 
-**Change 3:** `sessions-polling.js` keeps the same two resources current while
-the console is idle. `SessionRoutes.kt` returns ETags for `/api/sessions` and
-`/api/session`; the browser sends `If-None-Match`, treats 304 as "no change",
-and only re-renders when the server state changed.
+**Change 3:** `sessions-polling.js` keeps the same two resources current only
+while the event stream is unavailable or recovering. `SessionRoutes.kt`
+returns ETags for `/api/sessions` and `/api/session`; the browser sends
+`If-None-Match`, treats 304 as "no change", and only re-renders when the
+server state changed.
 
-Polling runs every 2 seconds while the page is visible. It pauses while the
-tab is hidden, while a local mutation is in flight, and while saved-item text
-is being edited so the server refresh cannot clobber user input. After five
-consecutive polling failures it pauses and surfaces a "Reconnecting feedback
-updates..." state on the connection card. Any successful mutating action or
-tab visibility restore restarts the loop.
+Fallback polling runs every 2 seconds while the page is visible and
+EventSource is disconnected. It pauses while the tab is hidden, while a local
+mutation is in flight, and while saved-item text is being edited so the server
+refresh cannot clobber user input. After five consecutive polling failures it
+pauses and surfaces a "Reconnecting feedback updates..." state on the
+connection card. Any successful mutating action or tab visibility restore can
+restart the loop when fallback polling is active.
 
 ### Coverage - what the current design fixes
 
@@ -100,8 +102,10 @@ pane or preview after History navigation.
 
 The design is now push-first, but a few fallback gaps remain:
 
-1. **Preview polling still exists.** `/api/events` can deliver `preview-ready`,
-   but the legacy live preview interval remains for now.
+1. **Fallback polling still exists, but is not steady state.** `/api/events`
+   is the normal preview and session update path. Preview and session polling
+   restart when EventSource is disconnected, unavailable, or explicitly
+   recovering.
 2. **Fallback polling can still pause.** A hidden tab, an active edit, an
    in-flight mutation, or five consecutive polling failures intentionally stops
    the fallback loop.
@@ -161,8 +165,9 @@ Behavior:
 - On subsequent server-side state changes, server emits one of:
   - `session-updated` — payload: `{ sessionId, session }`, where `session`
     is the mutated `SessionDto`.
-  - `sessions-updated` — payload: `{ sessionId }` as a summary invalidation,
-    or a full summary list when supplied by snapshot/fallback refresh paths.
+  - `sessions-updated` — payload: `{ sessionId, summary }` for a changed
+    session, or a full summary list when supplied by snapshot/fallback refresh
+    paths.
   - `preview-ready` — payload: `{ sessionId, preview }`.
   - `devices-updated`, `connection-updated` — fold in existing polling
     concerns.
@@ -209,7 +214,9 @@ eventsSource.addEventListener('session-updated', (e) => {
 
 eventsSource.addEventListener('sessions-updated', (e) => {
   const payload = JSON.parse(e.data);
-  if (payload.sessions?.sessions) renderSessionsListFromPayload(payload.sessions.sessions);
+  if (payload.summary) applySessionSummaryFromPayload(payload.summary);
+  else if (payload.sessions?.sessions) renderSessionsListFromPayload(payload.sessions.sessions);
+  else refreshSessionsWhenEventsDisconnected().catch(showError);
 });
 
 eventsSource.addEventListener('preview-ready', (e) => {
