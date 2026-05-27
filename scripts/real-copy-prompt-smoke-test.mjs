@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assertCopiedPrompt,
+  assertSessionHandedOffItems,
   buildReport,
   parseArgs,
   renderMarkdownReport,
@@ -84,6 +85,21 @@ test("assertCopiedPrompt reports every missing marker", () => {
     () => assertCopiedPrompt("comment only", ["expected comment"]),
     /missing comment: expected comment.*expected at least 2 id lines.*missing Handoff quality.*missing agent_protocol/s,
   );
+});
+
+test("assertSessionHandedOffItems counts copied items with last handoff timestamps", () => {
+  const session = {
+    items: [
+      { itemId: "ann-1", comment: "First", lastHandedOffAtEpochMillis: 100 },
+      { itemId: "ann-2", comment: "Second", lastHandedOffAtEpochMillis: 101 },
+      { itemId: "ann-3", comment: "Pin only" },
+    ],
+  };
+
+  assert.deepEqual(assertSessionHandedOffItems(session, ["ann-1", "ann-2"]), {
+    itemCount: 3,
+    handedOffCount: 2,
+  });
 });
 
 test("summarizeApps and buildReport aggregate pass fail and deferred rows", () => {

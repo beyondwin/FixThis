@@ -3,6 +3,12 @@ import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+  installRuntimeFixture,
+  loadManifest,
+  runCommand,
+} from "./source-matching-fixtures.mjs";
+import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
 
 export const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 export const defaultReportDir = join(repoRoot, "build/reports/fixthis-real-copy-prompt");
@@ -72,6 +78,22 @@ export function assertCopiedPrompt(markdown, expectedComments) {
   };
 }
 
+export function assertSessionHandedOffItems(session, itemIds) {
+  const items = Array.isArray(session?.items) ? session.items : [];
+  const selected = itemIds.length > 0
+    ? items.filter((item) => itemIds.includes(item.itemId))
+    : items;
+  const handedOffCount = selected.filter((item) => Number.isFinite(item.lastHandedOffAtEpochMillis)).length;
+  if (selected.length < 2) throw new Error(`expected at least 2 persisted items, found ${selected.length}`);
+  if (handedOffCount < 2) {
+    throw new Error(`expected at least 2 copied items with lastHandedOffAtEpochMillis, found ${handedOffCount}`);
+  }
+  return {
+    itemCount: items.length,
+    handedOffCount,
+  };
+}
+
 export function summarizeApps(apps) {
   return {
     totalApps: apps.length,
@@ -137,10 +159,85 @@ export function writeReports(report, reportDir) {
   writeFileSync(join(reportDir, "report.md"), renderMarkdownReport(report));
 }
 
+function androidDeviceName(environment) {
+  return environment.device || environment.serial || null;
+}
+
+function ensureMcpDistribution() {
+  runCommand("./gradlew", [":fixthis-mcp:installDist", "--no-daemon"], { cwd: repoRoot, stdio: "inherit" });
+  return join(repoRoot, "fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp");
+}
+
+async function runSelectedFixture(fixture) {
+  const app = {
+    fixtureId: fixture.id,
+    packageName: fixture.applicationId,
+    status: "fail",
+    failures: [],
+  };
+  try {
+    const paths = installRuntimeFixture(fixture, { stdio: "inherit" });
+    app.projectDir = paths.projectWorkDir;
+    app.status = "pass";
+    return app;
+  } catch (error) {
+    app.failures.push(error.message);
+    return app;
+  }
+}
+
+export async function runSmoke(options) {
+  const startedAt = new Date().toISOString();
+  const environment = resolveAndroidEnvironment();
+  const preflight = statusForEnvironment({
+    strict: options.strict,
+    androidReady: environment.ready,
+    reason: environment.reason,
+  });
+  if (!environment.ready) {
+    const finishedAt = new Date().toISOString();
+    const report = {
+      status: preflight.status,
+      startedAt,
+      finishedAt,
+      strict: options.strict,
+      device: null,
+      summary: {
+        totalApps: 0,
+        passedApps: 0,
+        failedApps: preflight.status === "fail" ? 1 : 0,
+        deferredApps: preflight.status === "deferred" ? 1 : 0,
+      },
+      apps: [],
+      failures: preflight.failures,
+    };
+    writeReports(report, options.reportDir);
+    return { report, exitCode: preflight.exitCode };
+  }
+
+  await ensureMcpDistribution();
+  const manifest = loadManifest();
+  const fixtures = selectRuntimeFixtures(manifest, options.fixtureIds);
+  const apps = [];
+  for (const fixture of fixtures) {
+    apps.push(await runSelectedFixture(fixture, { ...options, environment }));
+  }
+  const report = buildReport({
+    strict: options.strict,
+    device: androidDeviceName(environment),
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    apps,
+  });
+  writeReports(report, options.reportDir);
+  return { report, exitCode: report.status === "fail" ? 1 : 0 };
+}
+
 export async function main(argv = process.argv.slice(2)) {
-  parseArgs(argv);
-  console.error("real-copy-prompt smoke runtime workflow is added in the following tasks.");
-  return 2;
+  const options = parseArgs(argv);
+  const { report, exitCode } = await runSmoke(options);
+  console.log(renderMarkdownReport(report));
+  return exitCode;
 }
 
 const invokedAsCli = process.argv[1] ? fileURLToPath(import.meta.url) === realpathSync(process.argv[1]) : false;
