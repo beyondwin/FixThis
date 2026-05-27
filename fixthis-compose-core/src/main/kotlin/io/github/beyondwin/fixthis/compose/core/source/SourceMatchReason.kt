@@ -14,6 +14,7 @@ internal enum class SourceMatchReason(val wireLabel: String) {
     NEARBY_CONTENT_DESCRIPTION("nearby contentDescription"),
     NEARBY_TEST_TAG("nearby testTag"),
     NEARBY_ROLE("nearby role"),
+    LAYOUT_RENDERER_CONTEXT("layout renderer context"),
     ACTIVITY("activity"),
     ARBITRARY_LITERAL("arbitrary literal"),
     UNTYPED_FALLBACK("legacy fallback"),

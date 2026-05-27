@@ -1005,6 +1005,9 @@ class SourceMatcherTest {
         assertEquals(38, match.line)
         assertEquals(SelectionConfidence.MEDIUM, match.confidence)
         assertTrue(match.matchReasons.contains("selected owner composable"))
+        assertTrue(match.matchReasons.contains("layout renderer context"))
+        assertEquals(SourceEvidenceStrength.MEDIUM, match.evidenceStrength)
+        assertFalse(SourceCandidateRisk.ARBITRARY_LITERAL in match.riskFlags)
         assertEquals("AdaptiveGrid", match.ownerComposable)
     }
 
@@ -1044,6 +1047,7 @@ class SourceMatcherTest {
         assertEquals(38, match.line)
         assertEquals(SelectionConfidence.MEDIUM, match.confidence)
         assertTrue(match.matchReasons.contains("selected owner composable"))
+        assertTrue(match.matchReasons.contains("layout renderer context"))
     }
 
     private fun node(

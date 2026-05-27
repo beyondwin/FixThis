@@ -178,6 +178,12 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 matchReasons.add(SourceMatchReason.UNTYPED_FALLBACK)
             }
         }
+        if (
+            SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons &&
+            entry.signals.any { signal -> signal.kind == SourceSignalKind.LAYOUT_RENDERER }
+        ) {
+            matchReasons.add(SourceMatchReason.LAYOUT_RENDERER_CONTEXT)
+        }
 
         return MatchScore(
             entry = entry,
