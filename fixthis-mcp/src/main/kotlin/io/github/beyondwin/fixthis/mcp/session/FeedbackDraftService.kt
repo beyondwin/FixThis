@@ -70,7 +70,7 @@ class FeedbackDraftService(
             screen = screen,
             sourceCandidates = emptyList(),
         )
-        val validatedTarget = TargetEvidenceService.ValidatedFeedbackTarget(
+        val validatedTarget = ValidatedFeedbackTarget(
             targetType = FeedbackTargetType.AREA,
             selectedNode = null,
             storedBounds = bounds,

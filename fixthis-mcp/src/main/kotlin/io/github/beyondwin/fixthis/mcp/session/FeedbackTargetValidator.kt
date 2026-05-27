@@ -1,0 +1,156 @@
+package io.github.beyondwin.fixthis.mcp.session
+
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+
+data class ValidatedFeedbackTarget(
+    val targetType: FeedbackTargetType,
+    val selectedNode: FixThisNode?,
+    val storedBounds: FixThisRect,
+    val evidenceNodes: List<FixThisNode>,
+)
+
+class FeedbackTargetValidator {
+    fun validate(
+        screen: SnapshotDto,
+        targetType: FeedbackTargetType,
+        bounds: FixThisRect,
+        nodeUid: String?,
+        comment: String,
+        allowBlankComment: Boolean,
+        missingNodeContext: String = "screen",
+    ): ValidatedFeedbackTarget {
+        if (!allowBlankComment) {
+            require(comment.isNotBlank()) { "Feedback comment must not be blank" }
+        }
+        val selectedNode = selectedNodeFor(screen, targetType, nodeUid, missingNodeContext)
+        val storedBounds = selectedNode?.boundsInWindow ?: bounds
+        validateFinitePositiveBounds(storedBounds)
+        validateBoundsInsideScreenshot(screen, storedBounds)
+        return ValidatedFeedbackTarget(
+            targetType = targetType,
+            selectedNode = selectedNode,
+            storedBounds = storedBounds,
+            evidenceNodes = evidenceNodesFor(screen, targetType, storedBounds, selectedNode),
+        )
+    }
+
+    private fun selectedNodeFor(
+        screen: SnapshotDto,
+        targetType: FeedbackTargetType,
+        nodeUid: String?,
+        missingNodeContext: String,
+    ): FixThisNode? = when (targetType) {
+        FeedbackTargetType.AREA -> null
+        FeedbackTargetType.NODE -> {
+            val uid = nodeUid?.takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException("Node feedback requires nodeUid")
+            screen.allNodes().firstOrNull { node -> node.uid == uid }
+                ?: throw IllegalArgumentException("Selected node does not exist on $missingNodeContext: $uid")
+        }
+    }
+
+    private fun evidenceNodesFor(
+        screen: SnapshotDto,
+        targetType: FeedbackTargetType,
+        storedBounds: FixThisRect,
+        selectedNode: FixThisNode?,
+    ): List<FixThisNode> = when (targetType) {
+        FeedbackTargetType.AREA -> areaEvidenceNodes(screen, storedBounds)
+        FeedbackTargetType.NODE -> nodeEvidenceNodes(
+            screen,
+            requireNotNull(selectedNode) {
+                "evidenceNodesFor(NODE) requires a non-null selectedNode resolved upstream"
+            },
+        )
+    }
+
+    private fun validateFinitePositiveBounds(bounds: FixThisRect) {
+        val values = listOf(bounds.left, bounds.top, bounds.right, bounds.bottom)
+        require(values.all { it.isFinite() }) { "Selection bounds must be finite" }
+        require(bounds.right > bounds.left && bounds.bottom > bounds.top) {
+            "Selection bounds must have positive size"
+        }
+    }
+
+    private fun validateBoundsInsideScreenshot(screen: SnapshotDto, bounds: FixThisRect) {
+        val width = screen.screenshot?.width?.toFloat() ?: return
+        val height = screen.screenshot?.height?.toFloat() ?: return
+        require(bounds.left >= 0f && bounds.top >= 0f && bounds.right <= width && bounds.bottom <= height) {
+            "Selection bounds must be inside the screenshot"
+        }
+    }
+
+    private fun areaEvidenceNodes(screen: SnapshotDto, bounds: FixThisRect): List<FixThisNode> {
+        val evidenceNodes = screen.allNodes()
+            .asSequence()
+            .filter { it.hasMeaningfulSemantic() }
+            .map { node ->
+                AreaEvidenceNode(
+                    node = node,
+                    overlaps = node.boundsInWindow.intersects(bounds),
+                    overlapArea = node.boundsInWindow.intersectionArea(bounds),
+                    centerDistance = node.boundsInWindow.centerDistanceTo(bounds),
+                )
+            }
+            .toList()
+        val hasOverlappingEvidence = evidenceNodes.any { it.overlaps }
+        return evidenceNodes
+            .asSequence()
+            .filter { evidence -> if (hasOverlappingEvidence) evidence.overlaps else true }
+            .sortedWith(
+                compareByDescending<AreaEvidenceNode> { it.overlaps }
+                    .thenByDescending { it.overlapArea }
+                    .thenBy { it.centerDistance }
+                    .thenBy { it.node.boundsInWindow.area }
+                    .thenBy { it.node.uid },
+            )
+            .map { it.node }
+            .distinctBy { it.uid }
+            .take(MaxEvidenceNodes)
+            .toList()
+    }
+
+    private fun nodeEvidenceNodes(screen: SnapshotDto, selectedNode: FixThisNode): List<FixThisNode> = screen.allNodes()
+        .asSequence()
+        .filter { it.uid != selectedNode.uid }
+        .filter { it.rootIndex == selectedNode.rootIndex }
+        .filter { it.hasMeaningfulSemantic() }
+        .sortedWith(
+            compareBy<FixThisNode> { it.boundsInWindow.centerDistanceTo(selectedNode.boundsInWindow) }
+                .thenBy { it.boundsInWindow.area }
+                .thenBy { it.uid },
+        )
+        .distinctBy { it.uid }
+        .take(MaxEvidenceNodes)
+        .toList()
+
+    private data class AreaEvidenceNode(
+        val node: FixThisNode,
+        val overlaps: Boolean,
+        val overlapArea: Float,
+        val centerDistance: Float,
+    )
+
+    private companion object {
+        const val MaxEvidenceNodes = 8
+    }
+}
+
+private fun SnapshotDto.allNodes(): List<FixThisNode> = roots.flatMap { root -> root.mergedNodes + root.unmergedNodes }
+
+private fun FixThisRect.intersects(other: FixThisRect): Boolean =
+    left < other.right && right > other.left && top < other.bottom && bottom > other.top
+
+private fun FixThisRect.intersectionArea(other: FixThisRect): Float {
+    val width = (minOf(right, other.right) - maxOf(left, other.left)).coerceAtLeast(0f)
+    val height = (minOf(bottom, other.bottom) - maxOf(top, other.top)).coerceAtLeast(0f)
+    return width * height
+}
+
+private fun FixThisRect.centerDistanceTo(other: FixThisRect): Float {
+    val dx = ((left + right) / 2f) - ((other.left + other.right) / 2f)
+    val dy = ((top + bottom) / 2f) - ((other.top + other.bottom) / 2f)
+    return dx * dx + dy * dy
+}
