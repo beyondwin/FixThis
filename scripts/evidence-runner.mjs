@@ -25,6 +25,10 @@ const profileDefinitions = {
       deferrable: true,
       requiresAndroid: true,
     }),
+    step("Real copy prompt smoke", "npm run real-copy-prompt:smoke -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+    }),
   ],
   console: [
     step("Studio reliability contract", "node --test scripts/studioReliabilityContract-test.mjs"),

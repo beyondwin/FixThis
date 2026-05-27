@@ -31,6 +31,9 @@ test("trust profile includes source matching and runtime strict as deferrable", 
   const runtime = steps.find((step) => step.command === "npm run source-matching:fixtures:runtime -- --strict");
   assert.equal(runtime.deferrable, true);
   assert.equal(runtime.requiresAndroid, true);
+  const copyPrompt = steps.find((step) => step.command === "npm run real-copy-prompt:smoke -- --strict");
+  assert.equal(copyPrompt.deferrable, true);
+  assert.equal(copyPrompt.requiresAndroid, true);
 });
 
 test("android device parser returns the first ready adb device", () => {
