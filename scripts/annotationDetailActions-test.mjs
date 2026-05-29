@@ -54,6 +54,12 @@ test('source candidate call-site formatting tolerates absent callSites', () => {
   assert.match(helper, /\|\| \[\]/);
 });
 
+test('call-site formatter labels the most-likely entry', () => {
+  const helper = functionBody(detailSource, 'function sourceCandidateCallSites(candidate)');
+  assert.match(helper, /site\.mostLikely/);
+  assert.match(helper, /most likely/);
+});
+
 test('returning from pending annotation detail refreshes session summary counts', () => {
   const renderPendingDetail = functionBody(detailSource, 'function renderAnnotationDetail(item, index)');
   const backAnnotationsStart = renderPendingDetail.indexOf("querySelectorAll('[data-back-annotations]')");

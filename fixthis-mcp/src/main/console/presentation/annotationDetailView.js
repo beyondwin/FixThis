@@ -19,7 +19,10 @@
             function sourceCandidateCallSites(candidate) {
               const sites = (candidate && candidate.callSites) || [];
               return sites
-                .map(site => (site.line == null ? site.file : site.file + ':' + site.line))
+                .map(site => {
+                  const location = site.line == null ? site.file : site.file + ':' + site.line;
+                  return site.mostLikely ? location + ' (most likely)' : location;
+                })
                 .filter(Boolean);
             }
 
