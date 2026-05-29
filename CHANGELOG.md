@@ -33,7 +33,13 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   selected target's best candidate is a composable definition invoked at two or
   more call sites, the handoff carries a `SHARED_COMPONENT` risk flag, caps the
   candidate at medium confidence, and cautions that editing the definition
-  changes every usage so the agent verifies the specific call site.
+  changes every usage so the agent verifies the specific call site. The handoff
+  also carries the call-site inventory itself as `sourceCandidates[].callSites`
+  — a best-effort list of `{file, line}` locations (line optional) where the
+  reused definition is invoked, capped at 10 and tolerant of absence. The
+  feedback console renders these as a "Shared component used at" Evidence row;
+  call sites are verification context only and do not raise the medium
+  confidence cap.
 - Source-index generation now records a `LAYOUT_RENDERER` typed signal for
   `Layout(...)` and `SubcomposeLayout(...)` call sites inside composable
   owners. The matcher surfaces these as medium-confidence edit-surface hints
