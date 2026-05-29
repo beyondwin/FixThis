@@ -58,7 +58,7 @@ fi
 
 echo "[bootstrap] cwd → $(pwd)"
 echo "[bootstrap] step 1/2 — building :fixthis-cli and :fixthis-mcp installDist"
-./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist --build-cache --configuration-cache
+./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist --build-cache
 
 echo "[bootstrap] step 2/2 — running fixthis setup --target $TARGET"
 ./fixthis-cli/build/install/fixthis/bin/fixthis setup \
