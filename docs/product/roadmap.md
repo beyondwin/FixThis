@@ -85,7 +85,12 @@ of source patterns FixThis recognizes:
 
 - `Layout` and `SubcomposeLayout` wrappers
 - more composable-name conventions
-- richer handling for shared reusable components
+- richer handling for shared reusable components (initial: high fan-in
+  component definitions are flagged `SHARED_COMPONENT` and capped at medium
+  confidence; future work can disambiguate the specific call site)
+  - Follow-up: add a pinned-repo `source-index` fixture-lab case asserting a
+    known reused component definition emits the `SHARED_COMPONENT` signal, once
+    a sample repo with a clearly reused component is selected.
 - richer confidence scoring for the current call-site, component-definition,
   copy/data, layout/style, visual-area, and interop-risk edit-surface roles
 

@@ -29,6 +29,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Added
 
+- Source matching now detects reusable Compose component definitions. When a
+  selected target's best candidate is a composable definition invoked at two or
+  more call sites, the handoff carries a `SHARED_COMPONENT` risk flag, caps the
+  candidate at medium confidence, and cautions that editing the definition
+  changes every usage so the agent verifies the specific call site.
 - Source-index generation now records a `LAYOUT_RENDERER` typed signal for
   `Layout(...)` and `SubcomposeLayout(...)` call sites inside composable
   owners. The matcher surfaces these as medium-confidence edit-surface hints
