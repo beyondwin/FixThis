@@ -8,6 +8,7 @@ internal data class EvidenceProfile(
 ) {
     val hasStrictCompTag: Boolean = SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE in reasons
     val hasSelectedOwnerFunction: Boolean = SourceMatchReason.SELECTED_OWNER_FUNCTION in reasons
+    val hasSharedComponentDefinition: Boolean = SourceMatchReason.SHARED_COMPONENT_DEFINITION in reasons
     val hasSelectedTestTag: Boolean = SourceMatchReason.SELECTED_TEST_TAG in reasons
     val hasSelectedUiText: Boolean = SourceMatchReason.SELECTED_TEXT in reasons
     val hasSelectedContentDescription: Boolean = SourceMatchReason.SELECTED_CONTENT_DESCRIPTION in reasons

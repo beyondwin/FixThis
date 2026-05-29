@@ -184,6 +184,15 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         ) {
             matchReasons.add(SourceMatchReason.LAYOUT_RENDERER_CONTEXT)
         }
+        if (
+            entry.signals.any { signal -> signal.kind == SourceSignalKind.SHARED_COMPONENT } &&
+            (
+                SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons ||
+                    SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE in matchReasons
+            )
+        ) {
+            matchReasons.add(SourceMatchReason.SHARED_COMPONENT_DEFINITION)
+        }
 
         return MatchScore(
             entry = entry,

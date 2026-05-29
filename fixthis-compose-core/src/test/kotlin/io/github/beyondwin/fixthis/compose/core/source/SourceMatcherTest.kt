@@ -1050,6 +1050,62 @@ class SourceMatcherTest {
         assertTrue(match.matchReasons.contains("layout renderer context"))
     }
 
+    @Test
+    fun emitsSharedComponentDefinitionReasonWhenDefinitionMatchesAndSignalPresent() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    testTags = listOf("comp:PrimaryButton:root"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.STRICT_COMP_TEST_TAG, value = "comp:PrimaryButton:root"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "4"),
+                    ),
+                    excerpt = "@Composable fun PrimaryButton(",
+                ),
+            ),
+        )
+
+        val matches = SourceMatcher(index).match(
+            selectedNode = node(uid = "primary", testTag = "comp:PrimaryButton:root"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertTrue(matches.first().matchReasons.contains("shared component definition"))
+    }
+
+    @Test
+    fun doesNotEmitSharedComponentReasonForTextOnlyMatchInReusedFile() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    text = listOf("Save changes"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.UI_TEXT, value = "Save changes"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "4"),
+                    ),
+                    excerpt = "Text(\"Save changes\")",
+                ),
+            ),
+        )
+
+        val matches = SourceMatcher(index).match(
+            selectedNode = node(uid = "save", text = listOf("Save changes")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        )
+
+        assertFalse(matches.first().matchReasons.contains("shared component definition"))
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),
