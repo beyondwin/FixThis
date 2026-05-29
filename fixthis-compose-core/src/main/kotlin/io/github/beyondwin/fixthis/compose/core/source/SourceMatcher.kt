@@ -15,6 +15,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     ): List<SourceCandidate> {
         if (selectedNode == null || sourceIndex.entries.isEmpty()) return emptyList()
 
+        val selectionTokens = selectionTokensFor(selectedNode, activityName)
         val matchScores = sourceIndex.entries.asSequence()
             .map { entry -> score(entry, selectedNode, nearbyNodes, activityName) }
             .filter { it.rawScore > 0.0 }
@@ -31,7 +32,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val normalizedScores = matchScores.map {
             (it.rawScore / SourceScoringPolicy.highConfidenceScore).coerceIn(0.0, 1.0)
         }
-        return matchScores.mapIndexed { index, score -> score.toCandidate(index, normalizedScores) }
+        return matchScores.mapIndexed { index, score -> score.toCandidate(index, normalizedScores, selectionTokens) }
     }
 
     companion object {
@@ -468,9 +469,10 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private fun MatchScore.toCandidate(
         index: Int,
         normalizedScores: List<Double>,
+        selectionTokens: Set<String>,
     ): SourceCandidate {
         val profile = EvidenceProfile.fromMatchReasons(matchReasons, rawScore)
-        val callSites = sharedComponentCallSites(profile)
+        val callSites = sharedComponentCallSites(selectionTokens)
         val wireReasons = matchReasons.map { it.wireLabel }
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
@@ -518,21 +520,14 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         )
     }
 
-    private fun MatchScore.sharedComponentCallSites(profile: EvidenceProfile): List<SourceLocationRef> {
-        if (!profile.hasSharedComponentDefinition) return emptyList()
-        return entry.signals
-            .filter { it.kind == SourceSignalKind.SHARED_COMPONENT_CALL_SITE }
-            .map { signal ->
-                val raw = signal.value
-                val sep = raw.lastIndexOf(':')
-                if (sep <= 0) {
-                    SourceLocationRef(file = raw, line = null)
-                } else {
-                    val file = raw.substring(0, sep)
-                    val line = raw.substring(sep + 1).toIntOrNull()
-                    SourceLocationRef(file = file, line = line)
-                }
-            }
+    private fun MatchScore.sharedComponentCallSites(selectionTokens: Set<String>): List<SourceLocationRef> {
+        if (SourceMatchReason.SHARED_COMPONENT_DEFINITION !in matchReasons) return emptyList()
+        return rankSharedComponentCallSites(
+            callSiteSignalValues = entry.signals
+                .filter { it.kind == SourceSignalKind.SHARED_COMPONENT_CALL_SITE }
+                .map { it.value },
+            selectionTokens = selectionTokens,
+        )
     }
 
     private fun baseConfidenceFor(profile: EvidenceProfile, margin: MarginContext): SelectionConfidence {

@@ -1225,6 +1225,44 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun ranksSharedComponentCallSitesBySelectionEvidenceAndKeepsMediumConfidence() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    testTags = listOf("comp:PrimaryButton:root"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.STRICT_COMP_TEST_TAG, value = "comp:PrimaryButton:root"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "2"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "ui/ScreenA.kt:42\tScreenA\tCancel"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "ui/ScreenB.kt:13\tScreenB\tSave changes"),
+                    ),
+                    excerpt = "@Composable fun PrimaryButton(",
+                ),
+            ),
+        )
+
+        val candidate = SourceMatcher(index).match(
+            selectedNode = node(uid = "primary", text = listOf("Save changes"), testTag = "comp:PrimaryButton:root"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        assertEquals(
+            listOf(
+                SourceLocationRef(file = "ui/ScreenB.kt", line = 13, mostLikely = true),
+                SourceLocationRef(file = "ui/ScreenA.kt", line = 42, mostLikely = false),
+            ),
+            candidate.callSites,
+        )
+        assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
+        assertTrue(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
+    }
+
+    @Test
     fun leavesCallSitesEmptyForNonSharedComponentMatch() {
         val index = SourceIndex(
             entries = listOf(
