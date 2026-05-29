@@ -89,11 +89,53 @@ class ComposableCallSiteFanInTest {
 
         assertEquals(
             listOf(
-                ComposableCallSite(file = "ui/ScreenA.kt", line = 3),
-                ComposableCallSite(file = "ui/ScreenB.kt", line = 3),
+                ComposableCallSite(file = "ui/ScreenA.kt", line = 3, enclosingName = "ScreenA", argLiterals = listOf("Save")),
+                ComposableCallSite(file = "ui/ScreenB.kt", line = 3, enclosingName = "ScreenB", argLiterals = listOf("Cancel")),
             ),
             sites["PrimaryButton"],
         )
+    }
+
+    @Test
+    fun capturesEnclosingNameAndArgumentLiteralsPerCallSite() {
+        val sources = listOf(
+            CallSiteSource(
+                path = "ui/Screen.kt",
+                content =
+                "@Composable\n" +
+                    "fun ProfileScreen() {\n" +
+                    "  PrimaryButton(text = \"Save\", subtitle = \"Profile\")\n" +
+                    "}\n",
+            ),
+        )
+
+        val sites = composableCallSites(sources, definitionNames = setOf("PrimaryButton"))
+
+        assertEquals(
+            listOf(
+                ComposableCallSite(
+                    file = "ui/Screen.kt",
+                    line = 3,
+                    enclosingName = "ProfileScreen",
+                    argLiterals = listOf("Save", "Profile"),
+                ),
+            ),
+            sites["PrimaryButton"],
+        )
+    }
+
+    @Test
+    fun encodesCallSiteSignalValueOnlyWithContextWhenPresent() {
+        val plain = ComposableCallSite(file = "ui/A.kt", line = 5)
+        val withContext = ComposableCallSite(
+            file = "ui/B.kt",
+            line = 9,
+            enclosingName = "HomeScreen",
+            argLiterals = listOf("Add", "Cart"),
+        )
+
+        assertEquals("ui/A.kt:5", plain.encodeSignalValue())
+        assertEquals("ui/B.kt:9\tHomeScreen\tAdd|Cart", withContext.encodeSignalValue())
     }
 
     @Test
@@ -117,6 +159,9 @@ class ComposableCallSiteFanInTest {
 
         val sites = composableCallSites(sources, definitionNames = setOf("PrimaryButton"))
 
-        assertEquals(listOf(ComposableCallSite(file = "ui/Screen.kt", line = 5)), sites["PrimaryButton"])
+        assertEquals(
+            listOf(ComposableCallSite(file = "ui/Screen.kt", line = 5, enclosingName = "Screen", argLiterals = listOf("real"))),
+            sites["PrimaryButton"],
+        )
     }
 }
