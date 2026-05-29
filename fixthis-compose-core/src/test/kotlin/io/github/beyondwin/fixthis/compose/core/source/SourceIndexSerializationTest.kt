@@ -30,4 +30,28 @@ class SourceIndexSerializationTest {
         assertEquals("로그인", signals[0].value)
         assertEquals(SourceSignalKind.LAMBDA_OWNER_FUNCTION, signals[1].kind)
     }
+
+    @Test
+    fun roundTripsSharedComponentSignal() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "app/ui/Button.kt",
+                    line = 10,
+                    symbols = listOf("PrimaryButton"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "3"),
+                    ),
+                    excerpt = "@Composable fun PrimaryButton(",
+                ),
+            ),
+        )
+
+        val encoded = Json.encodeToString(SourceIndex.serializer(), index)
+        val decoded = Json.decodeFromString(SourceIndex.serializer(), encoded)
+
+        val signal = decoded.entries.single().signals.single { it.kind == SourceSignalKind.SHARED_COMPONENT }
+        assertEquals("3", signal.value)
+    }
 }
