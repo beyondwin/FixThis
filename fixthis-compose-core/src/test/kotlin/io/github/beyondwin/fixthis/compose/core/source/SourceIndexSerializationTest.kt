@@ -54,4 +54,29 @@ class SourceIndexSerializationTest {
         val signal = decoded.entries.single().signals.single { it.kind == SourceSignalKind.SHARED_COMPONENT }
         assertEquals("3", signal.value)
     }
+
+    @Test
+    fun roundTripsSharedComponentCallSiteSignal() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "ui/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "3"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "ui/ScreenA.kt:42"),
+                    ),
+                ),
+            ),
+        )
+
+        val encoded = Json.encodeToString(SourceIndex.serializer(), index)
+        val decoded = Json.decodeFromString(SourceIndex.serializer(), encoded)
+
+        val callSite = decoded.entries.single().signals.single {
+            it.kind == SourceSignalKind.SHARED_COMPONENT_CALL_SITE
+        }
+        assertEquals("ui/ScreenA.kt:42", callSite.value)
+    }
 }
