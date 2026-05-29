@@ -16,6 +16,13 @@
               return location + (confidence ? ' · ' + confidence : '') + (reasons ? ' · ' + reasons : '');
             }
 
+            function sourceCandidateCallSites(candidate) {
+              const sites = (candidate && candidate.callSites) || [];
+              return sites
+                .map(site => (site.line == null ? site.file : site.file + ':' + site.line))
+                .filter(Boolean);
+            }
+
             function reliabilityBadgeHtml(item) {
               const model = targetReliabilityBadgeModel(item?.targetReliability);
               if (model.tone === 'muted') return '';
@@ -71,6 +78,10 @@
                 ['Screenshots', compactValue(targetEvidence.screenshotKinds)],
               ];
               const candidates = sourceCandidates.slice(1, 3).map((candidate, index) => ['Source ' + (index + 2), sourceCandidateLine(candidate)]);
+              const callSites = sourceCandidateCallSites(sourceCandidates[0]);
+              const callSiteRows = callSites.length
+                ? [['Shared component used at', callSites.join(', ')]]
+                : [];
               const warnings = (targetEvidence.warnings || []).map((warning, index) => ['Warning ' + (index + 1), warning]);
               const reliability = item?.targetReliability || {};
               const hasReliability = Boolean(reliability.confidence || (reliability.warnings || []).length);
@@ -78,7 +89,7 @@
                 ? [['Target confidence', String(reliability.confidence).toLowerCase()]]
                     .concat((reliability.warnings || []).map((warning, index) => ['Target warning ' + (index + 1), reliabilityWarningLabel(warning)]))
                 : [];
-              const bodyRows = evidenceRows.concat(reliabilityRows, candidates, warnings);
+              const bodyRows = evidenceRows.concat(reliabilityRows, candidates, callSiteRows, warnings);
               const empty = sourceCandidates.length === 0 &&
                 !targetEvidence.identityHint &&
                 !targetEvidence.occurrence &&

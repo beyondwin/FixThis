@@ -43,6 +43,17 @@ test('creating an annotation focuses its detail editor immediately', () => {
   assert.match(createAnnotation, /setDraftFocusIndex\(nextWorkspace\.items\.length - 1\);/);
 });
 
+test('evidence details list shared-component call sites when present', () => {
+  const evidenceDetailsHtml = functionBody(detailSource, 'function evidenceDetailsHtml(item)');
+  assert.match(evidenceDetailsHtml, /callSites/);
+});
+
+test('source candidate call-site formatting tolerates absent callSites', () => {
+  const helper = functionBody(detailSource, 'function sourceCandidateCallSites(candidate)');
+  assert.match(helper, /candidate(\?\.|\.)callSites/);
+  assert.match(helper, /\|\| \[\]/);
+});
+
 test('returning from pending annotation detail refreshes session summary counts', () => {
   const renderPendingDetail = functionBody(detailSource, 'function renderAnnotationDetail(item, index)');
   const backAnnotationsStart = renderPendingDetail.indexOf("querySelectorAll('[data-back-annotations]')");
