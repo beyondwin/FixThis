@@ -289,6 +289,7 @@ When no source candidates are available for the item, the source block consists 
 - candidate lines — up to 3 in score order. Rank 1 includes optional `owner=<Composable>` when the source index knows the enclosing `@Composable fun`, `margin=` (score gap to rank 2, formatted to 2 decimal places), and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.
 - `note:` — emitted when the rank-1 candidate has a `caution` field, or when multiple items in an instance group share the same call site (collision note on the first item only).
 - A `SHARED_COMPONENT` risk flag renders its caution string through this same `note:`/`caution` path and requires no console-side schema change, because the console already renders `caution` text and tolerates additional `riskFlags` members.
+- The Evidence section renders a "Shared component used at" row listing the top candidate's `callSites` when present. Absence of `callSites` is tolerated (single-use definitions and older payloads omit it).
 - Confidence is lowercase: `high`, `medium`, `low`, or `none`.
 - `targetConfidence=` — optional target-level reliability. It describes how
   much the selected UI target can be trusted before editing; it is not task
