@@ -22,10 +22,11 @@ class SourceCandidateRiskPrecedenceTest {
     }
 
     @Test
-    fun precedenceOrderIsAmbiguousAreaTextNearbyLiteralActivityLegacy() {
+    fun precedenceOrderIsAmbiguousSharedAreaTextNearbyLiteralActivityLegacy() {
         assertEquals(
             listOf(
                 SourceCandidateRisk.AMBIGUOUS,
+                SourceCandidateRisk.SHARED_COMPONENT,
                 SourceCandidateRisk.AREA_SELECTION,
                 SourceCandidateRisk.TEXT_ONLY,
                 SourceCandidateRisk.NEARBY_ONLY,
@@ -35,6 +36,34 @@ class SourceCandidateRiskPrecedenceTest {
             ),
             SourceCandidateRiskPrecedence.orderedHighestFirst,
         )
+    }
+
+    @Test
+    fun sharedComponentRanksBelowAmbiguousAndAboveAreaSelection() {
+        val ordered = SourceCandidateRiskPrecedence.ordered(
+            listOf(
+                SourceCandidateRisk.AREA_SELECTION,
+                SourceCandidateRisk.SHARED_COMPONENT,
+                SourceCandidateRisk.AMBIGUOUS,
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                SourceCandidateRisk.AMBIGUOUS,
+                SourceCandidateRisk.SHARED_COMPONENT,
+                SourceCandidateRisk.AREA_SELECTION,
+            ),
+            ordered,
+        )
+    }
+
+    @Test
+    fun sharedComponentIsHighestWhenNoAmbiguity() {
+        val highest = SourceCandidateRiskPrecedence.highest(
+            listOf(SourceCandidateRisk.TEXT_ONLY, SourceCandidateRisk.SHARED_COMPONENT),
+        )
+        assertEquals(SourceCandidateRisk.SHARED_COMPONENT, highest)
     }
 
     @Test

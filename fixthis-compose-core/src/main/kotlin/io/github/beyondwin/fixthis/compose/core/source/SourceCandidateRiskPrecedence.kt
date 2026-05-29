@@ -5,6 +5,7 @@ import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 object SourceCandidateRiskPrecedence {
     val orderedHighestFirst: List<SourceCandidateRisk> = listOf(
         SourceCandidateRisk.AMBIGUOUS,
+        SourceCandidateRisk.SHARED_COMPONENT,
         SourceCandidateRisk.AREA_SELECTION,
         SourceCandidateRisk.TEXT_ONLY,
         SourceCandidateRisk.NEARBY_ONLY,

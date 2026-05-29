@@ -13,6 +13,8 @@ internal object SourceConfidencePolicy {
             return when (highest) {
                 SourceCandidateRisk.AMBIGUOUS ->
                     "Verify this source candidate before editing; top candidates are close."
+                SourceCandidateRisk.SHARED_COMPONENT ->
+                    "Shared component definition (used in multiple places); editing it changes every usage. Verify the specific call site before editing."
                 SourceCandidateRisk.AREA_SELECTION ->
                     "Visual-area selection; use screenshot and bounds before editing."
                 SourceCandidateRisk.TEXT_ONLY ->

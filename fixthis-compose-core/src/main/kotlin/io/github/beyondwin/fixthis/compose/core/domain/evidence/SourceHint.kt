@@ -15,6 +15,7 @@ enum class SourceHintStrength {
 
 enum class SourceHintRisk {
     AMBIGUOUS,
+    SHARED_COMPONENT,
     TEXT_ONLY,
     NEARBY_ONLY,
     ACTIVITY_ONLY,

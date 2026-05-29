@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class SourceCandidateRisk {
     AMBIGUOUS,
+    SHARED_COMPONENT,
     TEXT_ONLY,
     NEARBY_ONLY,
     ACTIVITY_ONLY,

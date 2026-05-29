@@ -69,6 +69,7 @@ private fun SourceEvidenceStrength.toSourceHintStrength(): SourceHintStrength = 
 
 private fun SourceHintRisk.toSourceCandidateRisk(): SourceCandidateRisk = when (this) {
     SourceHintRisk.AMBIGUOUS -> SourceCandidateRisk.AMBIGUOUS
+    SourceHintRisk.SHARED_COMPONENT -> SourceCandidateRisk.SHARED_COMPONENT
     SourceHintRisk.TEXT_ONLY -> SourceCandidateRisk.TEXT_ONLY
     SourceHintRisk.NEARBY_ONLY -> SourceCandidateRisk.NEARBY_ONLY
     SourceHintRisk.ACTIVITY_ONLY -> SourceCandidateRisk.ACTIVITY_ONLY
@@ -79,6 +80,7 @@ private fun SourceHintRisk.toSourceCandidateRisk(): SourceCandidateRisk = when (
 
 private fun SourceCandidateRisk.toSourceHintRisk(): SourceHintRisk = when (this) {
     SourceCandidateRisk.AMBIGUOUS -> SourceHintRisk.AMBIGUOUS
+    SourceCandidateRisk.SHARED_COMPONENT -> SourceHintRisk.SHARED_COMPONENT
     SourceCandidateRisk.TEXT_ONLY -> SourceHintRisk.TEXT_ONLY
     SourceCandidateRisk.NEARBY_ONLY -> SourceHintRisk.NEARBY_ONLY
     SourceCandidateRisk.ACTIVITY_ONLY -> SourceHintRisk.ACTIVITY_ONLY
