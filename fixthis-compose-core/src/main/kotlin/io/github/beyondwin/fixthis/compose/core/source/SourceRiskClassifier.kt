@@ -43,6 +43,11 @@ internal object SourceRiskClassifier {
             }
         }
 
+        if (profile.hasSharedComponentDefinition) {
+            flags.add(SourceCandidateRisk.SHARED_COMPONENT)
+            confidence = capAt(confidence, SelectionConfidence.MEDIUM)
+        }
+
         return Result(confidence, flags)
     }
 

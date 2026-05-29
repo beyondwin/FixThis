@@ -1125,4 +1125,65 @@ class SourceMatcherTest {
         testTag = testTag,
         actions = actions,
     )
+
+    @Test
+    fun capsSharedComponentDefinitionAtMediumWithFlagAndCaution() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    testTags = listOf("comp:PrimaryButton:root"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.STRICT_COMP_TEST_TAG, value = "comp:PrimaryButton:root"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "5"),
+                    ),
+                    excerpt = "@Composable fun PrimaryButton(",
+                ),
+            ),
+        )
+
+        val candidate = SourceMatcher(index).match(
+            selectedNode = node(uid = "primary", testTag = "comp:PrimaryButton:root"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
+        assertTrue(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
+        assertEquals(
+            "Shared component definition (used in multiple places); editing it changes every usage. Verify the specific call site before editing.",
+            candidate.caution,
+        )
+    }
+
+    @Test
+    fun singleUseDefinitionWithSameEvidenceStaysHigh() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    testTags = listOf("comp:PrimaryButton:root"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.STRICT_COMP_TEST_TAG, value = "comp:PrimaryButton:root"),
+                    ),
+                    excerpt = "@Composable fun PrimaryButton(",
+                ),
+            ),
+        )
+
+        val candidate = SourceMatcher(index).match(
+            selectedNode = node(uid = "primary", testTag = "comp:PrimaryButton:root"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        assertEquals(SelectionConfidence.HIGH, candidate.confidence)
+        assertFalse(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
+    }
 }
