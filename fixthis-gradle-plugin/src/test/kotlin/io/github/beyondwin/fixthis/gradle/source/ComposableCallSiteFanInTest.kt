@@ -71,4 +71,52 @@ class ComposableCallSiteFanInTest {
         assertNull(counts["NeverDefined"])
         assertFalse(SHARED_COMPONENT_FANIN_THRESHOLD <= (counts["Once"] ?: 0))
     }
+
+    @Test
+    fun recordsCallSiteLocationsByFileAndLine() {
+        val sources = listOf(
+            CallSiteSource(
+                path = "ui/ScreenA.kt",
+                content = "@Composable\nfun ScreenA() {\n  PrimaryButton(\"Save\")\n}\n",
+            ),
+            CallSiteSource(
+                path = "ui/ScreenB.kt",
+                content = "@Composable\nfun ScreenB() {\n  PrimaryButton(\"Cancel\")\n}\n",
+            ),
+        )
+
+        val sites = composableCallSites(sources, definitionNames = setOf("PrimaryButton"))
+
+        assertEquals(
+            listOf(
+                ComposableCallSite(file = "ui/ScreenA.kt", line = 3),
+                ComposableCallSite(file = "ui/ScreenB.kt", line = 3),
+            ),
+            sites["PrimaryButton"],
+        )
+    }
+
+    @Test
+    fun callSiteLocationsExcludeDeclarationsStringsAndMemberCalls() {
+        val sources = listOf(
+            CallSiteSource(
+                path = "ui/PrimaryButton.kt",
+                content = "@Composable\nfun PrimaryButton(label: String) {}\n",
+            ),
+            CallSiteSource(
+                path = "ui/Screen.kt",
+                content =
+                "@Composable\n" +
+                    "fun Screen() {\n" +
+                    "  val s = \"PrimaryButton(\"\n" + // string literal, ignored
+                    "  obj.PrimaryButton(\"x\")\n" + // member call, ignored
+                    "  PrimaryButton(\"real\")\n" + // real call site, line 5
+                    "}\n",
+            ),
+        )
+
+        val sites = composableCallSites(sources, definitionNames = setOf("PrimaryButton"))
+
+        assertEquals(listOf(ComposableCallSite(file = "ui/Screen.kt", line = 5)), sites["PrimaryButton"])
+    }
 }
