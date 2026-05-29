@@ -63,6 +63,71 @@ class SourceIndexGeneratorTest {
     }
 
     @Test
+    fun emitsCallSiteSignalsForReusedComponentDefinition() {
+        val definition = kotlin(
+            "ui/PrimaryButton.kt",
+            """
+            @Composable
+            fun PrimaryButton(label: String) {}
+            """.trimIndent(),
+        )
+        val callerA = kotlin(
+            "ui/ScreenA.kt",
+            """
+            @Composable
+            fun ScreenA() { PrimaryButton("Save") }
+            """.trimIndent(),
+        )
+        val callerB = kotlin(
+            "ui/ScreenB.kt",
+            """
+            @Composable
+            fun ScreenB() { PrimaryButton("Cancel") }
+            """.trimIndent(),
+        )
+
+        val asset = generate(listOf(definition, callerA, callerB))
+
+        val definitionEntry = asset.entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.COMPOSABLE_SYMBOL && it.value == "PrimaryButton" }
+        }
+        val callSiteValues = definitionEntry.signals
+            .filter { it.kind == SourceSignalKindAsset.SHARED_COMPONENT_CALL_SITE }
+            .map { it.value }
+            .toSet()
+
+        assertEquals(
+            setOf("ui/ScreenA.kt:2", "ui/ScreenB.kt:2"),
+            callSiteValues,
+        )
+    }
+
+    @Test
+    fun doesNotEmitCallSiteSignalsForSingleUseDefinition() {
+        val definition = kotlin(
+            "ui/OnceCard.kt",
+            """
+            @Composable
+            fun OnceCard() {}
+            """.trimIndent(),
+        )
+        val caller = kotlin(
+            "ui/Screen.kt",
+            """
+            @Composable
+            fun Screen() { OnceCard() }
+            """.trimIndent(),
+        )
+
+        val asset = generate(listOf(definition, caller))
+
+        val definitionEntry = asset.entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.COMPOSABLE_SYMBOL && it.value == "OnceCard" }
+        }
+        assertFalse(definitionEntry.signals.any { it.kind == SourceSignalKindAsset.SHARED_COMPONENT_CALL_SITE })
+    }
+
+    @Test
     fun doesNotFlagSingleUseComponentDefinition() {
         val definition = kotlin(
             "ui/OnceCard.kt",

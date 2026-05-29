@@ -3,6 +3,9 @@ package io.github.beyondwin.fixthis.gradle.source
 /** A composable is treated as a shared/reusable component once it is invoked at this many call sites. */
 internal const val SHARED_COMPONENT_FANIN_THRESHOLD: Int = 2
 
+/** Maximum call-site locations emitted per shared component definition (best-effort context, not a complete inventory). */
+internal const val SHARED_COMPONENT_CALLSITE_LIMIT: Int = 10
+
 private val composableCallRegex = Regex("""\b([A-Za-z_][A-Za-z0-9_]*)\s*\(""")
 private val funDeclarationBeforeNameRegex = Regex("""\bfun\s+$""")
 
