@@ -34,8 +34,7 @@ internal fun composableCallSiteCounts(
     return counts
 }
 
-private fun String.callSiteIgnoredRanges(): List<IntRange> =
-    kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
+private fun String.callSiteIgnoredRanges(): List<IntRange> = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
 
 private fun String.isFunctionDeclarationBefore(offset: Int): Boolean {
     val lineStart = lastIndexOf('\n', startIndex = offset - 1).let { if (it == -1) 0 else it + 1 }
