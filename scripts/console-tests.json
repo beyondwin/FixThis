@@ -23,7 +23,8 @@
     "scripts/backgroundErrorVisibility-test.mjs",
     "scripts/boundaryRenderModelIsolation-test.mjs",
     "scripts/startDraftContextMismatchToast-test.mjs",
-    "scripts/v04LegacyPurgeContract-test.mjs"
+    "scripts/v04LegacyPurgeContract-test.mjs",
+    "scripts/annotationDetailActions-test.mjs"
   ],
   "pending": ["scripts/pendingRecoveryVariant-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],
