@@ -215,7 +215,7 @@ private fun String.localLayoutRendererDeclarationOffsets(ignoredRanges: List<Int
         valueTransform = { match -> match.range.first },
     )
 
-private fun String.commentRanges(): List<IntRange> {
+internal fun String.commentRanges(): List<IntRange> {
     val stringRanges = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList()
     val ranges = mutableListOf<IntRange>()
     var stringIndex = 0
