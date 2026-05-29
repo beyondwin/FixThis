@@ -103,6 +103,7 @@ data class ScopeCandidate(val label: String, val nodeUid: String, val boundsInWi
 data class SourceLocationRef(
     val file: String,
     val line: Int? = null,
+    val mostLikely: Boolean = false,
 )
 
 @Serializable

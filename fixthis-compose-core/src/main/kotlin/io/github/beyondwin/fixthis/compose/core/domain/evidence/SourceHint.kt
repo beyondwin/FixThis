@@ -27,6 +27,7 @@ enum class SourceHintRisk {
 data class SourceHintLocation(
     val file: String,
     val line: Int? = null,
+    val mostLikely: Boolean = false,
 )
 
 data class SourceHint(
