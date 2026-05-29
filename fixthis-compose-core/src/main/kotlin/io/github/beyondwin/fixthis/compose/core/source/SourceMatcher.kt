@@ -5,6 +5,7 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.SourceLocationRef
 
 class SourceMatcher(private val sourceIndex: SourceIndex) {
     fun match(
@@ -469,6 +470,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         normalizedScores: List<Double>,
     ): SourceCandidate {
         val profile = EvidenceProfile.fromMatchReasons(matchReasons, rawScore)
+        val callSites = sharedComponentCallSites(profile)
         val wireReasons = matchReasons.map { it.wireLabel }
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
@@ -512,7 +514,25 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             riskFlags = flags,
             caution = caution,
             ownerComposable = entry.ownerComposable,
+            callSites = callSites,
         )
+    }
+
+    private fun MatchScore.sharedComponentCallSites(profile: EvidenceProfile): List<SourceLocationRef> {
+        if (!profile.hasSharedComponentDefinition) return emptyList()
+        return entry.signals
+            .filter { it.kind == SourceSignalKind.SHARED_COMPONENT_CALL_SITE }
+            .map { signal ->
+                val raw = signal.value
+                val sep = raw.lastIndexOf(':')
+                if (sep <= 0) {
+                    SourceLocationRef(file = raw, line = null)
+                } else {
+                    val file = raw.substring(0, sep)
+                    val line = raw.substring(sep + 1).toIntOrNull()
+                    SourceLocationRef(file = file, line = line)
+                }
+            }
     }
 
     private fun baseConfidenceFor(profile: EvidenceProfile, margin: MarginContext): SelectionConfidence {

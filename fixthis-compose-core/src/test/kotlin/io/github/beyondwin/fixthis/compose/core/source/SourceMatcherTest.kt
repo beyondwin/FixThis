@@ -5,6 +5,7 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
+import io.github.beyondwin.fixthis.compose.core.model.SourceLocationRef
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -1185,5 +1186,68 @@ class SourceMatcherTest {
 
         assertEquals(SelectionConfidence.HIGH, candidate.confidence)
         assertFalse(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
+    }
+
+    @Test
+    fun populatesCallSitesForSharedComponentDefinition() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    testTags = listOf("comp:PrimaryButton:root"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.STRICT_COMP_TEST_TAG, value = "comp:PrimaryButton:root"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "2"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "ui/ScreenA.kt:42"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "ui/ScreenB.kt:13"),
+                    ),
+                    excerpt = "@Composable fun PrimaryButton(",
+                ),
+            ),
+        )
+
+        val candidate = SourceMatcher(index).match(
+            selectedNode = node(uid = "primary", testTag = "comp:PrimaryButton:root"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        assertEquals(
+            listOf(
+                SourceLocationRef(file = "ui/ScreenA.kt", line = 42),
+                SourceLocationRef(file = "ui/ScreenB.kt", line = 13),
+            ),
+            candidate.callSites,
+        )
+    }
+
+    @Test
+    fun leavesCallSitesEmptyForNonSharedComponentMatch() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/PrimaryButton.kt",
+                    line = 8,
+                    symbols = listOf("PrimaryButton"),
+                    text = listOf("Save changes"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "PrimaryButton"),
+                        SourceSignal(kind = SourceSignalKind.UI_TEXT, value = "Save changes"),
+                    ),
+                    excerpt = "Text(\"Save changes\")",
+                ),
+            ),
+        )
+
+        val candidate = SourceMatcher(index).match(
+            selectedNode = node(uid = "save", text = listOf("Save changes")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        assertEquals(emptyList<SourceLocationRef>(), candidate.callSites)
     }
 }
