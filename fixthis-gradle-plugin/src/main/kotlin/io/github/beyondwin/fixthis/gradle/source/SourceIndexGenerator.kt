@@ -64,7 +64,7 @@ internal class SourceIndexGenerator(
         val sites = best?.second.orEmpty()
         if (sites.size < SHARED_COMPONENT_FANIN_THRESHOLD) return this
         val callSiteSignals = sites.take(SHARED_COMPONENT_CALLSITE_LIMIT).map { site ->
-            SourceSignalAsset(SourceSignalKindAsset.SHARED_COMPONENT_CALL_SITE, "${site.file}:${site.line}")
+            SourceSignalAsset(SourceSignalKindAsset.SHARED_COMPONENT_CALL_SITE, site.encodeSignalValue())
         }
         return copy(
             signals = signals +

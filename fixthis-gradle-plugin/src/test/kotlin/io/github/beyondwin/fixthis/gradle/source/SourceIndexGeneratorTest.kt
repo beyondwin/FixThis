@@ -97,7 +97,7 @@ class SourceIndexGeneratorTest {
             .toSet()
 
         assertEquals(
-            setOf("ui/ScreenA.kt:2", "ui/ScreenB.kt:2"),
+            setOf("ui/ScreenA.kt:2\tScreenA\tSave", "ui/ScreenB.kt:2\tScreenB\tCancel"),
             callSiteValues,
         )
     }
