@@ -24,6 +24,11 @@ enum class SourceHintRisk {
     UNTYPED_FALLBACK,
 }
 
+data class SourceHintLocation(
+    val file: String,
+    val line: Int? = null,
+)
+
 data class SourceHint(
     val file: String,
     val repoFile: String? = null,
@@ -40,4 +45,5 @@ data class SourceHint(
     val stale: Boolean? = null,
     val staleReason: String? = null,
     val ownerComposable: String? = null,
+    val callSites: List<SourceHintLocation> = emptyList(),
 )

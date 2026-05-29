@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.compose.core.model
 
 import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHint
 import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHintConfidence
+import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHintLocation
 import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHintRisk
 import io.github.beyondwin.fixthis.compose.core.domain.evidence.SourceHintStrength
 
@@ -21,6 +22,7 @@ fun SourceHint.toSourceCandidate(): SourceCandidate = SourceCandidate(
     stale = stale,
     staleReason = staleReason,
     ownerComposable = ownerComposable,
+    callSites = callSites.map(SourceHintLocation::toSourceLocationRef),
 )
 
 fun SourceCandidate.toSourceHint(): SourceHint = SourceHint(
@@ -39,7 +41,12 @@ fun SourceCandidate.toSourceHint(): SourceHint = SourceHint(
     stale = stale,
     staleReason = staleReason,
     ownerComposable = ownerComposable,
+    callSites = callSites.map(SourceLocationRef::toSourceHintLocation),
 )
+
+private fun SourceLocationRef.toSourceHintLocation(): SourceHintLocation = SourceHintLocation(file = file, line = line)
+
+private fun SourceHintLocation.toSourceLocationRef(): SourceLocationRef = SourceLocationRef(file = file, line = line)
 
 private fun SourceHintConfidence.toSelectionConfidence(): SelectionConfidence = when (this) {
     SourceHintConfidence.HIGH -> SelectionConfidence.HIGH
