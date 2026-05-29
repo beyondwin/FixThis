@@ -100,6 +100,12 @@ data class ScoredFixThisNode(val node: FixThisNode, val score: Double, val break
 data class ScopeCandidate(val label: String, val nodeUid: String, val boundsInWindow: FixThisRect, val score: Double)
 
 @Serializable
+data class SourceLocationRef(
+    val file: String,
+    val line: Int? = null,
+)
+
+@Serializable
 data class SourceCandidate(
     val file: String,
     val repoFile: String? = null,
@@ -116,6 +122,7 @@ data class SourceCandidate(
     val stale: Boolean? = null,
     val staleReason: String? = null,
     val ownerComposable: String? = null,
+    val callSites: List<SourceLocationRef> = emptyList(),
 )
 
 @Serializable

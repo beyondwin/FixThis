@@ -87,6 +87,35 @@ class SourceCandidateSerializationTest {
     }
 
     @Test
+    fun roundTripsCallSites() {
+        val candidate = SourceCandidate(
+            file = "ui/PrimaryButton.kt",
+            line = 8,
+            score = 0.5,
+            confidence = SelectionConfidence.MEDIUM,
+            callSites = listOf(
+                SourceLocationRef(file = "ui/ScreenA.kt", line = 42),
+                SourceLocationRef(file = "ui/ScreenB.kt", line = 13),
+            ),
+        )
+
+        val text = json.encodeToString(SourceCandidate.serializer(), candidate)
+        val decoded = json.decodeFromString(SourceCandidate.serializer(), text)
+
+        assertEquals(candidate.callSites, decoded.callSites)
+    }
+
+    @Test
+    fun defaultsCallSitesToEmpty() {
+        val candidate = SourceCandidate(
+            file = "ui/Once.kt",
+            score = 0.9,
+            confidence = SelectionConfidence.HIGH,
+        )
+        assertEquals(emptyList<SourceLocationRef>(), candidate.callSites)
+    }
+
+    @Test
     fun roundTripsLegacyToCurrent() {
         val legacy = """
             {
