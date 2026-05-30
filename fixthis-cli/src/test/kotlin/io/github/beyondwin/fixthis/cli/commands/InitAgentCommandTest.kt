@@ -499,9 +499,12 @@ class InitAgentCommandTest {
             withUserHome(temporaryFolder.newFolder("home")) {
                 InstallAgentCommand().parse(
                     arrayOf(
-                        "--project-dir", tempProject.absolutePath,
-                        "--package", "com.example.app",
-                        "--target", "all",
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.app",
+                        "--target",
+                        "all",
                         "--json",
                         "--skip-gradle-plugin",
                     ),

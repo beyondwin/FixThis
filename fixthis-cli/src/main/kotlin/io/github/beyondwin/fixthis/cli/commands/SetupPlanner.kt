@@ -25,8 +25,7 @@ internal object SetupPlanner {
         else -> allWriters()
     }
 
-    private fun allWriters(): List<AgentConfigWriter> =
-        listOf(CodexConfigWriter(), ClaudeConfigWriter(), CursorConfigWriter())
+    private fun allWriters(): List<AgentConfigWriter> = listOf(CodexConfigWriter(), ClaudeConfigWriter(), CursorConfigWriter())
 
     @Suppress("TooGenericExceptionCaught")
     fun buildWritePlans(
