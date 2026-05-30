@@ -114,6 +114,16 @@
           "mode": "source-index",
           "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
           "expectedSignal": { "kind": "ARBITRARY_STRING_LITERAL", "value": "Refresh" }
+        },
+        {
+          "id": "fixthis-sample-shared-header-medium-cap",
+          "mode": "runtime-trust",
+          "trustPurpose": "reused component definition (StudioHeader, 4 call sites) stays capped below HIGH even with call-site ranking",
+          "runtimeTarget": { "testTag": "comp:StudioHeader:root" },
+          "expectedTop3PathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
+          "expectedConfidence": "low-or-medium",
+          "expectedSourceConfidence": "low-or-medium",
+          "mustNotHighConfidence": true
         }
       ]
     }
