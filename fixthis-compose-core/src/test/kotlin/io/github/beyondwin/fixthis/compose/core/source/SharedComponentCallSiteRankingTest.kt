@@ -73,4 +73,38 @@ class SharedComponentCallSiteRankingTest {
         assertEquals(false, ranked[1].mostLikely)
         assertEquals("ui/ScreenA.kt", ranked[0].file)
     }
+
+    @Test
+    fun marksMostLikelyWhenTopClearsSecondByExactlyTheMargin() {
+        // ScreenB matches the literal "Save" (weight 2.0); ScreenA matches nothing (0.0).
+        // Margin = 2.0 >= CALL_SITE_MOST_LIKELY_MARGIN (1.0) → top is marked.
+        val ranked = rankSharedComponentCallSites(
+            callSiteSignalValues = listOf(
+                "ui/ScreenA.kt:10\tProfileScreen\tCancel",
+                "ui/ScreenB.kt:20\tNothing\tSave",
+            ),
+            selectionTokens = setOf("save"),
+        )
+
+        assertEquals("ui/ScreenB.kt", ranked[0].file)
+        assertEquals(true, ranked[0].mostLikely)
+        assertEquals(false, ranked[1].mostLikely)
+    }
+
+    @Test
+    fun doesNotMarkMostLikelyWhenMarginIsBelowThreshold() {
+        // Both sites match the literal "Save" and enclosing "Save" identically → margin 0.0.
+        // Below CALL_SITE_MOST_LIKELY_MARGIN (1.0) → neither is marked; tie keeps static order.
+        val ranked = rankSharedComponentCallSites(
+            callSiteSignalValues = listOf(
+                "ui/ScreenA.kt:10\tSave\tSave",
+                "ui/ScreenB.kt:20\tSave\tSave",
+            ),
+            selectionTokens = setOf("save"),
+        )
+
+        assertEquals(false, ranked[0].mostLikely)
+        assertEquals(false, ranked[1].mostLikely)
+        assertEquals("ui/ScreenA.kt", ranked[0].file) // tie keeps static order
+    }
 }
