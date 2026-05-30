@@ -104,6 +104,19 @@ for each.
 | Healthy SSE sessions perform no session/preview polling; polling is fallback-only. | `node scripts/console-browser-reliability.mjs`. |
 | `fixthis doctor --json` emits top-level `readiness` and `nextAction`. | `./gradlew :fixthis-cli:test --tests "*DoctorCommandTest" --tests "*InstallAgentJsonReportTest" --no-daemon`. |
 
+## v1.0 Release Claim Manifest
+
+v1.0 may claim the items below only when the release issue includes evidence
+for each.
+
+| Claim | Required evidence |
+| --- | --- |
+| Source matching recommends a single shared-component call-site edit surface while the definition stays capped at medium confidence. | `./gradlew :fixthis-compose-core:test --tests "*SharedComponentCallSiteRankingTest" --tests "*SourceMatcherTest" --no-daemon` and `node scripts/source-matching-fixtures-test.mjs`. |
+| Custom composables wrapping `Layout`/`SubcomposeLayout` carry layout-renderer (`LAYOUT_RENDERER`) context. | `./gradlew :fixthis-gradle-plugin:test --tests "*KotlinSourceScannerTest" --no-daemon`. |
+| Interop-risk selections surface multiple ranked boundary-context nodes (top-3). | `./gradlew :fixthis-mcp:test --tests "*TargetBoundaryContextFormatterTest" --no-daemon`. |
+| Healthy SSE sessions perform no session and no preview polling. | `node scripts/console-browser-reliability.mjs`. |
+| The ChatGPT agent path is the documented Copy-Prompt/connector flow rather than a first-class file-based writer. | `bash scripts/check-docs-cli-surface.sh`. |
+
 ## Trust Sync Release Hardening Evidence
 
 The trust-sync hardening line may be claimed only when each claim below has

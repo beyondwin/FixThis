@@ -52,6 +52,13 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Documented the ChatGPT agent install path: ChatGPT consumes FixThis through
   the Copy Prompt / connector flow rather than a file-based stdio MCP config,
   now described in the agent install snippet and the CLI reference.
+- Added a v1.0 Release Claim Manifest to the release-readiness doc, plus a
+  `check-release-readiness.mjs` rule (`R32`) that fails the readiness gate
+  unless the manifest section is present. The manifest binds each external v1.0
+  claim — recommended shared-component edit surface, layout-renderer wrapper
+  context, ranked top-3 interop boundary context, zero session/preview SSE
+  polling, and the documented ChatGPT connector path — to a real, passing
+  evidence command.
 
 ### Changed
 
