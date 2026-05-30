@@ -1338,4 +1338,34 @@ class SourceMatcherTest {
 
         assertEquals(emptyList<SourceLocationRef>(), candidate.callSites)
     }
+
+    @Test
+    fun slotWrapperLayoutRendererSurfacesAsMediumConfidence() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/CardSlot.kt",
+                        line = 12,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.LAYOUT_RENDERER, "CardSlot"),
+                            SourceSignal(SourceSignalKind.LAMBDA_OWNER_FUNCTION, "CardSlot"),
+                        ),
+                        excerpt = "fun CardSlot(content: @Composable () -> Unit) {",
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "body", testTag = "comp:CardSlot:body"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertEquals("sample/src/main/java/CardSlot.kt", match.file)
+        assertEquals(SelectionConfidence.MEDIUM, match.confidence)
+        assertTrue(match.matchReasons.contains("layout renderer context"))
+        assertEquals("CardSlot", match.ownerComposable)
+    }
 }
