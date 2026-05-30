@@ -41,9 +41,11 @@ Each entry preserves the legacy field lists (`symbols`, `text`,
 - `LAMBDA_OWNER_FUNCTION`: the simple name of the enclosing `@Composable fun`
   for indexed entries inside a composable body.
 - `LAYOUT_RENDERER`: a `Layout(...)`, `SubcomposeLayout(...)`, or
-  `SubcomposeLayout { ... }` renderer call inside a composable owner. This is
-  used as call-site evidence; it does not by itself make a source candidate
-  high confidence.
+  `SubcomposeLayout { ... }` renderer call inside a composable owner, or a
+  content-slot wrapper composable — a `@Composable fun` that exposes a
+  `content: @Composable (...) -> Unit` slot parameter — which emits the signal
+  carrying the wrapper's own function name. This is used as call-site evidence;
+  it does not by itself make a source candidate high confidence.
 
 For layout renderer signals, direct unqualified calls are indexed only when
 `Layout`, `SubcomposeLayout`, or a wildcard import comes from
@@ -51,6 +53,8 @@ For layout renderer signals, direct unqualified calls are indexed only when
 and `androidx.compose.ui.layout.SubcomposeLayout` calls are also recognized.
 Comments, strings, declarations, nested block comments, `Layout { ... }`
 trailing-lambda decoys, and same-name non-Compose local calls are ignored.
+Content-slot wrapper detection reuses the same ignored-range filtering, so slot
+declarations inside comments or strings do not emit the signal.
 
 ## Default String Resolution
 
@@ -81,10 +85,10 @@ scanner.
 
 Layout renderer call sites inherit `LAMBDA_OWNER_FUNCTION` like other entries.
 When a selected target uses a strict `comp:<ComposableName>:...` test tag, the
-matcher may surface a `Layout` or `SubcomposeLayout` call inside that owner as a
-medium-confidence edit surface hint. The layout renderer signal is conservative
-typed evidence for where layout work may live, not a direct match signal or
-proof that selected pixels map exactly to that line.
+matcher may surface a `Layout`/`SubcomposeLayout` call or a content-slot wrapper
+composable inside that owner as a medium-confidence edit surface hint. The layout
+renderer signal is conservative typed evidence for where layout work may live,
+not a direct match signal or proof that selected pixels map exactly to that line.
 
 ## Agent Handoff
 
