@@ -210,4 +210,33 @@ class AgentConfigWriterTest {
     fun codexWriterScopeIsGlobal() {
         assertEquals("global", CodexConfigWriter().scope)
     }
+
+    @Test
+    fun cursorWriterTargetsProjectLocalMcpJson() {
+        val writer = CursorConfigWriter()
+        val configFile = writer.configFile(java.io.File("/repo"))
+        assertEquals("cursor", writer.name)
+        assertTrue(configFile.path.endsWith(".cursor/mcp.json"))
+    }
+
+    @Test
+    fun cursorMergePreservesOtherServers() {
+        val current = """{"mcpServers":{"playwright":{"command":"npx","args":["-y","@playwright/mcp"]}}}"""
+
+        val merged = CursorConfigWriter().merge(current, entry)
+
+        assertTrue(merged.contains("\"playwright\""))
+        assertTrue(merged.contains("\"fixthis\""))
+        assertTrue(merged.contains("\"ANDROID_HOME\""))
+    }
+
+    @Test
+    fun cursorMergeReplacesOnlyFixThisServer() {
+        val current = """{"mcpServers":{"fixthis":{"command":"old","args":[]}}}"""
+
+        val merged = CursorConfigWriter().merge(current, entry)
+
+        assertFalse(merged.contains("\"old\""))
+        assertTrue(merged.contains("\"fixthis\""))
+    }
 }
