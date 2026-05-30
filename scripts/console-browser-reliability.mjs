@@ -249,11 +249,17 @@ async function testStalePreviewSaveRequiresConfirmation() {
 async function assertNoSessionPollingUnderHealthySse({ fixture, context }) {
   const page = await openConsolePage(context, fixture.url);
   let sessionPollCount = 0;
+  let previewPollCount = 0;
   page.on('request', (request) => {
     const url = request.url();
     // Session fallback polling hits the sessions list endpoint via api.sessions.
     if (/\/api\/sessions(\?|$)/.test(url) && request.method() === 'GET') {
       sessionPollCount += 1;
+    }
+    // Preview fallback polling hits the live-preview endpoint via refreshPreview().
+    // Match the bare /api/preview poll URL only — not /api/preview/<id>/screenshot.
+    if (/\/api\/preview(\?|$)/.test(url) && request.method() === 'GET') {
+      previewPollCount += 1;
     }
   });
   // Establish a healthy SSE session and let any (dead) polling interval run.
@@ -262,11 +268,25 @@ async function assertNoSessionPollingUnderHealthySse({ fixture, context }) {
     null,
     { timeout: 8000 },
   );
+  // The console performs ONE bootstrap preview fetch during page load (main.js
+  // calls refreshPreview() before startConsoleEvents() opens the EventSource,
+  // while consoleEventsConnected is still false). That one-time pre-connection
+  // fetch is not fallback polling. Reset the counters at the moment SSE reports
+  // connected so the assertions measure only the steady-state healthy window —
+  // mirroring how the session assertion's /api/sessions (plural list) regex
+  // already excludes the bootstrap /api/session (singular) fetch.
+  sessionPollCount = 0;
+  previewPollCount = 0;
   await new Promise((resolve) => setTimeout(resolve, 3000));
   assert.equal(
     sessionPollCount,
     0,
     `expected zero session-poll fetches under healthy SSE, saw ${sessionPollCount}`,
+  );
+  assert.equal(
+    previewPollCount,
+    0,
+    `expected zero preview-poll fetches under healthy SSE, saw ${previewPollCount}`,
   );
   // A visibilitychange while SSE is healthy re-invokes startSessionsPolling();
   // it must NOT arm a (dead) fallback timer when SSE is connected.

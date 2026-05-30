@@ -104,6 +104,7 @@ data class SourceLocationRef(
     val file: String,
     val line: Int? = null,
     val mostLikely: Boolean = false,
+    val recommendedEditSite: Boolean = false,
 )
 
 @Serializable

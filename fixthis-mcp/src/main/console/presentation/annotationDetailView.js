@@ -21,9 +21,56 @@
               return sites
                 .map(site => {
                   const location = site.line == null ? site.file : site.file + ':' + site.line;
-                  return site.mostLikely ? location + ' (most likely)' : location;
+                  const markers = [];
+                  if (site.mostLikely) markers.push('most likely');
+                  if (site.recommendedEditSite) markers.push('recommended edit site');
+                  return markers.length ? location + ' (' + markers.join(', ') + ')' : location;
                 })
                 .filter(Boolean);
+            }
+
+            // Mirrors TargetBoundaryContextFormatter on the MCP side: for interop-risk
+            // selections (possible_view_interop), surface the nearby Compose context
+            // nodes that bracket the boundary. Task 4 widened this to a ranked top-3, so
+            // we render ONE row per node here. The caveat is appended exactly once below.
+            const INTEROP_BOUNDARY_CONTEXT_LIMIT = 3;
+
+            function isInteropRiskItem(item) {
+              const warnings = item?.targetReliability?.warnings || [];
+              return warnings.some(warning => String(warning || '').toLowerCase() === 'possible_view_interop');
+            }
+
+            function boundaryContextNodeSummary(node) {
+              if (!node) return '';
+              const parts = [];
+              const tag = String(node.testTag || '').trim();
+              if (tag) parts.push('tag="' + tag + '"');
+              const role = String(node.role || '').trim();
+              if (role) parts.push('role=' + role);
+              if (!node.isSensitive && !node.isPassword && !String(node.editableText || '').trim()) {
+                const textValue = (node.text || []).map(value => String(value || '').trim()).find(Boolean);
+                if (textValue) parts.push('text="' + textValue + '"');
+                const descValue = (node.contentDescription || []).map(value => String(value || '').trim()).find(Boolean);
+                if (descValue) parts.push('contentDescription="' + descValue + '"');
+              }
+              return parts.join('; ');
+            }
+
+            function interopBoundaryContextRows(item) {
+              if (!isInteropRiskItem(item)) return [];
+              const nodes = (item?.nearbyNodes || [])
+                .map(node => ({ node: node, summary: boundaryContextNodeSummary(node) }))
+                .filter(entry => entry.summary)
+                .slice(0, INTEROP_BOUNDARY_CONTEXT_LIMIT);
+              if (!nodes.length) return [];
+              const rows = nodes.map((entry, index) => {
+                const bounds = entry.node?.boundsInWindow;
+                const boundsLabel = bounds ? ' · ' + formatBounds(bounds) : '';
+                return ['Boundary context ' + (index + 1), entry.summary + boundsLabel];
+              });
+              // Single trailing caveat for the whole subtree, never repeated per row.
+              rows.push(['Boundary context note', 'helps locate the host; it does not prove Compose owns the selected pixels.']);
+              return rows;
             }
 
             function reliabilityBadgeHtml(item) {
@@ -92,11 +139,13 @@
                 ? [['Target confidence', String(reliability.confidence).toLowerCase()]]
                     .concat((reliability.warnings || []).map((warning, index) => ['Target warning ' + (index + 1), reliabilityWarningLabel(warning)]))
                 : [];
-              const bodyRows = evidenceRows.concat(reliabilityRows, candidates, callSiteRows, warnings);
+              const boundaryContextRows = interopBoundaryContextRows(item);
+              const bodyRows = evidenceRows.concat(reliabilityRows, boundaryContextRows, candidates, callSiteRows, warnings);
               const empty = sourceCandidates.length === 0 &&
                 !targetEvidence.identityHint &&
                 !targetEvidence.occurrence &&
                 !targetEvidence.screenshotKinds?.length &&
+                !boundaryContextRows.length &&
                 !hasReliability;
               return '<details class="evidence-details" open>' +
                 '<summary>Evidence</summary>' +

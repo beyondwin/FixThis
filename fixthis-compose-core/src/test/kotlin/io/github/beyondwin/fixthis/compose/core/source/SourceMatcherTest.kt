@@ -1253,7 +1253,7 @@ class SourceMatcherTest {
 
         assertEquals(
             listOf(
-                SourceLocationRef(file = "ui/ScreenB.kt", line = 13, mostLikely = true),
+                SourceLocationRef(file = "ui/ScreenB.kt", line = 13, mostLikely = true, recommendedEditSite = true),
                 SourceLocationRef(file = "ui/ScreenA.kt", line = 42, mostLikely = false),
             ),
             candidate.callSites,

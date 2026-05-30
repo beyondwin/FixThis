@@ -261,6 +261,12 @@ Targets:
 - **`local`** → both project-local writes (`claude` + `cursor`); skips the global Codex target.
 - **`all`** → all three targets (`claude`, `codex`, `cursor`).
 
+There is no `chatgpt` target: ChatGPT has no writable, file-based MCP config.
+It registers MCP servers only as *connectors* through its settings UI, pointed
+at a public HTTPS `/mcp` endpoint, so a local `stdio` server like FixThis cannot
+be written to a config file. Use **Copy Prompt** with ChatGPT instead — see
+[Connect your agent](../getting-started/connect-your-agent.md).
+
 Dry-run renders the same planned content that `--write` would commit, but does
 not create or modify config files. The dry-run diff remains privacy-preserving
 unless `--full-diff` is explicitly passed.

@@ -17,7 +17,7 @@ class SharedComponentCallSiteRankingTest {
 
         assertEquals(
             listOf(
-                SourceLocationRef(file = "ui/ScreenB.kt", line = 20, mostLikely = true),
+                SourceLocationRef(file = "ui/ScreenB.kt", line = 20, mostLikely = true, recommendedEditSite = true),
                 SourceLocationRef(file = "ui/ScreenA.kt", line = 10, mostLikely = false),
             ),
             ranked,
@@ -154,5 +154,35 @@ class SharedComponentCallSiteRankingTest {
 
         assertEquals("ui/B.kt", ranked[0].file)
         assertEquals(true, ranked[0].mostLikely)
+    }
+
+    @Test
+    fun marksRecommendedEditSiteWhenTopClearsByMargin() {
+        val ranked = rankSharedComponentCallSites(
+            callSiteSignalValues = listOf(
+                "ui/A.kt:10\tScreenA\tCancel",
+                "ui/B.kt:20\tScreenB\tSave changes",
+            ),
+            selectionTokens = setOf("save"),
+        )
+
+        assertEquals("ui/B.kt", ranked[0].file)
+        assertEquals(true, ranked[0].mostLikely)
+        assertEquals(true, ranked[0].recommendedEditSite)
+        assertEquals(false, ranked[1].recommendedEditSite)
+    }
+
+    @Test
+    fun doesNotRecommendEditSiteWithoutAConfidentMargin() {
+        val ranked = rankSharedComponentCallSites(
+            callSiteSignalValues = listOf(
+                "ui/A.kt:10\tScreenA\tSave",
+                "ui/B.kt:20\tScreenB\tSave",
+            ),
+            selectionTokens = setOf("save"),
+        )
+
+        assertEquals(false, ranked[0].recommendedEditSite)
+        assertEquals(false, ranked[1].recommendedEditSite)
     }
 }

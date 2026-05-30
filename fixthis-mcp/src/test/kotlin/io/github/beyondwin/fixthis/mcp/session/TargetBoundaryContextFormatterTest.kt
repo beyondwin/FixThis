@@ -61,6 +61,71 @@ class TargetBoundaryContextFormatterTest {
     }
 
     @Test
+    fun preciseLinesIncludeUpToThreeRankedContextNodes() {
+        val item = interopAreaItem(
+            nearbyNodes = listOf(
+                node(uid = "header", testTag = "comp:Header:bar", bounds = FixThisRect(0f, 0f, 100f, 40f)),
+                node(uid = "card", testTag = "comp:Card:body", bounds = FixThisRect(0f, 40f, 100f, 120f)),
+                node(uid = "footer", testTag = "comp:Footer:cta", bounds = FixThisRect(0f, 120f, 100f, 200f)),
+                node(uid = "extra", testTag = "comp:Extra:zzz", bounds = FixThisRect(0f, 200f, 100f, 320f)),
+            ),
+        )
+
+        val lines = TargetBoundaryContextFormatter.preciseLines(item)
+
+        val contextLines = lines.filter { it.contains("Boundary context:") }
+        assertEquals(3, contextLines.size)
+    }
+
+    @Test
+    fun preciseLinesRankSmallerCompContextNodesFirst() {
+        val item = interopAreaItem(
+            nearbyNodes = listOf(
+                node(uid = "footer", testTag = "comp:Footer:cta", bounds = FixThisRect(0f, 0f, 100f, 200f)),
+                node(uid = "header", testTag = "comp:Header:bar", bounds = FixThisRect(0f, 0f, 100f, 40f)),
+                node(uid = "card", testTag = "comp:Card:body", bounds = FixThisRect(0f, 0f, 100f, 80f)),
+            ),
+        )
+
+        val contextLines = TargetBoundaryContextFormatter.preciseLines(item)
+            .filter { it.contains("Boundary context:") }
+
+        assertTrue(contextLines[0].contains("comp:Header:bar"), contextLines.toString())
+        assertTrue(contextLines[1].contains("comp:Card:body"), contextLines.toString())
+        assertTrue(contextLines[2].contains("comp:Footer:cta"), contextLines.toString())
+    }
+
+    @Test
+    fun nonInteropSelectionStillProducesNoContext() {
+        val item = AnnotationDto(
+            itemId = "item",
+            screenId = "screen",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 100f, 80f)),
+            nearbyNodes = listOf(node(uid = "header", testTag = "comp:Header:bar")),
+            comment = "Tighten this area",
+        )
+
+        assertTrue(TargetBoundaryContextFormatter.preciseLines(item).isEmpty())
+    }
+
+    @Test
+    fun compactLineStillReturnsTheSingleTopRankedContextNode() {
+        val item = interopAreaItem(
+            nearbyNodes = listOf(
+                node(uid = "footer", testTag = "comp:Footer:cta", bounds = FixThisRect(0f, 0f, 100f, 200f)),
+                node(uid = "header", testTag = "comp:Header:bar", bounds = FixThisRect(0f, 0f, 100f, 40f)),
+            ),
+        )
+
+        val line = TargetBoundaryContextFormatter.compactLine(item)
+
+        assertTrue(line!!.contains("comp:Header:bar"), line)
+        assertTrue(!line.contains("comp:Footer:cta"), line)
+    }
+
+    @Test
     fun sensitiveNearbyNodesDoNotLeakTextOrEditableContent() {
         val item = interopAreaItem(
             nearbyNodes = listOf(

@@ -27,6 +27,46 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Added
+
+- Source matching now surfaces a recommended shared-component edit site. When a
+  selected target resolves to a reusable composable definition invoked at
+  multiple call sites, the ranked call-site inventory marks the single most
+  plausible usage as the recommended edit site, so the agent starts from one
+  concrete `{file, line}` call site instead of the shared definition. Confidence
+  stays capped at medium and no precise-target claim is made — the marker is
+  verification guidance, not exact edit ownership.
+- Source matching recognizes a dot-delimited `screen.<Name>.<id>` screen
+  test-tag convention, resolving the named screen owner the same way as the
+  existing `screen:<Name>:<id>` and `comp.<Name>.<id>` conventions. It reuses
+  existing evidence weights and does not by itself make a source candidate high
+  confidence.
+- Interop-risk handoffs now expose a ranked top-3 Compose boundary-context
+  inventory across the MCP server and the feedback console, so agents can
+  inspect the most likely host nodes near a possible AndroidView/WebView target
+  instead of treating any single node as exact interop source ownership.
+- The feedback console Evidence section renders the recommended call-site marker
+  and up to three interop boundary-context rows, with a single host-locator
+  caveat clarifying that boundary context is verification guidance rather than
+  exact interop source ownership.
+- Documented the ChatGPT agent install path: ChatGPT consumes FixThis through
+  the Copy Prompt / connector flow rather than a file-based stdio MCP config,
+  now described in the agent install snippet and the CLI reference.
+- Added a v1.0 Release Claim Manifest to the release-readiness doc, plus a
+  `check-release-readiness.mjs` rule (`R32`) that fails the readiness gate
+  unless the manifest section is present. The manifest binds each external v1.0
+  claim — recommended shared-component edit surface, layout-renderer wrapper
+  context, ranked top-3 interop boundary context, zero session/preview SSE
+  polling, and the documented ChatGPT connector path — to a real, passing
+  evidence command.
+
+### Changed
+
+- The console browser-reliability proof (`scripts/console-browser-reliability.mjs`)
+  now also asserts zero `/preview` polling fetches under a healthy SSE
+  connection, extending the existing zero-session-polling guarantee to preview
+  refresh.
+
 ### Fixed
 
 - `fixthis install-agent --target all` outside an Android project no longer

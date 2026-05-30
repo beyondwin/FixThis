@@ -516,4 +516,31 @@ class KotlinSourceScannerTest {
             },
         )
     }
+
+    @Test
+    fun `attributes custom composable wrapping Layout as layout renderer owner`() {
+        val file = tempDir.newFile("AppGrid.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.layout.Layout
+
+                @Composable
+                fun AppGrid(content: @Composable () -> Unit) {
+                    Layout(content = content) { measurables, constraints -> layout(0, 0) {} }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val layoutEntry = entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER && it.value == "Layout" }
+        }
+
+        assertTrue(
+            layoutEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "AppGrid" },
+        )
+    }
 }

@@ -265,6 +265,11 @@ requireIncludes(
   'CONTRIBUTING.md',
   'npm run evidence:fast -- --dry-run',
 );
+requireIncludes(
+  'R32.v1-0-release-claim-manifest',
+  'docs/contributing/release-readiness.md',
+  '## v1.0 Release Claim Manifest',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

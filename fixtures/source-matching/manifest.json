@@ -126,6 +126,16 @@
           "mustNotHighConfidence": true
         },
         {
+          "id": "fixthis-sample-shared-header-recommended-edit-site",
+          "mode": "runtime-trust",
+          "trustPurpose": "selecting the distinctive Diagnostics copy promotes the single DiagnosticsScreen StudioHeader call site as the recommended edit site while the shared definition stays capped at medium",
+          "runtimeTarget": { "text": "Diagnostics" },
+          "expectedTop3PathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
+          "expectedSourceConfidence": "low-or-medium",
+          "expectedRecommendedEditSiteContains": "screens/DiagnosticsScreen.kt",
+          "mustNotHighConfidence": true
+        },
+        {
           "id": "fixthis-sample-shared-component",
           "mode": "source-index",
           "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
