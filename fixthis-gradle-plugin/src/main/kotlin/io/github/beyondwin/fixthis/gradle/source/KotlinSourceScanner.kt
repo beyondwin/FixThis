@@ -275,6 +275,17 @@ internal class KotlinSourceScanner(
                 addSignal(SourceSignalKindAsset.LAYOUT_RENDERER, signal.renderer)
             }
         }
+        slotWrapperRendererSignals(source).forEach { signal ->
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = signal.range.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(signal.range.first, classDeclarations),
+            ).apply {
+                addSignal(SourceSignalKindAsset.LAYOUT_RENDERER, signal.composable)
+            }
+        }
     }
 
     private fun decodeKotlinString(match: MatchResult): String {

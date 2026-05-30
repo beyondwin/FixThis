@@ -33,4 +33,29 @@ class TestTagConventionTest {
         assertEquals("QueueRow", hyphenParsed?.composableName)
         assertEquals("empty-state", hyphenParsed?.variant)
     }
+
+    @Test
+    fun parsesScreenColonConvention() {
+        val parsed = TestTagConvention.parse("screen:CartScreen:checkout")
+
+        assertEquals("CartScreen", parsed?.composableName)
+        assertEquals("checkout", parsed?.variant)
+    }
+
+    @Test
+    fun parsesCompDotConvention() {
+        val parsed = TestTagConvention.parse("comp.PrimaryButton.submit")
+
+        assertEquals("PrimaryButton", parsed?.composableName)
+        assertEquals("submit", parsed?.variant)
+    }
+
+    @Test
+    fun rejectsTagsOutsideEnumeratedSet() {
+        assertNull(TestTagConvention.parse("widget:Foo:bar"))
+        assertNull(TestTagConvention.parse("screen.Foo.bar"))
+        assertNull(TestTagConvention.parse("comp-Foo-bar"))
+        assertNull(TestTagConvention.parse("screen:Foo"))
+        assertNull(TestTagConvention.parse("comp.Foo."))
+    }
 }

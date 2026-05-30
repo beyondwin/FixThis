@@ -1,4 +1,10 @@
 // @requires state.js, api.js
+            // sessions-polling.js — FALLBACK-ONLY session polling. The timer is
+            // armed only while SSE is unavailable (shouldUseSessionFallbackPolling()).
+            // Under a healthy EventSource session no timer is created and no
+            // /api/sessions poll fetch occurs (asserted by
+            // scripts/console-browser-reliability.mjs). Explicit recovery
+            // (reconnect, manual refresh) re-invokes startSessionsPolling().
             const SessionsPollIntervalMs = 2000;
 
             // sessionsPollingTimer is the setInterval handle; lives in this
@@ -33,6 +39,9 @@
 
             function startSessionsPolling() {
               stopSessionsPolling();
+              // Fallback-only: do not arm the polling timer while SSE is healthy.
+              // The SSE-drop path re-invokes startSessionsPolling() to resume.
+              if (!shouldUseSessionFallbackPolling()) return;
               pollingUseCases.startSessionsPolling();
               sessionsPollingTimer = setInterval(() => {
                 if (shouldPollSessions()) pollSessionsTick().catch(() => {
@@ -45,6 +54,10 @@
               if (sessionsPollingTimer) clearInterval(sessionsPollingTimer);
               sessionsPollingTimer = null;
               pollingUseCases.stopSessionsPolling();
+            }
+
+            function isSessionsPollingArmed() {
+              return sessionsPollingTimer !== null;
             }
 
             // pollSessionsTick delegates the HTTP + FSM bookkeeping to

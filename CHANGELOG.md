@@ -121,6 +121,14 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   now installs Reply, Jetsnack, and the bundled sample app, opens the MCP
   feedback console, creates written annotations, clicks `Copy Prompt`, and
   verifies copied Markdown plus local handoff timestamps.
+- Source matching now recognizes two additional opt-in conventions. Test tags in
+  the `screen:<Name>:<id>` and dot-delimited `comp.<Name>.<id>` forms are treated
+  the same as the existing `comp:<Name>:<id>` strict convention, resolving the
+  named composable owner at the same confidence. A composable that exposes a
+  `content: @Composable (...) -> Unit` slot is recognized as a layout wrapper, so
+  a node selected inside it surfaces the wrapper as a medium-confidence edit
+  surface. Both additions reuse existing evidence weights — neither makes a
+  source candidate high confidence on its own.
 
 ### Changed
 
@@ -159,6 +167,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   `:fixthis-compose-core` and split MCP session validation, preview
   fingerprinting, and save-reservation tracking into focused collaborators.
   Module-boundary and hotspot tests now ratchet those boundaries.
+- The feedback console no longer arms its 2-second session-polling timer while
+  the SSE event stream is healthy; polling is now created only on the SSE
+  fallback path. A healthy EventSource session issues zero `/api/sessions` poll
+  fetches, asserted by the browser reliability harness. Explicit recovery
+  (reconnect, manual refresh) still resumes polling when SSE is unavailable.
 
 ### Fixed
 

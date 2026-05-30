@@ -246,6 +246,41 @@ async function testStalePreviewSaveRequiresConfirmation() {
   });
 }
 
+async function assertNoSessionPollingUnderHealthySse({ fixture, context }) {
+  const page = await openConsolePage(context, fixture.url);
+  let sessionPollCount = 0;
+  page.on('request', (request) => {
+    const url = request.url();
+    // Session fallback polling hits the sessions list endpoint via api.sessions.
+    if (/\/api\/sessions(\?|$)/.test(url) && request.method() === 'GET') {
+      sessionPollCount += 1;
+    }
+  });
+  // Establish a healthy SSE session and let any (dead) polling interval run.
+  await page.waitForFunction(
+    () => window.FixThisConsoleDebug?.isConsoleEventsConnected?.() === true,
+    null,
+    { timeout: 8000 },
+  );
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  assert.equal(
+    sessionPollCount,
+    0,
+    `expected zero session-poll fetches under healthy SSE, saw ${sessionPollCount}`,
+  );
+  // A visibilitychange while SSE is healthy re-invokes startSessionsPolling();
+  // it must NOT arm a (dead) fallback timer when SSE is connected.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const armed = await page.evaluate(() => window.FixThisConsoleDebug?.isSessionsPollingArmed?.() === true);
+  assert.equal(armed, false, 'expected no session-polling timer under healthy SSE');
+  await page.close();
+}
+
+async function testNoSessionPollingUnderHealthySse() {
+  await withBrowser(assertNoSessionPollingUnderHealthySse);
+}
+
 async function testRepeatedSaveToMcpIdempotency() {
   await withBrowser(async ({ fixture, context }) => {
     const page = await openConsolePage(context, fixture.url);
@@ -283,6 +318,7 @@ async function run() {
   await testSaveToMcpDoesNotPullSessionsWhenSseIsConnected();
   await testEventSourceReconnectRecovery();
   await testStalePreviewSaveRequiresConfirmation();
+  await testNoSessionPollingUnderHealthySse();
   await testRepeatedSaveToMcpIdempotency();
   console.log('PASS console browser reliability proof');
 }

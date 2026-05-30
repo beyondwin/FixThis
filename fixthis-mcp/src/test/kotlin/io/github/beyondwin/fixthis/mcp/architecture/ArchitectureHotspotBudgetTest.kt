@@ -33,7 +33,7 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 585,
             "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
             "${gradlePlugin}task/GenerateFixThisSourceIndexTask.kt" to 130,
-            "${gradlePlugin}source/KotlinSourceScanner.kt" to 333,
+            "${gradlePlugin}source/KotlinSourceScanner.kt" to 344,
         )
         val consoleJsBudgets = mapOf(
             "fixthis-mcp/src/main/console/annotations.js" to 670,

@@ -48,7 +48,7 @@ These fields can be absent or empty depending on runtime context:
 
 `targetEvidence` is optional additive evidence for agent handoff. In the current MCP console flow, it is generated when `Copy Prompt` or `Save to MCP` persists written pending annotations and promotes a frozen preview into persisted feedback items. It may be absent when the captured screen, selected target, or source index does not provide enough structured evidence.
 
-- `identityHint`: optional target identity derived from strict `comp:<ComposableName>:<variant>` test tags or stable semantics labels.
+- `identityHint`: optional target identity derived from strict test tags (`comp:<ComposableName>:<variant>`, `screen:<ComposableName>:<id>`, or dot-delimited `comp.<ComposableName>.<id>`) or stable semantics labels.
 - `occurrence`: optional ordinal/count for the selected target, based on captured merged semantics nodes.
 - `sourceInterpretation`: optional summary of the top source candidate, source-match reasons, and confidence caution.
 - `evidenceQuality`: `BASIC` or `STRUCTURED`.
@@ -344,9 +344,12 @@ The item's `screenId` field points to the evidence snapshot saved with the item 
 Generated source-index entries now include additive v2 typed `signals` while preserving the v1 fields (`symbols`, `text`, `contentDescriptions`, `testTags`, `stringResources`, `roles`, and `activityNames`). Current signal kinds are `COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`, `STRING_RESOURCE_RESOLVED`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`, `CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`, `ARBITRARY_STRING_LITERAL`, `LAMBDA_OWNER_FUNCTION`, and `LAYOUT_RENDERER`; each signal has a `value` and optional `confidenceWeight` defaulting to `1.0`. `STRING_RESOURCE_RESOLVED` is emitted on Kotlin `stringResource(R.string.name)` call sites when the default-locale value is available from `res/values/strings.xml`; `LAMBDA_OWNER_FUNCTION` records the enclosing composable function for indexed Kotlin entries.
 
 `LAYOUT_RENDERER` source-index signals are typed call-site evidence for Compose
-`Layout(...)`, `SubcomposeLayout(...)`, and `SubcomposeLayout { ... }` usage.
-Agents should interpret them with the owner composable and confidence warnings:
-a layout renderer signal alone is not an exact source-line guarantee.
+`Layout(...)`, `SubcomposeLayout(...)`, and `SubcomposeLayout { ... }` usage, and
+for content-slot wrapper composables — a `@Composable fun` exposing a
+`content: @Composable (...) -> Unit` slot, which carries the wrapper's own
+function name. Agents should interpret them with the owner composable and
+confidence warnings: a layout renderer signal alone is not an exact source-line
+guarantee.
 
 Generated source indexes also include additive root metadata starting with source-index `schemaVersion: "1.1"`. Current generated source indexes use `schemaVersion: "1.2"` for resolved string-resource, owner-composable, and layout-renderer signals:
 

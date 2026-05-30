@@ -9,7 +9,8 @@ internal val kotlinSourceContentDescriptionRegex =
 internal val kotlinSourceFunctionRegex = Regex("\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(")
 internal val kotlinSourcePackageRegex = Regex("\\bpackage\\s+([A-Za-z_][A-Za-z0-9_.]*)")
 internal val kotlinSourceClassRegex = Regex("\\b(class|object|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)")
-private val strictCompTestTagRegex = Regex("""comp:[A-Za-z_][A-Za-z0-9_]*:.+""")
+private val strictCompTestTagRegex =
+    Regex("""(?:comp:[A-Za-z_][A-Za-z0-9_]*:.+|screen:[A-Za-z_][A-Za-z0-9_]*:.+|comp\.[A-Za-z_][A-Za-z0-9_]*\..+)""")
 
 internal data class KotlinStringResourceBinding(
     val resourceName: String,
@@ -30,6 +31,11 @@ internal data class KotlinRoleSignal(
 internal data class KotlinLayoutRendererSignal(
     val range: IntRange,
     val renderer: String,
+)
+
+internal data class KotlinSlotWrapperSignal(
+    val range: IntRange,
+    val composable: String,
 )
 
 internal fun stringResourceBindings(
@@ -116,6 +122,17 @@ internal fun layoutRendererSignals(source: String): List<KotlinLayoutRendererSig
         .toList()
 }
 
+internal fun slotWrapperRendererSignals(source: String): List<KotlinSlotWrapperSignal> {
+    val ignoredRanges = source.layoutRendererIgnoredRanges()
+    return slotWrapperRegex.findAll(source)
+        .mapNotNull { match ->
+            if (ignoredRanges.any { range -> match.range.first in range }) return@mapNotNull null
+            val nameGroup = match.groups[1] ?: return@mapNotNull null
+            KotlinSlotWrapperSignal(range = nameGroup.range, composable = nameGroup.value)
+        }
+        .toList()
+}
+
 internal fun collectSemanticModifierSignals(
     source: String,
     resolver: Map<String, String>,
@@ -187,6 +204,10 @@ private val composeLayoutImportRegex = Regex("""(?m)^\s*import\s+androidx\.compo
 private val declarationKeywordBeforeRendererRegex = Regex("""\b(class|object|interface|fun)\s+$""")
 private val localLayoutRendererDeclarationRegex = Regex("""\b(?:class|object|interface|fun)\s+(Layout|SubcomposeLayout)\b""")
 private val layoutRendererNames = setOf("Layout", "SubcomposeLayout")
+private val slotWrapperRegex =
+    Regex(
+        """@Composable\b[\s\S]{0,400}?\bfun\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\bcontent\s*:\s*@Composable\b[^()]*\([^)]*\)\s*->\s*Unit""",
+    )
 
 private fun String.layoutRendererIgnoredRanges(): List<IntRange> = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
 
