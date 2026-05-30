@@ -83,14 +83,14 @@ private fun tokenMatches(token: String, candidate: String): Boolean {
     // Whole-string fast path preserves prior substring behavior.
     val normalizedToken = token.normalizedForCallSiteMatch()
     val normalizedCandidate = candidate.normalizedForCallSiteMatch()
-    if (normalizedToken == normalizedCandidate) return true
-    return tokenWords.any { tw ->
-        candidateWords.any { cw ->
-            tw == cw ||
-                (tw.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && cw.contains(tw)) ||
-                (cw.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && tw.contains(cw))
+    return normalizedToken == normalizedCandidate ||
+        tokenWords.any { tw ->
+            candidateWords.any { cw ->
+                tw == cw ||
+                    (tw.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && cw.contains(tw)) ||
+                    (cw.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && tw.contains(cw))
+            }
         }
-    }
 }
 
 private fun String.normalizedForCallSiteMatch(): String = trim().lowercase().replace(Regex("\\s+"), " ")
