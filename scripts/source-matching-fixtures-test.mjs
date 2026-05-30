@@ -9,6 +9,7 @@ import {
   buildFixtureReport,
   classifyCaseOutcome,
   classifyRuntimeTrustOutcome,
+  loadManifest,
   evaluateSourceIndexCase,
   fixturePaths,
   installRuntimeFixture,
@@ -109,6 +110,63 @@ test("manifest includes local copy-data source trust case", () => {
   assert.ok(local, "fixthis-sample fixture is required");
   const ids = new Set(local.cases.map((entry) => entry.id));
   assert.ok(ids.has("fixthis-sample-copy-data-source-index"));
+});
+
+test("manifest pins reused StudioHeader definition as a SHARED_COMPONENT medium-cap case", () => {
+  // Real manifest must validate (no stale/unsupported fields).
+  const manifest = loadManifest();
+  const local = manifest.fixtures.find((fixture) => fixture.id === "fixthis-sample");
+  assert.ok(local, "fixthis-sample fixture is required");
+  const pinned = local.cases.find((entry) => entry.id === "fixthis-sample-shared-component");
+  assert.ok(pinned, "fixthis-sample-shared-component case is required");
+
+  // The case must target the single reused StudioHeader definition file.
+  const definitionFile = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt";
+  assert.equal(pinned.expectedEntryPathContains, definitionFile);
+  assert.deepEqual(pinned.expectedSignal, { kind: "COMPOSABLE_SYMBOL", value: "StudioHeader" });
+
+  // INVARIANT GUARD: a reused-component candidate must stay capped at medium and
+  // carry SHARED_COMPONENT. Drive the real classifier with the observation the
+  // matcher emits for this node so a future regression (promotion above medium,
+  // or a dropped SHARED_COMPONENT flag) fails CI.
+  const expectation = {
+    expectedTop3PathContains: definitionFile,
+    expectedConfidence: "low-or-medium",
+    expectedRiskFlags: ["SHARED_COMPONENT"],
+    mustNotHighConfidence: true,
+  };
+  const candidates = [{ path: definitionFile }];
+
+  const pass = classifyCaseOutcome(expectation, {
+    candidates,
+    confidence: "medium",
+    warnings: [],
+    riskFlags: ["SHARED_COMPONENT"],
+  });
+  assert.deepEqual(pass.failures, [], "medium + SHARED_COMPONENT must pass");
+  assert.ok(pass.metrics.includes("risk_flag_present"));
+  assert.ok(pass.metrics.includes("high_confidence_avoided"));
+
+  // Regression: confidence promoted above the medium cap.
+  const promoted = classifyCaseOutcome(expectation, {
+    candidates,
+    confidence: "high",
+    warnings: [],
+    riskFlags: ["SHARED_COMPONENT"],
+  });
+  assert.ok(
+    promoted.failures.includes("overconfident") && promoted.failures.includes("unexpected_high_confidence"),
+    "raising shared-component confidence above medium must fail",
+  );
+
+  // Regression: SHARED_COMPONENT flag dropped.
+  const unflagged = classifyCaseOutcome(expectation, {
+    candidates,
+    confidence: "medium",
+    warnings: [],
+    riskFlags: [],
+  });
+  assert.deepEqual(unflagged.failures, ["missing_risk_flag"], "dropping SHARED_COMPONENT must fail");
 });
 
 test("validateManifest rejects floating commits and unsafe paths", () => {

@@ -126,6 +126,12 @@
           "mustNotHighConfidence": true
         },
         {
+          "id": "fixthis-sample-shared-component",
+          "mode": "source-index",
+          "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
+          "expectedSignal": { "kind": "COMPOSABLE_SYMBOL", "value": "StudioHeader" }
+        },
+        {
           "id": "fixthis-sample-screen-convention-strict-tag",
           "mode": "source-index",
           "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
