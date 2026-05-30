@@ -28,6 +28,7 @@ data class SourceHintLocation(
     val file: String,
     val line: Int? = null,
     val mostLikely: Boolean = false,
+    val recommendedEditSite: Boolean = false,
 )
 
 data class SourceHint(

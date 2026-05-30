@@ -40,8 +40,18 @@ internal fun rankSharedComponentCallSites(
     val topScore = ordered.firstOrNull()?.second ?: 0.0
     val secondScore = ordered.getOrNull(1)?.second ?: 0.0
     val markTop = topScore > 0.0 && (topScore - secondScore) >= CALL_SITE_MOST_LIKELY_MARGIN
+    // Recommend the top site as the edit surface only when it is the best-guess (`mostLikely`) AND
+    // no other site has competing evidence (second score is zero). This keeps the recommendation
+    // stricter than the ordering hint.
+    val secondHasEvidence = secondScore > 0.0
+    val recommendTop = markTop && !secondHasEvidence
     return ordered.mapIndexed { index, (site, _) ->
-        SourceLocationRef(file = site.file, line = site.line, mostLikely = markTop && index == 0)
+        SourceLocationRef(
+            file = site.file,
+            line = site.line,
+            mostLikely = markTop && index == 0,
+            recommendedEditSite = recommendTop && index == 0,
+        )
     }
 }
 
