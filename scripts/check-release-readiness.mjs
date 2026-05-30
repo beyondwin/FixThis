@@ -221,6 +221,11 @@ requireIncludes(
   '`npm run release:v06:evidence:test`',
 );
 requireIncludes(
+  'R23b.v08-release-claim-manifest',
+  'docs/contributing/release-readiness.md',
+  '## v0.8 Release Claim Manifest',
+);
+requireIncludes(
   'R24.trust-sync-release-hardening-section',
   'docs/contributing/release-readiness.md',
   '## Trust Sync Release Hardening Evidence',
