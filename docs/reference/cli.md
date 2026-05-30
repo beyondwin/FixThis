@@ -133,7 +133,7 @@ fixthis init --target codex --dry-run
 | `--apply-gradle-plugin` | off | Also apply `io.github.beyondwin.fixthis.compose` to the detected Android app module. |
 | `--plugin-version` | `0.7.0` | FixThis Gradle plugin version to apply when `--apply-gradle-plugin` is set. |
 | `--dry-run` | off | Print planned writes without modifying files. |
-| `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
+| `--target` | `all` | Agent target: `claude`, `codex`, `cursor`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
 
@@ -178,7 +178,7 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--package` | — | Android applicationId. If omitted, FixThis scans Gradle build files for a unique value and refuses to guess when `applicationIdSuffix` creates multiple candidates. |
 | `--project-dir` | `.` | Android project root. |
 | `--dry-run` | off | Print planned writes, including the patched Gradle file, without modifying files. |
-| `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
+| `--target` | `all` | Agent target: `claude`, `codex`, `cursor`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--skip-gradle-plugin` | off | Do not modify the app module build file. |
 | `--plugin-version` | `0.7.0` | FixThis Gradle plugin version to apply. |
@@ -188,7 +188,8 @@ fixthis install-agent --project-dir . --target all --dry-run
 
 Target selection is shared with `fixthis setup`: `claude` plans only the
 project-local `.claude/settings.json` write, `codex` plans only the global
-`~/.codex/config.toml` write, and `all` plans both. If the global guard refuses
+`~/.codex/config.toml` write, `cursor` plans only the project-local
+`.cursor/mcp.json` write, and `all` plans all three. If the global guard refuses
 a Codex write outside an Android project, `--target all` continues with the
 Claude project-local target and reports Codex as skipped; `--target codex`
 exits PARTIAL without writing.
@@ -246,7 +247,7 @@ fixthis setup --package <applicationId> --write --target codex --dry-run
 | `--write` | off | Write MCP config to agent settings files. |
 | `--dry-run` | off | With `--write`, print a privacy-preserving diff of only the added/changed entries within `mcpServers`, capped at a 4 KiB byte budget so unrelated surrounding config does not leak into agent logs. |
 | `--full-diff` | off | With `--dry-run`, disable the 4 KiB byte budget and print the complete planned diff. Prints a warning that surrounding context may leak — avoid in agent logs. |
-| `--target` | `all` | Agent target: `claude`, `codex`, or `all`. |
+| `--target` | `all` | Agent target: `claude`, `codex`, `cursor`, or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. Implies the cause chain is rendered too, but skipped by default to keep the terse error readable. |
 
@@ -254,6 +255,7 @@ Targets:
 
 - **`claude`** → project-local `.claude/settings.json` (only affects this project).
 - **`codex`** → user-global `~/.codex/config.toml` (affects all Codex sessions).
+- **`cursor`** → project-local `.cursor/mcp.json` (only affects this project).
 
 Dry-run renders the same planned content that `--write` would commit, but does
 not create or modify config files. The dry-run diff remains privacy-preserving

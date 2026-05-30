@@ -42,7 +42,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         "--full-diff",
         help = "Disable the dry-run output byte budget (may leak surrounding context — avoid in agent logs)",
     ).flag(default = false)
-    private val target by option("--target", help = "Agent config target").choice("codex", "claude", "all").default("all")
+    private val target by option("--target", help = "Agent config target").choice("codex", "claude", "cursor", "all").default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 
@@ -301,7 +301,7 @@ class InitCommand : CoreCliktCommand(name = "init") {
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
         .flag(default = false)
     private val target by option("--target", help = "Agent config target")
-        .choice("codex", "claude", "all")
+        .choice("codex", "claude", "cursor", "all")
         .default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
@@ -420,7 +420,7 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
         .flag(default = false)
     private val target by option("--target", help = "Agent config target")
-        .choice("codex", "claude", "all")
+        .choice("codex", "claude", "cursor", "all")
         .default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val skipGradlePlugin by option(
