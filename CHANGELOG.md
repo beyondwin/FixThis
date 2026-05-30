@@ -131,6 +131,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   a node selected inside it surfaces the wrapper as a medium-confidence edit
   surface. Both additions reuse existing evidence weights — neither makes a
   source candidate high confidence on its own.
+- Agent setup now supports a Cursor MCP target: `--target cursor` writes a
+  project-local `.cursor/mcp.json`, and `--target all` includes Cursor alongside
+  Codex and Claude. The writer merges idempotently, preserving unrelated MCP
+  servers and replacing only the fixthis entry, matching the Claude writer's
+  semantics.
 
 ### Changed
 

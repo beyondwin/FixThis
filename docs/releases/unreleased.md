@@ -80,6 +80,11 @@ GitHub Release page and registry listings as release evidence.
   core module and splits MCP session target validation, preview fingerprint
   policy, and save-reservation tracking into focused collaborators. Architecture
   tests now enforce the core dependency boundary and ratcheted hotspot budgets.
+- Agent setup can now write a Cursor MCP config: `--target cursor` writes a
+  project-local `.cursor/mcp.json` and `--target all` includes Cursor alongside
+  Codex and Claude. The writer follows the same idempotent JSON-merge semantics
+  as the Claude writer — it preserves unrelated MCP servers and replaces only
+  the fixthis entry. See [`docs/reference/cli.md`](../reference/cli.md).
 
 ## Compatibility Notes
 
