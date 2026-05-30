@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.cli.commands
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -22,8 +23,17 @@ class SetupPlannerTest {
     }
 
     @Test
-    fun targetAllSelectsBothWriters() {
-        assertEquals(listOf("codex", "claude"), SetupPlanner.selectedWriters("all").map { it.name })
+    fun cursorTargetSelectsCursorWriter() {
+        val writers = SetupPlanner.selectedWriters("cursor")
+        assertEquals(listOf("cursor"), writers.map { it.name })
+    }
+
+    @Test
+    fun allTargetIncludesCursor() {
+        val names = SetupPlanner.selectedWriters("all").map { it.name }
+        assertTrue(names.contains("cursor"))
+        assertTrue(names.contains("codex"))
+        assertTrue(names.contains("claude"))
     }
 
     @Test
