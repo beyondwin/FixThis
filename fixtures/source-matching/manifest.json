@@ -124,6 +124,12 @@
           "expectedConfidence": "low-or-medium",
           "expectedSourceConfidence": "low-or-medium",
           "mustNotHighConfidence": true
+        },
+        {
+          "id": "fixthis-sample-screen-convention-strict-tag",
+          "mode": "source-index",
+          "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
+          "expectedSignal": { "kind": "STRICT_COMP_TEST_TAG", "value": "screen:Diagnostics:root" }
         }
       ]
     }

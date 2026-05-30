@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,7 @@ private const val ANDROID_VIEW_HEIGHT_DP = 72
 fun DiagnosticsScreen(padding: PaddingValues) {
     Column(
         modifier = Modifier
+            .testTag("screen:Diagnostics:root")
             .fillMaxSize()
             .padding(padding)
             .verticalScroll(rememberScrollState())
