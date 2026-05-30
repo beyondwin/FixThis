@@ -39,7 +39,14 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   reused definition is invoked, capped at 10 and tolerant of absence. The
   feedback console renders these as a "Shared component used at" Evidence row;
   call sites are verification context only and do not raise the medium
-  confidence cap.
+  confidence cap. The call-site inventory is now ordered by a best-effort
+  match between each call site's static context (enclosing composable name and
+  string-literal arguments) and the selected node's evidence; the most
+  plausible usage is listed first and flagged `mostLikely` when it clears the
+  next site by a clear margin, which the feedback console labels
+  "(most likely)". Confidence stays capped at medium and no precise-target
+  claim is made — ties and zero-evidence selections keep the prior static
+  `file:line` order.
 - Source-index generation now records a `LAYOUT_RENDERER` typed signal for
   `Layout(...)` and `SubcomposeLayout(...)` call sites inside composable
   owners. The matcher surfaces these as medium-confidence edit-surface hints
