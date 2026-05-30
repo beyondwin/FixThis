@@ -44,11 +44,9 @@ fun SourceCandidate.toSourceHint(): SourceHint = SourceHint(
     callSites = callSites.map(SourceLocationRef::toSourceHintLocation),
 )
 
-private fun SourceLocationRef.toSourceHintLocation(): SourceHintLocation =
-    SourceHintLocation(file = file, line = line, mostLikely = mostLikely)
+private fun SourceLocationRef.toSourceHintLocation(): SourceHintLocation = SourceHintLocation(file = file, line = line, mostLikely = mostLikely)
 
-private fun SourceHintLocation.toSourceLocationRef(): SourceLocationRef =
-    SourceLocationRef(file = file, line = line, mostLikely = mostLikely)
+private fun SourceHintLocation.toSourceLocationRef(): SourceLocationRef = SourceLocationRef(file = file, line = line, mostLikely = mostLikely)
 
 private fun SourceHintConfidence.toSelectionConfidence(): SelectionConfidence = when (this) {
     SourceHintConfidence.HIGH -> SelectionConfidence.HIGH

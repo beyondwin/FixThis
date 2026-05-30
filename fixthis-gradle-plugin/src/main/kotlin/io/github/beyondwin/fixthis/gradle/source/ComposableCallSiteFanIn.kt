@@ -101,8 +101,7 @@ internal fun ComposableCallSite.encodeSignalValue(): String {
     }
 }
 
-private fun String.enclosingFunctionName(offset: Int): String? =
-    enclosingFunDeclarationRegex.findAll(substring(0, offset)).lastOrNull()?.groupValues?.get(1)
+private fun String.enclosingFunctionName(offset: Int): String? = enclosingFunDeclarationRegex.findAll(substring(0, offset)).lastOrNull()?.groupValues?.get(1)
 
 private fun String.callArgumentLiterals(openParenIndex: Int, ignoredRanges: List<IntRange>): List<String> {
     val close = matchingParenIndex(openParenIndex, ignoredRanges) ?: return emptyList()

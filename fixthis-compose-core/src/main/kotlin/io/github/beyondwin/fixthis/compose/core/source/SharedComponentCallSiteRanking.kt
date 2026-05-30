@@ -16,14 +16,13 @@ private data class ParsedCallSite(
 )
 
 /** Builds the normalized selection-evidence tokens used to rank shared-component call sites. */
-internal fun selectionTokensFor(selectedNode: FixThisNode, activityName: String?): Set<String> =
-    buildSet {
-        selectedNode.text.forEach { add(it) }
-        selectedNode.editableText?.let { add(it) }
-        selectedNode.contentDescription.forEach { add(it) }
-        selectedNode.role?.let { add(it) }
-        activityName?.let { add(it) }
-    }.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+internal fun selectionTokensFor(selectedNode: FixThisNode, activityName: String?): Set<String> = buildSet {
+    selectedNode.text.forEach { add(it) }
+    selectedNode.editableText?.let { add(it) }
+    selectedNode.contentDescription.forEach { add(it) }
+    selectedNode.role?.let { add(it) }
+    activityName?.let { add(it) }
+}.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
 /**
  * Reorders the call-site inventory by how well each site's static context (enclosing function name
