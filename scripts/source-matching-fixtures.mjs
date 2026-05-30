@@ -40,6 +40,7 @@ const runtimeOnlyCaseFields = new Set([
   "expectedConfidence",
   "expectedSourceConfidence",
   "expectedRiskFlags",
+  "expectedRecommendedEditSiteContains",
   "mustWarn",
   "mustNotWarn",
   "mustNotHighConfidence",
@@ -182,6 +183,11 @@ export function validateManifest(manifest) {
         if (entry.mustNotHighConfidence !== undefined && typeof entry.mustNotHighConfidence !== "boolean") {
           errors.push(`${entry.id || "case"} mustNotHighConfidence must be boolean`);
         }
+        if (entry.expectedRecommendedEditSiteContains !== undefined
+          && (typeof entry.expectedRecommendedEditSiteContains !== "string"
+            || entry.expectedRecommendedEditSiteContains.length === 0)) {
+          errors.push(`${entry.id || "case"} expectedRecommendedEditSiteContains must be a non-empty string`);
+        }
       }
     }
   }
@@ -319,6 +325,19 @@ export function classifyRuntimeTrustOutcome(expectation, observed) {
   if (expectation.mustNotHighConfidence === true && !hasOwn(observed, "confidence")) {
     removeLabel(outcome.environment, trustObservationNotConfigured);
     addUnique(outcome.failures, "missing_confidence_observation");
+  }
+  if (expectation.expectedRecommendedEditSiteContains) {
+    if (!hasOwn(observed, "callSites")) {
+      addUnique(outcome.environment, trustObservationNotConfigured);
+    } else {
+      const recommended = (observed.callSites || []).filter((site) => site && site.recommendedEditSite === true);
+      const needle = expectation.expectedRecommendedEditSiteContains;
+      if (recommended.length === 1 && typeof recommended[0].file === "string" && recommended[0].file.includes(needle)) {
+        addUnique(outcome.metrics, "recommended_edit_site_present");
+      } else {
+        addUnique(outcome.failures, "missing_recommended_edit_site");
+      }
+    }
   }
   return outcome;
 }

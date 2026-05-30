@@ -51,11 +51,19 @@ class TestTagConventionTest {
     }
 
     @Test
+    fun parsesScreenDotConvention() {
+        val parsed = TestTagConvention.parse("screen.Profile.avatar")
+
+        assertEquals("Profile", parsed?.composableName)
+        assertEquals("avatar", parsed?.variant)
+    }
+
+    @Test
     fun rejectsTagsOutsideEnumeratedSet() {
         assertNull(TestTagConvention.parse("widget:Foo:bar"))
-        assertNull(TestTagConvention.parse("screen.Foo.bar"))
         assertNull(TestTagConvention.parse("comp-Foo-bar"))
         assertNull(TestTagConvention.parse("screen:Foo"))
         assertNull(TestTagConvention.parse("comp.Foo."))
+        assertNull(TestTagConvention.parse("screen.Foo."))
     }
 }

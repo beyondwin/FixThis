@@ -9,8 +9,11 @@ internal val kotlinSourceContentDescriptionRegex =
 internal val kotlinSourceFunctionRegex = Regex("\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(")
 internal val kotlinSourcePackageRegex = Regex("\\bpackage\\s+([A-Za-z_][A-Za-z0-9_.]*)")
 internal val kotlinSourceClassRegex = Regex("\\b(class|object|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)")
+
+// Kept in sync with the compose-core TestTagConvention.patterns set:
+// comp:<Name>:<id>, screen:<Name>:<id>, comp.<Name>.<id>, screen.<Name>.<id>.
 private val strictCompTestTagRegex =
-    Regex("""(?:comp:[A-Za-z_][A-Za-z0-9_]*:.+|screen:[A-Za-z_][A-Za-z0-9_]*:.+|comp\.[A-Za-z_][A-Za-z0-9_]*\..+)""")
+    Regex("""(?:comp:[A-Za-z_][A-Za-z0-9_]*:.+|screen:[A-Za-z_][A-Za-z0-9_]*:.+|comp\.[A-Za-z_][A-Za-z0-9_]*\..+|screen\.[A-Za-z_][A-Za-z0-9_]*\..+)""")
 
 internal data class KotlinStringResourceBinding(
     val resourceName: String,

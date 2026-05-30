@@ -136,6 +136,34 @@ test("manifest pins reused StudioHeader as a SHARED_COMPONENT source-index case"
   assert.deepEqual(pinned.expectedSignal, { kind: "SHARED_COMPONENT", value: "4" });
 });
 
+test("manifest pins a recommended-edit-site call site on the reused StudioHeader, capped at medium", () => {
+  // Real manifest must validate (no stale/unsupported fields).
+  const manifest = loadManifest();
+  const local = manifest.fixtures.find((fixture) => fixture.id === "fixthis-sample");
+  assert.ok(local, "fixthis-sample fixture is required");
+  const pinned = local.cases.find((entry) => entry.id === "fixthis-sample-shared-header-recommended-edit-site");
+  assert.ok(pinned, "fixthis-sample-shared-header-recommended-edit-site case is required");
+
+  // Recommended-edit-site is a runtime call-site concept (Task 1): the runtime
+  // selection that overlaps one reused call site promotes that single site.
+  assert.equal(pinned.mode, "runtime-trust");
+
+  // Selecting the distinctive Diagnostics StudioHeader copy keeps the ranking
+  // evidence concentrated on the DiagnosticsScreen call site so it is the only
+  // recommended edit site. The runtime target is the literal "Diagnostics" copy.
+  assert.deepEqual(pinned.runtimeTarget, { text: "Diagnostics" });
+  assert.equal(pinned.expectedTop3PathContains, "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt");
+
+  // The StudioHeader *definition* stays capped below HIGH even with call-site
+  // ranking and a recommended edit site (the shared-component medium cap).
+  assert.equal(pinned.expectedSourceConfidence, "low-or-medium");
+  assert.equal(pinned.mustNotHighConfidence, true);
+
+  // The recommended edit site must be the DiagnosticsScreen call site only, and
+  // it must be the single call site flagged recommendedEditSite=true.
+  assert.equal(pinned.expectedRecommendedEditSiteContains, "screens/DiagnosticsScreen.kt");
+});
+
 test("validateManifest rejects floating commits and unsafe paths", () => {
   assert.throws(
     () => validateManifest({
