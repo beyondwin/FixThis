@@ -93,6 +93,11 @@
   session when the server already has authoritative session state. The browser
   upserts that summary locally instead of fetching `/api/sessions` while
   EventSource is healthy.
+- Session polling (`/api/sessions` fetches on a 2-second timer) is a fallback-only
+  path. `startSessionsPolling()` returns immediately when the SSE connection is
+  healthy; under a healthy EventSource session, no polling timer is created and
+  zero `/api/sessions` fetches occur. Polling resumes only on explicit reconnect,
+  manual refresh, or SSE drop.
 - Interop boundary handoffs may include a `boundaryContext` line derived from
   nearby Compose semantics. This context helps locate a likely Compose host,
   but it is not exact AndroidView/WebView source ownership.

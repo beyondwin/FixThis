@@ -48,7 +48,7 @@ These fields can be absent or empty depending on runtime context:
 
 `targetEvidence` is optional additive evidence for agent handoff. In the current MCP console flow, it is generated when `Copy Prompt` or `Save to MCP` persists written pending annotations and promotes a frozen preview into persisted feedback items. It may be absent when the captured screen, selected target, or source index does not provide enough structured evidence.
 
-- `identityHint`: optional target identity derived from strict `comp:<ComposableName>:<variant>` test tags or stable semantics labels.
+- `identityHint`: optional target identity derived from strict test tags (`comp:<ComposableName>:<variant>`, `screen:<ComposableName>:<id>`, or dot-delimited `comp.<ComposableName>.<id>`) or stable semantics labels.
 - `occurrence`: optional ordinal/count for the selected target, based on captured merged semantics nodes.
 - `sourceInterpretation`: optional summary of the top source candidate, source-match reasons, and confidence caution.
 - `evidenceQuality`: `BASIC` or `STRUCTURED`.
