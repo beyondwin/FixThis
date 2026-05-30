@@ -76,11 +76,13 @@ class SharedComponentCallSiteRankingTest {
 
     @Test
     fun marksMostLikelyWhenTopClearsSecondByExactlyTheMargin() {
-        // ScreenB matches the literal "Save" (weight 2.0); ScreenA matches nothing (0.0).
-        // Margin = 2.0 >= CALL_SITE_MOST_LIKELY_MARGIN (1.0) → top is marked.
+        // ScreenB matches the literal "Save" (weight 2.0); ScreenA matches only the
+        // enclosing-function name "Save" (weight 1.0). Delta = 2.0 - 1.0 = 1.0, exactly
+        // CALL_SITE_MOST_LIKELY_MARGIN. This guards the `>=` comparison: a future edit to
+        // `>` would stop marking the top at exactly the margin and break this test.
         val ranked = rankSharedComponentCallSites(
             callSiteSignalValues = listOf(
-                "ui/ScreenA.kt:10\tProfileScreen\tCancel",
+                "ui/ScreenA.kt:10\tSave\tCancel",
                 "ui/ScreenB.kt:20\tNothing\tSave",
             ),
             selectionTokens = setOf("save"),
