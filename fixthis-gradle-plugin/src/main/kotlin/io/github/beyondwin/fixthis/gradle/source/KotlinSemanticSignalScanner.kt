@@ -9,7 +9,8 @@ internal val kotlinSourceContentDescriptionRegex =
 internal val kotlinSourceFunctionRegex = Regex("\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(")
 internal val kotlinSourcePackageRegex = Regex("\\bpackage\\s+([A-Za-z_][A-Za-z0-9_.]*)")
 internal val kotlinSourceClassRegex = Regex("\\b(class|object|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)")
-private val strictCompTestTagRegex = Regex("""comp:[A-Za-z_][A-Za-z0-9_]*:.+""")
+private val strictCompTestTagRegex =
+    Regex("""(?:comp:[A-Za-z_][A-Za-z0-9_]*:.+|screen:[A-Za-z_][A-Za-z0-9_]*:.+|comp\.[A-Za-z_][A-Za-z0-9_]*\..+)""")
 
 internal data class KotlinStringResourceBinding(
     val resourceName: String,

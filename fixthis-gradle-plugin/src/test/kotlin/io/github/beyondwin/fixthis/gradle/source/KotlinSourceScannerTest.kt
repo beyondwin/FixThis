@@ -452,4 +452,32 @@ class KotlinSourceScannerTest {
         assertTrue(signals.none { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER })
         assertTrue(signals.any { it.kind == SourceSignalKindAsset.UI_TEXT && it.value == "Visible" })
     }
+
+    @Test
+    fun `emits STRICT_COMP_TEST_TAG for screen and dot conventions`() {
+        val file = tempDir.newFile("ConventionTags.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun CartScreen() {
+                    Box(modifier = Modifier.testTag("screen:CartScreen:checkout"))
+                    Box(modifier = Modifier.testTag("comp.PrimaryButton.submit"))
+                    Box(modifier = Modifier.testTag("widget:NotAConvention:x"))
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val strictValues = entries.flatMap { it.signals }
+            .filter { it.kind == SourceSignalKindAsset.STRICT_COMP_TEST_TAG }
+            .map { it.value }
+
+        assertTrue(strictValues.contains("screen:CartScreen:checkout"))
+        assertTrue(strictValues.contains("comp.PrimaryButton.submit"))
+        assertTrue(strictValues.none { it == "widget:NotAConvention:x" })
+    }
 }
