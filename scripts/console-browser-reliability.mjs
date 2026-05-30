@@ -268,6 +268,12 @@ async function assertNoSessionPollingUnderHealthySse({ fixture, context }) {
     0,
     `expected zero session-poll fetches under healthy SSE, saw ${sessionPollCount}`,
   );
+  // A visibilitychange while SSE is healthy re-invokes startSessionsPolling();
+  // it must NOT arm a (dead) fallback timer when SSE is connected.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const armed = await page.evaluate(() => window.FixThisConsoleDebug?.isSessionsPollingArmed?.() === true);
+  assert.equal(armed, false, 'expected no session-polling timer under healthy SSE');
   await page.close();
 }
 

@@ -428,6 +428,7 @@
               getDraftWorkspace: () => currentDraftWorkspace(),
               getState: () => state,
               isConsoleEventsConnected: () => isConsoleEventsConnected(),
+              isSessionsPollingArmed: () => isSessionsPollingArmed(),
             });
             window.__fixthisDispose = () => {
               for (const slot of __fixthisDisposers) slot?.dispose?.();
