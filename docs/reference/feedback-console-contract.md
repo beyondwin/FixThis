@@ -89,6 +89,15 @@
   automatic update path. Fallback preview polling runs only while `/api/events`
   is disconnected or unavailable, and both paths route through the same
   preview-application function and active-session fence.
+  `startLivePreviewPolling()` returns immediately when the SSE connection is
+  healthy (`shouldUsePreviewFallbackPolling()` is `!consoleEventsConnected`); under
+  a healthy EventSource session no live-preview timer is created and zero
+  steady-state `/api/preview` polls occur (proven by the browser-reliability proof's
+  zero-preview-poll assertion under healthy SSE, alongside the zero-session-poll
+  assertion). The console performs exactly one bootstrap `/api/preview` fetch
+  during page load — before `startConsoleEvents()` opens the EventSource — which is
+  a one-time pre-connection load, not steady-state polling; the proof anchors its
+  counters to the moment SSE reports connected to measure only the healthy window.
 - `sessions-updated` SSE events carry a `summary` payload for the changed
   session when the server already has authoritative session state. The browser
   upserts that summary locally instead of fetching `/api/sessions` while
@@ -104,6 +113,22 @@
   "Reconnecting feedback updates…" reconnect affordance only on the SSE-disconnected
   fallback path, and is intentionally kept to let that path recover. It is never
   set or rendered while EventSource is healthy.
+- **SSE-cleanup gate outcome (v1.0):** the evidence-gated removal of redundant
+  manual-recovery code is a **NO-OP** — no recovery symbol was deleted because
+  none is provably dead. The two fallback-recovery entry points,
+  `startSessionsPolling()` (`fixthis-mcp/src/main/console/sessions-polling.js:40`)
+  and `startLivePreviewPolling()` (`fixthis-mcp/src/main/console/preview.js:77`),
+  are still read and re-invoked on the retained disconnected-fallback path: the
+  EventSource `onerror` handler clears the connected flag and re-arms both
+  (`fixthis-mcp/src/main/console/events.js:90`-`94`), at which point their gates
+  (`shouldUseSessionFallbackPolling()` / `shouldUsePreviewFallbackPolling()` in
+  `fixthis-mcp/src/main/console/sse.js:22`-`28`) permit arming. A repo-wide search
+  for `manualRecover` / `retryPoll` / `reconnectPoll` finds no such symbols; the
+  only `recover*` matches are draft-workspace recovery, an unrelated live feature.
+  Both healthy-path no-poll guarantees (session **and** preview) are pinned by the
+  zero-poll assertions in `scripts/console-browser-reliability.mjs`
+  (`assertNoSessionPollingUnderHealthySse`), and the SSE-drop reconnect behaviour
+  is exercised by `testEventSourceReconnectRecovery` in the same proof.
 - Interop boundary handoffs may include a `boundaryContext` line derived from
   nearby Compose semantics. This context helps locate a likely Compose host,
   but it is not exact AndroidView/WebView source ownership.
