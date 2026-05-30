@@ -21,7 +21,10 @@
               return sites
                 .map(site => {
                   const location = site.line == null ? site.file : site.file + ':' + site.line;
-                  return site.mostLikely ? location + ' (most likely)' : location;
+                  const markers = [];
+                  if (site.mostLikely) markers.push('most likely');
+                  if (site.recommendedEditSite) markers.push('recommended edit site');
+                  return markers.length ? location + ' (' + markers.join(', ') + ')' : location;
                 })
                 .filter(Boolean);
             }

@@ -60,6 +60,16 @@ test('call-site formatter labels the most-likely entry', () => {
   assert.match(helper, /most likely/);
 });
 
+test('call-site formatter marks the recommended edit site distinctly from most-likely', () => {
+  const helper = functionBody(detailSource, 'function sourceCandidateCallSites(candidate)');
+  // Renders a distinct "(recommended edit site)" marker driven by the additive field.
+  assert.match(helper, /site\.recommendedEditSite/);
+  assert.match(helper, /'recommended edit site'/);
+  // The recommended label is distinct from the most-likely label, and both
+  // coexist so a site can be flagged as most-likely AND recommended.
+  assert.match(helper, /'most likely'/);
+});
+
 test('returning from pending annotation detail refreshes session summary counts', () => {
   const renderPendingDetail = functionBody(detailSource, 'function renderAnnotationDetail(item, index)');
   const backAnnotationsStart = renderPendingDetail.indexOf("querySelectorAll('[data-back-annotations]')");
