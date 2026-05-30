@@ -480,4 +480,40 @@ class KotlinSourceScannerTest {
         assertTrue(strictValues.contains("comp.PrimaryButton.submit"))
         assertTrue(strictValues.none { it == "widget:NotAConvention:x" })
     }
+
+    @Test
+    fun `emits LAYOUT_RENDERER for content-slot wrapper composable`() {
+        val file = tempDir.newFile("CardSlot.kt").apply {
+            writeText(
+                """
+                package com.example
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun CardSlot(content: @Composable () -> Unit) {
+                    content()
+                }
+
+                @Composable
+                fun PlainCard() {
+                    val title = "Hello"
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+        val wrapperEntry = entries.single { entry ->
+            entry.signals.any { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER && it.value == "CardSlot" }
+        }
+
+        assertTrue(
+            wrapperEntry.signals.any { it.kind == SourceSignalKindAsset.LAMBDA_OWNER_FUNCTION && it.value == "CardSlot" },
+        )
+        assertTrue(
+            entries.none { entry ->
+                entry.signals.any { it.kind == SourceSignalKindAsset.LAYOUT_RENDERER && it.value == "PlainCard" }
+            },
+        )
+    }
 }
