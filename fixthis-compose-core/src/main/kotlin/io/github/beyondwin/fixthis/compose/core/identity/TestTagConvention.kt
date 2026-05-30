@@ -18,10 +18,10 @@ object TestTagConvention {
 
     fun parse(testTag: String?): Parsed? {
         if (testTag == null) return null
-        for (pattern in patterns) {
-            val match = pattern.matchEntire(testTag) ?: continue
-            return Parsed(composableName = match.groupValues[1], variant = match.groupValues[2])
+        return patterns.firstNotNullOfOrNull { pattern ->
+            pattern.matchEntire(testTag)?.let { match ->
+                Parsed(composableName = match.groupValues[1], variant = match.groupValues[2])
+            }
         }
-        return null
     }
 }

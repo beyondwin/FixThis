@@ -4,9 +4,9 @@
   <CurrentIssues>
     <ID>ComplexCondition:OccurrenceCalculator.kt$OccurrenceCalculator$composableName != null &amp;&amp; variant != null &amp;&amp; parsedTag?.composableName == composableName &amp;&amp; parsedTag.variant == variant</ID>
     <ID>CyclomaticComplexMethod:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter$private fun compactReasonToken(reason: String): String?</ID>
-    <ID>CyclomaticComplexMethod:SourceMatcher.kt$SourceMatcher$private fun score( entry: SourceIndexEntry, selectedNode: FixThisNode, nearbyNodes: List&lt;FixThisNode&gt;, activityName: String?, ): MatchScore</ID>
+    <ID>CyclomaticComplexMethod:SourceMatcher.kt$SourceMatcher$private fun score( entry: SourceIndexEntry, selectedNode: FixThisNode, nearbyNodes: List&lt;FixThisNode&gt;, activityName: String?, sharedOwners: Set&lt;String&gt;, ): MatchScore</ID>
     <ID>LongMethod:FixThisMarkdownFormatterTest.kt$FixThisMarkdownFormatterTest$private fun annotationWithTargetEvidence(): FixThisAnnotation</ID>
-    <ID>LongMethod:SourceMatcher.kt$SourceMatcher$private fun score( entry: SourceIndexEntry, selectedNode: FixThisNode, nearbyNodes: List&lt;FixThisNode&gt;, activityName: String?, ): MatchScore</ID>
+    <ID>LongMethod:SourceMatcher.kt$SourceMatcher$private fun score( entry: SourceIndexEntry, selectedNode: FixThisNode, nearbyNodes: List&lt;FixThisNode&gt;, activityName: String?, sharedOwners: Set&lt;String&gt;, ): MatchScore</ID>
     <ID>LongMethod:TargetEvidenceModelTest.kt$TargetEvidenceModelTest$@Test fun annotationWithTargetEvidenceEncodesAndDecodes()</ID>
     <ID>LongParameterList:FixThisMarkdownFormatterTest.kt$FixThisMarkdownFormatterTest$( uid: String, text: List&lt;String&gt; = emptyList(), contentDescription: List&lt;String&gt; = emptyList(), role: String? = null, testTag: String? = null, actions: List&lt;String&gt; = emptyList(), )</ID>
     <ID>LongParameterList:FixThisMarkdownFormatterTest.kt$FixThisMarkdownFormatterTest$( userComment: String = "Please inspect this", selectedNode: FixThisNode? = null, sourceCandidates: List&lt;SourceCandidate&gt; = emptyList(), searchHints: List&lt;String&gt; = emptyList(), screenshot: ScreenshotInfo? = null, errors: List&lt;FixThisError&gt; = emptyList(), )</ID>
