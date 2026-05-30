@@ -1,6 +1,7 @@
 // @requires (none)
             // sse.js — late-SSE-message session-equality gate and connection
-            // state for preview fallback polling.
+            // state that gates both preview AND session fallback polling
+            // (shouldUsePreviewFallbackPolling / shouldUseSessionFallbackPolling).
             let consoleEventsConnected = false;
             let consoleEventsLastConnectedAt = 0;
 
