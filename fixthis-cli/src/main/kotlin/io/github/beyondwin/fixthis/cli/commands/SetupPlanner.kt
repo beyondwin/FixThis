@@ -21,8 +21,12 @@ internal object SetupPlanner {
         "codex" -> listOf(CodexConfigWriter())
         "claude" -> listOf(ClaudeConfigWriter())
         "cursor" -> listOf(CursorConfigWriter())
-        else -> listOf(CodexConfigWriter(), ClaudeConfigWriter(), CursorConfigWriter())
+        "local" -> allWriters().filter { it.scope != "global" }
+        else -> allWriters()
     }
+
+    private fun allWriters(): List<AgentConfigWriter> =
+        listOf(CodexConfigWriter(), ClaudeConfigWriter(), CursorConfigWriter())
 
     @Suppress("TooGenericExceptionCaught")
     fun buildWritePlans(

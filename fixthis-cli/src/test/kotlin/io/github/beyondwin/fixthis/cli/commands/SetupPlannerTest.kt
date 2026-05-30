@@ -37,6 +37,19 @@ class SetupPlannerTest {
     }
 
     @Test
+    fun localTargetSelectsProjectLocalWritersOnly() {
+        val writers = SetupPlanner.selectedWriters("local")
+        val names = writers.map { it.name }
+        assertTrue("project-local claude must be selected", names.contains("claude"))
+        assertTrue("project-local cursor must be selected", names.contains("cursor"))
+        assertFalse("global codex must be excluded from the local target", names.contains("codex"))
+        assertTrue(
+            "local target must only contain project-local writers",
+            writers.all { it.scope == "project-local" },
+        )
+    }
+
+    @Test
     fun mcpConfigEntryFallsBackToFixthisMcpWhenExecutableIsMissing() {
         val projectRoot = temporaryFolder.newFolder("project").canonicalFile
 

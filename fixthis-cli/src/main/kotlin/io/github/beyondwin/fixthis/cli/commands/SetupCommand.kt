@@ -42,7 +42,8 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         "--full-diff",
         help = "Disable the dry-run output byte budget (may leak surrounding context — avoid in agent logs)",
     ).flag(default = false)
-    private val target by option("--target", help = "Agent config target").choice("codex", "claude", "cursor", "all").default("all")
+    private val target by option("--target", help = "Agent config target")
+        .choice("codex", "claude", "cursor", "local", "all").default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 
@@ -301,7 +302,7 @@ class InitCommand : CoreCliktCommand(name = "init") {
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
         .flag(default = false)
     private val target by option("--target", help = "Agent config target")
-        .choice("codex", "claude", "cursor", "all")
+        .choice("codex", "claude", "cursor", "local", "all")
         .default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
@@ -420,7 +421,7 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
     private val dryRun by option("--dry-run", help = "Print planned writes without modifying files")
         .flag(default = false)
     private val target by option("--target", help = "Agent config target")
-        .choice("codex", "claude", "cursor", "all")
+        .choice("codex", "claude", "cursor", "local", "all")
         .default("all")
     private val serverName by option("--server-name", help = "MCP server name to write").default("fixthis")
     private val skipGradlePlugin by option(
@@ -447,10 +448,12 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
         val decision = GlobalScopeGuard.decide(root, allowGlobal = allowGlobal)
 
         // Filter target if guard denies global writes (only codex is global).
+        // "all" falls back to "local" — project-local writers (claude, cursor) still
+        // get written; only the global codex target is dropped.
         val effectiveTarget: String = when {
             decision == GlobalScopeGuard.Decision.PROCEED -> target
             target == "codex" -> "none"
-            target == "all" -> "claude"
+            target == "all" -> "local"
             else -> target
         }
 
