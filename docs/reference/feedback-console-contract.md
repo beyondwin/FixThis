@@ -96,8 +96,14 @@
 - Session polling (`/api/sessions` fetches on a 2-second timer) is a fallback-only
   path. `startSessionsPolling()` returns immediately when the SSE connection is
   healthy; under a healthy EventSource session, no polling timer is created and
-  zero `/api/sessions` fetches occur. Polling resumes only on explicit reconnect,
-  manual refresh, or SSE drop.
+  zero `/api/sessions` fetches occur (proven by the browser-reliability proof's
+  zero-session-poll assertion under healthy SSE). Polling resumes only on explicit
+  reconnect, manual refresh, or SSE drop.
+- The `sessionsPollingPaused` projection is **not** healthy-path polling state; it
+  is the retained disconnected-fallback reconnect signal. It surfaces the
+  "Reconnecting feedback updates…" reconnect affordance only on the SSE-disconnected
+  fallback path, and is intentionally kept to let that path recover. It is never
+  set or rendered while EventSource is healthy.
 - Interop boundary handoffs may include a `boundaryContext` line derived from
   nearby Compose semantics. This context helps locate a likely Compose host,
   but it is not exact AndroidView/WebView source ownership.
