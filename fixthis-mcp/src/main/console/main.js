@@ -427,6 +427,7 @@
             window.FixThisConsoleDebug = Object.freeze({
               getDraftWorkspace: () => currentDraftWorkspace(),
               getState: () => state,
+              isConsoleEventsConnected: () => isConsoleEventsConnected(),
             });
             window.__fixthisDispose = () => {
               for (const slot of __fixthisDisposers) slot?.dispose?.();
