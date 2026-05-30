@@ -27,6 +27,8 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+## v0.8.0 — 2026-05-30
+
 ### Added
 
 - Source matching now detects reusable Compose component definitions. When a
