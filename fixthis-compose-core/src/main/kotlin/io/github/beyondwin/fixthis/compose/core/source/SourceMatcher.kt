@@ -16,8 +16,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         if (selectedNode == null || sourceIndex.entries.isEmpty()) return emptyList()
 
         val selectionTokens = selectionTokensFor(selectedNode, activityName)
+        val sharedOwners = sharedComponentOwners()
         val matchScores = sourceIndex.entries.asSequence()
-            .map { entry -> score(entry, selectedNode, nearbyNodes, activityName) }
+            .map { entry -> score(entry, selectedNode, nearbyNodes, activityName, sharedOwners) }
             .filter { it.rawScore > 0.0 }
             .sortedWith(
                 compareByDescending<MatchScore> { it.sourceRankingTier }
@@ -57,11 +58,19 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         var anyTermMatched: Boolean = false
     }
 
+    // Owners that are fan-in shared components: any entry carrying a SHARED_COMPONENT signal marks
+    // its owner shared, so sibling entries in that owner (e.g. a body line hit by an exact testTag)
+    // also inherit the MEDIUM cap.
+    private fun sharedComponentOwners(): Set<String> = sourceIndex.entries
+        .filter { entry -> entry.signals.any { it.kind == SourceSignalKind.SHARED_COMPONENT } }
+        .mapNotNullTo(mutableSetOf()) { it.ownerComposable }
+
     private fun score(
         entry: SourceIndexEntry,
         selectedNode: FixThisNode,
         nearbyNodes: List<FixThisNode>,
         activityName: String?,
+        sharedOwners: Set<String>,
     ): MatchScore {
         val matchedTerms = linkedSetOf<String>()
         val matchReasons = linkedSetOf<SourceMatchReason>()
@@ -186,13 +195,16 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         ) {
             matchReasons.add(SourceMatchReason.LAYOUT_RENDERER_CONTEXT)
         }
-        if (
+        val ownsSharedComponent =
             entry.signals.any { signal -> signal.kind == SourceSignalKind.SHARED_COMPONENT } &&
-            (
-                SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons ||
-                    SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE in matchReasons
-                )
-        ) {
+                (
+                    SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons ||
+                        SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE in matchReasons
+                    )
+        // Sibling entries of a shared owner (e.g. a body line hit by an exact testTag, where the
+        // SHARED_COMPONENT signal lives only on the definition entry) must stay MEDIUM-capped too.
+        val belongsToSharedOwner = ctx.anyTermMatched && entry.ownerComposable in sharedOwners
+        if (ownsSharedComponent || belongsToSharedOwner) {
             matchReasons.add(SourceMatchReason.SHARED_COMPONENT_DEFINITION)
         }
 

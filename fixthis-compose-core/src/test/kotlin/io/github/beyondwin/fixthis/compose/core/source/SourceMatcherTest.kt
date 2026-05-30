@@ -1263,6 +1263,56 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun capsFanInSharedComponentBodyTestTagMatchAtMedium() {
+        // Reused composable StudioHeader (fan-in = 4). The definition entry carries the
+        // SHARED_COMPONENT signal; a SEPARATE body entry within the same ownerComposable
+        // matches the exact strict testTag and clearly outranks the definition, so it
+        // escapes the per-candidate SHARED_COMPONENT cap and would resolve at HIGH.
+        // The body entry must inherit the MEDIUM cap from its shared owner instead, so the
+        // overall top candidate must never resolve at HIGH.
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/StudioHeader.kt",
+                    line = 29,
+                    text = listOf("Studio overview"),
+                    testTags = listOf("comp:StudioHeader:root"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.STRICT_COMP_TEST_TAG, value = "comp:StudioHeader:root"),
+                        SourceSignal(kind = SourceSignalKind.UI_TEXT, value = "Studio overview"),
+                        SourceSignal(kind = SourceSignalKind.LAMBDA_OWNER_FUNCTION, value = "StudioHeader"),
+                    ),
+                    excerpt = ".testTag(\"comp:StudioHeader:root\")",
+                ),
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/StudioHeader.kt",
+                    line = 21,
+                    symbols = listOf("StudioHeader"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "StudioHeader"),
+                        SourceSignal(kind = SourceSignalKind.LAMBDA_OWNER_FUNCTION, value = "StudioHeader"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "4"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "screens/HomeScreen.kt:44"),
+                    ),
+                    excerpt = "@Composable fun StudioHeader(",
+                ),
+            ),
+        )
+
+        val candidate = SourceMatcher(index).match(
+            selectedNode = node(uid = "header", text = listOf("Studio overview"), testTag = "comp:StudioHeader:root"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).first()
+
+        // The body/testTag entry (line 29) clearly outranks the definition (line 21), so
+        // without the fan-in cap it resolves at HIGH despite belonging to a shared owner.
+        assertEquals(29, candidate.line)
+        assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
+        assertTrue(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
+    }
+
+    @Test
     fun leavesCallSitesEmptyForNonSharedComponentMatch() {
         val index = SourceIndex(
             entries = listOf(
