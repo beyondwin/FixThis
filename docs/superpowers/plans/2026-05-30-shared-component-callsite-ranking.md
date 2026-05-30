@@ -777,6 +777,24 @@ git commit -m "test(fixtures): guard reused-component confidence cap under ranki
 
 ---
 
+## Task 7b: Cap fan-in shared-component matches at MEDIUM (defect found by Task 7 guard)
+
+**Files:**
+- Modify: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt` (and `SharedComponentCallSiteRanking.kt` only if needed)
+- Modify (test): `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`
+
+**Why:** the Task 7 runtime guard found a real defect (confirmed on emulator-5554, `build/reports/fixthis-source-matching/fixthis-sample-runtime-output.json`). For a reused composable `StudioHeader` (fan-in = 4 call sites), an **exact testTag match** lands on a body line (`StudioHeader.kt:29`) that is a *separate index entry* from the definition symbol (`StudioHeader.kt:21`). The definition entry carries the `SHARED_COMPONENT` signal → `SHARED_COMPONENT_DEFINITION` reason → MEDIUM cap. The body/testTag entry does NOT carry that signal, matches via `SELECTED_TEST_TAG`, gets no cap, and resolves at **HIGH** — driving overall `confidence`/`sourceConfidence` to HIGH. This violates the spec non-goal: *a reused/shared component definition must never resolve at HIGH, even with ranking.*
+
+- [ ] **Step 1 (RED):** Add a `SourceMatcherTest` case reproducing the defect: an index with a composable that (a) has a `SHARED_COMPONENT` signal (fan-in ≥ 2) and (b) has a second entry within the same `ownerComposable` that matches an exact `SELECTED_TEST_TAG`. Assert the top candidate's confidence is capped at MEDIUM (never HIGH). Run `./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest*"` and capture the RED failure.
+
+- [ ] **Step 2 (FIX):** In `SourceMatcher.kt`, extend the cap so that any candidate whose `ownerComposable` is a known fan-in shared component inherits the MEDIUM cap — not only the candidate that directly carries the `SHARED_COMPONENT` signal. The shared status is observable across the entry set being scored (the definition entry carries `SHARED_COMPONENT`). Apply the cap at the result-assembly level where all candidates/entries are visible (e.g., resolve the set of `ownerComposable`s that are shared, then cap every candidate belonging to one). Do NOT regress the existing strict-identity case (`fixthis-sample-home-primary-runtime`, a non-shared component, must stay MEDIUM/HIGH as today). Keep the change minimal and within the architecture-hotspot line budget for `SourceMatcher.kt` (≤ 580; raise via the documented hotspot-budget path only if unavoidable).
+
+- [ ] **Step 3 (GREEN):** Re-run `./gradlew :fixthis-compose-core:test` — the new test and all existing tests pass. If emulator-5554 is still attached, re-run the runtime fixture lab (`node scripts/source-matching-fixtures.mjs runtime` then `report`) and confirm `fixthis-sample-shared-header-medium-cap` now reports the cap (no `overconfident`/`unexpected_high_confidence`); otherwise rely on the unit test as the authoritative regression and note that the emulator re-run was skipped.
+
+- [ ] **Step 4: Commit** (two commits): first the core fix + unit test (`fix(source): cap fan-in shared-component matches at MEDIUM`), then the already-staged fixture guard (`test(fixtures): guard reused-component confidence cap under ranking`).
+
+---
+
 ## Task 8: Final verification and changelog
 
 **Files:**
