@@ -51,6 +51,7 @@ npmrc.local
 .fixthis/
 .fixthis/eval-fixtures/
 build/reports/fixthis-source-matching/
+fixthis-*-marker.png
 
 # OS
 .DS_Store
