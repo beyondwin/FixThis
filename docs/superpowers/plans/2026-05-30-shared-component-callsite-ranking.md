@@ -737,37 +737,36 @@ git commit -m "feat(console): label most-likely shared-component call site"
 
 This case guards the core non-goal — a reused component definition must not resolve at HIGH confidence even with ranking — using the existing runtime-trust fixture mode (no harness changes required).
 
-- [ ] **Step 1: Identify a reused composable in a pinned fixture repo**
+**Fixture choice (ENV_BLOCKER resolution, 2026-05-30):** the guard lives in the **local `fixthis-sample`** fixture, not the external `android/compose-samples` (Jetsnack/Reply) fixtures. External GitHub fixtures attach no source candidates at runtime, so `expectedTop3PathContains`/`expectedSourceConfidence` can never be observed there (only the confidence cap is observable). The local `fixthis-sample` runtime path *does* attach source candidates (see the existing `fixthis-sample-home-primary-runtime` case), so the full assertion set — top-3 path, source confidence, and the runtime confidence cap — can all be verified green without weakening any assertion. The local app's `StudioHeader` composable is defined once and invoked at 4 call sites with a stable `Modifier.testTag("comp:StudioHeader:root")`, making it a faithful reused-component target.
 
-The manifest pins `android/compose-samples` at commit `d3ff757b289f7036815978a8f7b16706ee3423b0` (Jetsnack, Reply). Materialize a fixture checkout and find a composable invoked at >= 2 call sites with a stable visible label.
+- [ ] **Step 1: Confirm the reused composable in the local sample app**
 
-Run: `node scripts/source-matching-fixtures.mjs --list`
-(then, after the harness has cloned the repo under its workspace, from that checkout:)
-Run: `grep -rn "JetsnackButton(" <jetsnack-checkout>/app/src/main/java | grep -v "fun JetsnackButton"`
-Expected: 2+ call sites for a candidate like `JetsnackButton`, with at least one carrying a visible text/`contentDescription` literal usable as `runtimeTarget`.
+Run: `grep -rn "StudioHeader(" sample/src/main/java | grep -v "fun StudioHeader("`
+Expected: 4 call sites (HomeScreen, ProjectScreen, DiagnosticsScreen, ReviewScreen). Confirm the definition in `sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt` carries `Modifier.testTag("comp:StudioHeader:root")` so all call sites share a stable runtime selector.
 
-- [ ] **Step 2: Add the runtime-trust case to the Jetsnack fixture `cases` array**
+- [ ] **Step 2: Add the runtime-trust case to the `fixthis-sample` fixture `cases` array**
 
-Use the component and a visible label confirmed in Step 1 (illustrative values shown — replace with the confirmed component/label):
+Add to the `fixthis-sample` fixture (illustrative values shown — verify `expectedTop3PathContains` and the observed confidence by running Step 3, and set them to the actual observed values; do NOT weaken the cap):
 
 ```json
         {
-          "id": "jetsnack-shared-button-medium-cap",
+          "id": "fixthis-sample-shared-header-medium-cap",
           "mode": "runtime-trust",
-          "trustPurpose": "reused component definition stays capped below HIGH even with call-site ranking",
-          "runtimeTarget": { "text": "ADD TO CART", "role": "Button" },
-          "expectedTop3PathContains": "JetsnackButton.kt",
+          "trustPurpose": "reused component definition (StudioHeader, 4 call sites) stays capped below HIGH even with call-site ranking",
+          "runtimeTarget": { "testTag": "comp:StudioHeader:root" },
+          "expectedTop3PathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
           "expectedConfidence": "low-or-medium",
-          "expectedSourceConfidence": "low-or-medium"
+          "expectedSourceConfidence": "low-or-medium",
+          "mustNotHighConfidence": true
         }
 ```
 
 - [ ] **Step 3: Run the fixture lab for the new case**
 
-Run: `node scripts/source-matching-fixtures.mjs --id jetsnack`
-Expected: PASS — the new case asserts the reused-component target resolves at low-or-medium (never HIGH); existing Jetsnack/Reply cases stay green.
+Run: `node scripts/source-matching-fixtures.mjs --id fixthis-sample`
+Expected: PASS — the new case asserts the reused `StudioHeader` target resolves at low-or-medium (never HIGH, enforced by `mustNotHighConfidence`); the existing `fixthis-sample` cases stay green. Set `expectedTop3PathContains` to the actually-observed candidate path if it differs from the definition file.
 
-If the chosen component does not produce a `SHARED_COMPONENT` match in the fixture (single use, or no shared signal), pick a different reused component from Step 1 and update the case. Do not weaken the `expectedConfidence` assertion to force a pass.
+If `StudioHeader` unexpectedly resolves at HIGH, that is a REAL feature finding (the SHARED_COMPONENT cap is not firing for a testTag-precise reused component) — escalate it; do NOT weaken the `expectedConfidence`/`mustNotHighConfidence` assertion to force a pass. If the runtime observation cannot attach source candidates even locally, escalate rather than dropping `expectedSourceConfidence`.
 
 - [ ] **Step 4: Commit**
 
