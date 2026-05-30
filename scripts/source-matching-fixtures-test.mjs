@@ -9,6 +9,7 @@ import {
   buildFixtureReport,
   classifyCaseOutcome,
   classifyRuntimeTrustOutcome,
+  loadManifest,
   evaluateSourceIndexCase,
   fixturePaths,
   installRuntimeFixture,
@@ -109,6 +110,30 @@ test("manifest includes local copy-data source trust case", () => {
   assert.ok(local, "fixthis-sample fixture is required");
   const ids = new Set(local.cases.map((entry) => entry.id));
   assert.ok(ids.has("fixthis-sample-copy-data-source-index"));
+});
+
+test("manifest pins reused StudioHeader as a SHARED_COMPONENT source-index case", () => {
+  // Real manifest must validate (no stale/unsupported fields).
+  const manifest = loadManifest();
+  const local = manifest.fixtures.find((fixture) => fixture.id === "fixthis-sample");
+  assert.ok(local, "fixthis-sample fixture is required");
+  const pinned = local.cases.find((entry) => entry.id === "fixthis-sample-shared-component");
+  assert.ok(pinned, "fixthis-sample-shared-component case is required");
+
+  // This is a source-index case: the static index carries the fan-in signal the
+  // Gradle SourceIndexGenerator emits when a composable is reused above threshold.
+  assert.equal(pinned.mode, "source-index");
+
+  // The case must target the single reused StudioHeader definition file.
+  const definitionFile = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt";
+  assert.equal(pinned.expectedEntryPathContains, definitionFile);
+
+  // The value equals StudioHeader's current call-site count (ReviewScreen,
+  // HomeScreen, DiagnosticsScreen, ProjectScreen = 4). Update it if a call site
+  // is added or removed. If fan-in detection regresses and stops flagging the
+  // shared component, the SHARED_COMPONENT signal disappears and the live
+  // evaluateSourceIndexCase fails this case with missing_source_signal.
+  assert.deepEqual(pinned.expectedSignal, { kind: "SHARED_COMPONENT", value: "4" });
 });
 
 test("validateManifest rejects floating commits and unsafe paths", () => {

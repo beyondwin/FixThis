@@ -92,6 +92,18 @@ Required v0.6 evidence before tagging:
 - `bash scripts/check-docs-cli-surface.sh`
 - `npm run checks:observation -- --json`
 
+## v0.8 Release Claim Manifest
+
+v0.8 may claim the items below only when the release issue includes evidence
+for each.
+
+| Claim | Required evidence |
+| --- | --- |
+| Layout/SubcomposeLayout call sites surface as medium-confidence edit-surface hints for strict `comp:` tags. | `./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon` and `node scripts/source-matching-fixtures-test.mjs`. |
+| Reused component definitions are flagged `SHARED_COMPONENT`, capped at medium, and ranked by call-site evidence. | `./gradlew :fixthis-compose-core:test --tests "*SharedComponentCallSiteRankingTest" --no-daemon` and `node scripts/source-matching-fixtures-test.mjs`. |
+| Healthy SSE sessions perform no session/preview polling; polling is fallback-only. | `node scripts/console-browser-reliability.mjs`. |
+| `fixthis doctor --json` emits top-level `readiness` and `nextAction`. | `./gradlew :fixthis-cli:test --tests "*DoctorCommandTest" --tests "*InstallAgentJsonReportTest" --no-daemon`. |
+
 ## Trust Sync Release Hardening Evidence
 
 The trust-sync hardening line may be claimed only when each claim below has

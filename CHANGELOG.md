@@ -27,6 +27,17 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Fixed
+
+- `fixthis install-agent --target all` outside an Android project no longer
+  drops the project-local Cursor config. The global-scope guard previously fell
+  back to Claude only, silently skipping Cursor even though `.cursor/mcp.json`
+  is project-local. It now falls back to a new `local` target that writes both
+  project-local agents (`claude` + `cursor`) and reports only the global Codex
+  target as skipped. `--target local` is also accepted directly.
+
+## v0.8.0 — 2026-05-30
+
 ### Added
 
 - Source matching now detects reusable Compose component definitions. When a
@@ -44,9 +55,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   string-literal arguments) and the selected node's evidence; the most
   plausible usage is listed first and flagged `mostLikely` when it clears the
   next site by a clear margin, which the feedback console labels
-  "(most likely)". Confidence stays capped at medium and no precise-target
-  claim is made — ties and zero-evidence selections keep the prior static
-  `file:line` order.
+  "(most likely)". Call-site evidence matching is word-aware — it splits
+  camelCase, snake_case, and whitespace into words so multi-word names line up
+  more accurately, sharpening which usage is flagged `mostLikely`. Confidence
+  stays capped at medium and no precise-target claim is made — ties and
+  zero-evidence selections keep the prior static `file:line` order.
 - Source-index generation now records a `LAYOUT_RENDERER` typed signal for
   `Layout(...)` and `SubcomposeLayout(...)` call sites inside composable
   owners. The matcher surfaces these as medium-confidence edit-surface hints
@@ -129,6 +142,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   a node selected inside it surfaces the wrapper as a medium-confidence edit
   surface. Both additions reuse existing evidence weights — neither makes a
   source candidate high confidence on its own.
+- Agent setup now supports a Cursor MCP target: `--target cursor` writes a
+  project-local `.cursor/mcp.json`, and `--target all` includes Cursor alongside
+  Codex and Claude. The writer merges idempotently, preserving unrelated MCP
+  servers and replacing only the fixthis entry, matching the Claude writer's
+  semantics.
 
 ### Changed
 

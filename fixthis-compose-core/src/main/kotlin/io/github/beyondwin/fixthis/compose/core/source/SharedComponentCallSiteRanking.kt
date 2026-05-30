@@ -77,12 +77,28 @@ private fun callSiteScore(site: ParsedCallSite, tokens: Set<String>): Double {
 }
 
 private fun tokenMatches(token: String, candidate: String): Boolean {
+    val tokenWords = token.toMatchWords()
+    val candidateWords = candidate.toMatchWords()
+    if (tokenWords.isEmpty() || candidateWords.isEmpty()) return false
+    // Whole-string fast path preserves prior substring behavior.
     val normalizedToken = token.normalizedForCallSiteMatch()
     val normalizedCandidate = candidate.normalizedForCallSiteMatch()
-    if (normalizedToken.isEmpty() || normalizedCandidate.isEmpty()) return false
     return normalizedToken == normalizedCandidate ||
-        (normalizedToken.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && normalizedCandidate.contains(normalizedToken)) ||
-        (normalizedCandidate.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && normalizedToken.contains(normalizedCandidate))
+        tokenWords.any { tw ->
+            candidateWords.any { cw ->
+                tw == cw ||
+                    (tw.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && cw.contains(tw)) ||
+                    (cw.length >= CALL_SITE_MIN_PARTIAL_MATCH_LENGTH && tw.contains(cw))
+            }
+        }
 }
 
 private fun String.normalizedForCallSiteMatch(): String = trim().lowercase().replace(Regex("\\s+"), " ")
+
+private val CAMEL_BOUNDARY = Regex("(?<=[a-z0-9])(?=[A-Z])")
+
+private fun String.toMatchWords(): List<String> = trim()
+    .split(CAMEL_BOUNDARY)
+    .flatMap { it.split(Regex("[^A-Za-z0-9]+")) }
+    .map { it.lowercase() }
+    .filter { it.length >= 2 }

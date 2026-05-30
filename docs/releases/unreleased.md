@@ -7,79 +7,17 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-- Compose `Layout(...)` / `SubcomposeLayout(...)` call sites are now indexed
-  as a typed `LAYOUT_RENDERER` signal and surfaced as medium-confidence
-  edit-surface hints for strict `comp:` test-tag selections, with conservative
-  scanning rules that avoid false signals from comments, strings, declarations,
-  and same-name non-Compose locals.
-- Compact handoff preserves the source-matching confidence token on the
-  rank-1 candidate and renders trust caveats as a `note:` line, making
-  source-matching trust legible from the compact prompt.
-- The local source-matching fixture lab classifies trust regressions, fails
-  on unmatched confidence expectations, and supports a runtime trust
-  evaluation mode that exercises `RuntimeTargetResolver` against fixture
-  indexes (plus a strict local gate invocation for CI-like enforcement).
-  Runtime cases now require a `trustPurpose` description (rendered as a
-  `Purpose` column), and the manifest accepts two fixture sources:
-  `external-github` (clone+patch) and `local-project` (in-tree modules
-  addressed by an optional `moduleDir`). Focused runtime set: Reply, the
-  in-repo `fixthis-sample` local-project case, and a Jetsnack filters
-  case. See [`docs/guides/source-matching-fixture-lab.md`](../guides/source-matching-fixture-lab.md).
-- The fixture-lab source-index evaluator now matches manifest paths
-  against both `entry.file` and `entry.repoFile`, so monorepo-prefixed
-  fixtures (Reply, Jetsnack, NIA) match the way operators write them.
-  The manifest is re-pinned to current upstream (`ReplyApp`,
-  `JetsnackBottomBar`, NIA `for-you` API title resource, NIA
-  `Navigation.kt`), and runtime `capture_failed` downgrade rows now
-  render their purpose instead of `-`.
-- Console preview is now SSE-first: a live SSE connection alone refreshes
-  the screen, and visibility-resume / boot polling only fires as a
-  fallback when SSE is disconnected and an interval is configured. A new
-  `console:browser:reliability` proof asserts the no-fallback path. See
-  the push-first preview contract in
-  [`docs/reference/feedback-console-contract.md`](../reference/feedback-console-contract.md).
-- Console maintainer inner loop: `node scripts/build-console-assets.mjs --watch`
-  auto-rebundles on edit and the `--console-assets-dir` server pushes a
-  `console-assets-changed` SSE event so the browser reloads. The top bar
-  shows a server build chip (`connected · build sha=<short>` /
-  `reconnecting…`) so `bash scripts/restart-console.sh` is verifiable from
-  the UI.
-- Bug fixes preserve ambiguous-owner candidate confidence, original
-  fixture candidate order, and the `UNTYPED_FALLBACK` risk on weak
-  owner-function matches; owner-function source evidence is now explicitly
-  capped at medium confidence. Detekt findings cleared across
-  `SourceScoringPolicy`, `SourceMatcher`, `CompactHandoffRenderer`,
-  `ConsoleAssetsWatcher`, `FeedbackConsoleAssets`, and
-  `RuntimeTrustObservationMapper` without behavior changes.
-- Trust program Phase 2 — PRECISE handoff now pairs each source candidate
-  with its corresponding `edit:` sub-line and surfaces an `edit-note:`
-  bullet for warnings, renders a rank-1 source caution as a `- note:`
-  line, exposes an `edit-surface hints` block when source candidates are
-  absent, and emits explicit `- Action:` lines for `VISUAL_AREA_ONLY`,
-  `POSSIBLE_VIEW_INTEROP`, `NO_MEANINGFUL_COMPOSE_TARGET`, and
-  `SENSITIVE_TEXT_REDACTED` reliability warnings. Compact and PRECISE
-  renderers stay token-equivalent for trust-essential fields, the existing
-  source-only contract remains byte-stable for older sessions, and the
-  empty-source preview retains its "do not invent source" invariant while
-  permitting Compose-derived edit-surface hints.
-- Trust-sync hardening now makes interop and visual-area boundaries explicit in
-  agent handoffs, reduces item/handoff mutation pull refreshes while SSE is
-  healthy, and exposes local event-stream diagnostics for release evidence.
-- Planned V1 hardening now ties source-trust calibration, agent install
-  recovery, and local evidence profiles to explicit release evidence.
-- Agent setup and diagnostics now share a top-level readiness contract:
-  `fixthis doctor --json` and `install-agent --json` both expose
-  `readiness` plus `nextAction`, so agents can continue from one machine-readable
-  next step instead of inferring from individual checks.
-- Local evidence profiles (`npm run evidence:fast`, `evidence:trust`,
-  `evidence:console`, and `evidence:release`) write JSON and Markdown reports
-  under `build/reports/fixthis-evidence/`. The runner auto-detects common
-  Android SDK locations and defers runtime trust checks when no ready device is
-  available unless strict runtime mode is requested.
-- Clean architecture hardening moves target-evidence assembly into the pure
-  core module and splits MCP session target validation, preview fingerprint
-  policy, and save-reservation tracking into focused collaborators. Architecture
-  tests now enforce the core dependency boundary and ratcheted hotspot budgets.
+This cycle's user-facing highlights are now captured in the latest per-release
+notes under [`docs/releases/`](.) — covering the layout-renderer edit hints,
+shared-component call-site ranking, fallback-only console polling, doctor
+`--json` readiness, and the Cursor MCP target. `CHANGELOG.md` remains the full
+chronological record.
+
+`main` carries one fix beyond the latest per-release notes: `fixthis
+install-agent --target all` run outside an Android project now retains the
+project-local Cursor config instead of silently dropping it — the global-scope
+guard falls back to a new `local` target (`claude` + `cursor`) and reports only
+the global Codex target as skipped. See `CHANGELOG.md` for details.
 
 ## Compatibility Notes
 

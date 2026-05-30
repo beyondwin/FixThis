@@ -490,6 +490,52 @@ class InitAgentCommandTest {
     }
 
     @Test
+    fun installAgentAllOutsideAndroidStillWritesProjectLocalCursor() {
+        val tempProject = temporaryFolder.newFolder("ft-all-local")
+        val out = ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(PrintStream(out))
+        try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.app",
+                        "--target",
+                        "all",
+                        "--json",
+                        "--skip-gradle-plugin",
+                    ),
+                )
+            }
+        } catch (_: CliktError) {
+            // PARTIAL is expected: the global codex target is skipped outside an Android project.
+        } finally {
+            System.setOut(oldOut)
+        }
+
+        val text = out.toString()
+        val rendered = text.lines().lastOrNull { it.trim().startsWith("{") }
+        assertTrue("expected a JSON report line, got:\n$text", rendered != null)
+        val obj = Json.parseToJsonElement(rendered!!).jsonObject
+        val applied = obj.getValue("applied").jsonArray
+            .map { it.jsonObject.getValue("target").jsonPrimitive.content }
+        val skipped = obj.getValue("skipped").jsonArray
+            .map { it.jsonObject.getValue("target").jsonPrimitive.content }
+
+        assertTrue("project-local cursor must survive the --target all fallback, applied=$applied", applied.contains("cursor"))
+        assertTrue("project-local claude must be written, applied=$applied", applied.contains("claude"))
+        assertTrue("global codex must be skipped outside an Android project, skipped=$skipped", skipped.contains("codex"))
+        assertFalse("global codex must not be written outside an Android project, applied=$applied", applied.contains("codex"))
+        assertTrue(
+            "cursor MCP config must exist on disk",
+            tempProject.resolve(".cursor/mcp.json").isFile,
+        )
+    }
+
+    @Test
     fun installAgentExitsPartialWhenSomeSkipped() {
         val tempProject = temporaryFolder.newFolder("ft-partial")
         val exitCode: Int = try {

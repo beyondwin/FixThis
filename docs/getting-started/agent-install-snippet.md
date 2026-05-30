@@ -55,8 +55,8 @@ When asked to add FixThis to this Android app:
    ```
 3. Run `fixthis install-agent --project-dir . --target all`. This patches the
    detected app module with Gradle plugin `io.github.beyondwin.fixthis.compose`,
-   writes MCP config for Claude Code / Codex, writes `.fixthis/project.json`,
-   and writes `.fixthis/agent-setup.*` handoff files. Pass
+   writes MCP config for Claude Code / Codex / Cursor, writes
+   `.fixthis/project.json`, and writes `.fixthis/agent-setup.*` handoff files. Pass
    `--package <applicationId>` if detection is ambiguous. Pass `--dry-run`
    before writing if the repo has unusual Gradle wiring.
 4. Run `fixthis doctor --project-dir . --json`. Treat the JSON readiness

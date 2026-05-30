@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.cli.commands
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -22,8 +23,30 @@ class SetupPlannerTest {
     }
 
     @Test
-    fun targetAllSelectsBothWriters() {
-        assertEquals(listOf("codex", "claude"), SetupPlanner.selectedWriters("all").map { it.name })
+    fun cursorTargetSelectsCursorWriter() {
+        val writers = SetupPlanner.selectedWriters("cursor")
+        assertEquals(listOf("cursor"), writers.map { it.name })
+    }
+
+    @Test
+    fun allTargetIncludesCursor() {
+        val names = SetupPlanner.selectedWriters("all").map { it.name }
+        assertTrue(names.contains("cursor"))
+        assertTrue(names.contains("codex"))
+        assertTrue(names.contains("claude"))
+    }
+
+    @Test
+    fun localTargetSelectsProjectLocalWritersOnly() {
+        val writers = SetupPlanner.selectedWriters("local")
+        val names = writers.map { it.name }
+        assertTrue("project-local claude must be selected", names.contains("claude"))
+        assertTrue("project-local cursor must be selected", names.contains("cursor"))
+        assertFalse("global codex must be excluded from the local target", names.contains("codex"))
+        assertTrue(
+            "local target must only contain project-local writers",
+            writers.all { it.scope == "project-local" },
+        )
     }
 
     @Test
