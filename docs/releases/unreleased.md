@@ -13,7 +13,11 @@ shared-component call-site ranking, fallback-only console polling, doctor
 `--json` readiness, and the Cursor MCP target. `CHANGELOG.md` remains the full
 chronological record.
 
-There are no further unreleased changes on `main` at this time.
+`main` carries one fix beyond the latest per-release notes: `fixthis
+install-agent --target all` run outside an Android project now retains the
+project-local Cursor config instead of silently dropping it — the global-scope
+guard falls back to a new `local` target (`claude` + `cursor`) and reports only
+the global Codex target as skipped. See `CHANGELOG.md` for details.
 
 ## Compatibility Notes
 

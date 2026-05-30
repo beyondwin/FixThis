@@ -27,6 +27,15 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Fixed
+
+- `fixthis install-agent --target all` outside an Android project no longer
+  drops the project-local Cursor config. The global-scope guard previously fell
+  back to Claude only, silently skipping Cursor even though `.cursor/mcp.json`
+  is project-local. It now falls back to a new `local` target that writes both
+  project-local agents (`claude` + `cursor`) and reports only the global Codex
+  target as skipped. `--target local` is also accepted directly.
+
 ## v0.8.0 — 2026-05-30
 
 ### Added
