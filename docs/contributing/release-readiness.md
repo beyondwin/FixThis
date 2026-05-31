@@ -221,6 +221,12 @@ itself.
 | Handoff correctness evaluation covers owner, role, confidence, caution, ranking, and prompt usability without exact-ownership overclaiming. | `npm run handoff:eval:test`. |
 | Release metadata does not drift from tag distance, changelog, unreleased notes, readiness claims, and package command evidence. | `npm run release:drift`, `npm run release:drift:test`, and `npm run release:gate`. |
 
+The strict external fixture matrix builds the local `fixthis` CLI distribution
+before fixture execution, runs agent config writes with a fixture-local JVM
+`user.home`, and treats `doctor --json` reaching `NEEDS_APP_LAUNCH` as the
+expected setup boundary for generated external projects that have not been
+installed and launched.
+
 When Android SDK or an unlocked emulator is unavailable, non-strict reports must
 record the exact deferred reason and strict connected evidence must fail.
 

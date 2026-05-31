@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, normalize, resolve, sep } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +11,7 @@ export const repoRoot = resolve(dirname(scriptPath), '..');
 export const defaultManifestPath = join(repoRoot, 'fixtures/external-project-matrix/manifest.json');
 export const defaultMatrixReportDir = join(repoRoot, 'build/reports/fixthis-external-fixture-matrix');
 export const defaultMatrixWorkRoot = join(repoRoot, '.fixthis/external-fixture-matrix');
+export const defaultCliInstallTask = './gradlew :fixthis-cli:installDist --no-daemon';
 
 const allowedShapes = new Set([
   'single-module',
@@ -34,6 +35,14 @@ function safeRelativePath(value, fieldName = 'path') {
 
 function variantTaskSuffix(variant) {
   return variant.charAt(0).toUpperCase() + variant.slice(1);
+}
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+export function cliExecutablePath(root = repoRoot) {
+  return join(root, 'fixthis-cli/build/install/fixthis/bin/fixthis');
 }
 
 export function validateExternalMatrixManifest(manifest) {
@@ -61,15 +70,17 @@ export function loadExternalMatrixManifest(path = defaultManifestPath) {
 }
 
 export function planFixtureCommands(fixture, projectDir, root = '/repo') {
-  const cli = `${root}/fixthis-cli/build/install/fixthis/bin/fixthis`;
+  const cli = shellQuote(cliExecutablePath(root));
+  const userHomeOpt = shellQuote(`-Duser.home=${join(projectDir, '.home')}`);
+  const project = shellQuote(projectDir);
   return [
     {
       name: 'install-agent',
-      command: `node ${cli} install-agent --project-dir ${projectDir} --target all --package ${fixture.applicationId}`,
+      command: `JAVA_OPTS=${userHomeOpt} ${cli} install-agent --project-dir ${project} --target all --package ${shellQuote(fixture.applicationId)}`,
     },
     {
       name: 'doctor-json',
-      command: `node ${cli} doctor --project-dir ${projectDir} --package ${fixture.applicationId} --json`,
+      command: `JAVA_OPTS=${userHomeOpt} ${cli} doctor --project-dir ${project} --package ${shellQuote(fixture.applicationId)} --json`,
     },
     {
       name: 'source-index',
@@ -155,6 +166,47 @@ function runCommand(command, cwd, envPatch = {}) {
   };
 }
 
+function parseJsonObject(text) {
+  try {
+    const value = JSON.parse(text);
+    return value && typeof value === 'object' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function hasOkCheck(report, name) {
+  return Array.isArray(report?.checks) && report.checks.some((check) => check.name === name && check.status === 'ok');
+}
+
+export function normalizeFixtureCommandResult(entry, fixture, result) {
+  if (entry.name !== 'doctor-json' || result.status !== 'fail') return result;
+  const report = parseJsonObject(result.stdout);
+  const reachesExpectedNextAction = report?.schemaVersion === '1.0' &&
+    report?.readiness?.state === 'NEEDS_APP_LAUNCH' &&
+    report?.nextAction === 'Open app' &&
+    hasOkCheck(report, 'android_project_found') &&
+    hasOkCheck(report, 'fixthis_project_metadata_found') &&
+    hasOkCheck(report, 'adb_found') &&
+    hasOkCheck(report, 'device_connected');
+  if (!reachesExpectedNextAction) return result;
+  return {
+    ...result,
+    status: 'pass',
+    acceptedExitCode: result.exitCode,
+    acceptedReadinessState: report.readiness.state,
+    acceptedExpectedSetup: fixture.expectedSetup,
+  };
+}
+
+export function prepareCliDistribution(root = repoRoot, envPatch = {}, runCommandFn = (command, cwd, patch) => runCommand(command, cwd, patch)) {
+  const entry = { name: 'prepare-cli', command: defaultCliInstallTask };
+  if (existsSync(cliExecutablePath(root))) {
+    return { ...entry, status: 'pass', durationMs: 0, stdout: '', stderr: '', exitCode: 0, skipped: true };
+  }
+  return { ...entry, ...runCommandFn(defaultCliInstallTask, root, envPatch) };
+}
+
 function write(path, text) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, text);
@@ -194,14 +246,21 @@ function appBuildGradleFor(fixture) {
   ].filter(Boolean).join('\n');
 }
 
-export function generateFixtureProject(fixture, projectDir) {
+export function generateFixtureProject(fixture, projectDir, root = repoRoot) {
   rmSync(projectDir, { recursive: true, force: true });
   mkdirSync(projectDir, { recursive: true });
+  const wrapper = join(projectDir, 'gradlew');
+  write(wrapper, `#!/usr/bin/env bash
+set -euo pipefail
+project_dir="$(cd "$(dirname "$0")" && pwd)"
+exec ${shellQuote(join(root, 'gradlew'))} -p "$project_dir" "$@"
+`);
+  chmodSync(wrapper, 0o755);
   write(join(projectDir, 'settings.gradle.kts'), settingsFor(fixture));
   write(join(projectDir, 'build.gradle.kts'), 'plugins { id("com.android.application") version "8.7.3" apply false; id("org.jetbrains.kotlin.android") version "2.0.21" apply false; id("io.github.beyondwin.fixthis.compose") version "1.1.0" apply false }\n');
   const moduleDir = join(projectDir, fixture.moduleDir);
   write(join(moduleDir, 'build.gradle.kts'), appBuildGradleFor(fixture));
-  write(join(moduleDir, 'src/main/AndroidManifest.xml'), `<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="${fixture.applicationId}" android:theme="@style/AppTheme" /></manifest>\n`);
+  write(join(moduleDir, 'src/main/AndroidManifest.xml'), `<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="${fixture.applicationId}" /></manifest>\n`);
   write(join(moduleDir, 'src/main/java/io/github/beyondwin/fixthis/matrix/MainActivity.kt'), 'package io.github.beyondwin.fixthis.matrix\n\nimport android.app.Activity\n\nclass MainActivity : Activity()\n');
   if (fixture.projectShape === 'preexisting-agent-config') {
     write(join(projectDir, '.claude/settings.json'), '{ "mcpServers": {} }\n');
@@ -220,10 +279,29 @@ export function runExternalMatrix({
   root = repoRoot,
   androidEnvironment = resolveAndroidEnvironment(),
   runCommandFn = (command, cwd, envPatch) => runCommand(command, cwd, envPatch),
+  prepareCliDistributionFn = (activeRoot, envPatch, runner) => prepareCliDistribution(activeRoot, envPatch, runner),
   generateFixtureProjectFn = generateFixtureProject,
   cleanupFixtureFn = cleanupFixture,
 } = {}) {
   const fixtures = [];
+  let cliPreparation = null;
+  if (androidEnvironment.ready) {
+    cliPreparation = prepareCliDistributionFn(root, androidEnvironment.envPatch, runCommandFn);
+    if (cliPreparation.status === 'fail') {
+      return buildMatrixReport({
+        strict,
+        fixtures: manifest.fixtures.map((fixture) => ({
+          fixtureId: fixture.id,
+          status: 'fail',
+          reason: cliPreparation.stderr?.split('\n').find(Boolean) || cliPreparation.stdout?.split('\n').find(Boolean) || 'prepare-cli failed',
+          commands: [
+            cliPreparation,
+            ...planFixtureCommands(fixture, join(workRoot, fixture.id), root).map((entry) => ({ ...entry, status: 'deferred', durationMs: 0 })),
+          ],
+        })),
+      });
+    }
+  }
   for (const fixture of manifest.fixtures) {
     const projectDir = join(workRoot, fixture.id);
     const environment = externalMatrixStatusForEnvironment({
@@ -240,12 +318,12 @@ export function runExternalMatrix({
       });
       continue;
     }
-    generateFixtureProjectFn(fixture, projectDir);
-    const commands = [];
+    generateFixtureProjectFn(fixture, projectDir, root);
+    const commands = cliPreparation ? [{ ...cliPreparation }] : [];
     let status = 'pass';
     let reason = null;
     for (const entry of planFixtureCommands(fixture, projectDir, root)) {
-      const result = runCommandFn(entry.command, projectDir, androidEnvironment.envPatch);
+      const result = normalizeFixtureCommandResult(entry, fixture, runCommandFn(entry.command, projectDir, androidEnvironment.envPatch));
       commands.push({ ...entry, ...result });
       if (result.status === 'fail') {
         status = 'fail';
