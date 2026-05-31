@@ -9,6 +9,13 @@ const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(scriptPath), '..');
 export const defaultReleaseGateReportDir = join(repoRoot, 'build/reports/fixthis-release-gate');
 
+export const releaseClaimDefinitions = Object.freeze([
+  { id: 'release-reality', evidenceNames: ['Release reality'] },
+  { id: 'external-agent-loop', evidenceNames: ['Agent loop smoke'] },
+  { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
+  { id: 'console-sse-reliability', evidenceNames: ['Console browser reliability'] },
+]);
+
 export function releaseGateSteps() {
   return expandProfile('gate').map((step) => ({ ...step }));
 }
@@ -37,6 +44,32 @@ function gateStatus(steps, strict) {
   return 'pass';
 }
 
+function statusRank(status) {
+  if (status === 'fail') return 3;
+  if (status === 'deferred') return 2;
+  if (status === 'pass') return 1;
+  return 0;
+}
+
+export function buildReleaseClaims(steps) {
+  const byName = new Map((steps || []).map((step) => [step.name, step]));
+  return releaseClaimDefinitions.map((definition) => {
+    const evidence = definition.evidenceNames
+      .map((name) => byName.get(name))
+      .filter(Boolean);
+    const status = evidence.length === 0
+      ? 'fail'
+      : evidence.map((step) => step.status).sort((a, b) => statusRank(b) - statusRank(a))[0];
+    const reason = evidence.find((step) => step.reason)?.reason || (evidence.length === 0 ? 'missing evidence command' : null);
+    return {
+      id: definition.id,
+      status,
+      evidence: evidence.map((step) => step.name),
+      ...(reason ? { reason } : {}),
+    };
+  });
+}
+
 export function buildReleaseGateReport({
   strict = false,
   steps,
@@ -48,6 +81,7 @@ export function buildReleaseGateReport({
     status: gateStatus(normalizedSteps, strict),
     strict,
     generatedAt,
+    claims: buildReleaseClaims(normalizedSteps),
     steps: normalizedSteps,
   };
 }
@@ -65,9 +99,19 @@ export function renderReleaseGateMarkdown(report) {
     `- Strict: ${report.strict}`,
     `- Generated: ${report.generatedAt}`,
     '',
-    '| Step | Status | Command | Duration | Reason |',
-    '| --- | --- | --- | --- | --- |',
   ];
+  if ((report.claims || []).length > 0) {
+    lines.push('## Release Claims', '');
+    lines.push('| Claim | Status | Evidence | Reason |');
+    lines.push('| --- | --- | --- | --- |');
+    for (const claim of report.claims || []) {
+      lines.push(`| ${cell(claim.id)} | ${cell(claim.status)} | ${cell((claim.evidence || []).join(', '))} | ${cell(claim.reason)} |`);
+    }
+    lines.push('');
+  }
+  lines.push('## Evidence Steps', '');
+  lines.push('| Step | Status | Command | Duration | Reason |');
+  lines.push('| --- | --- | --- | --- | --- |');
   for (const step of report.steps || []) {
     lines.push(`| ${cell(step.name)} | ${cell(step.status)} | \`${cell(step.command)}\` | ${cell(step.durationMs ?? 0)}ms | ${cell(step.reason)} |`);
   }

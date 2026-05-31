@@ -105,3 +105,60 @@ test('runReleaseGate supports injected runner for tests', () => {
 
   assert.equal(report.status, 'pass_with_deferred');
 });
+
+test('release gate report maps evidence steps to unlocked claims', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-05-31T00:00:00.000Z',
+    steps: [
+      { name: 'Release reality', command: 'npm run release:reality', status: 'pass' },
+      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Runtime trust strict', command: 'npm run source-matching:fixtures:runtime -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Console browser reliability', command: 'npm run console:browser:reliability', status: 'pass' },
+    ],
+  });
+
+  assert.deepEqual(report.claims, [
+    {
+      id: 'release-reality',
+      status: 'pass',
+      evidence: ['Release reality'],
+    },
+    {
+      id: 'external-agent-loop',
+      status: 'deferred',
+      evidence: ['Agent loop smoke'],
+      reason: 'Android SDK unavailable',
+    },
+    {
+      id: 'runtime-source-trust',
+      status: 'deferred',
+      evidence: ['Runtime trust strict'],
+      reason: 'Android SDK unavailable',
+    },
+    {
+      id: 'console-sse-reliability',
+      status: 'pass',
+      evidence: ['Console browser reliability'],
+    },
+  ]);
+});
+
+test('release gate markdown renders claim statuses', () => {
+  const text = renderReleaseGateMarkdown({
+    schemaVersion: '1.0',
+    status: 'pass_with_deferred',
+    strict: false,
+    generatedAt: '2026-05-31T00:00:00.000Z',
+    claims: [{
+      id: 'external-agent-loop',
+      status: 'deferred',
+      evidence: ['Agent loop smoke'],
+      reason: 'Android SDK unavailable',
+    }],
+    steps: [],
+  });
+
+  assert.match(text, /## Release Claims/);
+  assert.match(text, /\| external-agent-loop \| deferred \| Agent loop smoke \| Android SDK unavailable \|/);
+});
