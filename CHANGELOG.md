@@ -62,6 +62,16 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ### Changed
 
+- Source matching now resolves a wider set of Compose selections to the correct
+  editable owner composable. Selections inside a lazy-list item lambda
+  (`items { ... }` / `itemsIndexed { ... }`) and inside a navigation destination
+  lambda (`composable("route") { ... }`) remap to the item or destination
+  composable instead of the enclosing list or graph builder; custom
+  Scaffold-style slot wrappers are recognized across `content`, `topBar`, and
+  `bottomBar` slots; and an element whose `contentDescription` is supplied via a
+  `.semantics { }` modifier is now treated as content-description evidence. These
+  additions reuse existing evidence weights and do not by themselves make a
+  source candidate high confidence.
 - The console browser-reliability proof (`scripts/console-browser-reliability.mjs`)
   now also asserts zero `/preview` polling fetches under a healthy SSE
   connection, extending the existing zero-session-polling guarantee to preview
