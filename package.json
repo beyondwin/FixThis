@@ -67,6 +67,8 @@
     "source-matching:fixtures:runtime": "node scripts/source-matching-fixtures.mjs runtime",
   "source-matching:fixtures:report": "node scripts/source-matching-fixtures.mjs report",
   "source-matching:fixtures:test": "node --test scripts/source-matching-fixtures-test.mjs",
+  "external-fixture:matrix": "node scripts/external-fixture-matrix.mjs",
+  "external-fixture:matrix:test": "node --test scripts/external-fixture-matrix-test.mjs",
   "real-copy-prompt:smoke": "node scripts/real-copy-prompt-smoke.mjs",
   "real-copy-prompt:smoke:test": "node --test scripts/real-copy-prompt-smoke-test.mjs",
   "agent-loop:smoke": "node scripts/agent-loop-smoke.mjs",

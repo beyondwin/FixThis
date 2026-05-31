@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "id": "single-kotlin-dsl",
+      "projectShape": "single-module",
+      "dsl": "kotlin",
+      "appModule": ":app",
+      "moduleDir": "app",
+      "applicationId": "io.github.beyondwin.fixthis.matrix.single",
+      "variant": "debug",
+      "expectedSetup": "ready"
+    },
+    {
+      "id": "multi-module-non-root-app",
+      "projectShape": "multi-module",
+      "dsl": "kotlin",
+      "appModule": ":features:demo-app",
+      "moduleDir": "features/demo-app",
+      "applicationId": "io.github.beyondwin.fixthis.matrix.multimodule",
+      "variant": "debug",
+      "expectedSetup": "ready"
+    },
+    {
+      "id": "flavored-application-id",
+      "projectShape": "single-module-flavor",
+      "dsl": "kotlin",
+      "appModule": ":app",
+      "moduleDir": "app",
+      "applicationId": "io.github.beyondwin.fixthis.matrix.flavor.demo",
+      "variant": "demoDebug",
+      "expectedSetup": "ready"
+    },
+    {
+      "id": "version-catalog",
+      "projectShape": "version-catalog",
+      "dsl": "kotlin",
+      "appModule": ":app",
+      "moduleDir": "app",
+      "applicationId": "io.github.beyondwin.fixthis.matrix.catalog",
+      "variant": "debug",
+      "expectedSetup": "ready"
+    },
+    {
+      "id": "preexisting-agent-config",
+      "projectShape": "preexisting-agent-config",
+      "dsl": "kotlin",
+      "appModule": ":app",
+      "moduleDir": "app",
+      "applicationId": "io.github.beyondwin.fixthis.matrix.config",
+      "variant": "debug",
+      "expectedSetup": "ready"
+    },
+    {
+      "id": "missing-generated-metadata",
+      "projectShape": "missing-generated-metadata",
+      "dsl": "kotlin",
+      "appModule": ":app",
+      "moduleDir": "app",
+      "applicationId": "io.github.beyondwin.fixthis.matrix.recovery",
+      "variant": "debug",
+      "expectedSetup": "needs-fixthis-setup"
+    }
+  ]
+}
