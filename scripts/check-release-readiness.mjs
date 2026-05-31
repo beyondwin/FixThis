@@ -300,6 +300,21 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`npm run release:drift`',
 );
+requireIncludes(
+  'R39.external-trust-matrix-section',
+  'docs/contributing/release-readiness.md',
+  '## External Trust Matrix And Release Drift Evidence',
+);
+requireIncludes(
+  'R40.external-fixture-matrix-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run external-fixture:matrix -- --strict`',
+);
+requireIncludes(
+  'R41.handoff-correctness-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run handoff:eval:test`',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

@@ -209,6 +209,21 @@ The evidence runner writes local reports under
 `build/reports/fixthis-evidence/`; those reports are useful release-issue
 attachments but are not committed.
 
+## External Trust Matrix And Release Drift Evidence
+
+This umbrella may be claimed only when each area below has matching local
+evidence from the release commit. The evidence pack does not tag or publish by
+itself.
+
+| Claim | Required evidence |
+| --- | --- |
+| External Android project shapes complete setup validation and, when Android runtime prerequisites are available, strict lifecycle validation. | `npm run external-fixture:matrix:test` and `npm run external-fixture:matrix -- --strict`. |
+| Handoff correctness evaluation covers owner, role, confidence, caution, ranking, and prompt usability without exact-ownership overclaiming. | `npm run handoff:eval:test`. |
+| Release metadata does not drift from tag distance, changelog, unreleased notes, readiness claims, and package command evidence. | `npm run release:drift`, `npm run release:drift:test`, and `npm run release:gate`. |
+
+When Android SDK or an unlocked emulator is unavailable, non-strict reports must
+record the exact deferred reason and strict connected evidence must fail.
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.

@@ -395,9 +395,19 @@ behavior after feedback handoff:
 npm run agent-loop:smoke -- --strict
 ```
 
+Run the external fixture matrix strict command when validating release evidence
+against generated external Android project shapes:
+
+```bash
+npm run external-fixture:matrix -- --strict
+```
+
 For release-decision evidence, run:
 
 ```bash
+npm run release:drift
+npm run release:drift:test
+npm run external-fixture:matrix:test
 npm run release:gate
 npm run release:gate:test
 ```

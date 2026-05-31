@@ -7,9 +7,9 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-No unreleased changes have landed after v1.1.0 yet. See
-[`v1.1.0.md`](v1.1.0.md) and `CHANGELOG.md` for the latest tagged release
-summary.
+- Added the External Trust Matrix and Release Drift evidence line: external
+  project matrix contracts, handoff correctness scoring, and release drift
+  checks now feed the local release gate.
 
 ## Compatibility Notes
 
@@ -47,6 +47,9 @@ For named local evidence reports, use:
 npm run evidence:fast -- --dry-run
 npm run evidence:test
 npm run agent-loop:smoke:test
+npm run release:drift
+npm run release:drift:test
+npm run external-fixture:matrix:test
 npm run release:gate
 npm run release:gate:test
 ```
@@ -56,6 +59,7 @@ emulator, also run:
 
 ```bash
 npm run source-matching:fixtures:runtime -- --strict
+npm run external-fixture:matrix -- --strict
 npm run agent-loop:smoke -- --strict
 npm run real-copy-prompt:smoke -- --strict
 ```

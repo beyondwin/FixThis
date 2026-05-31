@@ -119,6 +119,12 @@ test('writeMatrixReports writes json and markdown reports', () => {
   }
 });
 
+test('package exposes external fixture matrix commands', () => {
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  assert.equal(pkg.scripts['external-fixture:matrix'], 'node scripts/external-fixture-matrix.mjs');
+  assert.equal(pkg.scripts['external-fixture:matrix:test'], 'node --test scripts/external-fixture-matrix-test.mjs');
+});
+
 test('generateFixtureProject creates a minimal Gradle Compose project shape', () => {
   const root = mkdtempSync(join(tmpdir(), 'fixthis-matrix-generate-'));
   try {
