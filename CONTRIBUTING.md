@@ -388,6 +388,24 @@ annotation handoff behavior on installed debug apps:
 npm run real-copy-prompt:smoke -- --strict
 ```
 
+Run the external agent lifecycle smoke when validating MCP queue lifecycle
+behavior after feedback handoff:
+
+```bash
+npm run agent-loop:smoke -- --strict
+```
+
+For release-decision evidence, run:
+
+```bash
+npm run release:gate
+npm run release:gate:test
+```
+
+The release gate writes JSON and Markdown reports under
+`build/reports/fixthis-release-gate/`. These reports are ignored build
+artifacts and should not be committed.
+
 For host-only validation, use:
 
 ```bash

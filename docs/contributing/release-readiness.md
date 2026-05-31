@@ -119,6 +119,22 @@ for each.
 | Lazy-list item lambdas and navigation destinations map a selection to the item/destination composable. | `./gradlew :fixthis-gradle-plugin:test --tests "*KotlinSourceScannerTest" :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon` and `npm run source-matching:fixtures:test`. |
 | Each edit-surface role reports a role-specific confidence and an explainable basis. | `./gradlew :fixthis-mcp:test --tests "*EditSurfaceConfidencePolicyTest" --tests "*EditSurfaceCandidateServiceTest" --tests "*CompactHandoffRendererTest" --no-daemon`. |
 
+## Trust Loop Completion Evidence
+
+The Trust Loop Completion umbrella may be claimed only when the release commit
+has evidence for runtime source-trust calibration, external agent lifecycle
+completion, and release-gate aggregation. This evidence pack does not tag or
+publish by itself.
+
+| Claim | Required evidence |
+| --- | --- |
+| Runtime source-trust fixtures prevent shared-component, interop-risk, visual-area, and weak-candidate evidence from overclaiming exact edit ownership. | `npm run source-matching:fixtures:test`, `npm run source-matching:fixtures:runtime -- --strict`, and `npm run handoff:eval:test`. |
+| External Android agent lifecycle completes from handoff through queue read, claim, resolution, persistence, and console reflection. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict`. |
+| Maintainers can classify release evidence and public claims as pass, deferred, or fail in one report. | `npm run release:gate`, `npm run release:gate:test`, and `node scripts/check-release-readiness.mjs`. |
+
+When Android SDK or an unlocked emulator is unavailable, non-strict reports must
+record the exact deferred reason and strict connected evidence must fail.
+
 ## v1.1 Trust Loop Evidence
 
 The v1.1 trust-loop line may be claimed only when each area below has matching

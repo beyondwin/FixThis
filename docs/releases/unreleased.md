@@ -46,9 +46,22 @@ For named local evidence reports, use:
 ```bash
 npm run evidence:fast -- --dry-run
 npm run evidence:test
+npm run agent-loop:smoke:test
 npm run release:gate
 npm run release:gate:test
 ```
+
+When validating Trust Loop Completion on a connected Android device or unlocked
+emulator, also run:
+
+```bash
+npm run source-matching:fixtures:runtime -- --strict
+npm run agent-loop:smoke -- --strict
+npm run real-copy-prompt:smoke -- --strict
+```
+
+If the Android environment is unavailable, attach the non-strict release-gate
+report and record the connected evidence as deferred with the report reason.
 
 `npm run ci:local` covers the required Gradle matrix, release-readiness checks,
 console bundle freshness, console JS tests, package installer tests, and
