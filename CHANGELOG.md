@@ -76,6 +76,14 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   now also asserts zero `/preview` polling fetches under a healthy SSE
   connection, extending the existing zero-session-polling guarantee to preview
   refresh.
+- Edit-surface confidence is no longer a flat per-role value. Each edit-surface
+  candidate now derives its confidence from the matched source candidate's own
+  confidence, bounded by a per-role ceiling, so a weakly-matched source no
+  longer presents as a strong edit surface. Every candidate also carries a short
+  basis string explaining why it earned its confidence, and the compact handoff
+  edit-surface row renders this as a `basis=...` token (e.g. "call site
+  matched: …", "shared component definition: …", "interop boundary: …"). The
+  `confidenceBasis` field is additive and absent on pre-existing sessions.
 
 ### Fixed
 
