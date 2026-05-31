@@ -965,6 +965,52 @@ test("evaluateSourceIndexCase reports missing signal", () => {
   assert.deepEqual(result.failures, ["missing_top3", "missing_source_signal"]);
 });
 
+test("evaluateSourceIndexCase resolves a lazy-list item-owner signal to the item composable", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "sample/src/main/java/com/example/orders/OrderListScreen.kt",
+        line: 41,
+        signals: [
+          { kind: "LAZY_ITEM_OWNER", value: "OrderRow" },
+        ],
+      },
+    ],
+  };
+  const result = evaluateSourceIndexCase({
+    id: "lazy-list-item-owner",
+    mode: "source-index",
+    expectedEntryPathContains: "sample/src/main/java/com/example/orders/OrderListScreen.kt",
+    expectedSignal: { kind: "LAZY_ITEM_OWNER", value: "OrderRow" },
+  }, sourceIndex);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "source_signal_present"]);
+});
+
+test("evaluateSourceIndexCase resolves a navigation destination-owner signal to the destination composable", () => {
+  const sourceIndex = {
+    schemaVersion: "1.2",
+    entries: [
+      {
+        file: "sample/src/main/java/com/example/nav/AppNav.kt",
+        line: 27,
+        signals: [
+          { kind: "NAV_DESTINATION_OWNER", value: "HomeScreen" },
+        ],
+      },
+    ],
+  };
+  const result = evaluateSourceIndexCase({
+    id: "nav-destination-owner",
+    mode: "source-index",
+    expectedEntryPathContains: "sample/src/main/java/com/example/nav/AppNav.kt",
+    expectedSignal: { kind: "NAV_DESTINATION_OWNER", value: "HomeScreen" },
+  }, sourceIndex);
+  assert.deepEqual(result.failures, []);
+  assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "source_signal_present"]);
+});
+
 test("markdownReport renders runtime trust purpose when present", () => {
   const text = markdownReport({
     schemaVersion: 2,
