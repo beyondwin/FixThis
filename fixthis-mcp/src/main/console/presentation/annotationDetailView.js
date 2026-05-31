@@ -40,6 +40,44 @@
               return warnings.some(warning => String(warning || '').toLowerCase() === 'possible_view_interop');
             }
 
+            function targetBoundsForBoundary(item) {
+              const target = item?.target || {};
+              return target.boundsInWindow || target.bounds || item?.bounds || null;
+            }
+
+            function boundsIntersect(a, b) {
+              if (!a || !b) return false;
+              return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+            }
+
+            function boundsContain(a, b) {
+              if (!a || !b) return false;
+              return a.left <= b.left && a.top <= b.top && a.right >= b.right && a.bottom >= b.bottom;
+            }
+
+            function boundaryContextKind(item, node) {
+              const bounds = node?.boundsInWindow;
+              const targetBounds = targetBoundsForBoundary(item);
+              const tag = String(node?.testTag || '').trim();
+              const compTagged = tag.startsWith('comp:');
+              const containsTarget = boundsContain(bounds, targetBounds);
+              const boundsArea = Math.max(0, (bounds?.right || 0) - (bounds?.left || 0)) *
+                Math.max(0, (bounds?.bottom || 0) - (bounds?.top || 0));
+              const targetArea = Math.max(0, (targetBounds?.right || 0) - (targetBounds?.left || 0)) *
+                Math.max(0, (targetBounds?.bottom || 0) - (targetBounds?.top || 0));
+              const muchLargerThanTarget = targetArea > 0 && boundsArea > targetArea * 6;
+              if (compTagged && containsTarget && muchLargerThanTarget) return 'ancestor';
+              if (compTagged && boundsIntersect(bounds, targetBounds)) return 'host';
+              if (containsTarget) return 'ancestor';
+              return 'context';
+            }
+
+            function boundaryContextLabel(kind, index) {
+              if (kind === 'host') return 'Boundary host';
+              if (kind === 'ancestor') return 'Boundary ancestor';
+              return 'Boundary context';
+            }
+
             function boundaryContextNodeSummary(node) {
               if (!node) return '';
               const parts = [];
@@ -59,14 +97,28 @@
             function interopBoundaryContextRows(item) {
               if (!isInteropRiskItem(item)) return [];
               const nodes = (item?.nearbyNodes || [])
-                .map(node => ({ node: node, summary: boundaryContextNodeSummary(node) }))
+                .map(node => ({
+                  node: node,
+                  summary: boundaryContextNodeSummary(node),
+                  kind: boundaryContextKind(item, node),
+                }))
                 .filter(entry => entry.summary)
+                .sort((a, b) => {
+                  const rank = { host: 0, ancestor: 1, context: 2 };
+                  const byKind = (rank[a.kind] ?? 2) - (rank[b.kind] ?? 2);
+                  if (byKind !== 0) return byKind;
+                  const aArea = Math.max(0, (a.node?.boundsInWindow?.right || 0) - (a.node?.boundsInWindow?.left || 0)) *
+                    Math.max(0, (a.node?.boundsInWindow?.bottom || 0) - (a.node?.boundsInWindow?.top || 0));
+                  const bArea = Math.max(0, (b.node?.boundsInWindow?.right || 0) - (b.node?.boundsInWindow?.left || 0)) *
+                    Math.max(0, (b.node?.boundsInWindow?.bottom || 0) - (b.node?.boundsInWindow?.top || 0));
+                  return aArea - bArea;
+                })
                 .slice(0, INTEROP_BOUNDARY_CONTEXT_LIMIT);
               if (!nodes.length) return [];
               const rows = nodes.map((entry, index) => {
                 const bounds = entry.node?.boundsInWindow;
                 const boundsLabel = bounds ? ' · ' + formatBounds(bounds) : '';
-                return ['Boundary context ' + (index + 1), entry.summary + boundsLabel];
+                return [boundaryContextLabel(entry.kind, index), entry.summary + boundsLabel];
               });
               // Single trailing caveat for the whole subtree, never repeated per row.
               rows.push(['Boundary context note', 'helps locate the host; it does not prove Compose owns the selected pixels.']);

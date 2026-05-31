@@ -104,6 +104,16 @@ function buildInteropRowsFn() {
   const constant = detailSource.match(/const INTEROP_BOUNDARY_CONTEXT_LIMIT = \d+;/)[0];
   const isInterop = 'function isInteropRiskItem(item)' +
     '{' + functionBody(detailSource, 'function isInteropRiskItem(item)') + '}';
+  const targetBounds = 'function targetBoundsForBoundary(item)' +
+    '{' + functionBody(detailSource, 'function targetBoundsForBoundary(item)') + '}';
+  const intersects = 'function boundsIntersect(a, b)' +
+    '{' + functionBody(detailSource, 'function boundsIntersect(a, b)') + '}';
+  const contains = 'function boundsContain(a, b)' +
+    '{' + functionBody(detailSource, 'function boundsContain(a, b)') + '}';
+  const kind = 'function boundaryContextKind(item, node)' +
+    '{' + functionBody(detailSource, 'function boundaryContextKind(item, node)') + '}';
+  const label = 'function boundaryContextLabel(kind, index)' +
+    '{' + functionBody(detailSource, 'function boundaryContextLabel(kind, index)') + '}';
   const summary = 'function boundaryContextNodeSummary(node)' +
     '{' + functionBody(detailSource, 'function boundaryContextNodeSummary(node)') + '}';
   const rows = 'function interopBoundaryContextRows(item)' +
@@ -112,7 +122,8 @@ function buildInteropRowsFn() {
   // eslint-disable-next-line no-new-func
   return new Function(
     'formatBounds',
-    constant + isInterop + summary + rows + 'return interopBoundaryContextRows;',
+    constant + isInterop + targetBounds + intersects + contains + kind + label + summary + rows +
+      'return interopBoundaryContextRows;',
   )(() => 'BOX');
 }
 
@@ -128,12 +139,32 @@ test('three interop boundary nodes produce three rows plus exactly one caveat', 
     ],
   };
   const rows = interopBoundaryContextRows(item);
-  const contextRows = rows.filter(row => /^Boundary context \d+$/.test(row[0]));
+  const boundaryRows = rows.filter(row => /^Boundary (host|ancestor|context)( \d+)?$/.test(row[0]));
   const caveatRows = rows.filter(row => row[1].includes('does not prove Compose owns the selected pixels'));
   // Capped at the top-3 nearby nodes, one row each.
-  assert.equal(contextRows.length, 3);
+  assert.equal(boundaryRows.length, 3);
   // Caveat rendered exactly once, not per row.
   assert.equal(caveatRows.length, 1);
+});
+
+test('interop boundary rows label host ancestor and context distinctly', () => {
+  const interopBoundaryContextRows = buildInteropRowsFn();
+  const item = {
+    target: { type: 'visual_area', boundsInWindow: { left: 40, top: 120, right: 220, bottom: 220 } },
+    targetReliability: { warnings: ['possible_view_interop'] },
+    nearbyNodes: [
+      { testTag: 'comp:DiagnosticsScreen:root', boundsInWindow: { left: 0, top: 0, right: 400, bottom: 800 } },
+      { testTag: 'comp:NativeChartHost:chart', role: 'Image', boundsInWindow: { left: 24, top: 112, right: 360, bottom: 260 } },
+      { text: ['Native chart'], boundsInWindow: { left: 24, top: 280, right: 220, bottom: 312 } },
+    ],
+  };
+
+  const rows = interopBoundaryContextRows(item);
+
+  assert.equal(rows[0][0], 'Boundary host');
+  assert.equal(rows[1][0], 'Boundary ancestor');
+  assert.equal(rows[2][0], 'Boundary context');
+  assert.equal(rows[3][0], 'Boundary context note');
 });
 
 test('non-interop selection renders no boundary context rows', () => {
