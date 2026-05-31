@@ -107,6 +107,19 @@ export function assertLifecycleSessionState(session, resolutionPlan) {
   return counts;
 }
 
+export function assertReadFeedbackQueueContains(queue, expectedItemIds) {
+  const items = Array.isArray(queue?.items) ? queue.items : [];
+  const seen = new Set(items.map((item) => item.itemId).filter(Boolean));
+  const missing = expectedItemIds.filter((itemId) => !seen.has(itemId));
+  if (missing.length > 0) {
+    throw new Error(`read_feedback_missing_items: ${missing.join(", ")}`);
+  }
+  return {
+    itemCount: items.length,
+    sentCount: items.filter((item) => item.delivery === "sent").length,
+  };
+}
+
 export function categorizeFeedbackLifecycleFailure(operation, error) {
   const message = String(error?.message || error || "").toLowerCase();
   const prefix = operation === "claim" ? "claim" : "resolve";
@@ -169,11 +182,11 @@ export function renderMarkdownReport(report) {
     `- Started: ${report.startedAt}`,
     `- Finished: ${report.finishedAt}`,
     "",
-    "| Fixture | Package | Status | Saved | Resolved | Needs clarification | Won't fix |",
-    "|---|---|---:|---:|---:|---:|---:|",
+    "| Fixture | Package | Status | Saved | Read | Sent | Resolved | Needs clarification | Won't fix |",
+    "|---|---|---:|---:|---:|---:|---:|---:|---:|",
   ];
   const fixture = report.fixture || {};
-  lines.push(`| ${fixture.fixtureId || ""} | ${fixture.packageName || ""} | ${fixture.status || ""} | ${fixture.savedItemCount || 0} | ${fixture.resolved || 0} | ${fixture.needsClarification || 0} | ${fixture.wontFix || 0} |`);
+  lines.push(`| ${fixture.fixtureId || ""} | ${fixture.packageName || ""} | ${fixture.status || ""} | ${fixture.savedItemCount || 0} | ${fixture.readFeedbackItemCount || 0} | ${fixture.readFeedbackSentCount || 0} | ${fixture.resolved || 0} | ${fixture.needsClarification || 0} | ${fixture.wontFix || 0} |`);
   if (report.failures.length > 0) {
     lines.push("", "## Failures", "");
     for (const failure of report.failures) lines.push(`- ${failure}`);
@@ -533,6 +546,11 @@ export async function runSmoke(options) {
     const protocol = assertCopiedPromptProtocol(browserFlow.copiedText);
     const resolutionItemIds = selectResolutionItemIds(protocol.itemIds, browserFlow.session);
     const plan = expectedResolutionPlan(resolutionItemIds);
+    const readFeedback = await mcp.callTool("fixthis_read_feedback", {
+      sessionId: protocol.sessionId,
+      includeAll: true,
+    });
+    const queueStats = assertReadFeedbackQueueContains(readFeedback, resolutionItemIds);
     for (const item of plan) {
       try {
         await mcp.callTool("fixthis_claim_feedback", {
@@ -562,6 +580,8 @@ export async function runSmoke(options) {
     Object.assign(fixtureResult, {
       status: "pass",
       savedItemCount: protocol.itemIds.length,
+      readFeedbackItemCount: queueStats.itemCount,
+      readFeedbackSentCount: queueStats.sentCount,
       ...counts,
     });
   } catch (error) {

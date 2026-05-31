@@ -4,6 +4,7 @@ import {
   annotationDragPoints,
   assertCopiedPromptProtocol,
   assertLifecycleSessionState,
+  assertReadFeedbackQueueContains,
   buildReport,
   categorizeFeedbackLifecycleFailure,
   combineVisibleAnnotationStatusText,
@@ -140,6 +141,21 @@ test("assertLifecycleSessionState validates item statuses and summaries", () => 
   });
 });
 
+test("assertReadFeedbackQueueContains verifies saved MCP item ids before claim", () => {
+  const queue = {
+    items: [
+      { itemId: "item-1", delivery: "sent", status: "open" },
+      { itemId: "item-2", delivery: "sent", status: "open" },
+    ],
+  };
+
+  assertReadFeedbackQueueContains(queue, ["item-1", "item-2"]);
+  assert.throws(
+    () => assertReadFeedbackQueueContains(queue, ["item-1", "item-404"]),
+    /read_feedback_missing_items: item-404/,
+  );
+});
+
 test("environment status distinguishes strict failure and non-strict deferral", () => {
   assert.deepEqual(statusForEnvironment({ strict: false, androidReady: false, reason: "No Android device" }), {
     status: "deferred",
@@ -187,6 +203,8 @@ test("buildReport and markdown summarize lifecycle counts", () => {
       packageName: "com.example.reply",
       status: "pass",
       savedItemCount: 3,
+      readFeedbackItemCount: 3,
+      readFeedbackSentCount: 3,
       resolved: 1,
       needsClarification: 1,
       wontFix: 1,
@@ -194,7 +212,7 @@ test("buildReport and markdown summarize lifecycle counts", () => {
   });
 
   assert.equal(report.status, "pass");
-  assert.match(renderMarkdownReport(report), /\| reply \| com\.example\.reply \| pass \| 3 \| 1 \| 1 \| 1 \|/);
+  assert.match(renderMarkdownReport(report), /\| reply \| com\.example\.reply \| pass \| 3 \| 3 \| 3 \| 1 \| 1 \| 1 \|/);
 });
 
 test("buildReport fails when lifecycle assertions fail", () => {
