@@ -96,7 +96,7 @@ Implementation order:
 - Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetBoundaryContextFormatterTest.kt`
 - Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetBoundaryContextFormatter.kt`
 
-- [ ] **Step 1: Write failing tests for host, ancestor, and context rows**
+- [x] **Step 1: Write failing tests for host, ancestor, and context rows**
 
 Append these tests inside `TargetBoundaryContextFormatterTest`, before the
 private helper functions:
@@ -163,7 +163,7 @@ private helper functions:
     }
 ```
 
-- [ ] **Step 2: Run the focused tests to verify failure**
+- [x] **Step 2: Run the focused tests to verify failure**
 
 Run:
 
@@ -174,7 +174,7 @@ Run:
 Expected: FAIL. The current compact line starts with `boundaryContext:` and
 precise rows do not label `Boundary host` or `Boundary ancestor`.
 
-- [ ] **Step 3: Implement structured boundary-context rows**
+- [x] **Step 3: Implement structured boundary-context rows**
 
 Replace `TargetBoundaryContextFormatter.kt` with this implementation:
 
@@ -293,7 +293,7 @@ internal object TargetBoundaryContextFormatter {
 }
 ```
 
-- [ ] **Step 4: Run the focused tests to verify pass**
+- [x] **Step 4: Run the focused tests to verify pass**
 
 Run:
 
@@ -303,7 +303,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetBoundaryContextFormatter.kt \
@@ -320,7 +320,7 @@ git commit -m "feat(mcp): classify interop boundary context rows"
 - Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`
 - Modify: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetBoundaryGuidance.kt`
 
-- [ ] **Step 1: Write failing guidance assertions**
+- [x] **Step 1: Write failing guidance assertions**
 
 In `TargetBoundaryGuidanceTest.interopWarningProducesInteropBoundaryGuidance`,
 add these assertions after the existing precise-line checks:
@@ -347,7 +347,7 @@ assertion, then add the `inspect-source-first` guard:
         assertTrue(!markdown.contains("targetAction=inspect-source-first"), markdown)
 ```
 
-- [ ] **Step 2: Run focused tests to verify failure**
+- [x] **Step 2: Run focused tests to verify failure**
 
 Run:
 
@@ -358,7 +358,7 @@ Run:
 Expected: FAIL. The new source-rule line is missing, and the compact boundary
 line still says `boundaryContext`.
 
-- [ ] **Step 3: Update interop guidance text**
+- [x] **Step 3: Update interop guidance text**
 
 In `TargetBoundaryGuidance.kt`, replace the `POSSIBLE_VIEW_INTEROP` branch with:
 
@@ -373,7 +373,7 @@ In `TargetBoundaryGuidance.kt`, replace the `POSSIBLE_VIEW_INTEROP` branch with:
                 )
 ```
 
-- [ ] **Step 4: Run focused tests to verify pass**
+- [x] **Step 4: Run focused tests to verify pass**
 
 Run:
 
@@ -383,7 +383,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/TargetBoundaryGuidance.kt \
@@ -400,7 +400,7 @@ git commit -m "test(mcp): harden interop handoff guidance"
 - Modify: `scripts/annotationDetailActions-test.mjs`
 - Modify: `fixthis-mcp/src/main/console/presentation/annotationDetailView.js`
 
-- [ ] **Step 1: Write failing browser-side row-kind tests**
+- [x] **Step 1: Write failing browser-side row-kind tests**
 
 Append this test to `scripts/annotationDetailActions-test.mjs` after
 `three interop boundary nodes produce three rows plus exactly one caveat`:
@@ -459,7 +459,7 @@ test so it counts all boundary rows instead of only numbered context rows:
   assert.equal(caveatRows.length, 1);
 ```
 
-- [ ] **Step 2: Run the JS test to verify failure**
+- [x] **Step 2: Run the JS test to verify failure**
 
 Run:
 
@@ -470,7 +470,7 @@ node --test scripts/annotationDetailActions-test.mjs
 Expected: FAIL because `targetBoundsForBoundary`, `boundaryContextKind`, and
 `boundaryContextLabel` are not defined.
 
-- [ ] **Step 3: Implement row-kind rendering in the console**
+- [x] **Step 3: Implement row-kind rendering in the console**
 
 In `annotationDetailView.js`, insert these helpers after `isInteropRiskItem`:
 
@@ -548,7 +548,7 @@ Then replace `interopBoundaryContextRows(item)` with:
             }
 ```
 
-- [ ] **Step 4: Run JS tests to verify pass**
+- [x] **Step 4: Run JS tests to verify pass**
 
 Run:
 
@@ -558,7 +558,7 @@ node --test scripts/annotationDetailActions-test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 5: Rebuild console assets and run a focused Kotlin route test**
+- [x] **Step 5: Rebuild console assets and run a focused Kotlin route test**
 
 Run:
 
@@ -570,7 +570,7 @@ FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs
 Expected: PASS. If `build-console-assets.mjs` changes
 `fixthis-mcp/src/main/resources/console/app.js`, include it in the commit.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/annotationDetailActions-test.mjs \
@@ -590,7 +590,7 @@ git commit -m "feat(console): label interop boundary context rows"
 - Modify: `scripts/source-matching-fixtures-test.mjs`
 - Modify: `fixtures/source-matching/manifest.json`
 
-- [ ] **Step 1: Write failing mapper test**
+- [x] **Step 1: Write failing mapper test**
 
 Append this test to `RuntimeTrustObservationMapperTest`:
 
@@ -641,7 +641,7 @@ import io.github.beyondwin.fixthis.mcp.session.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.AnnotationTargetDto
 ```
 
-- [ ] **Step 2: Run mapper test to verify failure**
+- [x] **Step 2: Run mapper test to verify failure**
 
 Run:
 
@@ -651,7 +651,7 @@ Run:
 
 Expected: FAIL because `RuntimeTrustObserved.boundaryContext` does not exist.
 
-- [ ] **Step 3: Implement runtime observation model**
+- [x] **Step 3: Implement runtime observation model**
 
 In `RuntimeTrustFixtureModels.kt`, add this serializable data class after
 `RuntimeTrustObserved`:
@@ -688,7 +688,7 @@ Add the import:
 import io.github.beyondwin.fixthis.mcp.session.TargetBoundaryContextFormatter
 ```
 
-- [ ] **Step 4: Run mapper test to verify pass**
+- [x] **Step 4: Run mapper test to verify pass**
 
 Run:
 
@@ -698,7 +698,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing fixture-lab expectation tests**
+- [x] **Step 5: Write failing fixture-lab expectation tests**
 
 In `scripts/source-matching-fixtures-test.mjs`, add this test near the runtime
 trust classification tests:
@@ -762,7 +762,7 @@ test("validateManifest accepts expected runtime boundary context kinds", () => {
 });
 ```
 
-- [ ] **Step 6: Run fixture-lab tests to verify failure**
+- [x] **Step 6: Run fixture-lab tests to verify failure**
 
 Run:
 
@@ -772,7 +772,7 @@ node --test scripts/source-matching-fixtures-test.mjs
 
 Expected: FAIL because `expectedBoundaryContextKinds` is not supported.
 
-- [ ] **Step 7: Implement fixture-lab boundary-context checks**
+- [x] **Step 7: Implement fixture-lab boundary-context checks**
 
 In `scripts/source-matching-fixtures.mjs`, add the field name to
 `runtimeTrustCaseFields`:
@@ -811,7 +811,7 @@ In `classifyRuntimeTrustOutcome`, before `return outcome;`, add:
   }
 ```
 
-- [ ] **Step 8: Pin the existing interop runtime fixture**
+- [x] **Step 8: Pin the existing interop runtime fixture**
 
 In `fixtures/source-matching/manifest.json`, update the
 `fixthis-sample-diagnostics-androidview-interop` case by adding:
@@ -822,7 +822,7 @@ In `fixtures/source-matching/manifest.json`, update the
 
 Keep the existing `mustWarn` and `mustNotHighConfidence` fields.
 
-- [ ] **Step 9: Run tests to verify pass**
+- [x] **Step 9: Run tests to verify pass**
 
 Run:
 
@@ -833,7 +833,7 @@ node --test scripts/source-matching-fixtures-test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/fixture/RuntimeTrustFixtureModels.kt \
@@ -853,7 +853,7 @@ git commit -m "test(trust): record interop boundary context observations"
 - Create: `scripts/console-reliability-report-test.mjs`
 - Modify: `scripts/console-tests.json`
 
-- [ ] **Step 1: Write the failing pure helper tests**
+- [x] **Step 1: Write the failing pure helper tests**
 
 Create `scripts/console-reliability-report-test.mjs`:
 
@@ -947,7 +947,7 @@ test('writeConsoleReliabilityReports writes JSON and Markdown', () => {
 });
 ```
 
-- [ ] **Step 2: Run the pure helper tests to verify failure**
+- [x] **Step 2: Run the pure helper tests to verify failure**
 
 Run:
 
@@ -958,7 +958,7 @@ node --test scripts/console-reliability-report-test.mjs
 Expected: FAIL with `Cannot find module` for
 `scripts/console-reliability-report.mjs`.
 
-- [ ] **Step 3: Implement the report helper**
+- [x] **Step 3: Implement the report helper**
 
 Create `scripts/console-reliability-report.mjs`:
 
@@ -1051,12 +1051,12 @@ export function writeConsoleReliabilityReports(report, reportDir = defaultConsol
 }
 ```
 
-- [ ] **Step 4: Register the test in the reliability group**
+- [x] **Step 4: Register the test in the reliability group**
 
 In `scripts/console-tests.json`, add
 `"scripts/console-reliability-report-test.mjs"` to the `reliability` array.
 
-- [ ] **Step 5: Run tests to verify pass**
+- [x] **Step 5: Run tests to verify pass**
 
 Run:
 
@@ -1067,7 +1067,7 @@ npm run console:reliability:test
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/console-reliability-report.mjs \
@@ -1084,7 +1084,7 @@ git commit -m "test(console): add reliability report contracts"
 - Modify: `scripts/console-browser-reliability.mjs`
 - Modify: `scripts/studioReliabilityContract-test.mjs`
 
-- [ ] **Step 1: Add a text contract for fallback-only refresh**
+- [x] **Step 1: Add a text contract for fallback-only refresh**
 
 Append this test to `scripts/studioReliabilityContract-test.mjs`:
 
@@ -1099,7 +1099,7 @@ test('refreshSessionsWhenEventsDisconnected keeps pull refresh behind the SSE ga
 });
 ```
 
-- [ ] **Step 2: Run the contract test to verify current state**
+- [x] **Step 2: Run the contract test to verify current state**
 
 Run:
 
@@ -1118,7 +1118,7 @@ recently-connected guards:
             }
 ```
 
-- [ ] **Step 3: Wire report helpers into browser reliability**
+- [x] **Step 3: Wire report helpers into browser reliability**
 
 At the top of `scripts/console-browser-reliability.mjs`, add:
 
@@ -1204,7 +1204,7 @@ At the end of `run()`, before `console.log('PASS console browser reliability pro
   }
 ```
 
-- [ ] **Step 4: Run browser reliability**
+- [x] **Step 4: Run browser reliability**
 
 Run:
 
@@ -1216,7 +1216,7 @@ Expected: PASS and output paths under
 `build/reports/fixthis-console-reliability/`. Do not commit the generated
 report files.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/console-browser-reliability.mjs scripts/studioReliabilityContract-test.mjs
@@ -1231,7 +1231,7 @@ git commit -m "test(console): report SSE reliability evidence"
 - Create: `scripts/release-gate-test.mjs`
 - Create: `scripts/release-gate.mjs`
 
-- [ ] **Step 1: Write failing release gate tests**
+- [x] **Step 1: Write failing release gate tests**
 
 Create `scripts/release-gate-test.mjs`:
 
@@ -1340,7 +1340,7 @@ test('runReleaseGate supports injected runner for tests', () => {
 });
 ```
 
-- [ ] **Step 2: Add a minimal module shell**
+- [x] **Step 2: Add a minimal module shell**
 
 Create `scripts/release-gate.mjs` with:
 
@@ -1370,7 +1370,7 @@ export function runReleaseGate() {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify failure**
+- [x] **Step 3: Run tests to verify failure**
 
 Run:
 
@@ -1380,7 +1380,7 @@ node --test scripts/release-gate-test.mjs
 
 Expected: FAIL with assertion failures for missing commands and report output.
 
-- [ ] **Step 4: Commit the failing contract only if using a RED commit**
+- [x] **Step 4: Commit the failing contract only if using a RED commit**
 
 If this repo's current branch policy accepts RED commits inside a plan, commit:
 
@@ -1399,7 +1399,7 @@ together after tests pass.
 **Files:**
 - Modify: `scripts/release-gate.mjs`
 
-- [ ] **Step 1: Replace the shell with the implementation**
+- [x] **Step 1: Replace the shell with the implementation**
 
 Replace `scripts/release-gate.mjs` with:
 
@@ -1532,7 +1532,7 @@ if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
 }
 ```
 
-- [ ] **Step 2: Run release gate tests**
+- [x] **Step 2: Run release gate tests**
 
 Run:
 
@@ -1542,7 +1542,7 @@ node --test scripts/release-gate-test.mjs
 
 Expected: FAIL because `expandProfile('gate')` is not implemented yet.
 
-- [ ] **Step 3: Commit only if Task 7 was committed as RED**
+- [x] **Step 3: Commit only if Task 7 was committed as RED**
 
 If Task 7 was committed separately, do not commit this task yet. Task 9 wires
 the missing `gate` profile and package script, then commits the complete GREEN
@@ -1561,7 +1561,7 @@ slice.
 - Modify: `docs/releases/unreleased.md`
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 1: Add failing evidence-runner and package tests**
+- [x] **Step 1: Add failing evidence-runner and package tests**
 
 In `scripts/evidence-runner-test.mjs`, add:
 
@@ -1599,7 +1599,7 @@ requireIncludes(
 );
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run:
 
@@ -1611,7 +1611,7 @@ node scripts/check-release-readiness.mjs
 Expected: FAIL because the `gate` profile, package scripts, and readiness
 section are missing.
 
-- [ ] **Step 3: Add the evidence-runner gate profile**
+- [x] **Step 3: Add the evidence-runner gate profile**
 
 In `scripts/evidence-runner.mjs`, add this profile after `release`:
 
@@ -1635,7 +1635,7 @@ In `scripts/evidence-runner.mjs`, add this profile after `release`:
   ],
 ```
 
-- [ ] **Step 4: Add package scripts**
+- [x] **Step 4: Add package scripts**
 
 In `package.json`, add these scripts near the existing release scripts:
 
@@ -1646,7 +1646,7 @@ In `package.json`, add these scripts near the existing release scripts:
 
 Keep JSON comma placement valid.
 
-- [ ] **Step 5: Update release-readiness docs**
+- [x] **Step 5: Update release-readiness docs**
 
 In `docs/contributing/release-readiness.md`, add this section after
 `## v1.1 Trust Loop Evidence`:
@@ -1669,7 +1669,7 @@ emulator is unavailable, non-strict reports must record the exact deferred
 reason and strict reports must fail.
 ```
 
-- [ ] **Step 6: Update release notes and changelog**
+- [x] **Step 6: Update release notes and changelog**
 
 In `docs/releases/unreleased.md`, add this paragraph under the current v1.1
 paragraph:
@@ -1691,7 +1691,7 @@ In `CHANGELOG.md`, under `## Unreleased` / `### Added`, add:
   whitespace evidence into one pass/deferred/fail report.
 ```
 
-- [ ] **Step 7: Run tests to verify pass**
+- [x] **Step 7: Run tests to verify pass**
 
 Run:
 
@@ -1703,7 +1703,7 @@ npm run release:gate:test
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add scripts/evidence-runner.mjs \
@@ -1727,7 +1727,7 @@ git commit -m "feat(release): add release gate evidence report"
 - Generated but not committed: `build/reports/fixthis-*`
 - Generated but not committed: `graphify-out/*`
 
-- [ ] **Step 1: Run the fast local verification suite**
+- [x] **Step 1: Run the fast local verification suite**
 
 Run:
 
@@ -1741,7 +1741,7 @@ git diff --check
 
 Expected: PASS.
 
-- [ ] **Step 2: Run browser reliability and release gate**
+- [x] **Step 2: Run browser reliability and release gate**
 
 Run:
 
@@ -1755,7 +1755,7 @@ no unlocked emulator/device is available. If `npm run release:gate` returns
 `pass_with_deferred`, record the deferred reason from
 `build/reports/fixthis-release-gate/report.md` in the implementation summary.
 
-- [ ] **Step 3: Run connected strict verification when a device is ready**
+- [x] **Step 3: Run connected strict verification when a device is ready**
 
 Run:
 
@@ -1768,7 +1768,7 @@ npm run release:gate -- --strict
 Expected with a ready device: PASS. If `adb devices` shows no ready device,
 record the exact output and do not claim strict connected evidence.
 
-- [ ] **Step 4: Update Graphify**
+- [x] **Step 4: Update Graphify**
 
 Run:
 
@@ -1778,13 +1778,21 @@ graphify update .
 
 Expected: command completes. Dirty `graphify-out/` files are not committed.
 
-- [ ] **Step 5: Mark the plan tasks that landed**
+- [x] **Step 5: Mark the plan tasks that landed**
 
 Edit this plan and change completed checkboxes from `- [ ]` to `- [x]` for all
 implemented tasks. Leave connected strict verification unchecked if no ready
 device was available, and add the exact deferred reason under Step 3.
 
-- [ ] **Step 6: Final status check**
+Execution note: connected strict verification ran against `emulator-5554` and
+passed. During final verification, the runtime interop fixture exposed that
+saved area annotations were not carrying nearby evidence nodes; the implementation
+now builds area annotations through `TargetEvidenceService.buildFeedbackItem`,
+adds a stable `comp:NativeChartHost:chart` sample host tag, and pins the fixture
+area to the runtime AndroidView bounds. `npm run source-matching:fixtures:runtime
+-- --strict` and `npm run release:gate -- --strict` both pass.
+
+- [x] **Step 6: Final status check**
 
 Run:
 
@@ -1796,7 +1804,7 @@ Expected: tracked source/doc changes are committed. Ignored generated output
 under `build/`, `.fixthis/`, or `graphify-out/` may appear and must not be
 staged.
 
-- [ ] **Step 7: Commit plan checkbox updates if changed**
+- [x] **Step 7: Commit plan checkbox updates if changed**
 
 ```bash
 git add docs/superpowers/plans/2026-05-31-release-gate-interop-sse-umbrella.md
