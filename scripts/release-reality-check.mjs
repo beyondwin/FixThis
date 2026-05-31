@@ -33,6 +33,24 @@ function jsonFromUrl(url) {
   }
 }
 
+function jsonFromCommand(command, args, options = {}) {
+  const text = execText(command, args, options);
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function probeGithubRelease(version, fetchJson = jsonFromUrl, execJson = jsonFromCommand) {
+  const path = `repos/beyondwin/FixThis/releases/tags/v${version}`;
+  const json =
+    execJson("gh", ["api", path], { timeoutMs: 20_000 }) ||
+    fetchJson(`https://api.github.com/${path}`);
+  return json?.tag_name || null;
+}
+
 export function readMcpServerName(root = repoRoot) {
   try {
     const server = JSON.parse(readFileSync(join(root, "server.json"), "utf8"));
@@ -127,12 +145,10 @@ export function buildReleaseRealityReport({
 
 export function defaultProbes(root = repoRoot, dependencies = {}) {
   const fetchJson = dependencies.fetchJson || jsonFromUrl;
+  const execJson = dependencies.execJson || jsonFromCommand;
   return {
     gitTag: (version) => execText("git", ["tag", "--list", `v${version}`]) || "missing",
-    githubRelease: (version) => {
-      const json = fetchJson(`https://api.github.com/repos/beyondwin/FixThis/releases/tags/v${version}`);
-      return json?.tag_name || null;
-    },
+    githubRelease: (version) => probeGithubRelease(version, fetchJson, execJson),
     homebrew: () => execText("bash", ["-lc", "brew info --json=v2 beyondwin/tools/fixthis 2>/dev/null | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d);process.stdin.on(\"end\",()=>{const j=JSON.parse(s);console.log(j.formulae?.[0]?.versions?.stable||\"\")})'"]) || null,
     npm: () => execText("npm", ["view", "@beyondwin/fixthis", "version"]) || null,
     mcpRegistry: (version) => probeMcpRegistryVersion(version, readMcpServerName(root), fetchJson),

@@ -109,6 +109,35 @@ test("default MCP registry probe verifies public registry response instead of lo
   }
 });
 
+test("default GitHub release probe prefers authenticated gh api before public curl", () => {
+  const probes = defaultProbes(undefined, {
+    execJson: (command, args) => {
+      assert.equal(command, "gh");
+      assert.deepEqual(args, ["api", "repos/beyondwin/FixThis/releases/tags/v1.0.0"]);
+      return { tag_name: "v1.0.0" };
+    },
+    fetchJson: () => {
+      throw new Error("public GitHub API fallback should not be used when gh api succeeds");
+    },
+  });
+
+  assert.equal(probes.githubRelease("1.0.0"), "v1.0.0");
+});
+
+test("default GitHub release probe falls back to public API when gh api is unavailable", () => {
+  let requestedUrl = null;
+  const probes = defaultProbes(undefined, {
+    execJson: () => null,
+    fetchJson: (url) => {
+      requestedUrl = url;
+      return { tag_name: "v1.0.0" };
+    },
+  });
+
+  assert.equal(probes.githubRelease("1.0.0"), "v1.0.0");
+  assert.equal(requestedUrl, "https://api.github.com/repos/beyondwin/FixThis/releases/tags/v1.0.0");
+});
+
 test("probeMcpRegistryVersion extracts version from registry response shapes", () => {
   assert.equal(
     mcpRegistryVersionUrl("io.github.beyondwin/fixthis", "1.0.0"),
