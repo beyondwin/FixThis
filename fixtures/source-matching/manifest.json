@@ -151,7 +151,7 @@
           "mode": "runtime-trust",
           "trustPurpose": "AndroidView interop target stays caveated as possible View ownership rather than exact Compose source ownership",
           "navigateBefore": { "contentDescription": "Diagnostics tab" },
-          "runtimeTarget": { "visualArea": { "left": 24, "top": 340, "right": 360, "bottom": 404 } },
+          "runtimeTarget": { "visualArea": { "left": 48, "top": 1020, "right": 1030, "bottom": 1168 } },
           "expectedConfidence": "low-or-medium",
           "expectedBoundaryContextKinds": ["host"],
           "mustWarn": ["VISUAL_AREA_ONLY", "POSSIBLE_VIEW_INTEROP"],

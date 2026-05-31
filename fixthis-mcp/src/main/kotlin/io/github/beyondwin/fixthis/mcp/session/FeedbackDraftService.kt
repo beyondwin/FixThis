@@ -64,37 +64,17 @@ class FeedbackDraftService(
         val session = store.getSession(sessionId)
         val screen = session.screens.firstOrNull { it.screenId == screenId }
             ?: throw FeedbackSessionException("SCREEN_NOT_FOUND: Unknown screen: $screenId")
-        val targetEvidence = targetEvidenceService.targetEvidenceFor(
-            targetType = FeedbackTargetType.AREA,
-            selectedNode = null,
+        val item = targetEvidenceService.buildFeedbackItem(
             screen = screen,
-            sourceCandidates = emptyList(),
-        )
-        val validatedTarget = ValidatedFeedbackTarget(
+            sourceIndex = null,
             targetType = FeedbackTargetType.AREA,
-            selectedNode = null,
-            storedBounds = bounds,
-            evidenceNodes = emptyList(),
+            bounds = bounds,
+            nodeUid = null,
+            comment = comment,
+            allowBlankComment = true,
+            writtenStatus = AnnotationStatusDto.READY,
         )
-        return store.addItem(
-            sessionId,
-            AnnotationDto(
-                itemId = "pending",
-                screenId = screenId,
-                createdAtEpochMillis = 0L,
-                updatedAtEpochMillis = 0L,
-                target = AnnotationTargetDto.Area(bounds),
-                comment = comment,
-                status = if (comment.isBlank()) AnnotationStatusDto.OPEN else AnnotationStatusDto.READY,
-                targetEvidence = targetEvidence,
-                targetReliability = targetEvidenceService.targetReliabilityFor(
-                    screen = screen,
-                    validatedTarget = validatedTarget,
-                    sourceCandidates = emptyList(),
-                    targetEvidence = targetEvidence,
-                ),
-            ),
-        )
+        return store.addItem(sessionId, item)
     }
 
     suspend fun addFeedbackItem(

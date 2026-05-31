@@ -78,7 +78,7 @@ class RuntimeTrustFixtureRunnerTest {
                     RuntimeTrustCaseInput(
                         caseId = "visual-area",
                         runtimeTarget = RuntimeTargetSelector(
-                            visualArea = RuntimeVisualAreaSelector(left = 12f, top = 24f, right = 180f, bottom = 96f),
+                            visualArea = RuntimeVisualAreaSelector(left = 130f, top = 440f, right = 220f, bottom = 520f),
                         ),
                     ),
                 ),
@@ -89,6 +89,8 @@ class RuntimeTrustFixtureRunnerTest {
         assertEquals("evaluated", output.status)
         assertEquals("low", output.cases.single().observed?.confidence)
         assertTrue(output.cases.single().observed?.warnings.orEmpty().contains("VISUAL_AREA_ONLY"))
+        assertTrue(output.cases.single().observed?.warnings.orEmpty().contains("POSSIBLE_VIEW_INTEROP"))
+        assertTrue(output.cases.single().observed?.boundaryContext.orEmpty().isNotEmpty())
     }
 
     @Test

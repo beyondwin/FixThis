@@ -92,6 +92,7 @@ private fun androidViewInteropFixture() {
     Text("AndroidView interop preview", style = MaterialTheme.typography.titleSmall)
     AndroidView(
         modifier = Modifier
+            .testTag("comp:NativeChartHost:chart")
             .fillMaxWidth()
             .height(ANDROID_VIEW_HEIGHT_DP.dp),
         factory = { context ->
