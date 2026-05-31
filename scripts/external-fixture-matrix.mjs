@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, normalize, resolve, sep } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -137,6 +138,127 @@ export function writeMatrixReports(report, reportDir = defaultMatrixReportDir) {
   return { json, markdown };
 }
 
+function runCommand(command, cwd, envPatch = {}) {
+  const started = Date.now();
+  const result = spawnSync('bash', ['-lc', command], {
+    cwd,
+    encoding: 'utf8',
+    env: { ...process.env, ...envPatch },
+    stdio: 'pipe',
+  });
+  return {
+    status: result.status === 0 ? 'pass' : 'fail',
+    durationMs: Date.now() - started,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    exitCode: result.status ?? 1,
+  };
+}
+
+function write(path, text) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, text);
+}
+
+function settingsFor(fixture) {
+  if (fixture.projectShape === 'multi-module') {
+    return 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "FixThisMatrixMulti"\ninclude(":features:demo-app")\n';
+  }
+  return 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "FixThisMatrix"\ninclude(":app")\n';
+}
+
+function appBuildGradleFor(fixture) {
+  const flavorBlock = fixture.projectShape === 'single-module-flavor'
+    ? '    flavorDimensions += "env"\n    productFlavors { create("demo") { dimension = "env"; applicationIdSuffix = ".demo" } }\n'
+    : '';
+  return [
+    'plugins {',
+    '    id("com.android.application")',
+    '    id("org.jetbrains.kotlin.android")',
+    '    id("io.github.beyondwin.fixthis.compose")',
+    '}',
+    '',
+    'android {',
+    `    namespace = "${fixture.applicationId.replace(/\.demo$/, '')}"`,
+    '    compileSdk = 34',
+    `    defaultConfig { applicationId = "${fixture.applicationId.replace(/\.demo$/, '')}"; minSdk = 23; targetSdk = 34; versionCode = 1; versionName = "1.0" }`,
+    flavorBlock.trimEnd(),
+    '}',
+    '',
+    'dependencies {',
+    '    implementation("androidx.activity:activity-compose:1.10.0")',
+    '    implementation(platform("androidx.compose:compose-bom:2025.01.01"))',
+    '    implementation("androidx.compose.material3:material3")',
+    '}',
+    '',
+  ].filter(Boolean).join('\n');
+}
+
+export function generateFixtureProject(fixture, projectDir) {
+  rmSync(projectDir, { recursive: true, force: true });
+  mkdirSync(projectDir, { recursive: true });
+  write(join(projectDir, 'settings.gradle.kts'), settingsFor(fixture));
+  write(join(projectDir, 'build.gradle.kts'), 'plugins { id("com.android.application") version "8.7.3" apply false; id("org.jetbrains.kotlin.android") version "2.0.21" apply false; id("io.github.beyondwin.fixthis.compose") version "1.1.0" apply false }\n');
+  const moduleDir = join(projectDir, fixture.moduleDir);
+  write(join(moduleDir, 'build.gradle.kts'), appBuildGradleFor(fixture));
+  write(join(moduleDir, 'src/main/AndroidManifest.xml'), `<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="${fixture.applicationId}" android:theme="@style/AppTheme" /></manifest>\n`);
+  write(join(moduleDir, 'src/main/java/io/github/beyondwin/fixthis/matrix/MainActivity.kt'), 'package io.github.beyondwin.fixthis.matrix\n\nimport android.app.Activity\n\nclass MainActivity : Activity()\n');
+  if (fixture.projectShape === 'preexisting-agent-config') {
+    write(join(projectDir, '.claude/settings.json'), '{ "mcpServers": {} }\n');
+    write(join(projectDir, '.cursor/mcp.json'), '{ "mcpServers": {} }\n');
+  }
+}
+
+function cleanupFixture(projectDir) {
+  rmSync(projectDir, { recursive: true, force: true });
+}
+
+export function runExternalMatrix({
+  manifest = loadExternalMatrixManifest(),
+  strict = false,
+  workRoot = defaultMatrixWorkRoot,
+  root = repoRoot,
+  androidEnvironment = resolveAndroidEnvironment(),
+  runCommandFn = (command, cwd, envPatch) => runCommand(command, cwd, envPatch),
+  generateFixtureProjectFn = generateFixtureProject,
+  cleanupFixtureFn = cleanupFixture,
+} = {}) {
+  const fixtures = [];
+  for (const fixture of manifest.fixtures) {
+    const projectDir = join(workRoot, fixture.id);
+    const environment = externalMatrixStatusForEnvironment({
+      strict,
+      androidReady: androidEnvironment.ready,
+      reason: androidEnvironment.reason,
+    });
+    if (!androidEnvironment.ready) {
+      fixtures.push({
+        fixtureId: fixture.id,
+        status: environment.status,
+        reason: environment.reason,
+        commands: planFixtureCommands(fixture, projectDir, root).map((entry) => ({ ...entry, status: 'deferred', durationMs: 0 })),
+      });
+      continue;
+    }
+    generateFixtureProjectFn(fixture, projectDir);
+    const commands = [];
+    let status = 'pass';
+    let reason = null;
+    for (const entry of planFixtureCommands(fixture, projectDir, root)) {
+      const result = runCommandFn(entry.command, projectDir, androidEnvironment.envPatch);
+      commands.push({ ...entry, ...result });
+      if (result.status === 'fail') {
+        status = 'fail';
+        reason = result.stderr?.split('\n').find(Boolean) || result.stdout?.split('\n').find(Boolean) || `${entry.name} failed`;
+        break;
+      }
+    }
+    cleanupFixtureFn(projectDir);
+    fixtures.push({ fixtureId: fixture.id, status, reason, commands });
+  }
+  return buildMatrixReport({ strict, fixtures });
+}
+
 function parseArgs(argv) {
   const args = { strict: false, dryRun: false };
   for (const arg of argv) {
@@ -155,23 +277,16 @@ function parseArgs(argv) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const manifest = loadExternalMatrixManifest();
-  const android = resolveAndroidEnvironment();
-  const fixtures = manifest.fixtures.map((fixture) => {
-    const projectDir = join(defaultMatrixWorkRoot, fixture.id);
-    const commands = planFixtureCommands(fixture, projectDir, repoRoot).map((entry) => ({
-      ...entry,
-      status: args.dryRun ? 'planned' : 'deferred',
-      durationMs: 0,
-    }));
-    const environment = externalMatrixStatusForEnvironment({ strict: args.strict, androidReady: android.ready, reason: android.reason });
-    return {
-      fixtureId: fixture.id,
-      status: args.dryRun ? 'planned' : environment.status,
-      reason: args.dryRun ? null : environment.reason,
-      commands,
-    };
-  });
-  const report = buildMatrixReport({ strict: args.strict, fixtures });
+  const report = args.dryRun
+    ? buildMatrixReport({
+      strict: args.strict,
+      fixtures: manifest.fixtures.map((fixture) => ({
+        fixtureId: fixture.id,
+        status: 'planned',
+        commands: planFixtureCommands(fixture, join(defaultMatrixWorkRoot, fixture.id), repoRoot).map((entry) => ({ ...entry, status: 'planned', durationMs: 0 })),
+      })),
+    })
+    : runExternalMatrix({ manifest, strict: args.strict });
   const paths = writeMatrixReports(report);
   console.log(`External fixture matrix: ${report.status}`);
   console.log(`JSON: ${paths.json}`);

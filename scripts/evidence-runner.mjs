@@ -21,6 +21,11 @@ const profileDefinitions = {
     step("Compose core source trust", "./gradlew :fixthis-compose-core:test --tests \"*SourceMatcherTest\" --no-daemon"),
     step("Handoff evaluation", "npm run handoff:eval:test"),
     step("Source fixture contracts", "npm run source-matching:fixtures:test"),
+    step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),
+    step("External fixture matrix strict", "npm run external-fixture:matrix -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+    }),
     step("Runtime trust strict", "npm run source-matching:fixtures:runtime -- --strict", {
       deferrable: true,
       requiresAndroid: true,
@@ -64,6 +69,11 @@ const profileDefinitions = {
       requiresAndroid: true,
     }),
     step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
+    step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),
+    step("External fixture matrix strict", "npm run external-fixture:matrix -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+    }),
     step("Agent loop smoke", "npm run agent-loop:smoke -- --strict", {
       deferrable: true,
       requiresAndroid: true,

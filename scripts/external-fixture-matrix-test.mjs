@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -7,9 +7,11 @@ import {
   buildMatrixReport,
   defaultManifestPath,
   externalMatrixStatusForEnvironment,
+  generateFixtureProject,
   loadExternalMatrixManifest,
   planFixtureCommands,
   renderMatrixMarkdown,
+  runExternalMatrix,
   validateExternalMatrixManifest,
   writeMatrixReports,
 } from './external-fixture-matrix.mjs';
@@ -115,4 +117,68 @@ test('writeMatrixReports writes json and markdown reports', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('generateFixtureProject creates a minimal Gradle Compose project shape', () => {
+  const root = mkdtempSync(join(tmpdir(), 'fixthis-matrix-generate-'));
+  try {
+    const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'multi-module-non-root-app');
+    const projectDir = join(root, fixture.id);
+    generateFixtureProject(fixture, projectDir);
+
+    assert.equal(existsSync(join(projectDir, 'settings.gradle.kts')), true);
+    assert.equal(existsSync(join(projectDir, 'features/demo-app/build.gradle.kts')), true);
+    assert.match(readFileSync(join(projectDir, 'features/demo-app/src/main/AndroidManifest.xml'), 'utf8'), /io\.github\.beyondwin\.fixthis\.matrix\.multimodule/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('runExternalMatrix executes non-connected commands with injected runner', () => {
+  const calls = [];
+  const manifest = {
+    schemaVersion: 1,
+    fixtures: [loadExternalMatrixManifest(defaultManifestPath).fixtures[0]],
+  };
+  const report = runExternalMatrix({
+    manifest,
+    strict: false,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: {} },
+    root: '/repo',
+    runCommandFn: (command) => {
+      calls.push(command);
+      return { status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 };
+    },
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(report.fixtures[0].status, 'pass');
+  assert.equal(calls.length, 3);
+});
+
+test('runExternalMatrix keeps deferred fixtures out of command execution when Android is missing', () => {
+  const calls = [];
+  const manifest = {
+    schemaVersion: 1,
+    fixtures: [loadExternalMatrixManifest(defaultManifestPath).fixtures[0]],
+  };
+  const report = runExternalMatrix({
+    manifest,
+    strict: false,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: false, reason: 'Android SDK unavailable', envPatch: {} },
+    runCommandFn: (command) => {
+      calls.push(command);
+      return { status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 };
+    },
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+  });
+
+  assert.equal(report.status, 'pass_with_deferred');
+  assert.equal(report.fixtures[0].status, 'deferred');
+  assert.equal(calls.length, 0);
 });

@@ -156,6 +156,14 @@ test("release and gate profiles include release drift guard", () => {
   assert.ok(gateCommands.includes("npm run release:drift -- --strict"));
 });
 
+test("trust and gate profiles include external fixture matrix", () => {
+  const trustCommands = expandProfile("trust").map((step) => step.command);
+  const gateCommands = expandProfile("gate").map((step) => step.command);
+
+  assert.ok(trustCommands.includes("npm run external-fixture:matrix:test"));
+  assert.ok(gateCommands.includes("npm run external-fixture:matrix -- --strict"));
+});
+
 test("gate profile includes Trust Loop runtime agent copy prompt docs and whitespace evidence", () => {
   const commands = expandProfile("gate").map((step) => step.command);
   assert.ok(commands.includes("npm run release:reality"));
