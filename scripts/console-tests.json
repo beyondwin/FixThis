@@ -69,6 +69,7 @@
     "scripts/enterAnnotateModeBlockToast-test.mjs"
   ],
   "reliability": [
+    "scripts/console-reliability-report-test.mjs",
     "scripts/studioWorkflow-test.mjs",
     "scripts/studioWorkflowIntegration-test.mjs",
     "scripts/studioReliabilityContract-test.mjs",
