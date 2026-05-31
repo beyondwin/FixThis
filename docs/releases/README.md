@@ -1,8 +1,9 @@
 # Release Notes
 
 This directory keeps the human-written notes that are published with GitHub
-Releases. `CHANGELOG.md` remains the canonical chronological change log; these
-files are the concise release-facing summaries.
+Releases or staged on `main` while release validation is still in progress.
+`CHANGELOG.md` remains the canonical chronological change log; these files are
+the concise release-facing summaries.
 
 FixThis is distributed through GitHub Releases, Homebrew, npm, MCP Registry,
 Maven Central, and the Gradle Plugin Portal.
@@ -10,6 +11,11 @@ Maven Central, and the Gradle Plugin Portal.
 ## Releases
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [v1.0.0](v1.0.0.md) — release-prep notes for deeper Compose source matching,
+  per-role edit-surface confidence, and explainable source-match basis strings.
+- [v0.8.0](v0.8.0.md) — release-prep notes for layout-renderer edit hints,
+  shared-component call-site context, fallback-only console polling, doctor
+  `--json` readiness, and the Cursor MCP target.
 - [v0.7.0](v0.7.0.md) — flavor-aware setup, stronger Compose source matching,
   minSdk 23 sidekick support, and expanded release guardrails.
 - [v0.6.1](v0.6.1.md) — compatibility patch for external Android projects,

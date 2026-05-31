@@ -219,7 +219,11 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                     )
         // Sibling entries of a shared owner (e.g. a body line hit by an exact testTag, where the
         // SHARED_COMPONENT signal lives only on the definition entry) must stay MEDIUM-capped too.
-        val belongsToSharedOwner = ctx.anyTermMatched && entry.ownerComposable in sharedOwners
+        val hasSelectedOwnerLocator =
+            SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons ||
+                SourceMatchReason.SELECTED_TEST_TAG in matchReasons ||
+                SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE in matchReasons
+        val belongsToSharedOwner = hasSelectedOwnerLocator && entry.ownerComposable in sharedOwners
         if (ownsSharedComponent || belongsToSharedOwner) {
             matchReasons.add(SourceMatchReason.SHARED_COMPONENT_DEFINITION)
         }
@@ -564,8 +568,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private fun MatchScore.sharedComponentCallSites(
         selectionTokens: Set<String>,
         sharedCallSitesByOwner: Map<String, List<String>>,
-    ): List<SourceLocationRef> {
-        if (SourceMatchReason.SHARED_COMPONENT_DEFINITION !in matchReasons) return emptyList()
+    ): List<SourceLocationRef> = if (SourceMatchReason.SHARED_COMPONENT_DEFINITION !in matchReasons) {
+        emptyList()
+    } else {
         val ownerCallSites = entry.ownerComposable
             ?.let { owner -> sharedCallSitesByOwner[owner] }
             .orEmpty()
@@ -574,11 +579,14 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 .filter { it.kind == SourceSignalKind.SHARED_COMPONENT_CALL_SITE }
                 .map { it.value } + ownerCallSites
             ).distinct()
-        if (callSiteSignalValues.isEmpty()) return emptyList()
-        return rankSharedComponentCallSites(
-            callSiteSignalValues = callSiteSignalValues,
-            selectionTokens = selectionTokens,
-        )
+        if (callSiteSignalValues.isEmpty()) {
+            emptyList()
+        } else {
+            rankSharedComponentCallSites(
+                callSiteSignalValues = callSiteSignalValues,
+                selectionTokens = selectionTokens,
+            )
+        }
     }
 
     private fun baseConfidenceFor(profile: EvidenceProfile, margin: MarginContext): SelectionConfidence {

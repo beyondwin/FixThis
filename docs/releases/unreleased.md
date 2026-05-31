@@ -19,15 +19,18 @@ project-local Cursor config instead of silently dropping it — the global-scope
 guard falls back to a new `local` target (`claude` + `cursor`) and reports only
 the global Codex target as skipped. See `CHANGELOG.md` for details.
 
-Current `main` carries the v1.1 Trust Loop evidence pack: release reality
-checks, external agent lifecycle smoke, and runtime source-trust calibration.
-It is a post-v1.0 hardening line and does not claim a new tagged release until
-the evidence commands pass or are explicitly deferred in the release issue.
+Since the v1.0.0 release-prep notes, current `main` carries the v1.1 Trust Loop
+evidence pack: release reality checks, external agent lifecycle smoke, and
+runtime source-trust calibration. It is a post-v1.0 hardening line and does not
+claim a new tagged release until the evidence commands pass or are explicitly
+deferred in the release issue.
 
-The next evidence line adds a release gate report, deeper interop boundary
-context, and explicit SSE reliability reporting. These changes keep
-AndroidView/WebView-risk handoffs caveated while giving maintainers one local
-artifact for release decisions.
+The latest post-v1.0 commit line adds a release gate report, deeper interop
+boundary context, and explicit SSE reliability reporting. Interop-risk
+handoffs now label boundary host, ancestor, and context rows; area feedback can
+carry boundary evidence into the compact handoff context; and maintainers get
+one local `npm run release:gate` report that classifies release evidence as
+pass, deferred, or fail.
 
 ## Compatibility Notes
 
@@ -44,8 +47,9 @@ artifact for release decisions.
 - npm installs the matching CLI/MCP GitHub Release package through
   `@beyondwin/fixthis`.
 - Bridge protocol version is `1.3`.
-- Persisted JSON changes are additive. `editSurfaceCandidates[].role` is
-  optional and older sessions omit it.
+- Persisted JSON changes are additive. Older sessions may omit fields such as
+  `editSurfaceCandidates[].role`, `editSurfaceCandidates[].confidenceBasis`,
+  ranked shared-component call-site markers, and interop boundary context rows.
 - Current source-index assets use schema version `1.2` and preserve the legacy
   source-index field lists while adding typed `signals`.
 
@@ -63,6 +67,8 @@ For named local evidence reports, use:
 ```bash
 npm run evidence:fast -- --dry-run
 npm run evidence:test
+npm run release:gate
+npm run release:gate:test
 ```
 
 `npm run ci:local` covers the required Gradle matrix, release-readiness checks,

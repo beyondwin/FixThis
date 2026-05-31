@@ -418,7 +418,7 @@ class FeedbackQueueFormatterPhase2Test {
         val sourceIndex = md.indexOf("1. `sample/DiagnosticsScreen.kt`")
         assertTrue(boundaryIndex >= 0, "missing boundary guidance\n$md")
         assertTrue(sourceIndex > boundaryIndex, "boundary guidance must precede source candidates\n$md")
-        assertTrue(md.contains("- Boundary action: inspect the Compose parent or native view boundary before editing."))
+        assertTrue(md.contains("- Boundary action: inspect-and-corroborate the Compose host first; verify native View/WebView ownership before editing."))
     }
 
     @Test
@@ -449,7 +449,7 @@ class FeedbackQueueFormatterPhase2Test {
         val md = FeedbackQueueFormatter.toMarkdown(sessionOf(item), DetailMode.PRECISE)
 
         val boundaryIndex = md.indexOf("- Boundary: possible AndroidView/WebView target")
-        val contextIndex = md.indexOf("- Boundary context: nearest Compose context")
+        val contextIndex = md.indexOf("- Boundary host:")
         val sourceIndex = md.indexOf("1. `sample/NativeChartHost.kt`")
         assertTrue(boundaryIndex >= 0, "missing boundary guidance\n$md")
         assertTrue(contextIndex > boundaryIndex, "context must follow boundary guidance\n$md")

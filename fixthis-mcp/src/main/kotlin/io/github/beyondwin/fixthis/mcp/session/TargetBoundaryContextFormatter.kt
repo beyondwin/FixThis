@@ -4,6 +4,8 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 
+private const val BOUNDARY_ANCESTOR_AREA_MULTIPLIER = 6f
+
 internal object TargetBoundaryContextFormatter {
     private const val MAX_CONTEXT_NODES = 3
 
@@ -68,8 +70,7 @@ internal object TargetBoundaryContextFormatter {
             .toList()
     }
 
-    private fun AnnotationDto.hasInteropBoundary(): Boolean =
-        targetReliability?.warnings.orEmpty().contains(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP)
+    private fun AnnotationDto.hasInteropBoundary(): Boolean = targetReliability?.warnings.orEmpty().contains(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP)
 
     private fun AnnotationTargetDto.bounds(): FixThisRect = when (this) {
         is AnnotationTargetDto.Area -> boundsInWindow
@@ -79,7 +80,7 @@ internal object TargetBoundaryContextFormatter {
     private fun FixThisNode.boundaryContextKind(targetBounds: FixThisRect): BoundaryContextKind {
         val compTagged = testTag?.startsWith("comp:") == true
         val containsTarget = boundsInWindow.contains(targetBounds)
-        val muchLargerThanTarget = boundsInWindow.area > targetBounds.area * 6f
+        val muchLargerThanTarget = boundsInWindow.area > targetBounds.area * BOUNDARY_ANCESTOR_AREA_MULTIPLIER
         return when {
             compTagged && containsTarget && muchLargerThanTarget -> BoundaryContextKind.ANCESTOR
             compTagged && boundsInWindow.intersects(targetBounds) -> BoundaryContextKind.HOST
@@ -87,12 +88,6 @@ internal object TargetBoundaryContextFormatter {
             else -> BoundaryContextKind.CONTEXT
         }
     }
-
-    private fun FixThisRect.contains(other: FixThisRect): Boolean =
-        left <= other.left && top <= other.top && right >= other.right && bottom >= other.bottom
-
-    private fun FixThisRect.intersects(other: FixThisRect): Boolean =
-        left < other.right && right > other.left && top < other.bottom && bottom > other.top
 
     private fun FixThisNode.hasSafeContextSignal(): Boolean = !testTag.isNullOrBlank() ||
         !role.isNullOrBlank() ||
@@ -110,3 +105,7 @@ internal object TargetBoundaryContextFormatter {
         }
     }
 }
+
+private fun FixThisRect.contains(other: FixThisRect): Boolean = left <= other.left && top <= other.top && right >= other.right && bottom >= other.bottom
+
+private fun FixThisRect.intersects(other: FixThisRect): Boolean = left < other.right && right > other.left && top < other.bottom && bottom > other.top

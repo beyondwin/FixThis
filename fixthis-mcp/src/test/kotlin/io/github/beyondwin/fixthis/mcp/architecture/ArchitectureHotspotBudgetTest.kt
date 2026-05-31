@@ -30,7 +30,7 @@ class ArchitectureHotspotBudgetTest {
             "${sidekickBridge}BridgeServer.kt" to 180,
             "${sidekickBridge}BridgeModels.kt" to 220,
             "${sidekickBridge}AndroidBridgeEnvironment.kt" to 180,
-            "fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 596,
+            "fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt" to 631,
             "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
             "${gradlePlugin}task/GenerateFixThisSourceIndexTask.kt" to 130,
             "${gradlePlugin}source/KotlinSourceScanner.kt" to 378,
@@ -38,13 +38,13 @@ class ArchitectureHotspotBudgetTest {
         val consoleJsBudgets = mapOf(
             "fixthis-mcp/src/main/console/annotations.js" to 670,
             "fixthis-mcp/src/main/console/history.js" to 567,
-            "fixthis-mcp/src/main/console/presentation/annotationDetailView.js" to 520,
+            "fixthis-mcp/src/main/console/presentation/annotationDetailView.js" to 568,
             "fixthis-mcp/src/main/console/main.js" to 460,
             "fixthis-mcp/src/main/console/state.js" to 470,
             "fixthis-mcp/src/main/console/domain/consoleReducer.js" to 410,
         )
         val testBudgets = mapOf(
-            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_524,
+            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_525,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_300,

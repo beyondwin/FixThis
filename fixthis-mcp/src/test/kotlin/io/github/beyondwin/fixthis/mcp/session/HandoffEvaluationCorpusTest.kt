@@ -144,9 +144,9 @@ class HandoffEvaluationCorpusTest {
         val compact = FeedbackQueueFormatter.toMarkdown(session, DetailMode.COMPACT)
         val precise = FeedbackQueueFormatter.toMarkdown(session, DetailMode.PRECISE)
 
-        assertTrue(compact.contains("boundaryContext: tag=\"comp:NativeChartHost:chart\""), compact)
+        assertTrue(compact.contains("boundaryHost: tag=\"comp:NativeChartHost:chart\""), compact)
         assertTrue(
-            precise.contains("- Boundary context: nearest Compose context tag=\"comp:NativeChartHost:chart\""),
+            precise.contains("- Boundary host: tag=\"comp:NativeChartHost:chart\""),
             precise,
         )
     }
