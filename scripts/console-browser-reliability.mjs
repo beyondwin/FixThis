@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import { startFakeBridge } from './console-fixture/fakeBridgeServer.mjs';
+import {
+  buildConsoleReliabilityReport,
+  summarizeRequests,
+  writeConsoleReliabilityReports,
+} from './console-reliability-report.mjs';
 
 async function loadPlaywright() {
   return import('playwright');
@@ -26,6 +31,12 @@ async function waitUntil(predicate, timeoutMs = 8000) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   throw new Error('timed out waiting for condition');
+}
+
+const reliabilityObservations = [];
+
+function recordReliabilityObservation(observation) {
+  reliabilityObservations.push(observation);
 }
 
 async function openConsolePage(context, url) {
@@ -133,6 +144,7 @@ async function testSsePreviewPushDoesNotPollPreview() {
     await waitUntil(() => fixture.eventClientCount() >= 1);
     const before = fixture.previewRequestCount();
     const sessionPullsBefore = countSessionPulls(fixture);
+    const reliabilitySince = Date.now();
     fixture.emitPreviewReady('session-1', { previewId: 'sse-push-only' });
     await page.waitForFunction(
       () => window.FixThisConsoleDebug.getState().preview?.previewId === 'sse-push-only',
@@ -154,6 +166,12 @@ async function testSsePreviewPushDoesNotPollPreview() {
       sessionPullsBefore,
       `healthy SSE flow should not perform redundant session pulls, got ${JSON.stringify(redundantSessionPulls)}`,
     );
+    recordReliabilityObservation({
+      name: 'sse-preview-push',
+      eventSourceConnected: true,
+      requestSummary: summarizeRequests(fixture.getRequestLog(), { since: reliabilitySince }),
+      fallbackReasons: [],
+    });
   });
 }
 
@@ -179,6 +197,7 @@ async function testSaveToMcpDoesNotPullSessionsWhenSseIsConnected() {
       { timeout: 8000 },
     );
     const before = countSessionPulls(fixture);
+    const reliabilitySince = Date.now();
 
     await page.click('#sendAgentButton');
     await page.waitForFunction(
@@ -193,6 +212,12 @@ async function testSaveToMcpDoesNotPullSessionsWhenSseIsConnected() {
       before,
       `healthy EventSource Save to MCP should not issue extra /api/session or /api/sessions pulls; log=${JSON.stringify(fixture.getRequestLog())}`,
     );
+    recordReliabilityObservation({
+      name: 'save-to-mcp-healthy-sse',
+      eventSourceConnected: true,
+      requestSummary: summarizeRequests(fixture.getRequestLog(), { since: reliabilitySince }),
+      fallbackReasons: ['synchronous-local-preview-refresh'],
+    });
   });
 }
 
@@ -213,6 +238,12 @@ async function testEventSourceReconnectRecovery() {
     );
     const visible = await page.evaluate(() => window.FixThisConsoleDebug.getState().session.items.map((candidate) => candidate.itemId));
     assert.ok(visible.includes(item.itemId), `reconnected tab did not see ${item.itemId}: ${visible.join(', ')}`);
+    recordReliabilityObservation({
+      name: 'eventsource-reconnect',
+      eventSourceConnected: true,
+      requestSummary: summarizeRequests(fixture.getRequestLog()),
+      fallbackReasons: ['eventsource-disconnected'],
+    });
   });
 }
 
@@ -294,6 +325,16 @@ async function assertNoSessionPollingUnderHealthySse({ fixture, context }) {
   await new Promise((resolve) => setTimeout(resolve, 250));
   const armed = await page.evaluate(() => window.FixThisConsoleDebug?.isSessionsPollingArmed?.() === true);
   assert.equal(armed, false, 'expected no session-polling timer under healthy SSE');
+  recordReliabilityObservation({
+    name: 'healthy-sse-steady-state',
+    eventSourceConnected: true,
+    requestSummary: {
+      sessionPolls: sessionPollCount,
+      previewPolls: previewPollCount,
+      eventConnections: 1,
+    },
+    fallbackReasons: [],
+  });
   await page.close();
 }
 
@@ -340,6 +381,14 @@ async function run() {
   await testStalePreviewSaveRequiresConfirmation();
   await testNoSessionPollingUnderHealthySse();
   await testRepeatedSaveToMcpIdempotency();
+  const report = buildConsoleReliabilityReport({ observations: reliabilityObservations });
+  const paths = writeConsoleReliabilityReports(report);
+  console.log(`Console reliability report: ${report.status}`);
+  console.log(`JSON: ${paths.json}`);
+  console.log(`Markdown: ${paths.markdown}`);
+  if (report.status !== 'pass') {
+    throw new Error(`console reliability report failed: ${paths.json}`);
+  }
   console.log('PASS console browser reliability proof');
 }
 

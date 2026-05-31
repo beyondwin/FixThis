@@ -124,6 +124,15 @@ test('item and handoff mutation paths use SSE-aware session refresh fallback', (
   assert.match(stateSource, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
 });
 
+test('refreshSessionsWhenEventsDisconnected keeps pull refresh behind the SSE gate', () => {
+  const history = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
+  const helper = body(history, 'async function refreshSessionsWhenEventsDisconnected()');
+
+  assert.match(helper, /isConsoleEventsConnected\(\) \|\| wasConsoleEventsRecentlyConnected\(\)/);
+  assert.match(helper, /return state\.sessionSummaries \|\| \[\];/);
+  assert.match(helper, /return refreshSessions\(\);/);
+});
+
 test('sessions-updated events apply pushed summary without pull refresh while SSE is healthy', () => {
   const events = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/events.js'), 'utf8');
   const history = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
