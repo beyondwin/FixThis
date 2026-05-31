@@ -2323,6 +2323,44 @@ class CompactHandoffRendererTest {
     }
 
     @Test
+    fun compactHandoffRendersEditSurfaceConfidenceBasis() {
+        val session = SessionDto(
+            sessionId = "basis-session",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                    comment = "Swap this component",
+                    sequenceNumber = 1,
+                    editSurfaceCandidates = listOf(
+                        EditSurfaceCandidateDto(
+                            kind = EditSurfaceKindDto.COMPONENT_RENDERER,
+                            role = EditSurfaceRoleDto.CALL_SITE,
+                            file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+                            line = 12,
+                            confidence = SelectionConfidence.MEDIUM,
+                            reasons = listOf(EditSurfaceReasonDto.LAYOUT_INTENT),
+                            confidenceBasis = "call site matched: selected owner composable",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("call site matched"), markdown)
+    }
+
+    @Test
     fun compactHandoffRendersTargetBoundaryTokenForInteropRisk() {
         val markdown = CompactHandoffRenderer.render(
             oneItemSession(
