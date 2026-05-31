@@ -124,6 +124,7 @@ data class EditSurfaceCandidateDto(
     val reasons: List<EditSurfaceReasonDto> = emptyList(),
     val note: String? = null,
     val role: EditSurfaceRoleDto? = null,
+    val confidenceBasis: String? = null,
 )
 
 @Serializable
