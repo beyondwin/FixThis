@@ -28,7 +28,7 @@ class TargetBoundaryContextFormatterTest {
         val line = TargetBoundaryContextFormatter.compactLine(item)
 
         assertEquals(
-            "boundaryContext: tag=\"comp:NativeChartHost:chart\"; role=Image; box=(0.0,80.0)-(320.0,260.0)",
+            "boundaryHost: tag=\"comp:NativeChartHost:chart\"; role=Image; box=(0.0,80.0)-(320.0,260.0)",
             line,
         )
     }
@@ -50,7 +50,7 @@ class TargetBoundaryContextFormatterTest {
 
         assertTrue(
             lines.contains(
-                "- Boundary context: nearest Compose context tag=\"comp:NativeChartHost:chart\"; text=\"Revenue\"; box=`0.0,80.0,320.0,260.0`.",
+                "- Boundary host: tag=\"comp:NativeChartHost:chart\"; text=\"Revenue\"; box=`0.0,80.0,320.0,260.0`.",
             ),
         )
         assertTrue(
@@ -73,17 +73,19 @@ class TargetBoundaryContextFormatterTest {
 
         val lines = TargetBoundaryContextFormatter.preciseLines(item)
 
-        val contextLines = lines.filter { it.contains("Boundary context:") }
-        assertEquals(3, contextLines.size)
+        val boundaryRows = lines.filter {
+            it.startsWith("- Boundary ") && !it.startsWith("- Boundary context note:")
+        }
+        assertEquals(3, boundaryRows.size)
     }
 
     @Test
     fun preciseLinesRankSmallerCompContextNodesFirst() {
         val item = interopAreaItem(
             nearbyNodes = listOf(
-                node(uid = "footer", testTag = "comp:Footer:cta", bounds = FixThisRect(0f, 0f, 100f, 200f)),
-                node(uid = "header", testTag = "comp:Header:bar", bounds = FixThisRect(0f, 0f, 100f, 40f)),
-                node(uid = "card", testTag = "comp:Card:body", bounds = FixThisRect(0f, 0f, 100f, 80f)),
+                node(uid = "footer", testTag = "comp:Footer:cta", bounds = FixThisRect(0f, 0f, 30f, 200f)),
+                node(uid = "header", testTag = "comp:Header:bar", bounds = FixThisRect(0f, 0f, 30f, 40f)),
+                node(uid = "card", testTag = "comp:Card:body", bounds = FixThisRect(0f, 0f, 30f, 80f)),
             ),
         )
 
@@ -121,8 +123,8 @@ class TargetBoundaryContextFormatterTest {
 
         val line = TargetBoundaryContextFormatter.compactLine(item)
 
-        assertTrue(line!!.contains("comp:Header:bar"), line)
-        assertTrue(!line.contains("comp:Footer:cta"), line)
+        assertTrue(line!!.contains("comp:Footer:cta"), line)
+        assertTrue(!line.contains("comp:Header:bar"), line)
     }
 
     @Test
@@ -158,6 +160,66 @@ class TargetBoundaryContextFormatterTest {
 
         assertNull(TargetBoundaryContextFormatter.compactLine(item))
         assertEquals(emptyList(), TargetBoundaryContextFormatter.preciseLines(item))
+    }
+
+    @Test
+    fun compactLineLabelsOverlappingCompNodeAsBoundaryHost() {
+        val item = interopAreaItem(
+            nearbyNodes = listOf(
+                node(
+                    uid = "host",
+                    testTag = "comp:NativeChartHost:chart",
+                    role = "Image",
+                    bounds = FixThisRect(20f, 100f, 260f, 240f),
+                ),
+            ),
+        )
+
+        val line = TargetBoundaryContextFormatter.compactLine(item)
+
+        assertEquals(
+            "boundaryHost: tag=\"comp:NativeChartHost:chart\"; role=Image; box=(20.0,100.0)-(260.0,240.0)",
+            line,
+        )
+    }
+
+    @Test
+    fun preciseLinesClassifyBoundaryHostAncestorAndContext() {
+        val item = interopAreaItem(
+            nearbyNodes = listOf(
+                node(
+                    uid = "root",
+                    testTag = "comp:DiagnosticsScreen:root",
+                    bounds = FixThisRect(0f, 0f, 400f, 800f),
+                ),
+                node(
+                    uid = "host",
+                    testTag = "comp:NativeChartHost:chart",
+                    role = "Image",
+                    bounds = FixThisRect(24f, 112f, 360f, 260f),
+                ),
+                node(
+                    uid = "label",
+                    text = listOf("Native chart"),
+                    bounds = FixThisRect(24f, 280f, 220f, 312f),
+                ),
+            ),
+        )
+
+        val lines = TargetBoundaryContextFormatter.preciseLines(item)
+
+        assertTrue(
+            lines.any { it.contains("Boundary host: tag=\"comp:NativeChartHost:chart\"; role=Image") },
+            lines.joinToString("\n"),
+        )
+        assertTrue(
+            lines.any { it.contains("Boundary ancestor: tag=\"comp:DiagnosticsScreen:root\"") },
+            lines.joinToString("\n"),
+        )
+        assertTrue(
+            lines.any { it.contains("Boundary context: text=\"Native chart\"") },
+            lines.joinToString("\n"),
+        )
     }
 
     private fun interopAreaItem(nearbyNodes: List<FixThisNode>): AnnotationDto = AnnotationDto(
