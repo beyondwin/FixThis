@@ -8,10 +8,33 @@ import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class EditSurfaceCandidateServiceTest {
+    @Test
+    fun attachesRoleRubricBasisToComponentDefinitionCandidate() {
+        val chip = node("resolved-chip", text = listOf("Resolved"), testTag = "comp:StatusChip:resolved")
+        val item = item(
+            comment = "여기 보라색",
+            selectedNode = chip,
+            candidates = listOf(
+                sourceCandidate(
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusChip.kt",
+                    matchedTerms = listOf("StatusChip"),
+                    ownerComposable = "StatusChip",
+                ),
+            ),
+        )
+
+        val candidates = EditSurfaceCandidateService.build(item, screenWith(chip))
+
+        val candidate = candidates.single { it.role == EditSurfaceRoleDto.COMPONENT_DEFINITION }
+        assertNotNull(candidate.confidenceBasis)
+        assertTrue(candidate.confidenceBasis!!.contains("shared component definition"))
+    }
+
     @Test
     fun buildsChipColorCandidateFromSelectedComponentTag() {
         val chip = node("resolved-chip", text = listOf("Resolved"), testTag = "comp:StatusChip:resolved")

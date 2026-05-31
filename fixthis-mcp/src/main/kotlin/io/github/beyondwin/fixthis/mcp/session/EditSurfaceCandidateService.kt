@@ -1,7 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.identity.TestTagConvention
-import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 internal object EditSurfaceCandidateService {
@@ -50,11 +49,13 @@ internal object EditSurfaceCandidateService {
             EditSurfaceRoleDto.VISUAL_AREA, EditSurfaceRoleDto.INTEROP_RISK -> EditSurfaceKindDto.UNKNOWN
             else -> intent.primaryKind
         }
+        val scored = EditSurfaceConfidencePolicy.score(roleDecision.role, null)
         return EditSurfaceCandidateDto(
             kind = kind,
             role = roleDecision.role,
             file = "(visual area)",
-            confidence = roleDecision.confidenceCap,
+            confidence = scored.confidence,
+            confidenceBasis = scored.basis,
             reasons = intent.reasons,
             note = roleDecision.note,
         )
@@ -74,7 +75,6 @@ internal object EditSurfaceCandidateService {
             ?.toEditSurface(
                 kind = normalizedKind(intent),
                 roleDecision = roleDecision,
-                confidence = SelectionConfidence.MEDIUM,
                 reasons = intent.reasons +
                     EditSurfaceReasonDto.TARGET_OWNER +
                     EditSurfaceReasonDto.COMPONENT_DEFINITION,
@@ -103,7 +103,6 @@ internal object EditSurfaceCandidateService {
         ?.toEditSurface(
             kind = normalizedKind(intent),
             roleDecision = roleDecision,
-            confidence = SelectionConfidence.MEDIUM,
             reasons = intent.reasons + EditSurfaceReasonDto.SELECTED_TEXT_RENDERER,
         )
 
@@ -120,7 +119,6 @@ internal object EditSurfaceCandidateService {
                 ?.toEditSurface(
                     kind = EditSurfaceKindDto.SPACING,
                     roleDecision = roleDecision,
-                    confidence = SelectionConfidence.LOW,
                     reasons = intent.reasons + EditSurfaceReasonDto.CALL_SITE,
                 )
         }
@@ -135,28 +133,21 @@ internal object EditSurfaceCandidateService {
     private fun SourceCandidate.toEditSurface(
         kind: EditSurfaceKindDto,
         roleDecision: EditSurfaceRoleDecision,
-        confidence: SelectionConfidence,
         reasons: List<EditSurfaceReasonDto>,
-    ): EditSurfaceCandidateDto = EditSurfaceCandidateDto(
-        kind = kind,
-        role = roleDecision.role,
-        file = file,
-        repoFile = repoFile,
-        line = line,
-        confidence = minConfidence(confidence, roleDecision.confidenceCap),
-        reasons = reasons.distinct(),
-        note = roleDecision.note ?: TEXT_SOURCE_NOTE.takeIf {
-            kind == EditSurfaceKindDto.TEXT_COLOR || kind == EditSurfaceKindDto.TYPOGRAPHY
-        },
-    )
-
-    private fun minConfidence(left: SelectionConfidence, right: SelectionConfidence): SelectionConfidence {
-        val order = listOf(
-            SelectionConfidence.NONE,
-            SelectionConfidence.LOW,
-            SelectionConfidence.MEDIUM,
-            SelectionConfidence.HIGH,
+    ): EditSurfaceCandidateDto {
+        val scored = EditSurfaceConfidencePolicy.score(roleDecision.role, this)
+        return EditSurfaceCandidateDto(
+            kind = kind,
+            role = roleDecision.role,
+            file = file,
+            repoFile = repoFile,
+            line = line,
+            confidence = scored.confidence,
+            confidenceBasis = scored.basis,
+            reasons = reasons.distinct(),
+            note = roleDecision.note ?: TEXT_SOURCE_NOTE.takeIf {
+                kind == EditSurfaceKindDto.TEXT_COLOR || kind == EditSurfaceKindDto.TYPOGRAPHY
+            },
         )
-        return if (order.indexOf(left) <= order.indexOf(right)) left else right
     }
 }
