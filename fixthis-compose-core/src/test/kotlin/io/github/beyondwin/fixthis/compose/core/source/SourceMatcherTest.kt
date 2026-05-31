@@ -937,6 +937,32 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun navDestinationOwnerMatchSurfacesDestinationComposableAsSelectedOwner() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/AppNav.kt",
+                        line = 7,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.NAV_DESTINATION_OWNER, "HomeScreen"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "home", testTag = "comp:HomeScreen:home"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertEquals("sample/src/main/java/AppNav.kt", match.file)
+        assertTrue(match.matchReasons.contains("selected owner composable"))
+    }
+
+    @Test
     fun ambiguousOwnerFunctionMatchKeepsMediumConfidenceWithRiskFlag() {
         val matcher = SourceMatcher(
             SourceIndex(

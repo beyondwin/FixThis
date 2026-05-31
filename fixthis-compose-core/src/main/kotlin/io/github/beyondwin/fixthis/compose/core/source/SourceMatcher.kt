@@ -272,6 +272,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             hit.signalKind == SourceSignalKind.LAZY_ITEM_OWNER &&
                 reason == SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE ->
                 SourceMatchReason.SELECTED_OWNER_FUNCTION
+            hit.signalKind == SourceSignalKind.NAV_DESTINATION_OWNER &&
+                reason == SourceMatchReason.SELECTED_TEST_TAG_CONVENTION_COMPOSABLE ->
+                SourceMatchReason.SELECTED_OWNER_FUNCTION
             else -> reason
         }
         matchedTerms.add(cleaned)
@@ -361,6 +364,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 SourceSignalKind.STRICT_COMP_TEST_TAG,
                 SourceSignalKind.LAMBDA_OWNER_FUNCTION,
                 SourceSignalKind.LAZY_ITEM_OWNER,
+                SourceSignalKind.NAV_DESTINATION_OWNER,
             ),
         )
         if (signalMatchWeight > 0.0) {
@@ -442,6 +446,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             SourceSignalKind.COMPOSABLE_SYMBOL,
             SourceSignalKind.LAMBDA_OWNER_FUNCTION,
             SourceSignalKind.LAZY_ITEM_OWNER,
+            SourceSignalKind.NAV_DESTINATION_OWNER,
             -> 1.0
             SourceSignalKind.STRING_RESOURCE,
             SourceSignalKind.ROLE,

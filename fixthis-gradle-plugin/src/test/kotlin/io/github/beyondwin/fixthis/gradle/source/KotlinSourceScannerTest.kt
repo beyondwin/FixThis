@@ -539,6 +539,55 @@ class KotlinSourceScannerTest {
     }
 
     @Test
+    fun `nav destination lambda emits destination-owner signal`() {
+        val source = """
+            package demo
+            import androidx.navigation.compose.NavHost
+            import androidx.navigation.compose.composable
+            @Composable
+            fun AppNav(nav: NavHostController) {
+                NavHost(nav, startDestination = "home") {
+                    composable("home") { HomeScreen() }
+                    composable("settings") { SettingsScreen() }
+                }
+            }
+        """.trimIndent()
+
+        val signals = navDestinationOwnerSignals(source)
+
+        assertEquals(listOf("HomeScreen", "SettingsScreen"), signals.map { it.composable })
+    }
+
+    @Test
+    fun `nav destination lambda attaches NAV_DESTINATION_OWNER signal to the destination composable entry`() {
+        val file = tempDir.newFile("AppNav.kt").apply {
+            writeText(
+                """
+                package demo
+                import androidx.navigation.compose.NavHost
+                import androidx.navigation.compose.composable
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun AppNav(nav: NavHostController) {
+                    NavHost(nav, startDestination = "home") {
+                        composable("home") { HomeScreen() }
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+
+        assertTrue(
+            entries.any { entry ->
+                entry.signals.any { it.kind == SourceSignalKindAsset.NAV_DESTINATION_OWNER && it.value == "HomeScreen" }
+            },
+        )
+    }
+
+    @Test
     fun `lazy list item lambda attaches LAZY_ITEM_OWNER signal to the item composable entry`() {
         val file = tempDir.newFile("OrderList.kt").apply {
             writeText(
