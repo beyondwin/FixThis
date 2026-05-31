@@ -50,8 +50,7 @@ internal object EditSurfaceConfidencePolicy {
         SelectionConfidence.HIGH,
     )
 
-    private fun cap(value: SelectionConfidence, ceiling: SelectionConfidence): SelectionConfidence =
-        if (order.indexOf(value) <= order.indexOf(ceiling)) value else ceiling
+    private fun cap(value: SelectionConfidence, ceiling: SelectionConfidence): SelectionConfidence = if (order.indexOf(value) <= order.indexOf(ceiling)) value else ceiling
 
     private fun reasonSuffix(reasons: List<String>): String {
         val top = reasons.take(2)
