@@ -18,6 +18,7 @@ import {
   patchSettingsText,
   reportStatus,
   runRuntimeTrustEvaluation,
+  runtimeTrustFailureCase,
   runtimeFixtureInput,
   runtimeFixtures,
   runtimeInstallGradleArgs,
@@ -105,6 +106,51 @@ test("runtime trust manifest includes focused Reply, local sample, and Jetsnack 
   assert.ok(cases.some((testCase) => testCase.fixtureId === "reply" && testCase.id === "reply-compose-fab-runtime"));
   assert.ok(cases.some((testCase) => testCase.fixtureId === "fixthis-sample" && testCase.id === "fixthis-sample-home-primary-runtime"));
   assert.ok(cases.some((testCase) => testCase.fixtureId === "jetsnack" && testCase.id === "jetsnack-filters-runtime"));
+});
+
+test("manifest covers every Trust Loop runtime trust risk class", () => {
+  const manifest = loadManifest();
+  const runtimeCases = manifest.fixtures.flatMap((fixture) =>
+    fixture.cases
+      .filter((entry) => entry.mode === "runtime-trust")
+      .map((entry) => ({ fixtureId: fixture.id, ...entry })),
+  );
+
+  assert.ok(
+    runtimeCases.some((entry) => entry.trustPurpose.includes("shared") && entry.mustNotHighConfidence === true),
+    "shared component runtime trust case is required",
+  );
+  assert.ok(
+    runtimeCases.some((entry) => (entry.mustWarn || []).includes("POSSIBLE_VIEW_INTEROP") && entry.mustNotHighConfidence === true),
+    "interop-risk runtime trust case is required",
+  );
+  assert.ok(
+    runtimeCases.some((entry) => (entry.mustWarn || []).includes("VISUAL_AREA_ONLY") && entry.mustNotHighConfidence === true),
+    "visual-area runtime trust case is required",
+  );
+  assert.ok(
+    runtimeCases.some((entry) => entry.expectedSourceConfidence === "low-or-medium"),
+    "weak source-candidate runtime trust case is required",
+  );
+});
+
+test("runtime trust report classifies setup capture and trust failures separately", () => {
+  const setup = runtimeTrustFailureCase("fixture-setup-failed", false);
+  const capture = runtimeTrustFailureCase("runtime-capture-failed", false);
+  const strictCapture = runtimeTrustFailureCase("runtime-capture-failed", true);
+
+  assert.deepEqual(setup, {
+    failures: [],
+    environment: ["fixture_setup_failed"],
+  });
+  assert.deepEqual(capture, {
+    failures: [],
+    environment: ["runtime_capture_failed"],
+  });
+  assert.deepEqual(strictCapture, {
+    failures: ["runtime_capture_failed"],
+    environment: [],
+  });
 });
 
 test("manifest includes local copy-data source trust case", () => {

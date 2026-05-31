@@ -400,6 +400,19 @@ export function classifyRuntimeTrustOutcome(expectation, observed) {
   return outcome;
 }
 
+export function runtimeTrustFailureCase(reason, strict = false) {
+  const normalized = String(reason || "runtime-capture-failed")
+    .trim()
+    .toLowerCase()
+    .replaceAll("_", "-");
+  const label = normalized.includes("setup") || normalized.includes("source-index") || normalized.includes("install")
+    ? "fixture_setup_failed"
+    : "runtime_capture_failed";
+  return strict
+    ? { failures: [label], environment: [] }
+    : { failures: [], environment: [label] };
+}
+
 export function reportStatus(results) {
   if (results.some((result) => result.failures.length > 0)) return "fail";
   if (results.some((result) => result.environment.length > 0)) return "pass_with_environment_downgrade";
@@ -1021,6 +1034,7 @@ export async function main(argv = process.argv.slice(2)) {
       try {
         fixtures.push(runRuntimeTrustEvaluation(fixture, { strict, envPatch: androidEnvironment.envPatch }));
       } catch (error) {
+        const classified = runtimeTrustFailureCase(error.message, strict);
         fixtures.push({
           fixtureId: fixture.id,
           mode: "runtime-trust",
@@ -1033,8 +1047,8 @@ export async function main(argv = process.argv.slice(2)) {
               mode: "runtime-trust",
               trustPurpose: testCase.trustPurpose,
               metrics: [],
-              failures: strict ? ["capture_failed"] : [],
-              environment: strict ? [] : ["capture_failed"],
+              failures: classified.failures,
+              environment: classified.environment,
             })),
         });
       }
