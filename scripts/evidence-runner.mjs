@@ -55,8 +55,18 @@ const profileDefinitions = {
       "Interop boundary contracts",
       "./gradlew :fixthis-mcp:test --tests \"*TargetBoundaryContextFormatterTest\" --tests \"*TargetBoundaryGuidanceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersInteropBoundaryContextFromNearbyComposeHost\" --no-daemon",
     ),
+    step("Handoff evaluation", "npm run handoff:eval:test"),
     step("Runtime trust boundary observations", "npm run source-matching:fixtures:test"),
     step("Runtime trust strict", "npm run source-matching:fixtures:runtime -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+    }),
+    step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
+    step("Agent loop smoke", "npm run agent-loop:smoke -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+    }),
+    step("Real copy prompt smoke", "npm run real-copy-prompt:smoke -- --strict", {
       deferrable: true,
       requiresAndroid: true,
     }),

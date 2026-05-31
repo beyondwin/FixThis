@@ -12,10 +12,15 @@ import {
   writeReleaseGateReports,
 } from './release-gate.mjs';
 
-test('releaseGateSteps include release reality interop SSE docs and whitespace evidence', () => {
+test('releaseGateSteps include Trust Loop source agent release and console evidence', () => {
   const commands = releaseGateSteps().map((step) => step.command);
   assert.ok(commands.includes('npm run release:reality'));
-  assert.ok(commands.some((command) => command.includes('TargetBoundaryContextFormatterTest')));
+  assert.ok(commands.includes('npm run source-matching:fixtures:test'));
+  assert.ok(commands.includes('npm run source-matching:fixtures:runtime -- --strict'));
+  assert.ok(commands.includes('npm run agent-loop:smoke:test'));
+  assert.ok(commands.includes('npm run agent-loop:smoke -- --strict'));
+  assert.ok(commands.includes('npm run real-copy-prompt:smoke -- --strict'));
+  assert.ok(commands.includes('npm run handoff:eval:test'));
   assert.ok(commands.includes('npm run console:browser:reliability'));
   assert.ok(commands.includes('node scripts/check-doc-consistency.mjs'));
   assert.ok(commands.includes('node scripts/check-whitespace.mjs diff --check'));

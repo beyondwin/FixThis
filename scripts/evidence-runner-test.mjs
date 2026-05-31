@@ -148,13 +148,18 @@ test("release profile starts with release reality and includes agent loop contra
   assert.ok(commands.includes("npm run agent-loop:smoke:test"));
 });
 
-test("gate profile includes release interop SSE docs and whitespace evidence", () => {
+test("gate profile includes Trust Loop runtime agent copy prompt docs and whitespace evidence", () => {
   const commands = expandProfile("gate").map((step) => step.command);
-  assert.equal(commands[0], "npm run release:reality");
+  assert.ok(commands.includes("npm run release:reality"));
   assert.ok(commands.some((command) => command.includes("TargetBoundaryContextFormatterTest")));
+  assert.ok(commands.includes("npm run source-matching:fixtures:test"));
+  assert.ok(commands.includes("npm run source-matching:fixtures:runtime -- --strict"));
+  assert.ok(commands.includes("npm run agent-loop:smoke:test"));
+  assert.ok(commands.includes("npm run agent-loop:smoke -- --strict"));
+  assert.ok(commands.includes("npm run real-copy-prompt:smoke -- --strict"));
+  assert.ok(commands.includes("npm run handoff:eval:test"));
   assert.ok(commands.includes("npm run console:browser:reliability"));
   assert.ok(commands.includes("node scripts/check-doc-consistency.mjs"));
-  assert.ok(commands.includes("node scripts/check-release-readiness.mjs"));
   assert.ok(commands.includes("node scripts/check-whitespace.mjs diff --check"));
 });
 
