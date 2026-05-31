@@ -49,6 +49,23 @@ const profileDefinitions = {
     step("Package tests", "npm run release:package:test"),
     step("npm and MCP registry tests", "npm run release:npm:test"),
   ],
+  gate: [
+    step("Release reality", "npm run release:reality"),
+    step(
+      "Interop boundary contracts",
+      "./gradlew :fixthis-mcp:test --tests \"*TargetBoundaryContextFormatterTest\" --tests \"*TargetBoundaryGuidanceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersInteropBoundaryContextFromNearbyComposeHost\" --no-daemon",
+    ),
+    step("Runtime trust boundary observations", "npm run source-matching:fixtures:test"),
+    step("Runtime trust strict", "npm run source-matching:fixtures:runtime -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+    }),
+    step("Console reliability contracts", "node --test scripts/console-reliability-report-test.mjs scripts/studioReliabilityContract-test.mjs"),
+    step("Console browser reliability", "npm run console:browser:reliability"),
+    step("Release readiness", "node scripts/check-release-readiness.mjs"),
+    step("Docs consistency", "node scripts/check-doc-consistency.mjs"),
+    step("Workspace whitespace", "node scripts/check-whitespace.mjs diff --check"),
+  ],
 };
 
 profileDefinitions.full = [

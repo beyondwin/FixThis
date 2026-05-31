@@ -22,6 +22,8 @@
   "prepush": "./gradlew spotlessApply --no-daemon && FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs && npm run ci:local:prepush",
   "release:check": "npm run ci:local",
   "release:reality": "node scripts/release-reality-check.mjs",
+  "release:gate": "node scripts/release-gate.mjs",
+  "release:gate:test": "node --test scripts/release-gate-test.mjs scripts/console-reliability-report-test.mjs",
   "release:version:sync": "node scripts/sync-release-version.mjs",
   "release:version:check": "node scripts/sync-release-version.mjs --check && node --test scripts/release-version-contract-test.mjs",
   "release:homebrew:check": "node scripts/check-homebrew-formula-version.mjs",

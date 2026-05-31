@@ -24,6 +24,11 @@ checks, external agent lifecycle smoke, and runtime source-trust calibration.
 It is a post-v1.0 hardening line and does not claim a new tagged release until
 the evidence commands pass or are explicitly deferred in the release issue.
 
+The next evidence line adds a release gate report, deeper interop boundary
+context, and explicit SSE reliability reporting. These changes keep
+AndroidView/WebView-risk handoffs caveated while giving maintainers one local
+artifact for release decisions.
+
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin

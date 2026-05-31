@@ -285,6 +285,16 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`npm run agent-loop:smoke -- --strict`',
 );
+requireIncludes(
+  'R36.release-gate-interop-sse-section',
+  'docs/contributing/release-readiness.md',
+  '## Release Gate, Interop Evidence, And SSE Closure',
+);
+requireIncludes(
+  'R37.release-gate-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run release:gate`',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

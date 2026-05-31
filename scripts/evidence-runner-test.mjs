@@ -148,6 +148,22 @@ test("release profile starts with release reality and includes agent loop contra
   assert.ok(commands.includes("npm run agent-loop:smoke:test"));
 });
 
+test("gate profile includes release interop SSE docs and whitespace evidence", () => {
+  const commands = expandProfile("gate").map((step) => step.command);
+  assert.equal(commands[0], "npm run release:reality");
+  assert.ok(commands.some((command) => command.includes("TargetBoundaryContextFormatterTest")));
+  assert.ok(commands.includes("npm run console:browser:reliability"));
+  assert.ok(commands.includes("node scripts/check-doc-consistency.mjs"));
+  assert.ok(commands.includes("node scripts/check-release-readiness.mjs"));
+  assert.ok(commands.includes("node scripts/check-whitespace.mjs diff --check"));
+});
+
+test("package exposes release gate commands", () => {
+  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  assert.equal(pkg.scripts["release:gate"], "node scripts/release-gate.mjs");
+  assert.equal(pkg.scripts["release:gate:test"], "node --test scripts/release-gate-test.mjs scripts/console-reliability-report-test.mjs");
+});
+
 test("writeReports writes json and markdown summaries", () => {
   const root = mkdtempSync(join(tmpdir(), "fixthis-evidence-"));
   try {

@@ -138,6 +138,22 @@ registry version response for `io.github.beyondwin/fixthis`.
 When Android SDK or an unlocked emulator is unavailable, record the connected
 commands as deferred rather than implying they passed.
 
+## Release Gate, Interop Evidence, And SSE Closure
+
+This umbrella may be claimed only when the release gate report includes each
+area below. The report is a local release-decision artifact and does not tag or
+publish by itself.
+
+| Claim | Required evidence |
+| --- | --- |
+| AndroidView/WebView-risk handoffs expose host/context boundary evidence without exact source ownership. | `./gradlew :fixthis-mcp:test --tests "*TargetBoundaryContextFormatterTest" --tests "*TargetBoundaryGuidanceTest" --tests "*CompactHandoffRendererTest.compactHandoffRendersInteropBoundaryContextFromNearbyComposeHost" --no-daemon` and `npm run source-matching:fixtures:test`. |
+| Healthy SSE sessions avoid redundant session/history/preview polling, with fallback paths explicitly reported. | `node --test scripts/console-reliability-report-test.mjs scripts/studioReliabilityContract-test.mjs` and `npm run console:browser:reliability`. |
+| Maintainers can use one release-gate report to classify evidence as pass, deferred, or fail. | `npm run release:gate`, `npm run release:gate:test`, and `node scripts/check-release-readiness.mjs`. |
+
+Connected Android evidence remains local-only. If Android SDK or an unlocked
+emulator is unavailable, non-strict reports must record the exact deferred
+reason and strict reports must fail.
+
 ## Trust Sync Release Hardening Evidence
 
 The trust-sync hardening line may be claimed only when each claim below has

@@ -34,6 +34,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   surfaces; the external agent lifecycle smoke covers handoff through
   claim/resolve; and runtime source-trust fixtures cover shared-component,
   interop-risk, and visual-area calibration.
+- Added the Release Gate / Interop / SSE evidence line: interop-risk handoffs
+  now distinguish boundary host, ancestor, and context rows; console reliability
+  writes an SSE/fallback request-count report; and `npm run release:gate`
+  aggregates release reality, interop, runtime trust, console, docs, and
+  whitespace evidence into one pass/deferred/fail report.
 
 ## v1.0.0 — 2026-05-31
 
