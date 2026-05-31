@@ -518,6 +518,26 @@ class KotlinSourceScannerTest {
     }
 
     @Test
+    fun `scaffold slot wrapper composable is recognized as a layout renderer`() {
+        val source = """
+            package demo
+            import androidx.compose.material3.Scaffold
+            @Composable
+            fun CardSection(content: @Composable (Int) -> Unit) {
+                Column { content(0) }
+            }
+            @Composable
+            fun BarHost(topBar: @Composable () -> Unit) {
+                Scaffold(topBar = topBar) {}
+            }
+        """.trimIndent()
+
+        val signals = slotWrapperRendererSignals(source)
+
+        assertEquals(setOf("CardSection", "BarHost"), signals.map { it.composable }.toSet())
+    }
+
+    @Test
     fun `lazy list item lambda emits item-owner signal for the item composable`() {
         val source = """
             package demo

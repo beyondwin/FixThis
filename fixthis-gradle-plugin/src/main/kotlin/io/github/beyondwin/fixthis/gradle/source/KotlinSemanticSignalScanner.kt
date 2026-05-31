@@ -241,7 +241,7 @@ private val localLayoutRendererDeclarationRegex = Regex("""\b(?:class|object|int
 private val layoutRendererNames = setOf("Layout", "SubcomposeLayout")
 private val slotWrapperRegex =
     Regex(
-        """@Composable\b[\s\S]{0,400}?\bfun\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\bcontent\s*:\s*@Composable\b[^()]*\([^)]*\)\s*->\s*Unit""",
+        """@Composable\b[\s\S]{0,400}?\bfun\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\b(?:content|topBar|bottomBar)\s*:\s*@Composable\b[^()]*\([^)]*\)\s*->\s*Unit""",
     )
 private val lazyItemLambdaRegex =
     Regex("""\b(?:items|itemsIndexed)\s*\([^)]*\)\s*\{[^{}]*?\b([A-Z][A-Za-z0-9_]*)\s*\(""")
