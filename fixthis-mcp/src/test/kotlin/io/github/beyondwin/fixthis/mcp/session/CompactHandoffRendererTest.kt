@@ -2413,7 +2413,8 @@ class CompactHandoffRendererTest {
         val markdown = CompactHandoffRenderer.render(session)
 
         assertTrue(markdown.contains("targetBoundary=interop-risk"), markdown)
-        assertTrue(markdown.contains("boundaryContext: tag=\"comp:NativeChartHost:chart\"; role=Image"), markdown)
+        assertTrue(markdown.contains("boundaryHost: tag=\"comp:NativeChartHost:chart\"; role=Image"), markdown)
+        assertTrue(!markdown.contains("targetAction=inspect-source-first"), markdown)
         assertTrue(markdown.contains("targetAction=treat-source-paths-as-hints"), markdown)
     }
 

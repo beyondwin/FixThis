@@ -16,7 +16,8 @@ internal data class TargetBoundaryGuidance(
                     compactToken = "interop-risk",
                     preciseLines = listOf(
                         "- Boundary: possible AndroidView/WebView target; source candidates are context only.",
-                        "- Boundary action: inspect the Compose parent or native view boundary before editing.",
+                        "- Boundary source rule: source candidates are verification hints, not exact ownership.",
+                        "- Boundary action: inspect-and-corroborate the Compose host first; verify native View/WebView ownership before editing.",
                     ),
                 )
                 item.target is AnnotationTargetDto.Area ||

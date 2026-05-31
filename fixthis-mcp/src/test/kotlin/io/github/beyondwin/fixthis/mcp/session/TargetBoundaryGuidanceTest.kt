@@ -23,7 +23,12 @@ class TargetBoundaryGuidanceTest {
         )
         assertTrue(
             guidance.preciseLines.contains(
-                "- Boundary action: inspect the Compose parent or native view boundary before editing.",
+                "- Boundary source rule: source candidates are verification hints, not exact ownership.",
+            ),
+        )
+        assertTrue(
+            guidance.preciseLines.contains(
+                "- Boundary action: inspect-and-corroborate the Compose host first; verify native View/WebView ownership before editing.",
             ),
         )
     }
