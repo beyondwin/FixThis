@@ -1,78 +1,127 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "cases": [
     {
       "id": "button-copy-call-site",
       "comment": "Rename this button to Checkout",
       "targetType": "node",
-      "selectedText": ["Continue"],
+      "selectedText": [
+        "Continue"
+      ],
       "selectedRole": "Button",
       "selectedTestTag": "comp:PrimaryButton:checkout",
       "sourceCandidates": [
         {
           "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/CheckoutScreen.kt",
           "line": 42,
-          "score": 92.0,
+          "score": 92,
           "confidence": "HIGH",
-          "matchReasons": ["selected text"],
-          "matchedTerms": ["Continue"],
+          "matchReasons": [
+            "selected text"
+          ],
+          "matchedTerms": [
+            "Continue"
+          ],
           "ownerComposable": "CheckoutScreen"
         },
         {
           "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/PrimaryButton.kt",
           "line": 18,
-          "score": 54.0,
+          "score": 54,
           "confidence": "MEDIUM",
-          "matchReasons": ["selected testTag convention composable"],
-          "matchedTerms": ["PrimaryButton"],
+          "matchReasons": [
+            "selected testTag convention composable"
+          ],
+          "matchedTerms": [
+            "PrimaryButton"
+          ],
           "ownerComposable": "PrimaryButton"
         }
       ],
       "expectedRole": "COPY_OR_DATA",
       "expectedTop3Contains": "CheckoutScreen.kt",
-      "allowHighConfidence": true
+      "allowHighConfidence": true,
+      "correctness": {
+        "category": "copy-or-data",
+        "ownerContains": "CheckoutScreen.kt",
+        "expectedRole": "COPY_OR_DATA",
+        "maxConfidence": "HIGH",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     },
     {
       "id": "reusable-card-color",
       "comment": "Make this card background green",
       "targetType": "node",
-      "selectedText": ["Resolved this week"],
+      "selectedText": [
+        "Resolved this week"
+      ],
       "selectedTestTag": "comp:MetricCard:summary",
       "sourceCandidates": [
         {
           "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/MetricCard.kt",
           "line": 27,
-          "score": 88.0,
+          "score": 88,
           "confidence": "HIGH",
-          "matchReasons": ["selected testTag convention composable"],
-          "matchedTerms": ["MetricCard"],
+          "matchReasons": [
+            "selected testTag convention composable"
+          ],
+          "matchedTerms": [
+            "MetricCard"
+          ],
           "ownerComposable": "MetricCard"
         }
       ],
       "expectedRole": "COMPONENT_DEFINITION",
       "expectedTop3Contains": "MetricCard.kt",
-      "allowHighConfidence": true
+      "allowHighConfidence": true,
+      "correctness": {
+        "category": "shared-component",
+        "ownerContains": "MetricCard.kt",
+        "expectedRole": "COMPONENT_DEFINITION",
+        "maxConfidence": "HIGH",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     },
     {
       "id": "spacing-layout",
       "comment": "Reduce the bottom spacing by 8dp",
       "targetType": "node",
-      "selectedText": ["Priority feedback"],
+      "selectedText": [
+        "Priority feedback"
+      ],
       "selectedTestTag": "comp:FeedbackCard:priority",
       "sourceCandidates": [
         {
           "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt",
           "line": 76,
-          "score": 73.0,
+          "score": 73,
           "confidence": "MEDIUM",
-          "matchReasons": ["nearby text"],
-          "matchedTerms": ["Priority feedback"],
+          "matchReasons": [
+            "nearby text"
+          ],
+          "matchedTerms": [
+            "Priority feedback"
+          ],
           "ownerComposable": "QueueScreen"
         }
       ],
       "expectedRole": "LAYOUT_OR_STYLE",
       "expectedTop3Contains": "QueueScreen.kt",
-      "allowHighConfidence": false
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "layout-or-style",
+        "ownerContains": "QueueScreen.kt",
+        "expectedRole": "LAYOUT_OR_STYLE",
+        "maxConfidence": "MEDIUM",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     },
     {
       "id": "visual-area-gap",
@@ -82,28 +131,56 @@
       "expectedRole": "VISUAL_AREA",
       "expectedBoundaryToken": "visual-area",
       "expectedTop3Contains": null,
-      "allowHighConfidence": false
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "visual-area",
+        "ownerContains": "visual-area",
+        "expectedRole": "VISUAL_AREA",
+        "maxConfidence": "LOW",
+        "requiredCautions": [
+          "targetBoundary=visual-area"
+        ],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     },
     {
       "id": "interop-risk",
       "comment": "Fix the native chart spacing",
       "targetType": "area",
-      "targetWarnings": ["POSSIBLE_VIEW_INTEROP"],
+      "targetWarnings": [
+        "POSSIBLE_VIEW_INTEROP"
+      ],
       "sourceCandidates": [],
       "expectedRole": "INTEROP_RISK",
       "expectedBoundaryToken": "interop-risk",
       "expectedTop3Contains": null,
-      "allowHighConfidence": false
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "interop-risk",
+        "ownerContains": "visual-area",
+        "expectedRole": "INTEROP_RISK",
+        "maxConfidence": "LOW",
+        "requiredCautions": [
+          "targetBoundary=interop-risk"
+        ],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     },
     {
       "id": "interop-risk-with-compose-host",
       "comment": "Fix the native chart spacing",
       "targetType": "area",
-      "targetWarnings": ["POSSIBLE_VIEW_INTEROP"],
+      "targetWarnings": [
+        "POSSIBLE_VIEW_INTEROP"
+      ],
       "nearbyNodes": [
         {
           "uid": "native-chart-host",
-          "text": ["Revenue"],
+          "text": [
+            "Revenue"
+          ],
           "role": "Image",
           "testTag": "comp:NativeChartHost:chart"
         }
@@ -112,32 +189,53 @@
         {
           "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/NativeChartHost.kt",
           "line": 31,
-          "score": 62.0,
+          "score": 62,
           "confidence": "MEDIUM",
-          "matchReasons": ["nearby testTag"],
-          "matchedTerms": ["NativeChartHost"],
+          "matchReasons": [
+            "nearby testTag"
+          ],
+          "matchedTerms": [
+            "NativeChartHost"
+          ],
           "ownerComposable": "NativeChartHost"
         }
       ],
       "expectedRole": "INTEROP_RISK",
       "expectedBoundaryToken": "interop-risk",
       "expectedTop3Contains": "NativeChartHost.kt",
-      "allowHighConfidence": false
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "interop-risk",
+        "ownerContains": "NativeChartHost.kt",
+        "expectedRole": "INTEROP_RISK",
+        "maxConfidence": "MEDIUM",
+        "requiredCautions": [
+          "targetBoundary=interop-risk"
+        ],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     },
     {
       "id": "ambiguous-repeated-text",
       "comment": "Change this status copy",
       "targetType": "node",
-      "selectedText": ["Resolved"],
+      "selectedText": [
+        "Resolved"
+      ],
       "sourceCandidates": [
         {
           "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
           "line": 50,
-          "score": 61.0,
+          "score": 61,
           "confidence": "MEDIUM",
           "scoreMargin": 0.5,
-          "matchReasons": ["selected text"],
-          "matchedTerms": ["Resolved"],
+          "matchReasons": [
+            "selected text"
+          ],
+          "matchedTerms": [
+            "Resolved"
+          ],
           "ownerComposable": "HomeScreen"
         },
         {
@@ -146,14 +244,100 @@
           "score": 60.5,
           "confidence": "MEDIUM",
           "scoreMargin": 0.5,
-          "matchReasons": ["selected text"],
-          "matchedTerms": ["Resolved"],
+          "matchReasons": [
+            "selected text"
+          ],
+          "matchedTerms": [
+            "Resolved"
+          ],
           "ownerComposable": "ReviewScreen"
         }
       ],
       "expectedRole": "COPY_OR_DATA",
       "expectedTop3Contains": "HomeScreen.kt",
-      "allowHighConfidence": false
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "weak-or-ambiguous-source",
+        "ownerContains": "HomeScreen.kt",
+        "expectedRole": "COPY_OR_DATA",
+        "maxConfidence": "MEDIUM",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
+    },
+    {
+      "id": "lazy-list-owner",
+      "comment": "Reduce spacing below this list item title",
+      "targetType": "node",
+      "selectedText": [
+        "Featured product"
+      ],
+      "selectedTestTag": "row:ProductRow:title",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProductListScreen.kt",
+          "line": 88,
+          "score": 81,
+          "confidence": "MEDIUM",
+          "matchReasons": [
+            "lazy item owner",
+            "layout renderer context"
+          ],
+          "matchedTerms": [
+            "Featured product"
+          ],
+          "ownerComposable": "ProductRow"
+        }
+      ],
+      "expectedRole": "LAYOUT_OR_STYLE",
+      "expectedTop3Contains": "ProductListScreen.kt",
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "lazy-list-owner",
+        "ownerContains": "ProductListScreen.kt",
+        "expectedRole": "LAYOUT_OR_STYLE",
+        "maxConfidence": "MEDIUM",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
+    },
+    {
+      "id": "navigation-destination-owner",
+      "comment": "Rename this destination heading",
+      "targetType": "node",
+      "selectedText": [
+        "Settings"
+      ],
+      "selectedTestTag": "screen:Settings:heading",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/navigation/AppNavGraph.kt",
+          "line": 54,
+          "score": 84,
+          "confidence": "MEDIUM",
+          "matchReasons": [
+            "navigation destination owner"
+          ],
+          "matchedTerms": [
+            "Settings"
+          ],
+          "ownerComposable": "SettingsRoute"
+        }
+      ],
+      "expectedRole": "COPY_OR_DATA",
+      "expectedTop3Contains": "AppNavGraph.kt",
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "navigation-destination-owner",
+        "ownerContains": "AppNavGraph.kt",
+        "expectedRole": "COPY_OR_DATA",
+        "maxConfidence": "MEDIUM",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     }
   ]
 }

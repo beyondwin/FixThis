@@ -14,6 +14,7 @@ export const releaseClaimDefinitions = Object.freeze([
   { id: 'release-source-drift', evidenceNames: ['Release drift strict'] },
   { id: 'external-agent-loop', evidenceNames: ['Agent loop smoke'] },
   { id: 'external-fixture-matrix', evidenceNames: ['External fixture matrix strict'] },
+  { id: 'handoff-correctness-v2', evidenceNames: ['Handoff evaluation'] },
   { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
   { id: 'console-sse-reliability', evidenceNames: ['Console browser reliability'] },
 ]);

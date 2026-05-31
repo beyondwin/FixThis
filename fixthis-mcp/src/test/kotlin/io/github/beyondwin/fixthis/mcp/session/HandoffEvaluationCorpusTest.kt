@@ -4,6 +4,7 @@ import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class HandoffEvaluationCorpusTest {
@@ -11,7 +12,7 @@ class HandoffEvaluationCorpusTest {
     fun corpusHasStableV06Coverage() {
         val corpus = HandoffEvaluationFixtures.loadCorpus()
 
-        assertEquals(1, corpus.schemaVersion)
+        assertEquals(2, corpus.schemaVersion)
         assertEquals(
             listOf(
                 "button-copy-call-site",
@@ -21,6 +22,8 @@ class HandoffEvaluationCorpusTest {
                 "interop-risk",
                 "interop-risk-with-compose-host",
                 "ambiguous-repeated-text",
+                "lazy-list-owner",
+                "navigation-destination-owner",
             ),
             corpus.cases.map { it.id },
         )
@@ -149,6 +152,73 @@ class HandoffEvaluationCorpusTest {
             precise.contains("- Boundary host: tag=\"comp:NativeChartHost:chart\""),
             precise,
         )
+    }
+
+    @Test
+    fun corpusV2DefinesCorrectnessDimensionsForEveryCase() {
+        val corpus = HandoffEvaluationFixtures.loadCorpus()
+
+        assertEquals(2, corpus.schemaVersion)
+        corpus.cases.forEach { case ->
+            assertTrue(case.correctness.ownerContains.isNotBlank(), "${case.id} owner expectation missing")
+            assertEquals(case.expectedRole, case.correctness.expectedRole, "${case.id} role expectation must match existing gate")
+            assertTrue(case.correctness.maxConfidence.isNotBlank(), "${case.id} max confidence missing")
+            assertTrue(case.correctness.promptUsabilityRequired, "${case.id} must require prompt usability")
+        }
+    }
+
+    @Test
+    fun corpusV2HardFailuresCatchTrustBreakingRegressions() {
+        val failures = HandoffEvaluationFixtures.loadCorpus().cases.flatMap { case ->
+            HandoffEvaluationFixtures.evaluateCorrectness(case).hardFailures
+        }
+
+        assertTrue(failures.isEmpty(), failures.joinToString(separator = "\n") { it.message })
+    }
+
+    @Test
+    fun corpusV2CoversRequiredRiskCategories() {
+        val categories = HandoffEvaluationFixtures.loadCorpus().cases.map { it.correctness.category }.toSet()
+
+        assertTrue("shared-component" in categories)
+        assertTrue("interop-risk" in categories)
+        assertTrue("visual-area" in categories)
+        assertTrue("weak-or-ambiguous-source" in categories)
+        assertTrue("lazy-list-owner" in categories)
+        assertTrue("navigation-destination-owner" in categories)
+    }
+
+    @Test
+    fun compactPromptUsabilityIncludesProtocolSessionAndItemIds() {
+        val corpus = HandoffEvaluationFixtures.loadCorpus()
+        val items = corpus.cases.map { HandoffEvaluationFixtures.annotationFor(it) }
+        val session = SessionDto(
+            sessionId = "handoff-v2",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = corpus.cases.map { HandoffEvaluationFixtures.screenFor(it) },
+            items = items.mapIndexed { index, item -> item.copy(sequenceNumber = index + 1) },
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("session_id: handoff-v2"), markdown)
+        assertTrue(markdown.contains("agent_protocol:"), markdown)
+        corpus.cases.forEach { case ->
+            assertTrue(markdown.contains("id: item-${case.id}"), "Missing item id for ${case.id}")
+        }
+    }
+
+    @Test
+    fun correctnessReportSeparatesScoreFromHardFailures() {
+        val case = HandoffEvaluationFixtures.loadCorpus().cases.single { it.id == "ambiguous-repeated-text" }
+        val result = HandoffEvaluationFixtures.evaluateCorrectness(case)
+
+        assertTrue(result.score in 0..100)
+        assertTrue(result.dimensions.any { it.name == "confidence" })
+        assertFalse(result.hardFailures.any { it.id == "overconfident-evidence" })
     }
 
     private fun EditSurfaceRoleDto.renderToken(): String = name.lowercase().replace("_", "-")

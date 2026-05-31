@@ -115,6 +115,7 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       { name: 'Release reality', command: 'npm run release:reality', status: 'pass' },
       { name: 'Release drift strict', command: 'npm run release:drift -- --strict', status: 'pass' },
       { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Handoff evaluation', command: 'npm run handoff:eval:test', status: 'pass' },
       { name: 'Runtime trust strict', command: 'npm run source-matching:fixtures:runtime -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
       { name: 'Console browser reliability', command: 'npm run console:browser:reliability', status: 'pass' },
     ],
@@ -142,6 +143,11 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       status: 'fail',
       evidence: [],
       reason: 'missing evidence command',
+    },
+    {
+      id: 'handoff-correctness-v2',
+      status: 'pass',
+      evidence: ['Handoff evaluation'],
     },
     {
       id: 'runtime-source-trust',

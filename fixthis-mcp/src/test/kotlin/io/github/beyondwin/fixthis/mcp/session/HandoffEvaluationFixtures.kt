@@ -37,6 +37,35 @@ internal data class HandoffEvaluationCase(
     val expectedRole: EditSurfaceRoleDto,
     val expectedTop3Contains: String? = null,
     val allowHighConfidence: Boolean,
+    val correctness: HandoffCorrectnessExpectation,
+)
+
+@Serializable
+internal data class HandoffCorrectnessExpectation(
+    val category: String,
+    val ownerContains: String,
+    val expectedRole: EditSurfaceRoleDto,
+    val maxConfidence: String,
+    val requiredCautions: List<String> = emptyList(),
+    val releaseCritical: Boolean,
+    val promptUsabilityRequired: Boolean,
+)
+
+internal data class HandoffCorrectnessResult(
+    val score: Int,
+    val dimensions: List<HandoffCorrectnessDimension>,
+    val hardFailures: List<HandoffCorrectnessFailure>,
+)
+
+internal data class HandoffCorrectnessDimension(
+    val name: String,
+    val passed: Boolean,
+    val message: String,
+)
+
+internal data class HandoffCorrectnessFailure(
+    val id: String,
+    val message: String,
 )
 
 @Serializable
@@ -129,6 +158,81 @@ internal object HandoffEvaluationFixtures {
             ),
         ),
     )
+
+    fun evaluateCorrectness(case: HandoffEvaluationCase): HandoffCorrectnessResult {
+        val item = annotationFor(case)
+        val session = SessionDto(
+            sessionId = "handoff-eval-${case.id}",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(screenFor(case)),
+            items = listOf(item.copy(sequenceNumber = 1)),
+        )
+        val compact = CompactHandoffRenderer.render(session)
+        val topRole = item.editSurfaceCandidates.firstOrNull()?.role
+        val topConfidence = item.editSurfaceCandidates.firstOrNull()?.confidence
+        val candidateFiles = item.editSurfaceCandidates.map { it.file } + item.sourceCandidates.map { it.file }
+        val maxAllowed = SelectionConfidence.valueOf(case.correctness.maxConfidence)
+        val dimensions = listOf(
+            HandoffCorrectnessDimension(
+                name = "owner",
+                passed = candidateFiles.any { it.contains(case.correctness.ownerContains) } ||
+                    compact.contains(case.correctness.ownerContains) ||
+                    case.correctness.ownerContains == "visual-area",
+                message = "expected owner containing ${case.correctness.ownerContains}",
+            ),
+            HandoffCorrectnessDimension(
+                name = "role",
+                passed = topRole == case.correctness.expectedRole,
+                message = "expected role ${case.correctness.expectedRole}, got $topRole",
+            ),
+            HandoffCorrectnessDimension(
+                name = "confidence",
+                passed = topConfidence == null || confidenceRank(topConfidence) <= confidenceRank(maxAllowed),
+                message = "expected confidence <= $maxAllowed, got $topConfidence",
+            ),
+            HandoffCorrectnessDimension(
+                name = "caution",
+                passed = case.correctness.requiredCautions.all { compact.contains(it) },
+                message = "expected caution tokens ${case.correctness.requiredCautions}",
+            ),
+            HandoffCorrectnessDimension(
+                name = "prompt-usability",
+                passed = !case.correctness.promptUsabilityRequired ||
+                    (
+                        compact.contains("session_id:") &&
+                            compact.contains("id: item-${case.id}") &&
+                            compact.contains("agent_protocol:")
+                        ),
+                message = "expected compact handoff protocol fields",
+            ),
+        )
+        val hardFailures = dimensions
+            .filter { !it.passed && case.correctness.releaseCritical }
+            .map { dimension ->
+                HandoffCorrectnessFailure(
+                    id = when (dimension.name) {
+                        "confidence" -> "overconfident-evidence"
+                        "caution" -> "missing-required-caution"
+                        "owner" -> "missing-expected-owner"
+                        "role" -> "wrong-edit-surface-role"
+                        else -> "missing-prompt-usability"
+                    },
+                    message = "${case.id}: ${dimension.message}",
+                )
+            }
+        val score = (dimensions.count { it.passed } * 100) / dimensions.size
+        return HandoffCorrectnessResult(score, dimensions, hardFailures)
+    }
+
+    private fun confidenceRank(confidence: SelectionConfidence): Int = when (confidence) {
+        SelectionConfidence.NONE -> 0
+        SelectionConfidence.LOW -> 1
+        SelectionConfidence.MEDIUM -> 2
+        SelectionConfidence.HIGH -> 3
+    }
 
     private fun HandoffEvaluationSourceCandidate.toSourceCandidate(): SourceCandidate = SourceCandidate(
         file = file,
