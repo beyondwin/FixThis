@@ -153,6 +153,7 @@
           "navigateBefore": { "contentDescription": "Diagnostics tab" },
           "runtimeTarget": { "visualArea": { "left": 24, "top": 340, "right": 360, "bottom": 404 } },
           "expectedConfidence": "low-or-medium",
+          "expectedBoundaryContextKinds": ["host"],
           "mustWarn": ["VISUAL_AREA_ONLY", "POSSIBLE_VIEW_INTEROP"],
           "mustNotHighConfidence": true
         },

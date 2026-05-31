@@ -443,6 +443,27 @@ test("validateManifest accepts visual-area runtime targets and rejects malformed
   }), /navigateBefore runtimeTarget contains unsupported field visualArea/);
 });
 
+test("validateManifest accepts expected runtime boundary context kinds", () => {
+  assert.doesNotThrow(() => validateManifest({
+    schemaVersion: 2,
+    fixtures: [{
+      id: "local",
+      source: "local-project",
+      projectDir: "sample",
+      modulePath: ":app",
+      variant: "debug",
+      applicationId: "io.github.beyondwin.fixthis.sample",
+      cases: [{
+        id: "interop",
+        mode: "runtime-trust",
+        trustPurpose: "interop boundary context evidence",
+        runtimeTarget: { visualArea: { left: 1, top: 1, right: 2, bottom: 2 } },
+        expectedBoundaryContextKinds: ["host", "ancestor", "context"],
+      }],
+    }],
+  }));
+});
+
 test("validateManifest accepts top1-only path expectations", () => {
   assert.doesNotThrow(() => validateManifest({
     schemaVersion: 2,
@@ -498,6 +519,41 @@ test("classifyRuntimeTrustOutcome validates target and source confidence separat
   });
   assert.deepEqual(result.failures, []);
   assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "confidence_calibrated", "source_confidence_calibrated"]);
+});
+
+test("runtime trust classification verifies boundary context kinds", () => {
+  const outcome = classifyRuntimeTrustOutcome(
+    {
+      id: "interop",
+      mode: "runtime-trust",
+      expectedBoundaryContextKinds: ["host"],
+    },
+    {
+      confidence: "low",
+      warnings: ["POSSIBLE_VIEW_INTEROP"],
+      boundaryContext: [{ kind: "host", summary: "tag=\"comp:NativeChartHost:chart\"" }],
+    },
+  );
+
+  assert.deepEqual(outcome.failures, []);
+  assert.ok(outcome.metrics.includes("boundary_context_kind_present"));
+});
+
+test("runtime trust classification fails missing boundary context kinds", () => {
+  const outcome = classifyRuntimeTrustOutcome(
+    {
+      id: "interop",
+      mode: "runtime-trust",
+      expectedBoundaryContextKinds: ["host"],
+    },
+    {
+      confidence: "low",
+      warnings: ["POSSIBLE_VIEW_INTEROP"],
+      boundaryContext: [{ kind: "context", summary: "text=\"Native chart\"" }],
+    },
+  );
+
+  assert.ok(outcome.failures.includes("missing_boundary_context_kind"));
 });
 
 test("classifyRuntimeTrustOutcome fails missing recommended edit-site observations", () => {

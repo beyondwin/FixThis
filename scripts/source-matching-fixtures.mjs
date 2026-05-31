@@ -41,6 +41,7 @@ const runtimeOnlyCaseFields = new Set([
   "expectedSourceConfidence",
   "expectedRiskFlags",
   "expectedRecommendedEditSiteContains",
+  "expectedBoundaryContextKinds",
   "mustWarn",
   "mustNotWarn",
   "mustNotHighConfidence",
@@ -186,6 +187,12 @@ export function validateManifest(manifest) {
         validateAllowedValues(entry.expectedRiskFlags, sourceRiskFlags, `${entry.id || "case"} expectedRiskFlags`, errors);
         validateAllowedValues(entry.mustWarn, targetWarnings, `${entry.id || "case"} mustWarn`, errors);
         validateAllowedValues(entry.mustNotWarn, targetWarnings, `${entry.id || "case"} mustNotWarn`, errors);
+        validateAllowedValues(
+          entry.expectedBoundaryContextKinds,
+          new Set(["host", "ancestor", "context"]),
+          `${entry.id || "case"} expectedBoundaryContextKinds`,
+          errors,
+        );
         if (entry.mustNotHighConfidence !== undefined && typeof entry.mustNotHighConfidence !== "boolean") {
           errors.push(`${entry.id || "case"} mustNotHighConfidence must be boolean`);
         }
@@ -373,6 +380,20 @@ export function classifyRuntimeTrustOutcome(expectation, observed) {
         addUnique(outcome.metrics, "recommended_edit_site_present");
       } else {
         addUnique(outcome.failures, "missing_recommended_edit_site");
+      }
+    }
+  }
+  if ((expectation.expectedBoundaryContextKinds || []).length > 0) {
+    if (!hasOwn(observed, "boundaryContext")) {
+      addUnique(outcome.failures, "missing_boundary_context_observation");
+    } else {
+      const observedKinds = new Set((observed.boundaryContext || []).map((entry) => entry && entry.kind).filter(Boolean));
+      for (const kind of expectation.expectedBoundaryContextKinds || []) {
+        if (observedKinds.has(kind)) {
+          addUnique(outcome.metrics, "boundary_context_kind_present");
+        } else {
+          addUnique(outcome.failures, "missing_boundary_context_kind");
+        }
       }
     }
   }

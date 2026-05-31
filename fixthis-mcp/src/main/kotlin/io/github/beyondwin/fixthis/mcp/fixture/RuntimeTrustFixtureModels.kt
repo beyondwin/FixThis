@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.mcp.fixture
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.mcp.session.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.TargetBoundaryContextFormatter
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -62,6 +63,13 @@ data class RuntimeTrustObserved(
     val riskFlags: List<String>? = null,
     val warnings: List<String>? = null,
     val callSites: List<RuntimeTrustCallSite>? = null,
+    val boundaryContext: List<RuntimeTrustBoundaryContext>? = null,
+)
+
+@Serializable
+data class RuntimeTrustBoundaryContext(
+    val kind: String,
+    val summary: String,
 )
 
 @Serializable
@@ -106,6 +114,12 @@ object RuntimeTrustObservationMapper {
                     recommendedEditSite = site.recommendedEditSite,
                 )
             },
+            boundaryContext = TargetBoundaryContextFormatter.structuredRows(item).map { row ->
+                RuntimeTrustBoundaryContext(
+                    kind = row.kind.name.lowercase(),
+                    summary = row.summary,
+                )
+            }.takeIf { it.isNotEmpty() },
         )
     }
 }
