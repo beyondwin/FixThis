@@ -1159,6 +1159,29 @@ class SourceMatcherTest {
         assertFalse(matches.first().matchReasons.contains("shared component definition"))
     }
 
+    @Test
+    fun modifierTargetSignalScoresContentDescriptionSelection() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "SaveButton.kt",
+                        line = 5,
+                        signals = listOf(SourceSignal(SourceSignalKind.MODIFIER_TARGET, "save-cta")),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "save", contentDescription = listOf("save-cta")),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertEquals("SaveButton.kt", match.file)
+    }
+
     private fun node(
         uid: String,
         text: List<String> = emptyList(),

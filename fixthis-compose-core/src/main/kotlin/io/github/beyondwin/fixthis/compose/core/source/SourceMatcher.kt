@@ -346,6 +346,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             SourceSignalKind.CONTENT_DESCRIPTION,
             SourceSignalKind.STRING_RESOURCE,
             SourceSignalKind.ARBITRARY_STRING_LITERAL,
+            SourceSignalKind.MODIFIER_TARGET,
         ),
         legacyCandidates = contentDescriptions + stringResources + symbols + listOfNotNull(excerpt),
     )
@@ -447,6 +448,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             SourceSignalKind.LAMBDA_OWNER_FUNCTION,
             SourceSignalKind.LAZY_ITEM_OWNER,
             SourceSignalKind.NAV_DESTINATION_OWNER,
+            SourceSignalKind.MODIFIER_TARGET,
             -> 1.0
             SourceSignalKind.STRING_RESOURCE,
             SourceSignalKind.ROLE,

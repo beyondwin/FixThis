@@ -308,6 +308,18 @@ internal class KotlinSourceScanner(
                 addSignal(SourceSignalKindAsset.NAV_DESTINATION_OWNER, signal.composable)
             }
         }
+        modifierTargetSignals(source).forEach { signal ->
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = signal.range.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(signal.range.first, classDeclarations),
+            ).apply {
+                addSignal(SourceSignalKindAsset.MODIFIER_TARGET, signal.value)
+                contentDescriptions += signal.value
+            }
+        }
     }
 
     private fun decodeKotlinString(match: MatchResult): String {

@@ -579,6 +579,21 @@ class KotlinSourceScannerTest {
     }
 
     @Test
+    fun `semantics contentDescription literal emits modifier-target signal`() {
+        val source = """
+            package demo
+            @Composable
+            fun SaveButton() {
+                Box(Modifier.semantics { contentDescription = "save-cta" }.clickable { }) {}
+            }
+        """.trimIndent()
+
+        val signals = modifierTargetSignals(source)
+
+        assertEquals(listOf("save-cta"), signals.map { it.value })
+    }
+
+    @Test
     fun `nav destination lambda attaches NAV_DESTINATION_OWNER signal to the destination composable entry`() {
         val file = tempDir.newFile("AppNav.kt").apply {
             writeText(
