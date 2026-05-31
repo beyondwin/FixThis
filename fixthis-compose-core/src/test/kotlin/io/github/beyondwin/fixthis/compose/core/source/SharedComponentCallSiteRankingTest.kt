@@ -90,6 +90,7 @@ class SharedComponentCallSiteRankingTest {
 
         assertEquals("ui/ScreenB.kt", ranked[0].file)
         assertEquals(true, ranked[0].mostLikely)
+        assertEquals(true, ranked[0].recommendedEditSite)
         assertEquals(false, ranked[1].mostLikely)
     }
 

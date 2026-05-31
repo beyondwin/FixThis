@@ -19,6 +19,11 @@ project-local Cursor config instead of silently dropping it — the global-scope
 guard falls back to a new `local` target (`claude` + `cursor`) and reports only
 the global Codex target as skipped. See `CHANGELOG.md` for details.
 
+Current `main` carries the v1.1 Trust Loop evidence pack: release reality
+checks, external agent lifecycle smoke, and runtime source-trust calibration.
+It is a post-v1.0 hardening line and does not claim a new tagged release until
+the evidence commands pass or are explicitly deferred in the release issue.
+
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin

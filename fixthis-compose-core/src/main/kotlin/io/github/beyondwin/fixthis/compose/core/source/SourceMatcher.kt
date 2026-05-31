@@ -15,8 +15,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     ): List<SourceCandidate> {
         if (selectedNode == null || sourceIndex.entries.isEmpty()) return emptyList()
 
-        val selectionTokens = selectionTokensFor(selectedNode, activityName)
+        val selectionTokens = selectionTokensFor(selectedNode, nearbyNodes, activityName)
         val sharedOwners = sharedComponentOwners()
+        val sharedCallSitesByOwner = sharedComponentCallSitesByOwner()
         val matchScores = sourceIndex.entries.asSequence()
             .map { entry -> score(entry, selectedNode, nearbyNodes, activityName, sharedOwners) }
             .filter { it.rawScore > 0.0 }
@@ -33,7 +34,9 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val normalizedScores = matchScores.map {
             (it.rawScore / SourceScoringPolicy.highConfidenceScore).coerceIn(0.0, 1.0)
         }
-        return matchScores.mapIndexed { index, score -> score.toCandidate(index, normalizedScores, selectionTokens) }
+        return matchScores.mapIndexed { index, score ->
+            score.toCandidate(index, normalizedScores, selectionTokens, sharedCallSitesByOwner)
+        }
     }
 
     companion object {
@@ -64,6 +67,19 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     private fun sharedComponentOwners(): Set<String> = sourceIndex.entries
         .filter { entry -> entry.signals.any { it.kind == SourceSignalKind.SHARED_COMPONENT } }
         .mapNotNullTo(mutableSetOf()) { it.ownerComposable }
+
+    private fun sharedComponentCallSitesByOwner(): Map<String, List<String>> = sourceIndex.entries
+        .asSequence()
+        .filter { entry -> entry.signals.any { it.kind == SourceSignalKind.SHARED_COMPONENT } }
+        .mapNotNull { entry ->
+            val owner = entry.ownerComposable ?: return@mapNotNull null
+            val callSites = entry.signals
+                .filter { signal -> signal.kind == SourceSignalKind.SHARED_COMPONENT_CALL_SITE }
+                .map { signal -> signal.value }
+            owner to callSites
+        }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, grouped) -> grouped.flatten().distinct() }
 
     private fun score(
         entry: SourceIndexEntry,
@@ -494,9 +510,10 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         index: Int,
         normalizedScores: List<Double>,
         selectionTokens: Set<String>,
+        sharedCallSitesByOwner: Map<String, List<String>>,
     ): SourceCandidate {
         val profile = EvidenceProfile.fromMatchReasons(matchReasons, rawScore)
-        val callSites = sharedComponentCallSites(selectionTokens)
+        val callSites = sharedComponentCallSites(selectionTokens, sharedCallSitesByOwner)
         val wireReasons = matchReasons.map { it.wireLabel }
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
@@ -544,12 +561,22 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         )
     }
 
-    private fun MatchScore.sharedComponentCallSites(selectionTokens: Set<String>): List<SourceLocationRef> {
+    private fun MatchScore.sharedComponentCallSites(
+        selectionTokens: Set<String>,
+        sharedCallSitesByOwner: Map<String, List<String>>,
+    ): List<SourceLocationRef> {
         if (SourceMatchReason.SHARED_COMPONENT_DEFINITION !in matchReasons) return emptyList()
-        return rankSharedComponentCallSites(
-            callSiteSignalValues = entry.signals
+        val ownerCallSites = entry.ownerComposable
+            ?.let { owner -> sharedCallSitesByOwner[owner] }
+            .orEmpty()
+        val callSiteSignalValues = (
+            entry.signals
                 .filter { it.kind == SourceSignalKind.SHARED_COMPONENT_CALL_SITE }
-                .map { it.value },
+                .map { it.value } + ownerCallSites
+            ).distinct()
+        if (callSiteSignalValues.isEmpty()) return emptyList()
+        return rankSharedComponentCallSites(
+            callSiteSignalValues = callSiteSignalValues,
             selectionTokens = selectionTokens,
         )
     }

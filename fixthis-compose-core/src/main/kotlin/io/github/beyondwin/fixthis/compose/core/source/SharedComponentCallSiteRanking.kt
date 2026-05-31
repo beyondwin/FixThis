@@ -16,11 +16,21 @@ private data class ParsedCallSite(
 )
 
 /** Builds the normalized selection-evidence tokens used to rank shared-component call sites. */
-internal fun selectionTokensFor(selectedNode: FixThisNode, activityName: String?): Set<String> = buildSet {
+internal fun selectionTokensFor(
+    selectedNode: FixThisNode,
+    nearbyNodes: List<FixThisNode>,
+    activityName: String?,
+): Set<String> = buildSet {
     selectedNode.text.forEach { add(it) }
     selectedNode.editableText?.let { add(it) }
     selectedNode.contentDescription.forEach { add(it) }
     selectedNode.role?.let { add(it) }
+    nearbyNodes.forEach { node ->
+        node.text.forEach { add(it) }
+        node.editableText?.let { add(it) }
+        node.contentDescription.forEach { add(it) }
+        node.role?.let { add(it) }
+    }
     activityName?.let { add(it) }
 }.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
@@ -40,17 +50,12 @@ internal fun rankSharedComponentCallSites(
     val topScore = ordered.firstOrNull()?.second ?: 0.0
     val secondScore = ordered.getOrNull(1)?.second ?: 0.0
     val markTop = topScore > 0.0 && (topScore - secondScore) >= CALL_SITE_MOST_LIKELY_MARGIN
-    // Recommend the top site as the edit surface only when it is the best-guess (`mostLikely`) AND
-    // no other site has competing evidence (second score is zero). This keeps the recommendation
-    // stricter than the ordering hint.
-    val secondHasEvidence = secondScore > 0.0
-    val recommendTop = markTop && !secondHasEvidence
     return ordered.mapIndexed { index, (site, _) ->
         SourceLocationRef(
             file = site.file,
             line = site.line,
             mostLikely = markTop && index == 0,
-            recommendedEditSite = recommendTop && index == 0,
+            recommendedEditSite = markTop && index == 0,
         )
     }
 }

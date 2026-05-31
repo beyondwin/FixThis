@@ -2,3 +2,5 @@ package io.github.beyondwin.fixthis.compose.core.source
 
 internal val SourceIndexEntry.ownerComposable: String?
     get() = signals.firstOrNull { it.kind == SourceSignalKind.LAMBDA_OWNER_FUNCTION }?.value
+        ?: signals.firstOrNull { it.kind == SourceSignalKind.COMPOSABLE_SYMBOL }?.value
+        ?: symbols.firstOrNull()

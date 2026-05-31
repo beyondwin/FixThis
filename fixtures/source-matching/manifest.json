@@ -129,10 +129,31 @@
           "id": "fixthis-sample-shared-header-recommended-edit-site",
           "mode": "runtime-trust",
           "trustPurpose": "selecting the distinctive Diagnostics copy promotes the single DiagnosticsScreen StudioHeader call site as the recommended edit site while the shared definition stays capped at medium",
-          "runtimeTarget": { "text": "Diagnostics" },
-          "expectedTop3PathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
+          "navigateBefore": { "contentDescription": "Diagnostics tab" },
+          "runtimeTarget": { "testTag": "comp:StudioHeader:root" },
+          "expectedTop3PathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
           "expectedSourceConfidence": "low-or-medium",
           "expectedRecommendedEditSiteContains": "screens/DiagnosticsScreen.kt",
+          "mustNotHighConfidence": true
+        },
+        {
+          "id": "fixthis-sample-diagnostics-visual-area",
+          "mode": "runtime-trust",
+          "trustPurpose": "visual-only Diagnostics sparkline area remains caveated and never promotes nearby source context to high confidence",
+          "navigateBefore": { "contentDescription": "Diagnostics tab" },
+          "runtimeTarget": { "visualArea": { "left": 24, "top": 160, "right": 360, "bottom": 260 } },
+          "expectedConfidence": "low-or-medium",
+          "mustWarn": ["VISUAL_AREA_ONLY"],
+          "mustNotHighConfidence": true
+        },
+        {
+          "id": "fixthis-sample-diagnostics-androidview-interop",
+          "mode": "runtime-trust",
+          "trustPurpose": "AndroidView interop target stays caveated as possible View ownership rather than exact Compose source ownership",
+          "navigateBefore": { "contentDescription": "Diagnostics tab" },
+          "runtimeTarget": { "visualArea": { "left": 24, "top": 340, "right": 360, "bottom": 404 } },
+          "expectedConfidence": "low-or-medium",
+          "mustWarn": ["VISUAL_AREA_ONLY", "POSSIBLE_VIEW_INTEROP"],
           "mustNotHighConfidence": true
         },
         {

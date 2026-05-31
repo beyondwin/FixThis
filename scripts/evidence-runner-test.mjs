@@ -34,6 +34,9 @@ test("trust profile includes source matching and runtime strict as deferrable", 
   const copyPrompt = steps.find((step) => step.command === "npm run real-copy-prompt:smoke -- --strict");
   assert.equal(copyPrompt.deferrable, true);
   assert.equal(copyPrompt.requiresAndroid, true);
+  const agentLoop = steps.find((step) => step.command === "npm run agent-loop:smoke -- --strict");
+  assert.equal(agentLoop.deferrable, true);
+  assert.equal(agentLoop.requiresAndroid, true);
 });
 
 test("android device parser returns the first ready adb device", () => {
@@ -137,6 +140,12 @@ test("dry run renders commands without executing", () => {
   assert.match(text, /DRY RUN profile=release/);
   assert.match(text, /node scripts\/check-release-readiness\.mjs/);
   assert.match(text, /npm run release:version:check/);
+});
+
+test("release profile starts with release reality and includes agent loop contracts", () => {
+  const commands = expandProfile("release").map((step) => step.command);
+  assert.equal(commands[0], "npm run release:reality");
+  assert.ok(commands.includes("npm run agent-loop:smoke:test"));
 });
 
 test("writeReports writes json and markdown summaries", () => {

@@ -270,6 +270,21 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '## v1.0 Release Claim Manifest',
 );
+requireIncludes(
+  'R33.v11-trust-loop-evidence-manifest',
+  'docs/contributing/release-readiness.md',
+  '## v1.1 Trust Loop Evidence',
+);
+requireIncludes(
+  'R34.v11-release-reality-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run release:reality`',
+);
+requireIncludes(
+  'R35.v11-agent-loop-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run agent-loop:smoke -- --strict`',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

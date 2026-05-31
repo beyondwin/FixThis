@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import process from "node:process";
-import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import {
   installRuntimeFixture,
@@ -11,6 +9,7 @@ import {
   runCommand,
 } from "./source-matching-fixtures.mjs";
 import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
+import { createMcpJsonRpcClient } from "./mcp-json-rpc-client.mjs";
 
 export const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 export const defaultReportDir = join(repoRoot, "build/reports/fixthis-real-copy-prompt");
@@ -217,103 +216,6 @@ export function expectedComments(fixture) {
     `${label} copy prompt smoke annotation 1`,
     `${label} copy prompt smoke annotation 2`,
   ];
-}
-
-export function mcpToolRequest(id, name, args) {
-  return {
-    jsonrpc: "2.0",
-    id,
-    method: "tools/call",
-    params: { name, arguments: args },
-  };
-}
-
-export function parseMcpToolResponse(message) {
-  if (message.error) throw new Error(JSON.stringify(message.error));
-  const text = message.result?.content?.find((entry) => entry.type === "text")?.text;
-  if (!text) throw new Error("MCP response did not include text content");
-  return JSON.parse(text);
-}
-
-async function startMcpServer({ mcpBin, projectDir, packageName, environment }) {
-  const child = spawn(mcpBin, ["--project-dir", projectDir, "--package", packageName], {
-    cwd: repoRoot,
-    stdio: ["pipe", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      ...withAndroidEnvironment({}, environment).env,
-    },
-  });
-  const stderr = [];
-  child.stderr.setEncoding("utf8");
-  child.stderr.on("data", (chunk) => stderr.push(chunk));
-
-  const closed = new Promise((resolveClose) => child.once("close", resolveClose));
-  const rl = createInterface({ input: child.stdout });
-  const pending = new Map();
-  rl.on("line", (line) => {
-    if (!line.trim()) return;
-    let message;
-    try {
-      message = JSON.parse(line);
-    } catch {
-      return;
-    }
-    const slot = pending.get(message.id);
-    if (!slot) return;
-    pending.delete(message.id);
-    slot.resolve(message);
-  });
-
-  let nextId = 1;
-  function send(message) {
-    child.stdin.write(`${JSON.stringify(message)}\n`);
-  }
-  async function request(message, timeoutMs = 30_000) {
-    const id = message.id;
-    const promise = new Promise((resolveMessage, reject) => {
-      const timeout = setTimeout(() => {
-        pending.delete(id);
-        reject(new Error(`Timed out waiting for MCP response ${id}: ${stderr.join("").trim()}`));
-      }, timeoutMs);
-      pending.set(id, {
-        resolve: (value) => {
-          clearTimeout(timeout);
-          resolveMessage(value);
-        },
-      });
-    });
-    send(message);
-    return promise;
-  }
-
-  await request({
-    jsonrpc: "2.0",
-    id: nextId++,
-    method: "initialize",
-    params: {
-      protocolVersion: "2024-11-05",
-      clientInfo: { name: "real-copy-prompt-smoke", version: "0" },
-      capabilities: {},
-    },
-  });
-  send({ jsonrpc: "2.0", method: "notifications/initialized", params: {} });
-
-  return {
-    async callTool(name, args) {
-      return parseMcpToolResponse(await request(mcpToolRequest(nextId++, name, args)));
-    },
-    async close() {
-      rl.close();
-      child.stdin.end();
-      if (!child.killed) child.kill("SIGTERM");
-      await Promise.race([
-        closed,
-        new Promise((resolveClose) => setTimeout(resolveClose, 5_000)),
-      ]);
-      if (!child.killed) child.kill("SIGKILL");
-    },
-  };
 }
 
 function androidDeviceName(environment) {
@@ -545,11 +447,15 @@ async function runSelectedFixture(fixture, options) {
       run: runWithAndroidEnvironment,
     });
     app.projectDir = paths.projectWorkDir;
-    mcp = await startMcpServer({
-      mcpBin: options.mcpBin,
-      projectDir: paths.projectWorkDir,
-      packageName: fixture.applicationId,
-      environment: options.environment,
+    mcp = await createMcpJsonRpcClient({
+      command: options.mcpBin,
+      args: ["--project-dir", paths.projectWorkDir, "--package", fixture.applicationId],
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        ...withAndroidEnvironment({}, options.environment).env,
+      },
+      clientInfo: { name: "real-copy-prompt-smoke", version: "0" },
     });
     const opened = await mcp.callTool("fixthis_open_feedback_console", {
       packageName: fixture.applicationId,

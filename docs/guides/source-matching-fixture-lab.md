@@ -33,6 +33,30 @@ controlled local component identity, external copy/data matching, selector
 drift, or warning/risk observation. Reports render this purpose so failures are
 actionable without reopening the manifest.
 
+### Runtime Trust Case Purposes
+
+Every `runtime-trust` case must describe the trust failure mode it protects in
+`trustPurpose`. Cases may assert a positive source candidate, but they may also
+assert that confidence remains low or medium, a warning remains present, or an
+exact-source claim is not made.
+
+Visual-area cases use:
+
+```json
+{
+  "runtimeTarget": {
+    "visualArea": { "left": 24, "top": 160, "right": 360, "bottom": 260 }
+  },
+  "mustWarn": ["VISUAL_AREA_ONLY"],
+  "mustNotHighConfidence": true
+}
+```
+
+Interop-risk cases should prefer a runtime target that lands on the boundary
+host and require `POSSIBLE_VIEW_INTEROP`. Shared-component cases should assert
+`expectedRecommendedEditSiteContains` only when the runtime observation emits a
+single `recommendedEditSite=true` call site.
+
 The lab supports two fixture sources:
 
 - `external-github` fixtures clone a pinned Android sample repository into
@@ -118,6 +142,7 @@ Important result labels:
 - `missing_source_confidence_observation`: runtime top source candidate confidence was absent.
 - `missing_risk_observation`: runtime source risk flags were absent.
 - `missing_warning_observation`: runtime target reliability warnings were absent.
+- `missing_call_site_observation`: runtime recommended edit-site call-site output was absent.
 - `fixture_build_failed`: the external fixture did not build in this local environment.
 - `source_index_missing`: Gradle completed without producing the expected FixThis source index.
 

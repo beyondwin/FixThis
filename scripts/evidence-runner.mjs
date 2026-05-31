@@ -29,6 +29,10 @@ const profileDefinitions = {
       deferrable: true,
       requiresAndroid: true,
     }),
+    step("Agent loop smoke", "npm run agent-loop:smoke -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+    }),
   ],
   console: [
     step("Studio reliability contract", "node --test scripts/studioReliabilityContract-test.mjs"),
@@ -36,6 +40,8 @@ const profileDefinitions = {
     step("Browser reliability", "npm run console:browser:reliability"),
   ],
   release: [
+    step("Release reality", "npm run release:reality"),
+    step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
     step("Release readiness", "node scripts/check-release-readiness.mjs"),
     step("Docs CLI surface", "bash scripts/check-docs-cli-surface.sh"),
     step("Agent bootstrap docs", "npm run docs:agent-bootstrap:test"),

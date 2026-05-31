@@ -119,6 +119,25 @@ for each.
 | Lazy-list item lambdas and navigation destinations map a selection to the item/destination composable. | `./gradlew :fixthis-gradle-plugin:test --tests "*KotlinSourceScannerTest" :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon` and `npm run source-matching:fixtures:test`. |
 | Each edit-surface role reports a role-specific confidence and an explainable basis. | `./gradlew :fixthis-mcp:test --tests "*EditSurfaceConfidencePolicyTest" --tests "*EditSurfaceCandidateServiceTest" --tests "*CompactHandoffRendererTest" --no-daemon`. |
 
+## v1.1 Trust Loop Evidence
+
+The v1.1 trust-loop line may be claimed only when each area below has matching
+local evidence from the release commit. This evidence pack does not tag or
+publish by itself.
+
+| Claim | Required evidence |
+| --- | --- |
+| Release/install claims match observable package, tag, and registry state or are explicitly deferred with a reason. | `npm run release:reality`, `npm run evidence:release`, and `node scripts/check-release-readiness.mjs`. |
+| External Android agent lifecycle completes from handoff through claim, resolution, persistence, and console reflection. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict`. |
+| Runtime source trust keeps shared-component, interop-risk, and visual-area guidance caveated instead of overclaiming exact ownership. | `npm run source-matching:fixtures:test`, `npm run source-matching:fixtures:runtime -- --strict`, and `npm run handoff:eval:test`. |
+
+The release reality check must use observable public surfaces. For MCP Registry,
+it reads only the local `server.json` server name, then verifies the public
+registry version response for `io.github.beyondwin/fixthis`.
+
+When Android SDK or an unlocked emulator is unavailable, record the connected
+commands as deferred rather than implying they passed.
+
 ## Trust Sync Release Hardening Evidence
 
 The trust-sync hardening line may be claimed only when each claim below has

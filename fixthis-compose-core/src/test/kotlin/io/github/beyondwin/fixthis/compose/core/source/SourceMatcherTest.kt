@@ -1365,7 +1365,6 @@ class SourceMatcherTest {
                     symbols = listOf("StudioHeader"),
                     signals = listOf(
                         SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "StudioHeader"),
-                        SourceSignal(kind = SourceSignalKind.LAMBDA_OWNER_FUNCTION, value = "StudioHeader"),
                         SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "4"),
                         SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "screens/HomeScreen.kt:44"),
                     ),
@@ -1385,6 +1384,58 @@ class SourceMatcherTest {
         assertEquals(29, candidate.line)
         assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
         assertTrue(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
+    }
+
+    @Test
+    fun sharedOwnerBodyEntryInheritsCallSitesRankedByNearbyContext() {
+        val index = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/StudioHeader.kt",
+                    line = 29,
+                    text = listOf("Studio overview"),
+                    testTags = listOf("comp:StudioHeader:root"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.STRICT_COMP_TEST_TAG, value = "comp:StudioHeader:root"),
+                        SourceSignal(kind = SourceSignalKind.UI_TEXT, value = "Studio overview"),
+                        SourceSignal(kind = SourceSignalKind.LAMBDA_OWNER_FUNCTION, value = "StudioHeader"),
+                    ),
+                    excerpt = ".testTag(\"comp:StudioHeader:root\")",
+                ),
+                SourceIndexEntry(
+                    file = "$SAMPLE_SOURCE_PREFIX/components/StudioHeader.kt",
+                    line = 21,
+                    symbols = listOf("StudioHeader"),
+                    signals = listOf(
+                        SourceSignal(kind = SourceSignalKind.COMPOSABLE_SYMBOL, value = "StudioHeader"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT, value = "4"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "screens/HomeScreen.kt:44\tHomeScreen\tHome"),
+                        SourceSignal(kind = SourceSignalKind.SHARED_COMPONENT_CALL_SITE, value = "screens/DiagnosticsScreen.kt:50\tDiagnosticsScreen\tDiagnostics"),
+                    ),
+                    excerpt = "@Composable fun StudioHeader(",
+                ),
+            ),
+        )
+
+        val candidate = SourceMatcher(index).match(
+            selectedNode = node(uid = "header", testTag = "comp:StudioHeader:root"),
+            nearbyNodes = listOf(node(uid = "title", text = listOf("Diagnostics"))),
+            activityName = null,
+        ).first()
+
+        assertEquals(29, candidate.line)
+        assertEquals(
+            listOf(
+                SourceLocationRef(
+                    file = "screens/DiagnosticsScreen.kt",
+                    line = 50,
+                    mostLikely = true,
+                    recommendedEditSite = true,
+                ),
+                SourceLocationRef(file = "screens/HomeScreen.kt", line = 44),
+            ),
+            candidate.callSites,
+        )
     }
 
     @Test

@@ -51,8 +51,11 @@ const runtimeTrustCaseFields = new Set([
   ...runtimeOnlyCaseFields,
   "expectedTop1PathContains",
   "expectedTop3PathContains",
+  "navigateBefore",
 ]);
-const runtimeTargetFields = new Set(["text", "testTag", "contentDescription", "role"]);
+const runtimeTargetFields = new Set(["text", "testTag", "contentDescription", "role", "visualArea"]);
+const runtimeNavigationTargetFields = new Set(["text", "testTag", "contentDescription", "role"]);
+const visualAreaFields = new Set(["left", "top", "right", "bottom"]);
 const targetWarnings = new Set([
   "VISUAL_AREA_ONLY",
   "NO_MEANINGFUL_COMPOSE_TARGET",
@@ -171,6 +174,9 @@ export function validateManifest(manifest) {
           errors.push(`${entry.id || "case"} runtime-trust case must define trustPurpose`);
         }
         validateRuntimeTarget(entry.runtimeTarget, entry.id || "case", errors);
+        if (entry.navigateBefore !== undefined) {
+          validateRuntimeTarget(entry.navigateBefore, `${entry.id || "case"} navigateBefore`, errors, { allowVisualArea: false });
+        }
         if (entry.expectedConfidence && !confidenceExpectations.has(entry.expectedConfidence)) {
           errors.push(`${entry.id} expectedConfidence is unsupported`);
         }
@@ -197,22 +203,53 @@ export function validateManifest(manifest) {
   return manifest;
 }
 
-function validateRuntimeTarget(target, label, errors) {
+function validateRuntimeTarget(target, label, errors, options = {}) {
+  const allowVisualArea = options.allowVisualArea !== false;
+  const allowedFields = allowVisualArea ? runtimeTargetFields : runtimeNavigationTargetFields;
+  const allowedDescription = allowVisualArea
+    ? "text, testTag, contentDescription, role, or visualArea"
+    : "text, testTag, contentDescription, or role";
   if (!target || typeof target !== "object" || Array.isArray(target)) {
     errors.push(`${label} runtime-trust case must define runtimeTarget`);
     return;
   }
   const keys = Object.keys(target);
-  const supported = keys.filter((key) => runtimeTargetFields.has(key));
+  const supported = keys.filter((key) => allowedFields.has(key));
   if (supported.length === 0) {
-    errors.push(`${label} runtimeTarget must include text, testTag, contentDescription, or role`);
+    errors.push(`${label} runtimeTarget must include ${allowedDescription}`);
   }
   for (const key of keys) {
-    if (!runtimeTargetFields.has(key)) {
+    if (!allowedFields.has(key)) {
       errors.push(`${label} runtimeTarget contains unsupported field ${key}`);
+    } else if (key === "visualArea") {
+      validateVisualArea(target.visualArea, label, errors);
     } else if (typeof target[key] !== "string" || target[key].length === 0) {
       errors.push(`${label} runtimeTarget.${key} must be a non-empty string`);
     }
+  }
+}
+
+function validateVisualArea(visualArea, label, errors) {
+  if (!visualArea || typeof visualArea !== "object" || Array.isArray(visualArea)) {
+    errors.push(`${label} runtimeTarget.visualArea must be an object`);
+    return;
+  }
+  for (const key of Object.keys(visualArea)) {
+    if (!visualAreaFields.has(key)) {
+      errors.push(`${label} runtimeTarget.visualArea contains unsupported field ${key}`);
+    }
+  }
+  for (const key of visualAreaFields) {
+    if (typeof visualArea[key] !== "number") {
+      errors.push(`${label} runtimeTarget.visualArea.${key} must be a number`);
+    }
+  }
+  if (typeof visualArea.left === "number"
+    && typeof visualArea.top === "number"
+    && typeof visualArea.right === "number"
+    && typeof visualArea.bottom === "number"
+    && (visualArea.right <= visualArea.left || visualArea.bottom <= visualArea.top)) {
+    errors.push(`${label} runtimeTarget.visualArea must have positive width and height`);
   }
 }
 
@@ -328,7 +365,7 @@ export function classifyRuntimeTrustOutcome(expectation, observed) {
   }
   if (expectation.expectedRecommendedEditSiteContains) {
     if (!hasOwn(observed, "callSites")) {
-      addUnique(outcome.environment, trustObservationNotConfigured);
+      addUnique(outcome.failures, "missing_call_site_observation");
     } else {
       const recommended = (observed.callSites || []).filter((site) => site && site.recommendedEditSite === true);
       const needle = expectation.expectedRecommendedEditSiteContains;
@@ -744,15 +781,20 @@ export function runSourceIndexEvaluation(fixture) {
 }
 
 export function runtimeFixtureInput(fixture, projectDir, strict = false) {
+  const sourceIndexPath = fixture.modulePath && fixture.variant
+    ? generatedSourceIndexPath(projectDir, fixture)
+    : null;
   return {
     projectDir,
     packageName: fixture.applicationId,
+    sourceIndexPath: sourceIndexPath && existsSync(sourceIndexPath) ? sourceIndexPath : null,
     strict,
     cases: (fixture.cases || [])
       .filter((testCase) => testCase.mode === "runtime-trust")
       .map((testCase) => ({
         caseId: testCase.id,
         runtimeTarget: testCase.runtimeTarget,
+        ...(testCase.navigateBefore ? { navigateBefore: testCase.navigateBefore } : {}),
       })),
   };
 }
@@ -869,10 +911,18 @@ export function runRuntimeTrustEvaluation(fixture, options = {}) {
 
   const inputPath = join(reportDir, `${fixture.id}-runtime-input.json`);
   const outputPath = join(reportDir, `${fixture.id}-runtime-output.json`);
+  rmSync(outputPath, { force: true });
   writeJson(inputPath, runtimeFixtureInput(fixture, paths.projectWorkDir, strict));
   const args = runtimeTrustFixtureGradleArgs(inputPath, outputPath, strict);
-  runWithEnvironment("./gradlew", args, { cwd: repoRoot, stdio: "pipe" });
+  let runnerError = null;
+  try {
+    runWithEnvironment("./gradlew", args, { cwd: repoRoot, stdio: "pipe" });
+  } catch (error) {
+    runnerError = error;
+    if (!existsSync(outputPath)) throw error;
+  }
   const runnerOutput = JSON.parse(readFileSync(outputPath, "utf8"));
+  if (!runnerOutput || !Array.isArray(runnerOutput.cases)) throw runnerError || new Error(`${fixture.id}: runtime fixture output is invalid`);
   return evaluateRuntimeTrustFixture(fixture, runnerOutput);
 }
 

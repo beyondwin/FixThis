@@ -1,11 +1,15 @@
 package io.github.beyondwin.fixthis.mcp.fixture
 
 import io.github.beyondwin.fixthis.cli.BridgeClient
+import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationAction
+import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.tools.CliFixThisBridge
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
@@ -74,32 +78,57 @@ class RuntimeTrustFixtureRunner(
 ) {
     fun run(input: RuntimeTrustFixtureInput): RuntimeTrustFixtureOutput = runBlocking {
         val projectRoot = File(input.projectDir).canonicalFile
+        val sourceIndexRegistry = SourceIndexRegistry()
+        val hostSourceIndex = input.hostSourceIndexOrNull()
+        hostSourceIndex?.let { sourceIndexRegistry.put(input.packageName, it) }
+        val store = FeedbackSessionStore()
         val bridge = bridgeFactory(projectRoot)
         val service = FeedbackSessionService(
             bridge = bridge,
-            store = FeedbackSessionStore(),
+            store = store,
             projectRoot = projectRoot.absolutePath,
             defaultPackageName = input.packageName,
+            sourceIndexRegistry = sourceIndexRegistry,
         )
         val session = service.openSession(input.packageName, newSession = true)
         runCatching { bridge.launchApp(input.packageName) }.getOrElse {
             return@runBlocking environmentOutput(input, "app_launch_failed")
         }
-        val screen = captureScreenWithRetry(service, session.sessionId).getOrElse {
+        var screen = captureScreenWithRetry(service, session.sessionId).getOrElse {
             return@runBlocking environmentOutput(input, "capture_failed")
+        }
+        screen = screen.withHostSourceIndexFallback(hostSourceIndex)
+        if (screen.sourceIndexAvailable) {
+            store.addOrReplaceScreenForDomain(session.sessionId, screen)
         }
 
         val cases = input.cases.map { testCase ->
             try {
-                val node = RuntimeTargetResolver.resolve(screen, testCase.runtimeTarget)
-                val item = service.addFeedbackItem(
-                    sessionId = session.sessionId,
-                    screenId = screen.screenId,
-                    targetType = FeedbackTargetType.NODE,
-                    bounds = node.boundsInWindow,
-                    nodeUid = node.uid,
-                    comment = "Runtime trust fixture ${testCase.caseId}",
-                )
+                testCase.navigateBefore?.let { target ->
+                    screen = navigateToTarget(service, session.sessionId, screen, target)
+                        .withHostSourceIndexFallback(hostSourceIndex)
+                    if (screen.sourceIndexAvailable) {
+                        store.addOrReplaceScreenForDomain(session.sessionId, screen)
+                    }
+                }
+                val item = if (testCase.runtimeTarget.visualArea != null) {
+                    service.addAreaFeedback(
+                        sessionId = session.sessionId,
+                        screenId = screen.screenId,
+                        bounds = testCase.runtimeTarget.visualArea.rect(),
+                        comment = "Runtime trust fixture ${testCase.caseId}",
+                    )
+                } else {
+                    val node = RuntimeTargetResolver.resolve(screen, testCase.runtimeTarget)
+                    service.addFeedbackItem(
+                        sessionId = session.sessionId,
+                        screenId = screen.screenId,
+                        targetType = FeedbackTargetType.NODE,
+                        bounds = node.boundsInWindow,
+                        nodeUid = node.uid,
+                        comment = "Runtime trust fixture ${testCase.caseId}",
+                    )
+                }
                 RuntimeTrustCaseOutput(
                     caseId = testCase.caseId,
                     observed = RuntimeTrustObservationMapper.fromAnnotation(item),
@@ -134,6 +163,38 @@ class RuntimeTrustFixtureRunner(
         }
         return Result.failure(lastFailure ?: IllegalStateException("captureScreen failed without an exception"))
     }
+
+    private suspend fun navigateToTarget(
+        service: FeedbackSessionService,
+        sessionId: String,
+        screen: SnapshotDto,
+        target: RuntimeTargetSelector,
+    ): SnapshotDto {
+        val node = RuntimeTargetResolver.resolve(screen, target)
+        val bounds = node.boundsInWindow
+        val result = service.navigate(
+            sessionId,
+            FeedbackNavigationRequest(
+                action = FeedbackNavigationAction.TAP,
+                x = (bounds.left + bounds.right) / 2f,
+                y = (bounds.top + bounds.bottom) / 2f,
+                captureAfter = true,
+            ),
+        )
+        return result.screen ?: screen
+    }
+
+    private fun RuntimeTrustFixtureInput.hostSourceIndexOrNull(): SourceIndex? {
+        val path = sourceIndexPath?.takeIf { it.isNotBlank() } ?: return null
+        val file = File(path).takeIf { it.isFile } ?: return null
+        return runCatching {
+            McpProtocol.json.decodeFromString(SourceIndex.serializer(), file.readText())
+                .takeIf { it.entries.isNotEmpty() }
+        }.getOrNull()
+    }
+
+    private fun SnapshotDto.withHostSourceIndexFallback(sourceIndex: SourceIndex?): SnapshotDto =
+        if (sourceIndex != null && !sourceIndexAvailable) copy(sourceIndexAvailable = true) else this
 
     private fun environmentOutput(input: RuntimeTrustFixtureInput, label: String): RuntimeTrustFixtureOutput = RuntimeTrustFixtureOutput(
         status = if (input.strict) "fail" else "pass_with_environment_downgrade",

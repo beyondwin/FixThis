@@ -93,11 +93,10 @@ object TargetReliabilityCalculator {
         if (!hasMeaningfulTarget) {
             add(TargetReliabilityWarning.NO_MEANINGFUL_COMPOSE_TARGET)
         }
-        if (
-            input.targetKind == TargetKind.AREA &&
+        val areaMayBeUnexplainedByComposeSource = input.targetKind == TargetKind.AREA &&
             input.semanticCoverage.rootBounds != null &&
-            input.semanticCoverage.overlappingMeaningfulNodeCount == 0
-        ) {
+            (input.semanticCoverage.overlappingMeaningfulNodeCount == 0 || input.sourceCandidates.isEmpty())
+        if (areaMayBeUnexplainedByComposeSource) {
             add(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP)
         }
         if (input.sourceCandidates.firstOrNull()?.hasLowMargin() == true) {

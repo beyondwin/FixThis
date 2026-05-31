@@ -79,6 +79,30 @@ class TargetReliabilityCalculatorTest {
     }
 
     @Test
+    fun visualAreaWithNoSourceCandidatesWarnsPossibleViewInteropEvenWithComposeCoverage() {
+        val result = TargetReliabilityCalculator.calculate(
+            TargetReliabilityInput(
+                targetKind = TargetKind.AREA,
+                selectedNode = null,
+                nearbyNodes = emptyList(),
+                sourceCandidates = emptyList(),
+                semanticCoverage = TargetReliabilityCalculator.coverageFor(
+                    roots = listOf(FixThisRect(0f, 0f, 400f, 800f)),
+                    meaningfulNodes = listOf(
+                        meaningfulNode().copy(boundsInWindow = FixThisRect(20f, 120f, 260f, 220f)),
+                    ),
+                    targetBounds = FixThisRect(32f, 140f, 240f, 200f),
+                ),
+                screenFingerprintAvailable = true,
+            ),
+        )
+
+        assertEquals(TargetConfidence.LOW, result.confidence)
+        assertTrue(result.warnings.contains(TargetReliabilityWarning.VISUAL_AREA_ONLY))
+        assertTrue(result.warnings.contains(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP))
+    }
+
+    @Test
     fun lowConfidenceWhenSourceCandidateIsStaleOrAmbiguous() {
         val result = TargetReliabilityCalculator.calculate(
             TargetReliabilityInput(

@@ -30,6 +30,14 @@ broader Android UI stacks or additional package channels.
 
 ## High-priority Work
 
+### v1.1 trust loop evidence
+
+The post-v1.0 hardening line is the trust loop evidence pack: release reality
+checks, an external agent lifecycle smoke from handoff through resolve, and
+runtime source-trust fixtures for shared-component, interop-risk, and
+visual-area cases. This line strengthens evidence for existing public channels;
+it does not add a new package channel.
+
 ### Public artifact release upkeep
 
 External projects install FixThis with the published Gradle plugin and Maven

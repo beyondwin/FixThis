@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.fixture
 
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.mcp.session.AnnotationDto
 import kotlinx.serialization.Serializable
 
@@ -7,6 +8,7 @@ import kotlinx.serialization.Serializable
 data class RuntimeTrustFixtureInput(
     val projectDir: String,
     val packageName: String,
+    val sourceIndexPath: String? = null,
     val cases: List<RuntimeTrustCaseInput>,
     val strict: Boolean = false,
 )
@@ -15,6 +17,7 @@ data class RuntimeTrustFixtureInput(
 data class RuntimeTrustCaseInput(
     val caseId: String,
     val runtimeTarget: RuntimeTargetSelector,
+    val navigateBefore: RuntimeTargetSelector? = null,
 )
 
 @Serializable
@@ -23,7 +26,18 @@ data class RuntimeTargetSelector(
     val testTag: String? = null,
     val contentDescription: String? = null,
     val role: String? = null,
+    val visualArea: RuntimeVisualAreaSelector? = null,
 )
+
+@Serializable
+data class RuntimeVisualAreaSelector(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+) {
+    fun rect(): FixThisRect = FixThisRect(left, top, right, bottom)
+}
 
 @Serializable
 data class RuntimeTrustFixtureOutput(
@@ -47,6 +61,15 @@ data class RuntimeTrustObserved(
     val sourceConfidence: String? = null,
     val riskFlags: List<String>? = null,
     val warnings: List<String>? = null,
+    val callSites: List<RuntimeTrustCallSite>? = null,
+)
+
+@Serializable
+data class RuntimeTrustCallSite(
+    val file: String,
+    val line: Int? = null,
+    val mostLikely: Boolean = false,
+    val recommendedEditSite: Boolean = false,
 )
 
 @Serializable
@@ -75,6 +98,14 @@ object RuntimeTrustObservationMapper {
             sourceConfidence = top?.confidence?.name?.lowercase(),
             riskFlags = top?.riskFlags?.map { it.name },
             warnings = item.targetReliability?.warnings?.map { it.name },
+            callSites = top?.callSites?.map { site ->
+                RuntimeTrustCallSite(
+                    file = site.file,
+                    line = site.line,
+                    mostLikely = site.mostLikely,
+                    recommendedEditSite = site.recommendedEditSite,
+                )
+            },
         )
     }
 }

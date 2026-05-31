@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -46,11 +46,14 @@ test("gitignore explicitly excludes local fixture cache and reports", () => {
 
 test("package.json exposes local fixture scripts", () => {
   const pkg = readJson("package.json");
+  assert.equal(pkg.scripts["release:reality"], "node scripts/release-reality-check.mjs");
   assert.equal(pkg.scripts["source-matching:fixtures:prepare"], "node scripts/source-matching-fixtures.mjs prepare");
   assert.equal(pkg.scripts["source-matching:fixtures"], "node scripts/source-matching-fixtures.mjs run");
   assert.equal(pkg.scripts["source-matching:fixtures:runtime"], "node scripts/source-matching-fixtures.mjs runtime");
   assert.equal(pkg.scripts["source-matching:fixtures:report"], "node scripts/source-matching-fixtures.mjs report");
   assert.equal(pkg.scripts["source-matching:fixtures:test"], "node --test scripts/source-matching-fixtures-test.mjs");
+  assert.equal(pkg.scripts["agent-loop:smoke"], "node scripts/agent-loop-smoke.mjs");
+  assert.equal(pkg.scripts["agent-loop:smoke:test"], "node --test scripts/agent-loop-smoke-test.mjs");
 });
 
 test("fixture manifest uses schema v2 with separated source-index and runtime-trust cases", () => {
@@ -148,11 +151,12 @@ test("manifest pins a recommended-edit-site call site on the reused StudioHeader
   // selection that overlaps one reused call site promotes that single site.
   assert.equal(pinned.mode, "runtime-trust");
 
-  // Selecting the distinctive Diagnostics StudioHeader copy keeps the ranking
-  // evidence concentrated on the DiagnosticsScreen call site so it is the only
-  // recommended edit site. The runtime target is the literal "Diagnostics" copy.
-  assert.deepEqual(pinned.runtimeTarget, { text: "Diagnostics" });
-  assert.equal(pinned.expectedTop3PathContains, "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt");
+  // Selecting the reused StudioHeader root after navigating to Diagnostics
+  // avoids ambiguous duplicate "Diagnostics" text nodes while nearby evidence
+  // still ranks the DiagnosticsScreen call site as the recommended edit site.
+  assert.deepEqual(pinned.navigateBefore, { contentDescription: "Diagnostics tab" });
+  assert.deepEqual(pinned.runtimeTarget, { testTag: "comp:StudioHeader:root" });
+  assert.equal(pinned.expectedTop3PathContains, "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt");
 
   // The StudioHeader *definition* stays capped below HIGH even with call-site
   // ranking and a recommended edit site (the shared-component medium cap).
@@ -376,6 +380,69 @@ test("validateManifest accepts runtime trust calibration fields and rejects unsu
   );
 });
 
+test("validateManifest accepts visual-area runtime targets and rejects malformed bounds", () => {
+  assert.doesNotThrow(() => validateManifest({
+    schemaVersion: 2,
+    fixtures: [{
+      id: "visual",
+      source: "local-project",
+      projectDir: ".",
+      modulePath: ":app",
+      moduleDir: "sample",
+      variant: "debug",
+      applicationId: "io.github.beyondwin.fixthis.sample",
+      cases: [{
+        id: "visual-area-runtime",
+        mode: "runtime-trust",
+        trustPurpose: "visual area target stays caveated",
+        runtimeTarget: { visualArea: { left: 10, top: 20, right: 110, bottom: 120 } },
+        expectedConfidence: "low-or-medium",
+        mustWarn: ["VISUAL_AREA_ONLY"],
+        mustNotHighConfidence: true,
+      }],
+    }],
+  }));
+
+  assert.throws(() => validateManifest({
+    schemaVersion: 2,
+    fixtures: [{
+      id: "bad-visual",
+      source: "local-project",
+      projectDir: ".",
+      modulePath: ":app",
+      moduleDir: "sample",
+      variant: "debug",
+      applicationId: "io.github.beyondwin.fixthis.sample",
+      cases: [{
+        id: "bad-visual-area-runtime",
+        mode: "runtime-trust",
+        trustPurpose: "bad visual area",
+        runtimeTarget: { visualArea: { left: 10, top: 20, right: 9, bottom: 120 } },
+      }],
+    }],
+  }), /runtimeTarget.visualArea must have positive width and height/);
+
+  assert.throws(() => validateManifest({
+    schemaVersion: 2,
+    fixtures: [{
+      id: "bad-navigation-area",
+      source: "local-project",
+      projectDir: ".",
+      modulePath: ":app",
+      moduleDir: "sample",
+      variant: "debug",
+      applicationId: "io.github.beyondwin.fixthis.sample",
+      cases: [{
+        id: "bad-navigate-before-area",
+        mode: "runtime-trust",
+        trustPurpose: "navigate before cannot use area selectors",
+        navigateBefore: { visualArea: { left: 10, top: 20, right: 110, bottom: 120 } },
+        runtimeTarget: { testTag: "comp:StudioHeader:root" },
+      }],
+    }],
+  }), /navigateBefore runtimeTarget contains unsupported field visualArea/);
+});
+
 test("validateManifest accepts top1-only path expectations", () => {
   assert.doesNotThrow(() => validateManifest({
     schemaVersion: 2,
@@ -431,6 +498,17 @@ test("classifyRuntimeTrustOutcome validates target and source confidence separat
   });
   assert.deepEqual(result.failures, []);
   assert.deepEqual(result.metrics, ["top1_hit", "top3_hit", "confidence_calibrated", "source_confidence_calibrated"]);
+});
+
+test("classifyRuntimeTrustOutcome fails missing recommended edit-site observations", () => {
+  const result = classifyRuntimeTrustOutcome({
+    expectedRecommendedEditSiteContains: "DiagnosticsScreen.kt",
+  }, {
+    candidates: [{ path: "sample/components/StudioHeader.kt" }],
+  });
+
+  assert.deepEqual(result.failures, ["missing_call_site_observation"]);
+  assert.deepEqual(result.environment, []);
 });
 
 test("safeRelativePath rejects absolute paths and traversal", () => {
@@ -816,6 +894,97 @@ test("runRuntimeTrustEvaluation passes Android env patch to fixture install and 
     assert.equal(calls[1].env.EXISTING, "1");
     assert.ok(calls.slice(1).every((call) => call.env.ANDROID_HOME === "/sdk"));
     assert.ok(calls.slice(1).every((call) => call.env.PATH === "/sdk/platform-tools:/bin"));
+  } finally {
+    rmSync(reportDir, { recursive: true, force: true });
+  }
+});
+
+test("runRuntimeTrustEvaluation evaluates strict runner output when Gradle exits nonzero", () => {
+  const reportDir = mkdtempSync(join(tmpdir(), "fixthis-runtime-output-"));
+  const fixture = {
+    id: "strict-output",
+    applicationId: "io.example.fixture",
+    modulePath: ":app",
+    variant: "debug",
+    cases: [
+      {
+        id: "shared",
+        mode: "runtime-trust",
+        trustPurpose: "strict output survives nonzero Gradle exit",
+        runtimeTarget: { testTag: "comp:Shared:root" },
+        expectedConfidence: "low-or-medium",
+        mustNotHighConfidence: true,
+      },
+    ],
+  };
+
+  try {
+    const result = runRuntimeTrustEvaluation(fixture, {
+      strict: true,
+      reportDir,
+      install: () => ({ projectWorkDir: reportDir }),
+      run: (_command, args) => {
+        const outputArg = args.find((arg) => arg.startsWith("--args="));
+        const outputPath = outputArg?.match(/--output\s+(\S+)/)?.[1];
+        writeFileSync(outputPath, JSON.stringify({
+          schemaVersion: 1,
+          status: "fail",
+          cases: [
+            {
+              caseId: "shared",
+              observed: {
+                candidates: [{ path: "app/Shared.kt", confidence: "high", riskFlags: [] }],
+                confidence: "high",
+                sourceConfidence: "high",
+                warnings: [],
+              },
+            },
+          ],
+        }));
+        throw new Error("Gradle exited 1 after writing strict output");
+      },
+    });
+
+    assert.equal(result.cases[0].failures.includes("unexpected_high_confidence"), true);
+  } finally {
+    rmSync(reportDir, { recursive: true, force: true });
+  }
+});
+
+test("runRuntimeTrustEvaluation rejects stale runtime output when runner fails before writing", () => {
+  const reportDir = mkdtempSync(join(tmpdir(), "fixthis-runtime-stale-output-"));
+  const fixture = {
+    id: "stale-output",
+    applicationId: "io.example.fixture",
+    modulePath: ":app",
+    variant: "debug",
+    cases: [
+      {
+        id: "shared",
+        mode: "runtime-trust",
+        trustPurpose: "stale output must not satisfy strict runtime evidence",
+        runtimeTarget: { testTag: "comp:Shared:root" },
+        expectedConfidence: "low-or-medium",
+      },
+    ],
+  };
+  const staleOutputPath = join(reportDir, "stale-output-runtime-output.json");
+  writeFileSync(staleOutputPath, JSON.stringify({
+    schemaVersion: 1,
+    status: "evaluated",
+    cases: [{ caseId: "shared", observed: { confidence: "low" } }],
+  }));
+
+  try {
+    assert.throws(() => runRuntimeTrustEvaluation(fixture, {
+      strict: true,
+      reportDir,
+      install: () => ({ projectWorkDir: reportDir }),
+      run: () => {
+        throw new Error("Gradle failed before runtime output");
+      },
+    }), /Gradle failed before runtime output/);
+    assert.equal(existsSync(staleOutputPath), false);
   } finally {
     rmSync(reportDir, { recursive: true, force: true });
   }

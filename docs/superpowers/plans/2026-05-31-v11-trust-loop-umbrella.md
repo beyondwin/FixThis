@@ -78,7 +78,7 @@ Design: [`docs/superpowers/specs/2026-05-31-v11-trust-loop-umbrella-design.md`](
 - Create: `scripts/release-reality-check-test.mjs`
 - Create: `scripts/release-reality-check.mjs`
 
-- [ ] **Step 1: Write the failing release reality tests**
+- [x] **Step 1: Write the failing release reality tests**
 
 Create `scripts/release-reality-check-test.mjs`:
 
@@ -187,7 +187,7 @@ node --test scripts/release-reality-check-test.mjs
 
 Expected: FAIL with `Cannot find module` for `scripts/release-reality-check.mjs`.
 
-- [ ] **Step 3: Add the checker implementation**
+- [x] **Step 3: Add the checker implementation**
 
 Create `scripts/release-reality-check.mjs`:
 
@@ -354,7 +354,7 @@ if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
 }
 ```
 
-- [ ] **Step 4: Run the release reality tests**
+- [x] **Step 4: Run the release reality tests**
 
 Run:
 
@@ -383,7 +383,7 @@ git commit -m "test(release): add release reality checker contracts"
 - Modify: `docs/contributing/release-readiness.md`
 - Modify: `docs/releases/unreleased.md`
 
-- [ ] **Step 1: Write failing evidence-runner assertions**
+- [x] **Step 1: Write failing evidence-runner assertions**
 
 In `scripts/evidence-runner-test.mjs`, add after `dry run renders commands without executing`:
 
@@ -395,7 +395,7 @@ test("release profile starts with release reality and includes agent loop contra
 });
 ```
 
-- [ ] **Step 2: Write failing package script assertions**
+- [x] **Step 2: Write failing package script assertions**
 
 In `scripts/source-matching-fixtures-test.mjs`, extend `package.json exposes local fixture scripts`:
 
@@ -405,7 +405,7 @@ In `scripts/source-matching-fixtures-test.mjs`, extend `package.json exposes loc
   assert.equal(pkg.scripts["agent-loop:smoke:test"], "node --test scripts/agent-loop-smoke-test.mjs");
 ```
 
-- [ ] **Step 3: Run tests to verify failure**
+- [x] **Step 3: Run tests to verify failure**
 
 Run:
 
@@ -415,7 +415,7 @@ node --test scripts/evidence-runner-test.mjs scripts/source-matching-fixtures-te
 
 Expected: FAIL because `release:reality` and `agent-loop:*` scripts are not present and the release profile does not include them.
 
-- [ ] **Step 4: Add package scripts**
+- [x] **Step 4: Add package scripts**
 
 Modify `package.json` scripts:
 
@@ -427,7 +427,7 @@ Modify `package.json` scripts:
 
 Place `release:reality` next to `release:check`. Place `agent-loop:*` next to `real-copy-prompt:*`.
 
-- [ ] **Step 5: Update evidence release profile**
+- [x] **Step 5: Update evidence release profile**
 
 In `scripts/evidence-runner.mjs`, change the `release` profile to:
 
@@ -444,7 +444,7 @@ In `scripts/evidence-runner.mjs`, change the `release` profile to:
   ],
 ```
 
-- [ ] **Step 6: Add release-readiness rule**
+- [x] **Step 6: Add release-readiness rule**
 
 In `scripts/check-release-readiness.mjs`, append after `R32.v1-0-release-claim-manifest`:
 
@@ -466,7 +466,7 @@ requireIncludes(
 );
 ```
 
-- [ ] **Step 7: Add v1.1 evidence manifest documentation**
+- [x] **Step 7: Add v1.1 evidence manifest documentation**
 
 In `docs/contributing/release-readiness.md`, add after the v1.0 manifest:
 
@@ -487,7 +487,7 @@ When Android SDK or an unlocked emulator is unavailable, record the connected
 commands as deferred rather than implying they passed.
 ```
 
-- [ ] **Step 8: Update unreleased release notes**
+- [x] **Step 8: Update unreleased release notes**
 
 In `docs/releases/unreleased.md`, add under Highlights:
 
@@ -498,7 +498,7 @@ post-v1.0 hardening line and does not claim a new tagged release until the
 evidence commands pass or are explicitly deferred in the release issue.
 ```
 
-- [ ] **Step 9: Run docs and evidence tests**
+- [x] **Step 9: Run docs and evidence tests**
 
 Run:
 
@@ -527,7 +527,7 @@ git commit -m "docs(release): add v1.1 trust loop evidence gate"
 - Modify: `scripts/real-copy-prompt-smoke.mjs`
 - Modify: `scripts/real-copy-prompt-smoke-test.mjs`
 
-- [ ] **Step 1: Write shared MCP client tests**
+- [x] **Step 1: Write shared MCP client tests**
 
 Create `scripts/mcp-json-rpc-client-test.mjs`:
 
@@ -614,7 +614,7 @@ node --test scripts/mcp-json-rpc-client-test.mjs
 
 Expected: FAIL with `Cannot find module` for `scripts/mcp-json-rpc-client.mjs`.
 
-- [ ] **Step 3: Create the shared helper**
+- [x] **Step 3: Create the shared helper**
 
 Create `scripts/mcp-json-rpc-client.mjs`:
 
@@ -731,7 +731,7 @@ export async function createMcpJsonRpcClient({
 }
 ```
 
-- [ ] **Step 4: Refactor real Copy Prompt smoke to use the helper**
+- [x] **Step 4: Refactor real Copy Prompt smoke to use the helper**
 
 In `scripts/real-copy-prompt-smoke.mjs`, replace imports and remove local `mcpToolRequest`, `parseMcpToolResponse`, and `startMcpServer`. Add:
 
@@ -754,11 +754,11 @@ Replace `startMcpServer` call inside `runSelectedFixture` with:
     });
 ```
 
-- [ ] **Step 5: Move duplicated helper tests**
+- [x] **Step 5: Move duplicated helper tests**
 
 In `scripts/real-copy-prompt-smoke-test.mjs`, remove imports and tests for `mcpToolRequest` and `parseMcpToolResponse`. Those assertions now live in `scripts/mcp-json-rpc-client-test.mjs`.
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run:
 
@@ -783,7 +783,7 @@ git commit -m "refactor(smoke): share MCP JSON-RPC client"
 - Create: `scripts/agent-loop-smoke-test.mjs`
 - Create: `scripts/agent-loop-smoke.mjs`
 
-- [ ] **Step 1: Write failing pure smoke tests**
+- [x] **Step 1: Write failing pure smoke tests**
 
 Create `scripts/agent-loop-smoke-test.mjs`:
 
@@ -917,7 +917,7 @@ node --test scripts/agent-loop-smoke-test.mjs
 
 Expected: FAIL with `Cannot find module` for `scripts/agent-loop-smoke.mjs`.
 
-- [ ] **Step 3: Add smoke skeleton and pure helpers**
+- [x] **Step 3: Add smoke skeleton and pure helpers**
 
 Create `scripts/agent-loop-smoke.mjs` with the pure helpers:
 
@@ -1092,7 +1092,7 @@ if (invokedAsCli) {
 }
 ```
 
-- [ ] **Step 4: Run pure tests**
+- [x] **Step 4: Run pure tests**
 
 Run:
 
@@ -1119,7 +1119,7 @@ git commit -m "test(smoke): add agent loop smoke contracts"
 - Modify: `scripts/evidence-runner.mjs`
 - Modify: `scripts/evidence-runner-test.mjs`
 
-- [ ] **Step 1: Add focused tests for lifecycle report shape**
+- [x] **Step 1: Add focused tests for lifecycle report shape**
 
 In `scripts/agent-loop-smoke-test.mjs`, add:
 
@@ -1143,7 +1143,7 @@ test("buildReport fails when lifecycle assertions fail", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests**
+- [x] **Step 2: Run tests**
 
 Run:
 
@@ -1153,7 +1153,7 @@ node --test scripts/agent-loop-smoke-test.mjs
 
 Expected: PASS before runtime implementation.
 
-- [ ] **Step 3: Implement Android preflight and MCP launch**
+- [x] **Step 3: Implement Android preflight and MCP launch**
 
 In `scripts/agent-loop-smoke.mjs`, add imports:
 
@@ -1182,7 +1182,7 @@ function ensureMcpDistribution() {
 }
 ```
 
-- [ ] **Step 4: Add browser lifecycle flow**
+- [x] **Step 4: Add browser lifecycle flow**
 
 Add these functions to `scripts/agent-loop-smoke.mjs`:
 
@@ -1296,7 +1296,7 @@ async function browserSaveAndCopyFlow({ consoleUrl, headed, comments }) {
 }
 ```
 
-- [ ] **Step 5: Implement runtime smoke orchestration**
+- [x] **Step 5: Implement runtime smoke orchestration**
 
 Replace the `runSmoke` skeleton with:
 
@@ -1403,7 +1403,7 @@ export async function runSmoke(options) {
 }
 ```
 
-- [ ] **Step 6: Add trust profile step**
+- [x] **Step 6: Add trust profile step**
 
 In `scripts/evidence-runner.mjs`, add to the `trust` profile after real Copy Prompt smoke:
 
@@ -1422,7 +1422,7 @@ In `scripts/evidence-runner-test.mjs`, extend `trust profile includes source mat
   assert.equal(agentLoop.requiresAndroid, true);
 ```
 
-- [ ] **Step 7: Run local tests**
+- [x] **Step 7: Run local tests**
 
 Run:
 
@@ -1432,6 +1432,12 @@ npm run agent-loop:smoke -- --strict
 ```
 
 Expected: Node tests PASS. Strict smoke PASS when a ready emulator/device is available; otherwise FAIL with a clear Android environment reason.
+
+Verification note, 2026-05-31: Node tests passed via
+`node --test scripts/evidence-runner-test.mjs scripts/source-matching-fixtures-test.mjs scripts/release-reality-check-test.mjs scripts/mcp-json-rpc-client-test.mjs scripts/agent-loop-smoke-test.mjs scripts/real-copy-prompt-smoke-test.mjs`.
+Strict connected `npm run agent-loop:smoke -- --strict` passed on
+`emulator-5554` with 3 saved items, 1 resolved item, 1 needs-clarification
+item, and 1 won't-fix item.
 
 - [ ] **Step 8: Commit**
 
@@ -1450,7 +1456,7 @@ git commit -m "test(smoke): verify external agent lifecycle loop"
 - Modify: `scripts/source-matching-fixtures.mjs`
 - Modify: `scripts/source-matching-fixtures-test.mjs`
 
-- [ ] **Step 1: Write failing Kotlin mapper test**
+- [x] **Step 1: Write failing Kotlin mapper test**
 
 In `RuntimeTrustObservationMapperTest.kt`, add:
 
@@ -1500,7 +1506,7 @@ Run:
 
 Expected: FAIL because `RuntimeTrustCallSite` and `RuntimeTrustObserved.callSites` do not exist.
 
-- [ ] **Step 3: Add observed call-site model and mapper**
+- [x] **Step 3: Add observed call-site model and mapper**
 
 In `RuntimeTrustFixtureModels.kt`, update `RuntimeTrustObserved` and add `RuntimeTrustCallSite`:
 
@@ -1537,7 +1543,7 @@ In `RuntimeTrustObservationMapper.fromAnnotation`, add `callSites`:
             },
 ```
 
-- [ ] **Step 4: Make missing recommended edit-site observation fail**
+- [x] **Step 4: Make missing recommended edit-site observation fail**
 
 In `scripts/source-matching-fixtures.mjs`, replace this block in `classifyRuntimeTrustOutcome`:
 
@@ -1553,7 +1559,7 @@ with:
       addUnique(outcome.failures, "missing_call_site_observation");
 ```
 
-- [ ] **Step 5: Add Node classification test**
+- [x] **Step 5: Add Node classification test**
 
 In `scripts/source-matching-fixtures-test.mjs`, add:
 
@@ -1570,7 +1576,7 @@ test("classifyRuntimeTrustOutcome fails missing recommended edit-site observatio
 });
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run:
 
@@ -1600,7 +1606,7 @@ git commit -m "test(trust): observe runtime recommended call sites"
 - Modify: `scripts/source-matching-fixtures-test.mjs`
 - Modify: `fixtures/source-matching/manifest.json`
 
-- [ ] **Step 1: Add failing visual-area runner test**
+- [x] **Step 1: Add failing visual-area runner test**
 
 In `RuntimeTrustFixtureRunnerTest.kt`, add:
 
@@ -1646,7 +1652,7 @@ Run:
 
 Expected: FAIL because `RuntimeVisualAreaSelector` and `visualArea` do not exist.
 
-- [ ] **Step 3: Add runtime visual-area model**
+- [x] **Step 3: Add runtime visual-area model**
 
 In `RuntimeTrustFixtureModels.kt`, update `RuntimeTargetSelector` and add the selector:
 
@@ -1677,7 +1683,7 @@ Add import:
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 ```
 
-- [ ] **Step 4: Route visual-area cases in runner**
+- [x] **Step 4: Route visual-area cases in runner**
 
 In `RuntimeTrustFixtureRunner.run`, replace the per-case body with:
 
@@ -1710,7 +1716,7 @@ In `RuntimeTrustFixtureRunner.run`, replace the per-case body with:
             }
 ```
 
-- [ ] **Step 5: Extend manifest validation for visual areas**
+- [x] **Step 5: Extend manifest validation for visual areas**
 
 In `scripts/source-matching-fixtures.mjs`, add `visualArea`:
 
@@ -1745,7 +1751,7 @@ Change string validation loop to skip `visualArea`:
     } else if (key !== "visualArea" && (typeof target[key] !== "string" || target[key].length === 0)) {
 ```
 
-- [ ] **Step 6: Add Node validation tests**
+- [x] **Step 6: Add Node validation tests**
 
 In `scripts/source-matching-fixtures-test.mjs`, add:
 
@@ -1794,7 +1800,7 @@ test("validateManifest accepts visual-area runtime targets and rejects malformed
 });
 ```
 
-- [ ] **Step 7: Add manifest runtime trust cases**
+- [x] **Step 7: Add manifest runtime trust cases**
 
 In `fixtures/source-matching/manifest.json`, add to the `fixthis-sample` fixture cases:
 
@@ -1820,7 +1826,7 @@ In `fixtures/source-matching/manifest.json`, add to the `fixthis-sample` fixture
         }
 ```
 
-- [ ] **Step 8: Run tests**
+- [x] **Step 8: Run tests**
 
 Run:
 
@@ -1831,7 +1837,7 @@ node --test scripts/source-matching-fixtures-test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 9: Run runtime strict when a device is available**
+- [x] **Step 9: Run runtime strict when a device is available**
 
 Run:
 
@@ -1840,6 +1846,10 @@ npm run source-matching:fixtures:runtime -- --strict
 ```
 
 Expected: PASS with a ready emulator/device. If no device is available, record the exact Android environment failure in the task notes and continue only if the user accepts deferred connected evidence.
+
+Verification note, 2026-05-31: `npm run source-matching:fixtures:runtime -- --strict`
+passed on `emulator-5554`. The report status was `pass` with 7 runtime-trust
+cases, 0 failures, and 0 environment downgrades.
 
 - [ ] **Step 10: Commit**
 
@@ -1857,7 +1867,7 @@ git commit -m "test(trust): add visual-area runtime trust fixtures"
 - Modify: `docs/product/roadmap.md`
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 1: Add fixture-lab documentation**
+- [x] **Step 1: Add fixture-lab documentation**
 
 In `docs/guides/source-matching-fixture-lab.md`, add a section under runtime trust fixtures:
 
@@ -1887,7 +1897,7 @@ host and require `POSSIBLE_VIEW_INTEROP`. Shared-component cases should assert
 single `recommendedEditSite=true` call site.
 ````
 
-- [ ] **Step 2: Add roadmap note**
+- [x] **Step 2: Add roadmap note**
 
 In `docs/product/roadmap.md`, add under High-priority Work:
 
@@ -1901,7 +1911,7 @@ visual-area cases. This line strengthens evidence for existing public channels;
 it does not add a new package channel.
 ```
 
-- [ ] **Step 3: Add changelog entry**
+- [x] **Step 3: Add changelog entry**
 
 In `CHANGELOG.md` under `## Unreleased`, add:
 
@@ -1914,7 +1924,7 @@ In `CHANGELOG.md` under `## Unreleased`, add:
   calibration.
 ```
 
-- [ ] **Step 4: Run docs checks**
+- [x] **Step 4: Run docs checks**
 
 Run:
 
@@ -1941,7 +1951,7 @@ git commit -m "docs(trust): explain v1.1 runtime trust evidence"
 - Generated but not committed: `build/reports/fixthis-*`
 - Generated but not committed: `graphify-out/*`
 
-- [ ] **Step 1: Run fast local verification**
+- [x] **Step 1: Run fast local verification**
 
 Run:
 
@@ -1955,9 +1965,23 @@ node scripts/check-doc-consistency.mjs
 git diff --check
 ```
 
-Expected: PASS. `npm run release:reality` may return `pass_with_deferred` in non-strict mode; that is acceptable only when the markdown report lists the deferred surfaces and reasons.
+Expected: PASS. `npm run release:reality` verifies the public release surfaces,
+including the MCP Registry version response for
+`io.github.beyondwin/fixthis`.
 
-- [ ] **Step 2: Run connected verification**
+Verification note, 2026-05-31: fast local verification passed.
+- `npm run release:reality`: `pass`, including public MCP Registry version
+  verification for `io.github.beyondwin/fixthis` version `0.7.0`.
+- Node contract suite: 106 tests passed across evidence runner, source-matching
+  fixtures, release reality, MCP JSON-RPC client, agent-loop smoke, and real
+  Copy Prompt smoke tests.
+- `node scripts/check-release-readiness.mjs`: all release-readiness rules
+  passed.
+- `node scripts/check-doc-consistency.mjs`: all doc-consistency rules passed.
+- Targeted Gradle source-trust/runtime fixture tests: `BUILD SUCCESSFUL`.
+- `git diff --check`: passed.
+
+- [x] **Step 2: Run connected verification**
 
 Run:
 
@@ -1969,7 +1993,16 @@ npm run source-matching:fixtures:runtime -- --strict
 
 Expected: PASS with a ready emulator/device. If a connected command fails because Android SDK or a device is unavailable, rerun `adb devices`, record the exact environment output, and do not claim strict connected evidence passed.
 
-- [ ] **Step 3: Run release profile**
+Verification note, 2026-05-31: connected strict commands passed on
+`emulator-5554`.
+- `npm run real-copy-prompt:smoke -- --strict`: reply, jetsnack, and
+  fixthis-sample all passed with 2 copied prompt IDs and 2 handed-off items.
+- `npm run agent-loop:smoke -- --strict`: passed with 3 saved items, 1
+  resolved item, 1 needs-clarification item, and 1 won't-fix item.
+- `npm run source-matching:fixtures:runtime -- --strict`: passed with 7
+  runtime-trust cases, 0 failures, and 0 environment downgrades.
+
+- [x] **Step 3: Run release profile**
 
 Run:
 
@@ -1977,9 +2010,13 @@ Run:
 npm run evidence:release
 ```
 
-Expected: PASS or `pass_with_deferred` from the nested release reality report. The evidence runner itself must exit 0 only when no step reports failed command status.
+Expected: PASS. The evidence runner itself must exit 0 only when no step
+reports failed command status.
 
-- [ ] **Step 4: Update Graphify**
+Verification note, 2026-05-31: `npm run evidence:release` reported
+`Evidence profile release: passed`.
+
+- [x] **Step 4: Update Graphify**
 
 Run:
 
@@ -1989,11 +2026,11 @@ graphify update .
 
 Expected: command completes. Do not stage `graphify-out/`.
 
-- [ ] **Step 5: Mark plan tasks complete**
+- [x] **Step 5: Mark plan tasks complete**
 
 Edit this file and change completed checkboxes from `- [ ]` to `- [x]` for all tasks that landed. Leave any deferred connected evidence checkbox unchecked and add the reason directly under that step.
 
-- [ ] **Step 6: Final status and commit**
+- [x] **Step 6: Final status and commit**
 
 Run:
 
@@ -2002,6 +2039,10 @@ git status --short
 ```
 
 Expected: only intended source/doc files are modified; `.fixthis/`, `build/reports/`, `graphify-out/`, and local fixture workspaces are not staged.
+
+Verification note, 2026-05-31: final `git status --short --ignored` showed
+only intended source/doc modifications and new script files; generated
+`.fixthis/`, `build/`, and `graphify-out/` paths remained ignored.
 
 Commit:
 

@@ -27,6 +27,14 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+### Added
+
+- Added the v1.1 Trust Loop evidence pack: release reality checks now verify
+  GitHub, Homebrew, npm, MCP Registry, Gradle Plugin Portal, and Maven Central
+  surfaces; the external agent lifecycle smoke covers handoff through
+  claim/resolve; and runtime source-trust fixtures cover shared-component,
+  interop-risk, and visual-area calibration.
+
 ## v1.0.0 — 2026-05-31
 
 ### Added
