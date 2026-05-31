@@ -27,6 +27,8 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+## v1.0.0 — 2026-05-31
+
 ### Added
 
 - Source matching now surfaces a recommended shared-component edit site. When a
