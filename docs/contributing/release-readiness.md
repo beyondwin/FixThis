@@ -116,6 +116,8 @@ for each.
 | Interop-risk selections surface multiple ranked boundary-context nodes (top-3). | `./gradlew :fixthis-mcp:test --tests "*TargetBoundaryContextFormatterTest" --no-daemon`. |
 | Healthy SSE sessions perform no session and no preview polling. | `node scripts/console-browser-reliability.mjs`. |
 | The ChatGPT agent path is the documented Copy-Prompt/connector flow rather than a first-class file-based writer. | `bash scripts/check-docs-cli-surface.sh`. |
+| Lazy-list item lambdas and navigation destinations map a selection to the item/destination composable. | `./gradlew :fixthis-gradle-plugin:test --tests "*KotlinSourceScannerTest" :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon` and `npm run source-matching:fixtures:test`. |
+| Each edit-surface role reports a role-specific confidence and an explainable basis. | `./gradlew :fixthis-mcp:test --tests "*EditSurfaceConfidencePolicyTest" --tests "*EditSurfaceCandidateServiceTest" --tests "*CompactHandoffRendererTest" --no-daemon`. |
 
 ## Trust Sync Release Hardening Evidence
 
