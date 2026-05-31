@@ -148,6 +148,14 @@ test("release profile starts with release reality and includes agent loop contra
   assert.ok(commands.includes("npm run agent-loop:smoke:test"));
 });
 
+test("release and gate profiles include release drift guard", () => {
+  const releaseCommands = expandProfile("release").map((step) => step.command);
+  const gateCommands = expandProfile("gate").map((step) => step.command);
+
+  assert.ok(releaseCommands.includes("npm run release:drift"));
+  assert.ok(gateCommands.includes("npm run release:drift -- --strict"));
+});
+
 test("gate profile includes Trust Loop runtime agent copy prompt docs and whitespace evidence", () => {
   const commands = expandProfile("gate").map((step) => step.command);
   assert.ok(commands.includes("npm run release:reality"));
@@ -167,6 +175,12 @@ test("package exposes release gate commands", () => {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   assert.equal(pkg.scripts["release:gate"], "node scripts/release-gate.mjs");
   assert.equal(pkg.scripts["release:gate:test"], "node --test scripts/release-gate-test.mjs scripts/console-reliability-report-test.mjs");
+});
+
+test("package exposes release drift commands", () => {
+  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  assert.equal(pkg.scripts["release:drift"], "node scripts/release-drift-guard.mjs");
+  assert.equal(pkg.scripts["release:drift:test"], "node --test scripts/release-drift-guard-test.mjs");
 });
 
 test("writeReports writes json and markdown summaries", () => {

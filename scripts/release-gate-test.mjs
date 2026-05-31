@@ -12,9 +12,10 @@ import {
   writeReleaseGateReports,
 } from './release-gate.mjs';
 
-test('releaseGateSteps include Trust Loop source agent release and console evidence', () => {
+test('releaseGateSteps include Trust Loop source agent release drift and console evidence', () => {
   const commands = releaseGateSteps().map((step) => step.command);
   assert.ok(commands.includes('npm run release:reality'));
+  assert.ok(commands.includes('npm run release:drift -- --strict'));
   assert.ok(commands.includes('npm run source-matching:fixtures:test'));
   assert.ok(commands.includes('npm run source-matching:fixtures:runtime -- --strict'));
   assert.ok(commands.includes('npm run agent-loop:smoke:test'));
@@ -112,6 +113,7 @@ test('release gate report maps evidence steps to unlocked claims', () => {
     generatedAt: '2026-05-31T00:00:00.000Z',
     steps: [
       { name: 'Release reality', command: 'npm run release:reality', status: 'pass' },
+      { name: 'Release drift strict', command: 'npm run release:drift -- --strict', status: 'pass' },
       { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
       { name: 'Runtime trust strict', command: 'npm run source-matching:fixtures:runtime -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
       { name: 'Console browser reliability', command: 'npm run console:browser:reliability', status: 'pass' },
@@ -123,6 +125,11 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       id: 'release-reality',
       status: 'pass',
       evidence: ['Release reality'],
+    },
+    {
+      id: 'release-source-drift',
+      status: 'pass',
+      evidence: ['Release drift strict'],
     },
     {
       id: 'external-agent-loop',

@@ -295,6 +295,11 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`npm run release:gate`',
 );
+requireIncludes(
+  'R38.release-drift-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run release:drift`',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

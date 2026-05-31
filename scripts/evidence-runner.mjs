@@ -41,6 +41,7 @@ const profileDefinitions = {
   ],
   release: [
     step("Release reality", "npm run release:reality"),
+    step("Release drift", "npm run release:drift"),
     step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
     step("Release readiness", "node scripts/check-release-readiness.mjs"),
     step("Docs CLI surface", "bash scripts/check-docs-cli-surface.sh"),
@@ -51,6 +52,7 @@ const profileDefinitions = {
   ],
   gate: [
     step("Release reality", "npm run release:reality"),
+    step("Release drift strict", "npm run release:drift -- --strict"),
     step(
       "Interop boundary contracts",
       "./gradlew :fixthis-mcp:test --tests \"*TargetBoundaryContextFormatterTest\" --tests \"*TargetBoundaryGuidanceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersInteropBoundaryContextFromNearbyComposeHost\" --no-daemon",
