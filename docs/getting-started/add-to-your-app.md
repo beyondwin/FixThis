@@ -20,7 +20,7 @@ npm install -g @beyondwin/fixthis
 
 # Or, without a package manager:
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.7.0
+  | bash -s -- --version v1.1.0
 
 fixthis install-agent --project-dir . --target all
 ```
@@ -38,7 +38,7 @@ Manual equivalent in your app module `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "0.7.0"
+    id("io.github.beyondwin.fixthis.compose") version "1.1.0"
 }
 ```
 
@@ -48,7 +48,7 @@ dependency yourself, but the resolved Maven artifact is:
 
 ```kotlin
 dependencies {
-    debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:0.7.0")
+    debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:1.1.0")
 }
 ```
 
@@ -102,7 +102,7 @@ fixthis init --agent --project-dir . --target codex
 
 # Or, without a package manager:
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v0.7.0 --init --target codex --project-dir . --package <applicationId>
+  | bash -s -- --version v1.1.0 --init --target codex --project-dir . --package <applicationId>
 ```
 
 If the Gradle plugin is not applied yet, prefer `fixthis install-agent` because

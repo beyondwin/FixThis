@@ -7,35 +7,14 @@ GitHub Release page and registry listings as release evidence.
 
 ## Highlights
 
-This cycle's user-facing highlights are now captured in the latest per-release
-notes under [`docs/releases/`](.) — covering the layout-renderer edit hints,
-shared-component call-site ranking, fallback-only console polling, doctor
-`--json` readiness, and the Cursor MCP target. `CHANGELOG.md` remains the full
-chronological record.
-
-`main` carries one fix beyond the latest per-release notes: `fixthis
-install-agent --target all` run outside an Android project now retains the
-project-local Cursor config instead of silently dropping it — the global-scope
-guard falls back to a new `local` target (`claude` + `cursor`) and reports only
-the global Codex target as skipped. See `CHANGELOG.md` for details.
-
-Since the v1.0.0 release-prep notes, current `main` carries the v1.1 Trust Loop
-evidence pack: release reality checks, external agent lifecycle smoke, and
-runtime source-trust calibration. It is a post-v1.0 hardening line and does not
-claim a new tagged release until the evidence commands pass or are explicitly
-deferred in the release issue.
-
-The latest post-v1.0 commit line adds a release gate report, deeper interop
-boundary context, and explicit SSE reliability reporting. Interop-risk
-handoffs now label boundary host, ancestor, and context rows; area feedback can
-carry boundary evidence into the compact handoff context; and maintainers get
-one local `npm run release:gate` report that classifies release evidence as
-pass, deferred, or fail.
+No unreleased changes have landed after v1.1.0 yet. See
+[`v1.1.0.md`](v1.1.0.md) and `CHANGELOG.md` for the latest tagged release
+summary.
 
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin
-  `io.github.beyondwin.fixthis.compose` version `0.7.0`.
+  `io.github.beyondwin.fixthis.compose` version `1.1.0`.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - The current source tree builds the sidekick and sample with Android
   `compileSdk` 34, `targetSdk` 34, and `minSdk` 23 from

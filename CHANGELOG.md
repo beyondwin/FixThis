@@ -27,6 +27,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+No unreleased changes yet.
+
+## v1.1.0 — 2026-05-31
+
 ### Added
 
 - Added the v1.1 Trust Loop evidence pack: release reality checks now verify

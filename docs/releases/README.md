@@ -11,6 +11,9 @@ Maven Central, and the Gradle Plugin Portal.
 ## Releases
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [v1.1.0](v1.1.0.md) — release reality checks, external agent lifecycle smoke,
+  interop boundary evidence, SSE reliability reporting, and the unified release
+  gate.
 - [v1.0.0](v1.0.0.md) — release-prep notes for deeper Compose source matching,
   per-role edit-surface confidence, and explainable source-match basis strings.
 - [v0.8.0](v0.8.0.md) — release-prep notes for layout-renderer edit hints,
