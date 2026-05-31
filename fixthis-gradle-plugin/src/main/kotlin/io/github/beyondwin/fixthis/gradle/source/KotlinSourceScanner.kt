@@ -286,6 +286,17 @@ internal class KotlinSourceScanner(
                 addSignal(SourceSignalKindAsset.LAYOUT_RENDERER, signal.composable)
             }
         }
+        lazyItemOwnerSignals(source).forEach { signal ->
+            entriesByLine.entryFor(
+                file = file,
+                lineNumber = signal.range.startLine(lineStartOffsets),
+                lines = lines,
+                packageName = packageName,
+                className = classNameAt(signal.range.first, classDeclarations),
+            ).apply {
+                addSignal(SourceSignalKindAsset.LAZY_ITEM_OWNER, signal.composable)
+            }
+        }
     }
 
     private fun decodeKotlinString(match: MatchResult): String {

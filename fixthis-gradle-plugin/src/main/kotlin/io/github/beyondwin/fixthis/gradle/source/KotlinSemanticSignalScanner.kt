@@ -41,6 +41,11 @@ internal data class KotlinSlotWrapperSignal(
     val composable: String,
 )
 
+internal data class KotlinLazyItemOwnerSignal(
+    val range: IntRange,
+    val composable: String,
+)
+
 internal fun stringResourceBindings(
     source: String,
     resolver: Map<String, String>,
@@ -136,6 +141,17 @@ internal fun slotWrapperRendererSignals(source: String): List<KotlinSlotWrapperS
         .toList()
 }
 
+internal fun lazyItemOwnerSignals(source: String): List<KotlinLazyItemOwnerSignal> {
+    val ignoredRanges = source.layoutRendererIgnoredRanges()
+    return lazyItemLambdaRegex.findAll(source)
+        .mapNotNull { match ->
+            if (ignoredRanges.any { range -> match.range.first in range }) return@mapNotNull null
+            val nameGroup = match.groups[1] ?: return@mapNotNull null
+            KotlinLazyItemOwnerSignal(range = nameGroup.range, composable = nameGroup.value)
+        }
+        .toList()
+}
+
 internal fun collectSemanticModifierSignals(
     source: String,
     resolver: Map<String, String>,
@@ -211,6 +227,8 @@ private val slotWrapperRegex =
     Regex(
         """@Composable\b[\s\S]{0,400}?\bfun\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\bcontent\s*:\s*@Composable\b[^()]*\([^)]*\)\s*->\s*Unit""",
     )
+private val lazyItemLambdaRegex =
+    Regex("""\b(?:items|itemsIndexed)\s*\([^)]*\)\s*\{[^{}]*?\b([A-Z][A-Za-z0-9_]*)\s*\(""")
 
 private fun String.layoutRendererIgnoredRanges(): List<IntRange> = kotlinSourceQuotedStringRegex.findAll(this).map { it.range }.toList() + commentRanges()
 

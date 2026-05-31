@@ -518,6 +518,58 @@ class KotlinSourceScannerTest {
     }
 
     @Test
+    fun `lazy list item lambda emits item-owner signal for the item composable`() {
+        val source = """
+            package demo
+            import androidx.compose.foundation.lazy.LazyColumn
+            import androidx.compose.foundation.lazy.items
+            @Composable
+            fun OrderList(orders: List<Order>) {
+                LazyColumn {
+                    items(orders) { order ->
+                        OrderRow(order)
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val signals = lazyItemOwnerSignals(source)
+
+        assertEquals(listOf("OrderRow"), signals.map { it.composable })
+    }
+
+    @Test
+    fun `lazy list item lambda attaches LAZY_ITEM_OWNER signal to the item composable entry`() {
+        val file = tempDir.newFile("OrderList.kt").apply {
+            writeText(
+                """
+                package demo
+                import androidx.compose.foundation.lazy.LazyColumn
+                import androidx.compose.foundation.lazy.items
+                import androidx.compose.runtime.Composable
+
+                @Composable
+                fun OrderList(orders: List<Order>) {
+                    LazyColumn {
+                        items(orders) { order ->
+                            OrderRow(order)
+                        }
+                    }
+                }
+                """.trimIndent(),
+            )
+        }
+
+        val entries = KotlinSourceScanner(tempDir.root, tempDir.root, json).scan(file)
+
+        assertTrue(
+            entries.any { entry ->
+                entry.signals.any { it.kind == SourceSignalKindAsset.LAZY_ITEM_OWNER && it.value == "OrderRow" }
+            },
+        )
+    }
+
+    @Test
     fun `attributes custom composable wrapping Layout as layout renderer owner`() {
         val file = tempDir.newFile("AppGrid.kt").apply {
             writeText(

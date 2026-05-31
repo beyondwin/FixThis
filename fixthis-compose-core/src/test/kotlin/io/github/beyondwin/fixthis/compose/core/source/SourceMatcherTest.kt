@@ -911,6 +911,32 @@ class SourceMatcherTest {
     }
 
     @Test
+    fun lazyItemOwnerMatchSurfacesItemComposableAsSelectedOwner() {
+        val matcher = SourceMatcher(
+            SourceIndex(
+                entries = listOf(
+                    SourceIndexEntry(
+                        file = "sample/src/main/java/OrderList.kt",
+                        line = 9,
+                        signals = listOf(
+                            SourceSignal(SourceSignalKind.LAZY_ITEM_OWNER, "OrderRow"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val match = matcher.match(
+            selectedNode = node(uid = "row", testTag = "comp:OrderRow:row"),
+            nearbyNodes = emptyList(),
+            activityName = null,
+        ).single()
+
+        assertEquals("sample/src/main/java/OrderList.kt", match.file)
+        assertTrue(match.matchReasons.contains("selected owner composable"))
+    }
+
+    @Test
     fun ambiguousOwnerFunctionMatchKeepsMediumConfidenceWithRiskFlag() {
         val matcher = SourceMatcher(
             SourceIndex(
