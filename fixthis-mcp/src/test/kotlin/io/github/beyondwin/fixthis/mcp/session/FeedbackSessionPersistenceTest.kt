@@ -328,6 +328,79 @@ class FeedbackSessionPersistenceTest {
     }
 
     @Test
+    fun saveDropsIndexSummaryWhoseSessionFileNoLongerExists() {
+        val root = tempDir(prefix = "fixthis-v2-index-phantom-")
+        val paths = FeedbackSessionPaths(root)
+        val persistence = FeedbackSessionPersistence(paths, clock = { 200L })
+        val real = SessionDto(
+            sessionId = "session-real",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 100L,
+            updatedAtEpochMillis = 100L,
+        )
+        persistence.save(real)
+        // Inject a phantom summary whose backing session directory does not exist.
+        val phantom = FeedbackSessionSummary(
+            sessionId = "session-phantom",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 50L,
+            updatedAtEpochMillis = 50L,
+            status = SessionStatusDto.ACTIVE,
+            screensCount = 0,
+            itemsCount = 0,
+            unresolvedItemsCount = 0,
+        )
+        paths.indexFile.writeText(
+            fixThisJson.encodeToString(
+                FeedbackSessionIndex.serializer(),
+                FeedbackSessionIndex(updatedAtEpochMillis = 100L, sessions = listOf(phantom)),
+            ),
+        )
+
+        persistence.save(real.copy(updatedAtEpochMillis = 300L))
+
+        val index = fixThisJson.decodeFromString(FeedbackSessionIndex.serializer(), paths.indexFile.readText())
+        assertEquals(listOf("session-real"), index.sessions.map { it.sessionId })
+    }
+
+    @Test
+    fun rebuildIndexRegeneratesFromSessionFiles() {
+        val root = tempDir(prefix = "fixthis-v2-index-rebuild-")
+        val paths = FeedbackSessionPaths(root)
+        var now = 100L
+        val persistence = FeedbackSessionPersistence(paths, clock = { now })
+        fun session(id: String, updatedAt: Long) = SessionDto(
+            sessionId = id,
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 100L,
+            updatedAtEpochMillis = updatedAt,
+        )
+        persistence.save(session("session-1", updatedAt = 100L))
+        persistence.save(session("session-2", updatedAt = 300L))
+        persistence.save(session("session-3", updatedAt = 200L))
+        // Damage the index: drop entries and add a phantom.
+        paths.indexFile.writeText(
+            fixThisJson.encodeToString(
+                FeedbackSessionIndex.serializer(),
+                FeedbackSessionIndex(
+                    updatedAtEpochMillis = 1L,
+                    sessions = listOf(
+                        FeedbackSessionSummary.from(session("session-ghost", updatedAt = 999L)),
+                    ),
+                ),
+            ),
+        )
+
+        persistence.rebuildIndex()
+
+        val index = fixThisJson.decodeFromString(FeedbackSessionIndex.serializer(), paths.indexFile.readText())
+        assertEquals(listOf("session-2", "session-3", "session-1"), index.sessions.map { it.sessionId })
+    }
+
+    @Test
     fun persistenceSkipsCorruptSessionFilesDuringList() {
         val root = tempDir(prefix = "fixthis-v2-corrupt-")
         val paths = FeedbackSessionPaths(root)

@@ -7,6 +7,7 @@ import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
+@Suppress("TooManyFunctions")
 class FeedbackSessionPersistence(
     private val paths: FeedbackSessionPaths,
     private val clock: () -> Long = { System.currentTimeMillis() },
@@ -86,6 +87,32 @@ class FeedbackSessionPersistence(
 
     fun artifactPaths(): FeedbackSessionPaths = paths
 
+    /**
+     * Regenerate index.json from a full scan of the session.json files (the sole source of
+     * truth). index.json is a derived, non-authoritative cache; this is the recovery path when
+     * it is corrupted, stale, or hand-edited out of band.
+     */
+    fun rebuildIndex() {
+        check(paths.rootDirectory.isDirectory || paths.rootDirectory.mkdirs()) {
+            "Could not create feedback session root: ${paths.rootDirectory.absolutePath}"
+        }
+        val summaries = loadAll().sessions
+            .map(FeedbackSessionSummary.Companion::from)
+            .sortedByDescending { it.updatedAtEpochMillis }
+        val payload = fixThisJson.encodeToString(
+            FeedbackSessionIndex.serializer(),
+            FeedbackSessionIndex(updatedAtEpochMillis = clock(), sessions = summaries),
+        )
+        val temp = File.createTempFile("index-rebuild-", ".json.tmp", paths.rootDirectory)
+        runCatching {
+            temp.writeText(payload)
+            replaceFile(temp, paths.indexFile)
+        }.getOrElse { error ->
+            temp.delete()
+            throw FeedbackSessionException("INDEX_REBUILD_FAILED: Could not rebuild feedback session index: ${error.message}")
+        }
+    }
+
     private fun indexJson(candidate: SessionDto): String {
         // Build incrementally from the existing index summaries rather than re-reading and
         // re-parsing every session.json on disk (which made each save O(total sessions)).
@@ -95,7 +122,11 @@ class FeedbackSessionPersistence(
                 fixThisJson.decodeFromString(FeedbackSessionIndex.serializer(), indexFile.readText()).sessions
             }.getOrNull()
         }
-        val others = existing?.filterNot { it.sessionId == candidate.sessionId }
+        val others = existing
+            ?.filterNot { it.sessionId == candidate.sessionId }
+            // Drop phantom summaries whose backing session.json no longer exists, so the cache
+            // converges toward truth on each save. A cheap isFile stat only — never a re-parse.
+            ?.filter { paths.sessionFile(it.sessionId).isFile }
             ?: loadAll().sessions
                 .filterNot { it.sessionId == candidate.sessionId }
                 .map(FeedbackSessionSummary.Companion::from)

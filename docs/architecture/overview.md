@@ -181,6 +181,12 @@ MCP stdio server and local feedback console server.
   `nextItemSequenceNumber`, a monotonic counter for stable saved annotation
   numbers. The store coordinates locking and persistence while pure reducers
   and replay helpers own state transitions and event-log recovery.
+  `.fixthis/feedback-sessions/index.json` is a **derived, non-authoritative
+  cache** of the per-session `session.json` files (the sole source of truth).
+  It is rebuilt incrementally on each save — summaries whose backing
+  `session.json` no longer exists are dropped — and can be regenerated wholesale
+  from a full scan via `FeedbackSessionPersistence.rebuildIndex()` if it is ever
+  corrupted, stale, or hand-edited.
 - `console/FeedbackConsoleServer.kt`: `127.0.0.1` HTTP console and `/api/*` endpoints.
 - `console/events/*`, `console/ConsoleEventEmitters.kt`, and
   `console/ConsoleEventRoutes.kt`: Server-Sent Events for console state sync.
