@@ -355,6 +355,51 @@ class FeedbackSessionStoreEventLogTest {
     }
 
     @Test
+    fun repeatedCompactionFailureEmitsThrottledWarningWithoutMarkingSessionSkipped() {
+        val root = Files.createTempDirectory("store-compaction-failure-throttle").toFile()
+        try {
+            val paths = FeedbackSessionPaths(root)
+            val persistence = FeedbackSessionPersistence(paths)
+            val failures = java.util.concurrent.atomic.AtomicInteger(0)
+            val store = FeedbackSessionStore(
+                clock = { 100L },
+                idGenerator = sequentialIdGenerator(),
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(root),
+                eventLogReaderProvider = readerFor(root),
+                eventLogCompactorProvider = {
+                    EventLogCompactionTask { error("compaction boom") }
+                },
+                eventLogCompactionThreshold = 0,
+                compactionFailureSink = { _, _ -> failures.incrementAndGet() },
+            )
+            val session = store.openSession("com.test", root.absolutePath)
+            val screen = store.addScreen(session.sessionId, makeScreen())
+
+            val mutationCount = 5
+            repeat(mutationCount) { index ->
+                store.addItem(session.sessionId, makeDraftItem(screen.screenId, "item-$index"))
+            }
+
+            // (a) every mutation committed
+            assertEquals(
+                mutationCount,
+                store.getSession(session.sessionId).items.size,
+                "Every mutation must commit despite compaction failure",
+            )
+            // (b) the skipped-session channel is not used (P3 preserved)
+            assertTrue(store.listSessions(includeClosed = true).skippedSessions.isEmpty())
+            // (c) warning emitted but throttled (count strictly less than the number of failures)
+            assertTrue(
+                failures.get() in 1 until mutationCount,
+                "Expected throttled warnings (1..<$mutationCount), got ${failures.get()}",
+            )
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun bootReplayStartsFromCheckpointSnapshotAndAppliesOnlyNewerEvents() {
         val tmp = Files.createTempDirectory("alh-test-checkpoint").toFile()
         try {

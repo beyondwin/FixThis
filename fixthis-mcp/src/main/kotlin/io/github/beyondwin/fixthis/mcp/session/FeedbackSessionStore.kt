@@ -17,16 +17,30 @@ class FeedbackSessionStore(
     eventLogReaderProvider: ((sessionId: String) -> EventLogReader)? = null,
     eventLogCompactorProvider: ((sessionId: String) -> EventLogCompactionTask)? = null,
     eventLogCompactionThreshold: Int = 1000,
+    compactionFailureSink: ((sessionId: String, cause: Throwable) -> Unit)? = null,
 ) {
-    private val delegate = FeedbackSessionStoreDelegate(
-        clock = clock,
-        idGenerator = idGenerator,
-        persistence = persistence,
-        eventLogWriterProvider = eventLogWriterProvider,
-        eventLogReaderProvider = eventLogReaderProvider,
-        eventLogCompactorProvider = eventLogCompactorProvider,
-        eventLogCompactionThreshold = eventLogCompactionThreshold,
-    )
+    private val delegate = if (compactionFailureSink == null) {
+        FeedbackSessionStoreDelegate(
+            clock = clock,
+            idGenerator = idGenerator,
+            persistence = persistence,
+            eventLogWriterProvider = eventLogWriterProvider,
+            eventLogReaderProvider = eventLogReaderProvider,
+            eventLogCompactorProvider = eventLogCompactorProvider,
+            eventLogCompactionThreshold = eventLogCompactionThreshold,
+        )
+    } else {
+        FeedbackSessionStoreDelegate(
+            clock = clock,
+            idGenerator = idGenerator,
+            persistence = persistence,
+            eventLogWriterProvider = eventLogWriterProvider,
+            eventLogReaderProvider = eventLogReaderProvider,
+            eventLogCompactorProvider = eventLogCompactorProvider,
+            eventLogCompactionThreshold = eventLogCompactionThreshold,
+            compactionFailureSink = compactionFailureSink,
+        )
+    }
 
     fun openSession(packageName: String, projectRoot: String): SessionDto = delegate.openSession(packageName, projectRoot)
 

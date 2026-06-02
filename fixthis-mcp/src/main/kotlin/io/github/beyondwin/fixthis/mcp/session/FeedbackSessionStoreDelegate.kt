@@ -18,6 +18,21 @@ private val eventLogJson = Json {
     ignoreUnknownKeys = true
 }
 
+private const val COMPACTION_FAILURE_EMIT_EVERY = 50
+private const val COMPACTION_FAILURE_EMIT_WINDOW_MILLIS = 60_000L
+
+private class CompactionFailureThrottleState(
+    var consecutiveFailures: Int = 0,
+    var lastEmitAtEpochMillis: Long = Long.MIN_VALUE,
+)
+
+private fun logCompactionFailure(sessionId: String, cause: Throwable) {
+    System.err.println(
+        "WARN: event-log compaction failed for session $sessionId: " +
+            (cause.message ?: cause::class.java.simpleName),
+    )
+}
+
 /**
  * In-memory store for feedback sessions, with optional write-ahead event log support.
  *
@@ -44,6 +59,7 @@ internal class FeedbackSessionStoreDelegate(
     private val eventLogReaderProvider: ((sessionId: String) -> EventLogReader)? = null,
     private val eventLogCompactorProvider: ((sessionId: String) -> EventLogCompactionTask)? = null,
     private val eventLogCompactionThreshold: Int = 1000,
+    private val compactionFailureSink: (sessionId: String, cause: Throwable) -> Unit = ::logCompactionFailure,
 ) {
     private val lock = Any()
     private val sessions = linkedMapOf<String, SessionDto>()
@@ -57,6 +73,7 @@ internal class FeedbackSessionStoreDelegate(
     private val replayEngine = SessionReplayEngine(journal, persistence)
     private val replaySkippedSessions = mutableMapOf<String, SkippedFeedbackSession>()
     private val compactionLocks = mutableMapOf<String, Any>()
+    private val compactionFailureThrottle = mutableMapOf<String, CompactionFailureThrottleState>()
     private val mutations = SessionMutationService(clock, idGenerator)
     private val artifactJanitor = SessionArtifactJanitor(persistence)
 
@@ -513,19 +530,42 @@ internal class FeedbackSessionStoreDelegate(
         }
     }
 
-    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    @Suppress("TooGenericExceptionCaught")
     private fun compactEventLogAfterMutation(sessionId: String) {
         val compactor = eventLogCompactorProvider?.invoke(sessionId) ?: return
         try {
             synchronized(compactionLock(sessionId)) {
                 compactor.runOnce(eventLogCompactionThreshold)
             }
+            resetCompactionFailureThrottle(sessionId)
         } catch (error: Exception) {
             // Compaction is a best-effort background optimization. A failure leaves the
             // valid, uncompacted event log intact and is retried on the next mutation, so it
             // must NOT be surfaced as a skipped/corrupt session (that signal means the data
-            // could not be loaded). The mutation has already committed successfully.
+            // could not be loaded). The mutation has already committed successfully. The
+            // failure is reported through a throttled WARN sink so a hot mutation loop on a
+            // persistently failing compactor cannot spam the log.
+            if (shouldEmitCompactionFailure(sessionId)) {
+                compactionFailureSink(sessionId, error)
+            }
         }
+    }
+
+    private fun shouldEmitCompactionFailure(sessionId: String): Boolean = synchronized(lock) {
+        val state = compactionFailureThrottle.getOrPut(sessionId) { CompactionFailureThrottleState() }
+        state.consecutiveFailures += 1
+        val now = clock()
+        val firstFailure = state.consecutiveFailures == 1
+        val everyNth = state.consecutiveFailures % COMPACTION_FAILURE_EMIT_EVERY == 0
+        val windowElapsed = state.lastEmitAtEpochMillis != Long.MIN_VALUE &&
+            now - state.lastEmitAtEpochMillis >= COMPACTION_FAILURE_EMIT_WINDOW_MILLIS
+        val emit = firstFailure || everyNth || windowElapsed
+        if (emit) state.lastEmitAtEpochMillis = now
+        emit
+    }
+
+    private fun resetCompactionFailureThrottle(sessionId: String) = synchronized(lock) {
+        compactionFailureThrottle.remove(sessionId)
     }
 
     private fun compactionLock(sessionId: String): Any = synchronized(lock) {
