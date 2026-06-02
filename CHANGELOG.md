@@ -27,7 +27,32 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
-No unreleased changes yet.
+### Added
+
+- Added the v1 residual-risk closure gate: release readiness now requires a
+  required-check observation snapshot, ADB discovery evidence, source/interop
+  evidence, and SSE fallback reliability commands before the closure can be
+  claimed.
+- Added source-matching fixture coverage for the shared-component call-site
+  recommendation contract, keeping shared definitions medium-capped while
+  pinning the recommended call-site signal.
+
+### Changed
+
+- CLI ADB discovery now checks `ANDROID_HOME`, `ANDROID_SDK_ROOT`, project
+  `local.properties`, macOS `$HOME/Library/Android/sdk`, and Linux
+  `$HOME/Android/Sdk` before falling back to plain `adb`.
+- Compact interop-risk handoffs now render ranked host, ancestor, and context
+  boundary evidence in one compact line while preserving the source-hints-are-
+  candidates caveat.
+- The release gate now maps residual-risk claims to concrete evidence steps,
+  and console reliability reports include explicit fallback polling failures
+  for healthy SSE sessions.
+
+### Fixed
+
+- Ratcheted the `fixthis-mcp` detekt baseline by removing stale
+  `AnnotationRepository.kt` suppressions and lowering the tracked budget.
 
 ## v1.1.0 — 2026-05-31
 

@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { consecutiveSuccesses, summarizeWorkflow } from "./required-checks-observation.mjs";
 
 const success = (createdAt = "2026-05-17T00:00:00Z") => ({
@@ -43,4 +44,11 @@ test("compatibility is not ready before its required window", () => {
     { requiredSuccesses: 1 },
   );
   assert.equal(summary.ready, false);
+});
+
+test("required-check observation snapshot records refresh command and policy link", () => {
+  const snapshot = readFileSync("docs/contributing/required-checks-observation.md", "utf8");
+
+  assert.match(snapshot, /npm run checks:observation -- --json/);
+  assert.match(snapshot, /docs\/contributing\/required-checks\.md/);
 });

@@ -38,6 +38,22 @@ test('buildConsoleReliabilityReport fails healthy SSE polling regressions', () =
   assert.equal(report.observations[0].status, 'fail');
 });
 
+test('buildConsoleReliabilityReport names fallback polling endpoints after healthy SSE', () => {
+  const report = buildConsoleReliabilityReport({
+    observations: [{
+      name: 'healthy-sse',
+      eventSourceConnected: true,
+      requestSummary: { sessionPolls: 1, previewPolls: 1, eventConnections: 1 },
+      fallbackReasons: [],
+    }],
+  });
+
+  assert.equal(report.status, 'fail');
+  assert.match(report.failures.join('\n'), /fallback polling/i);
+  assert.match(report.failures.join('\n'), /\/api\/session/);
+  assert.match(report.failures.join('\n'), /\/api\/preview/);
+});
+
 test('buildConsoleReliabilityReport passes explicit fallback observations', () => {
   const report = buildConsoleReliabilityReport({
     observations: [{

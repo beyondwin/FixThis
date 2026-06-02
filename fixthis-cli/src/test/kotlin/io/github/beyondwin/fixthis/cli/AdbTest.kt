@@ -148,6 +148,103 @@ class AdbTest {
     }
 
     @Test
+    fun defaultExecutableUsesAndroidHomeBeforeProjectAndDefaultSdkDirs() {
+        val projectRoot = Files.createTempDirectory("fixthis-adb-project-").toFile().apply {
+            deleteOnExit()
+        }
+        val userHome = Files.createTempDirectory("fixthis-user-home-").toFile().apply {
+            deleteOnExit()
+        }
+        val environmentSdkRoot = Files.createTempDirectory("fixthis-env-android-sdk-").toFile().apply {
+            deleteOnExit()
+        }
+        val localPropertiesSdkRoot = Files.createTempDirectory("fixthis-local-android-sdk-").toFile().apply {
+            deleteOnExit()
+        }
+        val expectedAdb = File(environmentSdkRoot, "platform-tools/adb").apply {
+            parentFile.mkdirs()
+            writeText("")
+            setExecutable(true)
+            deleteOnExit()
+        }
+        File(localPropertiesSdkRoot, "platform-tools/adb").apply {
+            parentFile.mkdirs()
+            writeText("")
+            setExecutable(true)
+            deleteOnExit()
+        }
+        File(userHome, "Library/Android/sdk/platform-tools/adb").apply {
+            parentFile.mkdirs()
+            writeText("")
+            setExecutable(true)
+            deleteOnExit()
+        }
+        File(projectRoot, "local.properties").writeText("sdk.dir=${localPropertiesSdkRoot.absolutePath}\n")
+
+        assertEquals(
+            expectedAdb.absolutePath,
+            Adb.defaultAdbExecutable(
+                projectRoot = projectRoot,
+                environment = mapOf(
+                    "ANDROID_HOME" to environmentSdkRoot.absolutePath,
+                    "HOME" to userHome.absolutePath,
+                ),
+                osName = "Mac OS X",
+            ),
+        )
+    }
+
+    @Test
+    fun defaultExecutableUsesMacOsDefaultSdkDirWhenEnvironmentAndLocalPropertiesAreMissing() {
+        val projectRoot = Files.createTempDirectory("fixthis-adb-project-").toFile().apply {
+            deleteOnExit()
+        }
+        val userHome = Files.createTempDirectory("fixthis-user-home-").toFile().apply {
+            deleteOnExit()
+        }
+        val adb = File(userHome, "Library/Android/sdk/platform-tools/adb").apply {
+            parentFile.mkdirs()
+            writeText("")
+            setExecutable(true)
+            deleteOnExit()
+        }
+
+        assertEquals(
+            adb.absolutePath,
+            Adb.defaultAdbExecutable(
+                projectRoot = projectRoot,
+                environment = mapOf("HOME" to userHome.absolutePath),
+                osName = "Mac OS X",
+            ),
+        )
+    }
+
+    @Test
+    fun defaultExecutableUsesLinuxDefaultSdkDirWhenEnvironmentAndLocalPropertiesAreMissing() {
+        val projectRoot = Files.createTempDirectory("fixthis-adb-project-").toFile().apply {
+            deleteOnExit()
+        }
+        val userHome = Files.createTempDirectory("fixthis-user-home-").toFile().apply {
+            deleteOnExit()
+        }
+        val adb = File(userHome, "Android/Sdk/platform-tools/adb").apply {
+            parentFile.mkdirs()
+            writeText("")
+            setExecutable(true)
+            deleteOnExit()
+        }
+
+        assertEquals(
+            adb.absolutePath,
+            Adb.defaultAdbExecutable(
+                projectRoot = projectRoot,
+                environment = mapOf("HOME" to userHome.absolutePath),
+                osName = "Linux",
+            ),
+        )
+    }
+
+    @Test
     fun scopesRequestCommandsToSelectedDevice() {
         val runner = RecordingAdbRunner()
         val adb = Adb(adbExecutable = "adb", runner = runner).forDevice("emulator-5554")

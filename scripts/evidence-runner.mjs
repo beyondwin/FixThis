@@ -58,6 +58,8 @@ const profileDefinitions = {
   gate: [
     step("Release reality", "npm run release:reality"),
     step("Release drift strict", "npm run release:drift -- --strict"),
+    step("ADB discovery tests", "./gradlew :fixthis-cli:test --tests \"*AdbTest\" --no-daemon"),
+    step("Compose core source trust", "./gradlew :fixthis-compose-core:test --tests \"*SourceMatcherTest\" --no-daemon"),
     step(
       "Interop boundary contracts",
       "./gradlew :fixthis-mcp:test --tests \"*TargetBoundaryContextFormatterTest\" --tests \"*TargetBoundaryGuidanceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersInteropBoundaryContextFromNearbyComposeHost\" --no-daemon",

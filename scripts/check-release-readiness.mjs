@@ -315,6 +315,31 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`npm run handoff:eval:test`',
 );
+requireIncludes(
+  'R42.required-checks-observation-snapshot',
+  'docs/contributing/required-checks-observation.md',
+  'npm run checks:observation -- --json',
+);
+requireIncludes(
+  'R43.required-checks-observation-policy-link',
+  'docs/contributing/required-checks-observation.md',
+  'docs/contributing/required-checks.md',
+);
+requireIncludes(
+  'R44.v1-residual-risk-closure-gate',
+  'docs/contributing/release-readiness.md',
+  '## v1 Residual Risk Closure Gate',
+);
+requireIncludes(
+  'R45.v1-adb-discovery-evidence',
+  'docs/contributing/release-readiness.md',
+  '`./gradlew :fixthis-cli:test --tests "*AdbTest" --no-daemon`',
+);
+requireIncludes(
+  'R46.v1-sse-fallback-evidence',
+  'docs/contributing/release-readiness.md',
+  '`npm run console:browser:reliability`',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

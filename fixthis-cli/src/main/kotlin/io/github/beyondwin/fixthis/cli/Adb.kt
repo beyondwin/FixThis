@@ -126,16 +126,35 @@ class Adb(
         fun defaultAdbExecutable(
             projectRoot: File? = null,
             environment: Map<String, String> = System.getenv(),
+            osName: String = System.getProperty("os.name"),
         ): String {
-            listOfNotNull(
-                environment["ANDROID_HOME"]?.takeIf { it.isNotBlank() },
-                environment["ANDROID_SDK_ROOT"]?.takeIf { it.isNotBlank() },
-                projectRoot?.localPropertiesSdkDir(),
-            ).forEach { sdkDir ->
-                val adb = File(sdkDir, "platform-tools/${adbExecutableName()}")
+            sdkDirCandidates(projectRoot, environment, osName).forEach { sdkDir ->
+                val adb = File(sdkDir, "platform-tools/${adbExecutableName(osName)}")
                 if (adb.exists()) return adb.absolutePath
             }
             return "adb"
+        }
+
+        private fun sdkDirCandidates(
+            projectRoot: File?,
+            environment: Map<String, String>,
+            osName: String,
+        ): List<File> {
+            val home = environment["HOME"]?.takeIf { it.isNotBlank() }
+                ?: environment["USERPROFILE"]?.takeIf { it.isNotBlank() }
+            return listOfNotNull(
+                environment["ANDROID_HOME"]?.takeIf { it.isNotBlank() }?.let(::File),
+                environment["ANDROID_SDK_ROOT"]?.takeIf { it.isNotBlank() }?.let(::File),
+                projectRoot?.localPropertiesSdkDir()?.let(::File),
+                defaultSdkDir(home, osName),
+            ).distinct()
+        }
+
+        private fun defaultSdkDir(home: String?, osName: String): File? = when {
+            home.isNullOrBlank() -> null
+            osName.startsWith("Mac", ignoreCase = true) -> File(home, "Library/Android/sdk")
+            osName.startsWith("Linux", ignoreCase = true) -> File(home, "Android/Sdk")
+            else -> null
         }
 
         private fun File.localPropertiesSdkDir(): String? {
@@ -146,7 +165,7 @@ class Adb(
             return properties.getProperty("sdk.dir")?.takeIf { it.isNotBlank() }
         }
 
-        private fun adbExecutableName(): String = if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) "adb.exe" else "adb"
+        private fun adbExecutableName(osName: String): String = if (osName.startsWith("Windows", ignoreCase = true)) "adb.exe" else "adb"
     }
 }
 

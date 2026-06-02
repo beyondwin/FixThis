@@ -164,6 +164,12 @@
           "expectedSignal": { "kind": "SHARED_COMPONENT", "value": "4" }
         },
         {
+          "id": "fixthis-sample-shared-header-diagnostics-call-site",
+          "mode": "source-index",
+          "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
+          "expectedSignal": { "kind": "SHARED_COMPONENT_CALL_SITE", "value": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt:49\tDiagnosticsScreen\tDiagnostics|Inspect selection quality and semantic coverage.|Live" }
+        },
+        {
           "id": "fixthis-sample-screen-convention-strict-tag",
           "mode": "source-index",
           "expectedEntryPathContains": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",

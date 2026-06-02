@@ -17,6 +17,11 @@ export const releaseClaimDefinitions = Object.freeze([
   { id: 'handoff-correctness-v2', evidenceNames: ['Handoff evaluation'] },
   { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
   { id: 'console-sse-reliability', evidenceNames: ['Console browser reliability'] },
+  { id: 'adb-discovery', evidenceNames: ['ADB discovery tests'] },
+  { id: 'source-evidence-depth', evidenceNames: ['Compose core source trust', 'Runtime trust boundary observations'] },
+  { id: 'interop-boundary-context', evidenceNames: ['Interop boundary contracts'] },
+  { id: 'sse-fallback-reliability', evidenceNames: ['Console reliability contracts', 'Console browser reliability'] },
+  { id: 'required-check-readiness', evidenceNames: ['Release readiness'] },
 ]);
 
 export function releaseGateSteps() {

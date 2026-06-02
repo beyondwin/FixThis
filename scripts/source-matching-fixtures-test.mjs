@@ -185,6 +185,26 @@ test("manifest pins reused StudioHeader as a SHARED_COMPONENT source-index case"
   assert.deepEqual(pinned.expectedSignal, { kind: "SHARED_COMPONENT", value: "4" });
 });
 
+test("manifest pins a shared-component call-site source-index contract", () => {
+  // Real manifest must validate (no stale/unsupported fields), and the source-index
+  // contract must include the static call-site signal used for runtime ranking.
+  const manifest = loadManifest();
+  const local = manifest.fixtures.find((fixture) => fixture.id === "fixthis-sample");
+  assert.ok(local, "fixthis-sample fixture is required");
+  const pinned = local.cases.find((entry) => entry.id === "fixthis-sample-shared-header-diagnostics-call-site");
+  assert.ok(pinned, "fixthis-sample-shared-header-diagnostics-call-site case is required");
+
+  assert.equal(pinned.mode, "source-index");
+  assert.equal(
+    pinned.expectedEntryPathContains,
+    "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
+  );
+  assert.deepEqual(pinned.expectedSignal, {
+    kind: "SHARED_COMPONENT_CALL_SITE",
+    value: "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt:49\tDiagnosticsScreen\tDiagnostics|Inspect selection quality and semantic coverage.|Live",
+  });
+});
+
 test("manifest pins a recommended-edit-site call site on the reused StudioHeader, capped at medium", () => {
   // Real manifest must validate (no stale/unsupported fields).
   const manifest = loadManifest();

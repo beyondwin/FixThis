@@ -170,6 +170,19 @@ Connected Android evidence remains local-only. If Android SDK or an unlocked
 emulator is unavailable, non-strict reports must record the exact deferred
 reason and strict reports must fail.
 
+## v1 Residual Risk Closure Gate
+
+The residual-risk closure may be claimed only when each area below has matching
+evidence from the release commit.
+
+| Claim | Required evidence |
+| --- | --- |
+| CLI Android environment detection is consistent across env vars, project `local.properties`, and default SDK locations. | `./gradlew :fixthis-cli:test --tests "*AdbTest" --no-daemon`. |
+| Source matching recommends specific shared-component call sites without raising shared definitions above medium confidence. | `./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon` and `npm run source-matching:fixtures:test`. |
+| Interop handoffs render boundary context without exact XML/View or WebView ownership claims. | `./gradlew :fixthis-mcp:test --tests "*TargetBoundaryContextFormatterTest" --tests "*CompactHandoffRendererTest" --no-daemon`. |
+| Healthy SSE sessions do not use fallback session or preview polling. | `node --test scripts/console-reliability-report-test.mjs` and `npm run console:browser:reliability`. |
+| Release and required-check readiness evidence is refreshable and documented. | `node scripts/check-release-readiness.mjs` and `npm run checks:observation -- --json`. |
+
 ## Trust Sync Release Hardening Evidence
 
 The trust-sync hardening line may be claimed only when each claim below has

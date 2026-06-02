@@ -16,6 +16,8 @@ test('releaseGateSteps include Trust Loop source agent release drift and console
   const commands = releaseGateSteps().map((step) => step.command);
   assert.ok(commands.includes('npm run release:reality'));
   assert.ok(commands.includes('npm run release:drift -- --strict'));
+  assert.ok(commands.includes('./gradlew :fixthis-cli:test --tests "*AdbTest" --no-daemon'));
+  assert.ok(commands.includes('./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon'));
   assert.ok(commands.includes('npm run source-matching:fixtures:test'));
   assert.ok(commands.includes('npm run source-matching:fixtures:runtime -- --strict'));
   assert.ok(commands.includes('npm run agent-loop:smoke:test'));
@@ -160,6 +162,35 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       status: 'pass',
       evidence: ['Console browser reliability'],
     },
+    {
+      id: 'adb-discovery',
+      status: 'fail',
+      evidence: [],
+      reason: 'missing evidence command',
+    },
+    {
+      id: 'source-evidence-depth',
+      status: 'fail',
+      evidence: [],
+      reason: 'missing evidence command',
+    },
+    {
+      id: 'interop-boundary-context',
+      status: 'fail',
+      evidence: [],
+      reason: 'missing evidence command',
+    },
+    {
+      id: 'sse-fallback-reliability',
+      status: 'pass',
+      evidence: ['Console browser reliability'],
+    },
+    {
+      id: 'required-check-readiness',
+      status: 'fail',
+      evidence: [],
+      reason: 'missing evidence command',
+    },
   ]);
 });
 
@@ -197,4 +228,27 @@ test('release gate markdown renders claim statuses', () => {
 
   assert.match(text, /## Release Claims/);
   assert.match(text, /\| external-agent-loop \| deferred \| Agent loop smoke \| Android SDK unavailable \|/);
+});
+
+test('release gate maps residual risk closure claims', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-06-02T00:00:00.000Z',
+    steps: [
+      { name: 'ADB discovery tests', command: './gradlew :fixthis-cli:test --tests "*AdbTest" --no-daemon', status: 'pass' },
+      { name: 'Compose core source trust', command: './gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon', status: 'pass' },
+      { name: 'Runtime trust boundary observations', command: 'npm run source-matching:fixtures:test', status: 'pass' },
+      { name: 'Interop boundary contracts', command: './gradlew :fixthis-mcp:test --tests "*TargetBoundaryContextFormatterTest" --tests "*CompactHandoffRendererTest" --no-daemon', status: 'pass' },
+      { name: 'Console reliability contracts', command: 'node --test scripts/console-reliability-report-test.mjs', status: 'pass' },
+      { name: 'Console browser reliability', command: 'npm run console:browser:reliability', status: 'pass' },
+      { name: 'Release readiness', command: 'node scripts/check-release-readiness.mjs', status: 'pass' },
+    ],
+  });
+
+  const ids = report.claims.map((claim) => claim.id);
+  assert.ok(ids.includes('adb-discovery'));
+  assert.ok(ids.includes('source-evidence-depth'));
+  assert.ok(ids.includes('interop-boundary-context'));
+  assert.ok(ids.includes('sse-fallback-reliability'));
+  assert.ok(ids.includes('required-check-readiness'));
 });

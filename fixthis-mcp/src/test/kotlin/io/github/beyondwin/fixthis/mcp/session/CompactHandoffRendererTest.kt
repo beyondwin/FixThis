@@ -2408,14 +2408,14 @@ class CompactHandoffRendererTest {
                 warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
             ),
         )
-        val session = oneItemSession(item)
-
-        val markdown = CompactHandoffRenderer.render(session)
-
+        val markdown = CompactHandoffRenderer.render(oneItemSession(item))
+        val sourceHintRule = "Rule: source hints are candidates; verify screenshot, target, and code before editing."
         assertTrue(markdown.contains("targetBoundary=interop-risk"), markdown)
         assertTrue(markdown.contains("boundaryHost: tag=\"comp:NativeChartHost:chart\"; role=Image"), markdown)
+        assertTrue(markdown.contains(sourceHintRule), markdown)
         assertTrue(!markdown.contains("targetAction=inspect-source-first"), markdown)
         assertTrue(markdown.contains("targetAction=treat-source-paths-as-hints"), markdown)
+        assertTrue(!markdown.contains("exact ownership"), markdown)
     }
 
     private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(

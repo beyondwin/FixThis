@@ -10,6 +10,10 @@ GitHub Release page and registry listings as release evidence.
 - Added the External Trust Matrix and Release Drift evidence line: external
   project matrix contracts, handoff correctness scoring, and release drift
   checks now feed the local release gate.
+- Closed the v1 residual-risk evidence path: CLI ADB discovery now aligns with
+  default SDK locations, release readiness checks a required-check observation
+  snapshot, source/interop/SSE claims map to concrete gate evidence, and the
+  `fixthis-mcp` detekt baseline budget was ratcheted downward.
 
 ## Compatibility Notes
 
@@ -52,6 +56,8 @@ npm run release:drift:test
 npm run external-fixture:matrix:test
 npm run release:gate
 npm run release:gate:test
+node scripts/check-release-readiness.mjs
+npm run detekt:baseline:check
 ```
 
 When validating Trust Loop Completion on a connected Android device or unlocked

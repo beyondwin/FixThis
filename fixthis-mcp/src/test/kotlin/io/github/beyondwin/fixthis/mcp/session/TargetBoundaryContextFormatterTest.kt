@@ -113,7 +113,7 @@ class TargetBoundaryContextFormatterTest {
     }
 
     @Test
-    fun compactLineStillReturnsTheSingleTopRankedContextNode() {
+    fun compactLineIncludesRankedContextNodes() {
         val item = interopAreaItem(
             nearbyNodes = listOf(
                 node(uid = "footer", testTag = "comp:Footer:cta", bounds = FixThisRect(0f, 0f, 100f, 200f)),
@@ -124,7 +124,8 @@ class TargetBoundaryContextFormatterTest {
         val line = TargetBoundaryContextFormatter.compactLine(item)
 
         assertTrue(line!!.contains("comp:Footer:cta"), line)
-        assertTrue(!line.contains("comp:Header:bar"), line)
+        assertTrue(line.contains("comp:Header:bar"), line)
+        assertTrue(line.indexOf("comp:Footer:cta") < line.indexOf("comp:Header:bar"), line)
     }
 
     @Test
@@ -219,6 +220,44 @@ class TargetBoundaryContextFormatterTest {
         assertTrue(
             lines.any { it.contains("Boundary context: text=\"Native chart\"") },
             lines.joinToString("\n"),
+        )
+    }
+
+    @Test
+    fun compactLineIncludesHostAncestorAndContextForInteropRisk() {
+        val item = interopAreaItem(
+            nearbyNodes = listOf(
+                node(
+                    uid = "root",
+                    testTag = "comp:DiagnosticsScreen:root",
+                    bounds = FixThisRect(0f, 0f, 400f, 800f),
+                ),
+                node(
+                    uid = "host",
+                    testTag = "comp:NativeChartHost:chart",
+                    role = "Image",
+                    bounds = FixThisRect(24f, 112f, 360f, 260f),
+                ),
+                node(
+                    uid = "label",
+                    text = listOf("Native chart"),
+                    bounds = FixThisRect(24f, 280f, 220f, 312f),
+                ),
+                node(
+                    uid = "extra",
+                    text = listOf("Extra context"),
+                    bounds = FixThisRect(24f, 320f, 220f, 352f),
+                ),
+            ),
+        )
+
+        val line = TargetBoundaryContextFormatter.compactLine(item)
+
+        assertEquals(
+            "boundaryHost: tag=\"comp:NativeChartHost:chart\"; role=Image; box=(24.0,112.0)-(360.0,260.0) | " +
+                "boundaryAncestor: tag=\"comp:DiagnosticsScreen:root\"; box=(0.0,0.0)-(400.0,800.0) | " +
+                "boundaryContext: text=\"Native chart\"; box=(24.0,280.0)-(220.0,312.0)",
+            line,
         )
     }
 

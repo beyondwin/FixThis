@@ -12,6 +12,9 @@ export function summarizeRequests(requests, { since = 0 } = {}) {
     sessionPolls: relevant.filter((entry) =>
       entry.method === 'GET' && (entry.path === '/api/session' || entry.path === '/api/sessions')
     ).length,
+    historyPolls: relevant.filter((entry) =>
+      entry.method === 'GET' && entry.path === '/api/history'
+    ).length,
     previewPolls: relevant.filter((entry) =>
       entry.method === 'GET' && entry.path === '/api/preview'
     ).length,
@@ -21,11 +24,18 @@ export function summarizeRequests(requests, { since = 0 } = {}) {
   };
 }
 
-function observationStatus(observation) {
+function fallbackPollingFailures(observation) {
   const summary = observation.requestSummary || {};
+  const failures = [];
+  if (Number(summary.sessionPolls || 0) > 0) failures.push('fallback polling used /api/session while EventSource was healthy');
+  if (Number(summary.historyPolls || 0) > 0) failures.push('fallback polling used /api/history while EventSource was healthy');
+  if (Number(summary.previewPolls || 0) > 0) failures.push('fallback polling used /api/preview while EventSource was healthy');
+  return failures;
+}
+
+function observationStatus(observation) {
   const fallbackReasons = observation.fallbackReasons || [];
-  const hasPolling = Number(summary.sessionPolls || 0) > 0 || Number(summary.previewPolls || 0) > 0;
-  if (observation.eventSourceConnected && hasPolling && fallbackReasons.length === 0) return 'fail';
+  if (observation.eventSourceConnected && fallbackReasons.length === 0 && fallbackPollingFailures(observation).length > 0) return 'fail';
   return 'pass';
 }
 
@@ -36,11 +46,18 @@ export function buildConsoleReliabilityReport({
   const normalized = (observations || []).map((observation) => ({
     ...observation,
     status: observationStatus(observation),
+    failures: observation.eventSourceConnected && (observation.fallbackReasons || []).length === 0
+      ? fallbackPollingFailures(observation)
+      : [],
   }));
+  const failures = normalized.flatMap((observation) =>
+    (observation.failures || []).map((failure) => `${observation.name || 'observation'}: ${failure}`)
+  );
   return {
     schemaVersion: '1.0',
     status: normalized.some((observation) => observation.status === 'fail') ? 'fail' : 'pass',
     generatedAt,
+    failures,
     observations: normalized,
   };
 }

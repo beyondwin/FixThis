@@ -4,5 +4,5 @@
   "config/detekt/baseline-fixthis-compose-core.xml": 57,
   "config/detekt/baseline-fixthis-compose-sidekick.xml": 86,
   "config/detekt/baseline-fixthis-gradle-plugin.xml": 9,
-  "config/detekt/baseline-fixthis-mcp.xml": 421
+  "config/detekt/baseline-fixthis-mcp.xml": 416
 }
