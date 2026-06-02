@@ -1,7 +1,6 @@
 package io.github.beyondwin.fixthis.compose.core.usecase.feedback
 
 import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
-import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
 import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
 import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
 import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
@@ -29,17 +28,4 @@ data class CreateHandoffBatchCommand(
     val sessionId: SessionId,
     val annotationIds: List<AnnotationId>,
     val markdownSnapshot: String?,
-)
-
-data class ResolveAnnotationCommand(
-    val sessionId: SessionId,
-    val annotationId: AnnotationId,
-    val status: AnnotationStatus,
-    val summary: String?,
-)
-
-data class ClaimAnnotationCommand(
-    val sessionId: SessionId,
-    val annotationId: AnnotationId,
-    val agentNote: String?,
 )

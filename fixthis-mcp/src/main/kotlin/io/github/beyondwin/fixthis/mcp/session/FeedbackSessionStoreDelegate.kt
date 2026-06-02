@@ -142,6 +142,9 @@ internal class FeedbackSessionStoreDelegate(
         getSessionLocked(sessionId)
     }
 
+    // Domain session-save seam for the SessionRepository/domain-mapping layer (snapshot &
+    // annotation repos, and McpDomainRepositoryTest). Retained after R-4 removed the prod-dead
+    // resolve/claim use-cases and their McpSessionRepository wrapper.
     fun replaceSessionForDomain(session: SessionDto): SessionDto = synchronized(lock) {
         val migrated = session.withMigratedItemSequenceCounter()
         save(migrated)

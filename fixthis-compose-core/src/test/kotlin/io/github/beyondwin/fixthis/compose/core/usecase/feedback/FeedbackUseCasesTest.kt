@@ -101,55 +101,6 @@ class FeedbackUseCasesTest {
         assertEquals(SessionStatus.READY_FOR_AGENT, updated.status)
     }
 
-    @Test
-    fun resolveSupportsTerminalAndClarificationStatuses() = runSuspend {
-        listOf(
-            AnnotationStatus.RESOLVED,
-            AnnotationStatus.WONT_FIX,
-            AnnotationStatus.NEEDS_CLARIFICATION,
-        ).forEach { status ->
-            val sessions = InMemorySessionRepository(
-                sessionWithSnapshot().copy(annotations = listOf(annotation("item-1"))),
-            )
-            val useCase = ResolveAnnotationUseCase(sessions = sessions, clock = { 300L })
-
-            val updated = useCase(
-                ResolveAnnotationCommand(
-                    sessionId = SessionId("session-1"),
-                    annotationId = AnnotationId("item-1"),
-                    status = status,
-                    summary = "done",
-                ),
-            )
-
-            val item = updated.annotations.single()
-            assertEquals(status, item.status)
-            assertEquals("done", item.agentSummary)
-            assertEquals(300L, item.updatedAtEpochMillis)
-        }
-    }
-
-    @Test
-    fun claimChangesStatusToInProgressAndStoresAgentNote() = runSuspend {
-        val sessions = InMemorySessionRepository(
-            sessionWithSnapshot().copy(annotations = listOf(annotation("item-1"))),
-        )
-        val useCase = ClaimAnnotationUseCase(sessions = sessions, clock = { 400L })
-
-        val updated = useCase(
-            ClaimAnnotationCommand(
-                sessionId = SessionId("session-1"),
-                annotationId = AnnotationId("item-1"),
-                agentNote = "working",
-            ),
-        )
-
-        val item = updated.annotations.single()
-        assertEquals(AnnotationStatus.IN_PROGRESS, item.status)
-        assertEquals("working", item.agentSummary)
-        assertEquals(400L, item.updatedAtEpochMillis)
-    }
-
     private fun sessionWithSnapshot(): Session = Session(
         id = SessionId("session-1"),
         packageName = "io.github.beyondwin.fixthis.sample",

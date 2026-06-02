@@ -11,20 +11,22 @@ import io.github.beyondwin.fixthis.compose.core.domain.snapshot.ScreenOrientatio
 import io.github.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 import io.github.beyondwin.fixthis.compose.core.domain.snapshot.WindowMode
 import io.github.beyondwin.fixthis.compose.core.domain.ui.DomainRect
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.toDomainSession
+import io.github.beyondwin.fixthis.mcp.session.toSessionDto
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class McpDomainRepositoryTest {
     @Test
     fun repositoriesRoundTripDomainModelsThroughFeedbackSessionStore() = runBlocking {
         val store = FeedbackSessionStore(clock = { 1_000L })
-        val sessionRepository = McpSessionRepository(store)
         val snapshotRepository = McpSnapshotRepository(store) { "session-1" }
         val annotationRepository = McpAnnotationRepository(store)
-        val missingSessionId = SessionId("missing-session")
 
         val session = Session(
             id = SessionId("session-1"),
@@ -59,17 +61,17 @@ class McpDomainRepositoryTest {
             sequenceNumber = 7,
         )
 
-        assertNull(sessionRepository.find(missingSessionId))
+        assertFailsWith<FeedbackSessionException> { store.getSession("missing-session") }
 
-        assertEquals(session, sessionRepository.save(session))
-        assertEquals(session, sessionRepository.find(session.id))
+        store.replaceSessionForDomain(session.toSessionDto())
+        assertEquals(session, store.getSession(session.id.value).toDomainSession())
 
         assertEquals(snapshot, snapshotRepository.save(snapshot))
         assertEquals(snapshot, snapshotRepository.find(snapshot.id))
 
         assertEquals(annotation, annotationRepository.save(annotation))
 
-        val roundTrippedSession = sessionRepository.find(session.id)!!
+        val roundTrippedSession = store.getSession(session.id.value).toDomainSession()
         assertEquals(listOf(snapshot), roundTrippedSession.snapshots)
         assertEquals(listOf(annotation), roundTrippedSession.annotations)
     }
@@ -77,7 +79,6 @@ class McpDomainRepositoryTest {
     @Test
     fun savingCurrentSessionAsClosedClearsCurrentSession() = runBlocking {
         val store = FeedbackSessionStore(clock = { 1_000L })
-        val sessionRepository = McpSessionRepository(store)
         val session = Session(
             id = SessionId("session-1"),
             packageName = "io.github.beyondwin.fixthis.sample",
@@ -86,9 +87,9 @@ class McpDomainRepositoryTest {
             updatedAtEpochMillis = 20L,
         )
 
-        sessionRepository.save(session)
+        store.replaceSessionForDomain(session.toSessionDto())
         store.openExistingSession(session.id.value)
-        sessionRepository.save(session.copy(status = SessionStatus.CLOSED))
+        store.replaceSessionForDomain(session.copy(status = SessionStatus.CLOSED).toSessionDto())
 
         assertNull(store.currentSession())
     }
@@ -96,7 +97,6 @@ class McpDomainRepositoryTest {
     @Test
     fun savingNonCurrentActiveSessionDoesNotChangeCurrentSession() = runBlocking {
         val store = FeedbackSessionStore(clock = { 1_000L })
-        val sessionRepository = McpSessionRepository(store)
         val current = store.openSession(packageName = "io.github.beyondwin.fixthis.sample", projectRoot = "/repo")
         val background = Session(
             id = SessionId("background-session"),
@@ -106,7 +106,7 @@ class McpDomainRepositoryTest {
             updatedAtEpochMillis = 20L,
         )
 
-        sessionRepository.save(background)
+        store.replaceSessionForDomain(background.toSessionDto())
 
         assertEquals(current.sessionId, store.currentSession()?.sessionId)
     }

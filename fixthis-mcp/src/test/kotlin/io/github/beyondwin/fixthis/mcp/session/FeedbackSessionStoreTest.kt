@@ -854,6 +854,20 @@ class FeedbackSessionStoreTest {
     }
 
     @Test
+    fun updateItemStatusRejectsDisallowedAgentStatusWithMessage() {
+        val ids = FakeIds("session-1")
+        val store = FeedbackSessionStore(idGenerator = ids::next)
+        val session = store.openSession("io.github.beyondwin.fixthis.sample", "/repo")
+
+        // Retention guard for the resolution allow-list (RESOLVED/NEEDS_CLARIFICATION/WONT_FIX)
+        // that the removed ResolveAnnotationUseCase used to own; it now lives on the store path.
+        val error = assertFailsWith<IllegalArgumentException> {
+            store.updateItemStatus(session.sessionId, "item-1", AnnotationStatusDto.OPEN, agentSummary = null)
+        }
+        assertEquals("Agent resolution status is not allowed: OPEN", error.message)
+    }
+
+    @Test
     fun sendDraftToAgentSetsLastHandedOffAtToSentAt() {
         val clock = FakeClock(1000L)
         val ids = FakeIds("session-1", "screen-1", "item-1", "batch-1")

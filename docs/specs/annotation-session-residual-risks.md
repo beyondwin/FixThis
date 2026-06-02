@@ -169,6 +169,22 @@ bug.
 - If any symbol is *kept*, the spec's audit table records the surviving
   reference.
 
+**Audit result (implemented).** Removed: `ResolveAnnotationUseCase`,
+`ClaimAnnotationUseCase` (and their `ResolveAnnotationCommand` /
+`ClaimAnnotationCommand` models), `McpSessionRepository`, plus the tests that
+existed only to cover them. Kept symbols and why:
+
+| Symbol | Survives because |
+|--------|------------------|
+| `FeedbackSessionStoreDelegate.replaceSessionForDomain` | Domain session-save seam for the `SessionRepository`/domain-mapping layer; not specific to resolve/claim. Now exercised by `McpDomainRepositoryTest` (which validates the P2 current-session-pointer behavior directly against this seam). |
+| `McpSnapshotRepository`, `McpAnnotationRepository` | Separate domain-mapping concern (snapshot/annotation), not the resolve/claim path. Out of R-4 scope; left intact. |
+| `SessionRepository` interface, `toDomainSession`/`toSessionDto` | Still referenced by the surviving compose-core use-cases and the domain repos/tests. |
+
+The resolution allow-list (`RESOLVED`/`NEEDS_CLARIFICATION`/`WONT_FIX`) that the
+removed use-cases enforced is retained on the store path
+(`SessionMutationService.updateItemStatus`) with a message-asserting regression
+test (`FeedbackSessionStoreTest.updateItemStatusRejectsDisallowedAgentStatusWithMessage`).
+
 ## Rollout
 
 Each item is independently mergeable and behind no flag (local-only tool). Order
