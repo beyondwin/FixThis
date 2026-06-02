@@ -501,3 +501,24 @@ headroom so small console changes do not fail on byte-level churn:
 The `state.js` hotspot budget in `ArchitectureHotspotBudgetTest` was
 bumped from 440 → 470 lines to accept the
 `surfaceReloadConsoleNotice` helper.
+
+## Session store error-code prefixes
+
+`FeedbackSessionException` messages carry a machine-readable prefix followed by
+a human-readable suffix, e.g. `SESSION_CLOSED: Cannot run claim on a closed
+feedback session.` **Only the prefix (up to and including the colon) is the
+stable contract.** The suffix text is informational and may change between
+versions — clients must not string-match on it. The console maps each prefix to
+an HTTP status + `errorCode` in `feedbackSessionHttpMappings`
+(`FeedbackConsoleServer.kt`).
+
+| Prefix | Meaning | Notes |
+|--------|---------|-------|
+| `SESSION_CLOSED:` | Mutation rejected because the session is closed | Single-sourced via `SESSION_CLOSED_PREFIX` (`FeedbackSessionStoreDelegate.kt`); produced by one helper so wording cannot drift by entry point. |
+| `ITEM_ALREADY_RESOLVED:` | Claiming an item already in `RESOLVED`/`WONT_FIX` | Claim guard; resolved items are terminal for agent claim. |
+| `SESSION_NOT_FOUND:` | No session exists for the given id | |
+| `NO_ACTIVE_SESSION:` | No current session is open | |
+| `SCREEN_NOT_FOUND:` / `PREVIEW_NOT_FOUND:` / `PREVIEW_SCREENSHOT_NOT_FOUND:` | Requested screen/preview artifact is absent | |
+| `NO_DRAFT_FEEDBACK:` | No draft items to act on | |
+| `ITEM_NOT_EDITABLE:` | Item is not in an editable state | |
+| `DEVICE_NOT_AVAILABLE:` / `PREVIEW_SAVE_IN_PROGRESS:` | Transient device/preview-save contention | |

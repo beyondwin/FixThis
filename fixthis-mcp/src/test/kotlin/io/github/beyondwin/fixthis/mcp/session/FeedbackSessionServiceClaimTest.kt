@@ -55,7 +55,8 @@ class FeedbackSessionServiceClaimTest {
             service.claimFeedback(session.sessionId, "item-1", agentNote = "via service")
         }
 
-        kotlin.test.assertTrue(error.message!!.startsWith("SESSION_CLOSED"))
+        // Only the machine-readable prefix is contractual; the human suffix is not asserted.
+        kotlin.test.assertTrue(error.message!!.startsWith("SESSION_CLOSED:"))
     }
 
     @Test
@@ -87,6 +88,7 @@ class FeedbackSessionServiceClaimTest {
             )
         }
 
-        kotlin.test.assertTrue(error.message!!.startsWith("SESSION_CLOSED"))
+        // Only the machine-readable prefix is contractual; the human suffix is not asserted.
+        kotlin.test.assertTrue(error.message!!.startsWith("SESSION_CLOSED:"))
     }
 }

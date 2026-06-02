@@ -6,6 +6,7 @@ import io.github.beyondwin.fixthis.cli.BridgeConnectionException
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.SESSION_CLOSED_PREFIX
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -210,7 +211,7 @@ private val feedbackSessionHttpMappings =
         FeedbackSessionHttpMapping("PREVIEW_SCREENSHOT_NOT_FOUND:", 404, "preview_not_found"),
         FeedbackSessionHttpMapping("SCREEN_NOT_FOUND:", 400, "preview_not_found"),
         FeedbackSessionHttpMapping("NO_DRAFT_FEEDBACK:", 409, "no_draft_feedback"),
-        FeedbackSessionHttpMapping("SESSION_CLOSED:", 409, "session_closed"),
+        FeedbackSessionHttpMapping(SESSION_CLOSED_PREFIX, 409, "session_closed"),
         FeedbackSessionHttpMapping("NO_ACTIVE_SESSION:", 409, "unknown_feedback_session"),
         FeedbackSessionHttpMapping("ITEM_NOT_EDITABLE:", 409, "item_not_editable"),
         FeedbackSessionHttpMapping("DEVICE_NOT_AVAILABLE:", 409, "device_not_available"),

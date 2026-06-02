@@ -21,6 +21,15 @@ private val eventLogJson = Json {
 private const val COMPACTION_FAILURE_EMIT_EVERY = 50
 private const val COMPACTION_FAILURE_EMIT_WINDOW_MILLIS = 60_000L
 
+/**
+ * Machine-readable prefix for the rejection raised when a mutation targets a closed
+ * feedback session. The prefix is the stable contract; the human-readable suffix is not.
+ * Single-sourced here so every entry point (and the console HTTP mapping) cannot drift.
+ */
+internal const val SESSION_CLOSED_PREFIX = "SESSION_CLOSED:"
+
+private fun sessionClosed(type: String): FeedbackSessionException = FeedbackSessionException("$SESSION_CLOSED_PREFIX Cannot run $type on a closed feedback session.")
+
 private class CompactionFailureThrottleState(
     var consecutiveFailures: Int = 0,
     var lastEmitAtEpochMillis: Long = Long.MIN_VALUE,
@@ -524,9 +533,7 @@ internal class FeedbackSessionStoreDelegate(
     private fun requireOpenSessionForMutation(sessionId: String, type: String) {
         val session = getSessionLocked(sessionId)
         if (session.status == SessionStatusDto.CLOSED) {
-            throw FeedbackSessionException(
-                "SESSION_CLOSED: Cannot run $type on a closed feedback session.",
-            )
+            throw sessionClosed(type)
         }
     }
 
