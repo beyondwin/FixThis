@@ -120,9 +120,10 @@ internal class FeedbackSessionStoreDelegate(
         val migrated = session.withMigratedItemSequenceCounter()
         save(migrated)
         sessions[migrated.sessionId] = migrated
-        if (migrated.status != SessionStatusDto.CLOSED) {
-            currentSessionId = migrated.sessionId
-        } else if (currentSessionId == migrated.sessionId) {
+        // A domain save replaces session state; it must not hijack the current-session
+        // pointer (consistent with commitSessionMutation). Only clear it when the
+        // currently-selected session is the one being closed.
+        if (migrated.status == SessionStatusDto.CLOSED && currentSessionId == migrated.sessionId) {
             currentSessionId = null
         }
         migrated
@@ -520,10 +521,10 @@ internal class FeedbackSessionStoreDelegate(
                 compactor.runOnce(eventLogCompactionThreshold)
             }
         } catch (error: Exception) {
-            replaySkippedSessions[sessionId] = SkippedFeedbackSession(
-                path = "event-log-compaction",
-                message = "Event log compaction failed: ${error.message ?: error::class.java.simpleName}",
-            )
+            // Compaction is a best-effort background optimization. A failure leaves the
+            // valid, uncompacted event log intact and is retried on the next mutation, so it
+            // must NOT be surfaced as a skipped/corrupt session (that signal means the data
+            // could not be loaded). The mutation has already committed successfully.
         }
     }
 

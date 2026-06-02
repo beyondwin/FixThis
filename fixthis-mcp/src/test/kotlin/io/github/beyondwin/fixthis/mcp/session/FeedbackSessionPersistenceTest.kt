@@ -163,6 +163,37 @@ class FeedbackSessionPersistenceTest {
     }
 
     @Test
+    fun indexReflectsAllSessionsAndUpdatedSummaryAcrossSaves() {
+        val root = tempDir(prefix = "fixthis-v2-index-incremental-")
+        val paths = FeedbackSessionPaths(root)
+        var now = 100L
+        val persistence = FeedbackSessionPersistence(paths, clock = { now })
+        fun session(id: String, updatedAt: Long) = SessionDto(
+            sessionId = id,
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = root.absolutePath,
+            createdAtEpochMillis = 100L,
+            updatedAtEpochMillis = updatedAt,
+        )
+
+        persistence.save(session("session-1", updatedAt = 100L))
+        persistence.save(session("session-2", updatedAt = 200L))
+        // Re-save session-1 with a later timestamp and a screen; index must update its summary
+        // and reorder, without dropping session-2.
+        persistence.save(
+            session("session-1", updatedAt = 300L).copy(
+                screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 250L, displayName = "Main")),
+            ),
+        )
+
+        val index = fixThisJson.decodeFromString(FeedbackSessionIndex.serializer(), paths.indexFile.readText())
+        assertEquals(listOf("session-1", "session-2"), index.sessions.map { it.sessionId })
+        val updated = index.sessions.single { it.sessionId == "session-1" }
+        assertEquals(300L, updated.updatedAtEpochMillis)
+        assertEquals(1, updated.screensCount)
+    }
+
+    @Test
     fun loadSessionWithoutTargetEvidenceStillWorks() {
         val root = tempDir(prefix = "fixthis-v2-legacy-target-evidence-")
         val paths = FeedbackSessionPaths(root)

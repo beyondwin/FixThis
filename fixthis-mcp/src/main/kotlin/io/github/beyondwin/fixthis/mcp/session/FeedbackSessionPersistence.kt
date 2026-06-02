@@ -87,10 +87,19 @@ class FeedbackSessionPersistence(
     fun artifactPaths(): FeedbackSessionPaths = paths
 
     private fun indexJson(candidate: SessionDto): String {
-        val listed = loadAll()
-            .withCandidate(candidate)
-            .sessions
-            .map(FeedbackSessionSummary.Companion::from)
+        // Build incrementally from the existing index summaries rather than re-reading and
+        // re-parsing every session.json on disk (which made each save O(total sessions)).
+        // Falls back to a full directory scan when the index is missing or unreadable.
+        val existing = paths.indexFile.takeIf { it.isFile }?.let { indexFile ->
+            runCatching {
+                fixThisJson.decodeFromString(FeedbackSessionIndex.serializer(), indexFile.readText()).sessions
+            }.getOrNull()
+        }
+        val others = existing?.filterNot { it.sessionId == candidate.sessionId }
+            ?: loadAll().sessions
+                .filterNot { it.sessionId == candidate.sessionId }
+                .map(FeedbackSessionSummary.Companion::from)
+        val listed = (others + FeedbackSessionSummary.from(candidate))
             .sortedByDescending { it.updatedAtEpochMillis }
         return fixThisJson.encodeToString(
             FeedbackSessionIndex.serializer(),
@@ -166,9 +175,7 @@ class FeedbackSessionPersistence(
     private data class LoadedSessions(
         val sessions: List<SessionDto>,
         val skipped: List<SkippedFeedbackSession>,
-    ) {
-        fun withCandidate(candidate: SessionDto): LoadedSessions = copy(sessions = sessions.filterNot { it.sessionId == candidate.sessionId } + candidate)
-    }
+    )
 }
 
 @Serializable

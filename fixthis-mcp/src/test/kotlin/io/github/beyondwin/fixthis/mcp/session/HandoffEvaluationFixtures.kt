@@ -171,11 +171,35 @@ internal object HandoffEvaluationFixtures {
             items = listOf(item.copy(sequenceNumber = 1)),
         )
         val compact = CompactHandoffRenderer.render(session)
+        val dimensions = correctnessDimensions(case, item, compact)
+        val hardFailures = dimensions
+            .filter { !it.passed && case.correctness.releaseCritical }
+            .map { dimension ->
+                HandoffCorrectnessFailure(
+                    id = when (dimension.name) {
+                        "confidence" -> "overconfident-evidence"
+                        "caution" -> "missing-required-caution"
+                        "owner" -> "missing-expected-owner"
+                        "role" -> "wrong-edit-surface-role"
+                        else -> "missing-prompt-usability"
+                    },
+                    message = "${case.id}: ${dimension.message}",
+                )
+            }
+        val score = (dimensions.count { it.passed } * 100) / dimensions.size
+        return HandoffCorrectnessResult(score, dimensions, hardFailures)
+    }
+
+    private fun correctnessDimensions(
+        case: HandoffEvaluationCase,
+        item: AnnotationDto,
+        compact: String,
+    ): List<HandoffCorrectnessDimension> {
         val topRole = item.editSurfaceCandidates.firstOrNull()?.role
         val topConfidence = item.editSurfaceCandidates.firstOrNull()?.confidence
         val candidateFiles = item.editSurfaceCandidates.map { it.file } + item.sourceCandidates.map { it.file }
         val maxAllowed = SelectionConfidence.valueOf(case.correctness.maxConfidence)
-        val dimensions = listOf(
+        return listOf(
             HandoffCorrectnessDimension(
                 name = "owner",
                 passed = candidateFiles.any { it.contains(case.correctness.ownerContains) } ||
@@ -209,22 +233,6 @@ internal object HandoffEvaluationFixtures {
                 message = "expected compact handoff protocol fields",
             ),
         )
-        val hardFailures = dimensions
-            .filter { !it.passed && case.correctness.releaseCritical }
-            .map { dimension ->
-                HandoffCorrectnessFailure(
-                    id = when (dimension.name) {
-                        "confidence" -> "overconfident-evidence"
-                        "caution" -> "missing-required-caution"
-                        "owner" -> "missing-expected-owner"
-                        "role" -> "wrong-edit-surface-role"
-                        else -> "missing-prompt-usability"
-                    },
-                    message = "${case.id}: ${dimension.message}",
-                )
-            }
-        val score = (dimensions.count { it.passed } * 100) / dimensions.size
-        return HandoffCorrectnessResult(score, dimensions, hardFailures)
     }
 
     private fun confidenceRank(confidence: SelectionConfidence): Int = when (confidence) {

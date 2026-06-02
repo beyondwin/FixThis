@@ -87,8 +87,27 @@ class McpDomainRepositoryTest {
         )
 
         sessionRepository.save(session)
+        store.openExistingSession(session.id.value)
         sessionRepository.save(session.copy(status = SessionStatus.CLOSED))
 
         assertNull(store.currentSession())
+    }
+
+    @Test
+    fun savingNonCurrentActiveSessionDoesNotChangeCurrentSession() = runBlocking {
+        val store = FeedbackSessionStore(clock = { 1_000L })
+        val sessionRepository = McpSessionRepository(store)
+        val current = store.openSession(packageName = "io.github.beyondwin.fixthis.sample", projectRoot = "/repo")
+        val background = Session(
+            id = SessionId("background-session"),
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 10L,
+            updatedAtEpochMillis = 20L,
+        )
+
+        sessionRepository.save(background)
+
+        assertEquals(current.sessionId, store.currentSession()?.sessionId)
     }
 }

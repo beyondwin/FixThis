@@ -1,17 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
-import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationStatus
-import io.github.beyondwin.fixthis.compose.core.domain.common.AnnotationId
-import io.github.beyondwin.fixthis.compose.core.domain.common.SessionId
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.github.beyondwin.fixthis.compose.core.usecase.feedback.ClaimAnnotationCommand
-import io.github.beyondwin.fixthis.compose.core.usecase.feedback.ClaimAnnotationUseCase
-import io.github.beyondwin.fixthis.compose.core.usecase.feedback.ResolveAnnotationCommand
-import io.github.beyondwin.fixthis.compose.core.usecase.feedback.ResolveAnnotationUseCase
 import io.github.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
-import io.github.beyondwin.fixthis.mcp.session.domain.McpSessionRepository
-import kotlinx.coroutines.runBlocking
 
 /**
  * Owns MCP annotation workflow operations over DTO-backed sessions.
@@ -25,10 +16,6 @@ class AnnotationWorkflow(
     private val store: FeedbackSessionStore,
     private val draftService: FeedbackDraftService,
 ) {
-    private val sessions = McpSessionRepository(store)
-    private val resolveAnnotation = ResolveAnnotationUseCase(sessions, clock = { System.currentTimeMillis() })
-    private val claimAnnotation = ClaimAnnotationUseCase(sessions, clock = { System.currentTimeMillis() })
-
     fun addAreaFeedback(
         sessionId: String,
         screenId: String,
@@ -143,34 +130,13 @@ class AnnotationWorkflow(
         itemId: String,
         status: AnnotationStatusDto,
         summary: String?,
-    ): AnnotationDto = runBlocking {
-        requireOpenSessionForAgentMutation(sessionId)
-        val updated = resolveAnnotation(
-            ResolveAnnotationCommand(
-                sessionId = SessionId(sessionId),
-                annotationId = AnnotationId(itemId),
-                status = status.toDomainResolutionStatus(),
-                summary = summary,
-            ),
-        )
-        updated.annotations.first { it.id.value == itemId }.toAnnotationDto()
-    }
+    ): AnnotationDto = store.updateItemStatus(sessionId, itemId, status, agentSummary = summary)
 
     fun claimFeedback(
         sessionId: String,
         itemId: String,
         agentNote: String?,
-    ): AnnotationDto = runBlocking {
-        requireOpenSessionForAgentMutation(sessionId)
-        val updated = claimAnnotation(
-            ClaimAnnotationCommand(
-                sessionId = SessionId(sessionId),
-                annotationId = AnnotationId(itemId),
-                agentNote = agentNote,
-            ),
-        )
-        updated.annotations.first { it.id.value == itemId }.toAnnotationDto()
-    }
+    ): AnnotationDto = store.claimFeedback(sessionId, itemId, agentNote)
 
     fun updateDraftFeedback(
         sessionId: String,
@@ -197,23 +163,4 @@ class AnnotationWorkflow(
         sessionId: String,
         itemIds: List<String>,
     ): SessionDto = store.markItemsHandedOff(sessionId, itemIds)
-
-    private fun requireOpenSessionForAgentMutation(sessionId: String) {
-        val session = store.getSession(sessionId)
-        if (session.status == SessionStatusDto.CLOSED) {
-            throw FeedbackSessionException(
-                "SESSION_CLOSED: Reopen the session or create a new active session before changing feedback.",
-            )
-        }
-    }
-}
-
-private fun AnnotationStatusDto.toDomainResolutionStatus(): AnnotationStatus = when (this) {
-    AnnotationStatusDto.RESOLVED -> AnnotationStatus.RESOLVED
-    AnnotationStatusDto.NEEDS_CLARIFICATION -> AnnotationStatus.NEEDS_CLARIFICATION
-    AnnotationStatusDto.WONT_FIX -> AnnotationStatus.WONT_FIX
-    AnnotationStatusDto.OPEN,
-    AnnotationStatusDto.READY,
-    AnnotationStatusDto.IN_PROGRESS,
-    -> throw IllegalArgumentException("Agent resolution status is not allowed: $this")
 }

@@ -326,6 +326,35 @@ class FeedbackSessionStoreEventLogTest {
     }
 
     @Test
+    fun compactionFailureDoesNotMarkSessionSkippedAndMutationSucceeds() {
+        val root = Files.createTempDirectory("store-compaction-failure").toFile()
+        try {
+            val paths = FeedbackSessionPaths(root)
+            val persistence = FeedbackSessionPersistence(paths)
+            val store = FeedbackSessionStore(
+                clock = { 100L },
+                idGenerator = sequentialIdGenerator(),
+                persistence = persistence,
+                eventLogWriterProvider = writerFor(root),
+                eventLogReaderProvider = readerFor(root),
+                eventLogCompactorProvider = {
+                    EventLogCompactionTask { error("compaction boom") }
+                },
+                eventLogCompactionThreshold = 0,
+            )
+            val session = store.openSession("com.test", root.absolutePath)
+            val screen = store.addScreen(session.sessionId, makeScreen())
+
+            val item = store.addItem(session.sessionId, makeDraftItem(screen.screenId, "survives"))
+
+            assertEquals("survives", store.getSession(session.sessionId).items.single { it.itemId == item.itemId }.comment)
+            assertTrue(store.listSessions(includeClosed = true).skippedSessions.isEmpty())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun bootReplayStartsFromCheckpointSnapshotAndAppliesOnlyNewerEvents() {
         val tmp = Files.createTempDirectory("alh-test-checkpoint").toFile()
         try {
