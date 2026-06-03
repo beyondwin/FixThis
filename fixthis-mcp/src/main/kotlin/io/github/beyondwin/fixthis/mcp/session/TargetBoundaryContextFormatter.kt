@@ -47,8 +47,7 @@ internal object TargetBoundaryContextFormatter {
 
     internal fun structuredRows(item: AnnotationDto): List<BoundaryContextRow> = item.boundaryContextRows()
 
-    private fun BoundaryContextRow.compactEntry(): String =
-        "${kind.compactToken}: $summary; box=${node.boundsInWindow.formatBox()}"
+    private fun BoundaryContextRow.compactEntry(): String = "${kind.compactToken}: $summary; box=${node.boundsInWindow.formatBox()}"
 
     private fun AnnotationDto.boundaryContextRows(): List<BoundaryContextRow> {
         if (!hasInteropBoundary()) return emptyList()
