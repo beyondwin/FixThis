@@ -51,6 +51,26 @@ class HandoffEvaluationCorpusTest {
     }
 
     @Test
+    fun highConfidenceCasesPinExpectedOwnerAsTopCandidate() {
+        val failures = HandoffEvaluationFixtures.loadCorpus().cases.mapNotNull { case ->
+            if (case.targetType != "node") return@mapNotNull null
+            if (!case.allowHighConfidence) return@mapNotNull null
+            val ownerContains = case.correctness.ownerContains
+            val topFile = case.sourceCandidates
+                .maxByOrNull { it.score }
+                ?.file
+                ?.substringAfterLast('/')
+                ?: return@mapNotNull "${case.id}: HIGH-eligible case has no source candidates"
+            if (!topFile.contains(ownerContains.substringAfterLast('/'))) {
+                "${case.id}: top-1 candidate $topFile does not match owner $ownerContains"
+            } else {
+                null
+            }
+        }
+        assertTrue(failures.isEmpty(), failures.joinToString(separator = "\n"))
+    }
+
+    @Test
     fun corpusItemsRenderCompactHandoffWithoutDroppingRoles() {
         val corpus = HandoffEvaluationFixtures.loadCorpus()
         val items = corpus.cases.map { HandoffEvaluationFixtures.annotationFor(it) }
