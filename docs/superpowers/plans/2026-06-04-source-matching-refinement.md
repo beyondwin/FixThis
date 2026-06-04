@@ -553,19 +553,44 @@ Thread `extraPatterns` from the scanner's caller (the call site found in Step 1)
 
 - [ ] **Step 7: Resolve + validate + serialize in the task**
 
-In `GenerateFixThisSourceIndexTask.kt`, at the asset-construction site (Step 1):
+ARCHITECTURE CORRECTION (orchestrator, 2026-06-04): `fixthis-gradle-plugin` is a
+**standalone included build** (`includeBuild("fixthis-gradle-plugin")`, its own
+`settings.gradle.kts` with `rootProject.name = "fixthis-gradle-plugin"`). It
+CANNOT declare `implementation(project(":fixthis-compose-core"))` — it cannot
+resolve sibling subprojects, which is exactly why it already MIRRORS core types
+(`SourceIndexAsset` mirrors `SourceIndex`, `SourceSignalKindAsset` mirrors
+`SourceSignalKind`). Core's `TestTagConventionValidation` is therefore NOT
+reachable. Mirror the validation rules locally instead.
+
+Add a small internal validator in the gradle plugin (e.g.
+`fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/TestTagConventionPatternValidator.kt`)
+that mirrors the core `TestTagConventionValidation` contract exactly: anchored
+(`^...$`), length `<= 200`, compiles as a valid regex, `>= 2` capture groups,
+and the ReDoS guard (reject a quantified group — `)` immediately followed by
+`*`/`+`/`{` — and adjacent unbounded quantifiers — two of `*`/`+` in a row).
+Return an `isValid: Boolean` (+ optional reason).
+
+In `GenerateFixThisSourceIndexTask.kt`, at the generator-construction site
+(line ~74, where `SourceIndexGenerator(...)` is built), resolve + HARD-FAIL on
+any invalid pattern:
 
 ```kotlin
-val resolvedConventions = extension.testTagConventionPatterns.get()
-    .filter { io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionValidation.validate(it).isValid }
-require(resolvedConventions.size == extension.testTagConventionPatterns.get().size) {
-    "FixThis: invalid testTagConventionPatterns; each must be anchored (^...$), <=200 chars, with 2 capture groups"
+val requestedConventions = extension.testTagConventionPatterns.get()
+val invalid = requestedConventions.filterNot { TestTagConventionPatternValidator.validate(it).isValid }
+require(invalid.isEmpty()) {
+    "FixThis: invalid testTagConventionPatterns $invalid; each must be anchored (^...\$), <=200 chars, " +
+        "have >=2 capture groups, and avoid backtracking-prone (nested/adjacent unbounded) quantifiers"
 }
 ```
 
-Pass `resolvedConventions.map(::Regex)` into the scanner (Step 6) and set `testTagConventions = resolvedConventions` on the `SourceIndexAsset`.
+Thread `requestedConventions` into `SourceIndexGenerator` (new constructor param
+`conventionPatterns: List<String> = emptyList()`); inside the generator pass
+`conventionPatterns.map(::Regex)` to `KotlinSourceScanner` (Step 6) and set
+`testTagConventions = conventionPatterns` on the returned `SourceIndexAsset`.
 
-Note: `fixthis-compose-core` is already a dependency of `fixthis-gradle-plugin` (the gradle source enums mirror core); confirm with `grep -n "fixthis-compose-core" fixthis-gradle-plugin/build.gradle.kts`. If absent, add it as `implementation(project(":fixthis-compose-core"))` so `TestTagConventionValidation` is reachable.
+Note: the local validator is a deliberate MIRROR of core's
+`TestTagConventionValidation` (same duplication pattern as the enum mirrors).
+Keep the two in sync if either changes.
 
 - [ ] **Step 8: Run test to verify it passes**
 
@@ -575,7 +600,18 @@ Expected: PASS
 - [ ] **Step 9: Update remaining schema-version assertions**
 
 Run: `grep -rn '"1\.2"' fixthis-gradle-plugin/src/test fixthis-mcp/src/test`
-Update each assertion expecting `"1.2"` to `"1.3"` (these are in `GenerateFixThisSourceIndexTaskTest.kt` and `McpProtocolTest.kt`). Run both suites:
+
+Update ONLY the SOURCE-INDEX `schemaVersion` assertions to `"1.3"` — these are
+`GenerateFixThisSourceIndexTaskTest.kt` lines 72 and 129
+(`assertEquals("1.2", index.getValue("schemaVersion")...)`).
+
+DO NOT TOUCH `McpProtocolTest.kt:1526` `put("bridgeProtocolVersion", "1.2")` —
+that is the BRIDGE protocol version, a completely separate constant from the
+source-index schemaVersion. Changing it would corrupt the bridge handshake and
+break `BridgeProtocolVersionSyncTest`. (Orchestrator correction 2026-06-04: the
+original plan wrongly listed McpProtocolTest here.)
+
+Run both suites:
 
 `./gradlew :fixthis-gradle-plugin:test :fixthis-mcp:test --no-daemon`
 Expected: PASS
