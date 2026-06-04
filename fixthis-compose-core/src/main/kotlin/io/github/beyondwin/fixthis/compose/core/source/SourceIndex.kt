@@ -4,8 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SourceIndex(
-    val schemaVersion: String = "1.2",
+    val schemaVersion: String = "1.3",
     val sourceRoot: SourceRoot? = null,
+    val testTagConventions: List<String> = emptyList(),
     val entries: List<SourceIndexEntry> = emptyList(),
 )
 

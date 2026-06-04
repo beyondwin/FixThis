@@ -32,6 +32,18 @@ class SourceIndexSerializationTest {
     }
 
     @Test
+    fun defaultSchemaVersionIs13() {
+        assertEquals("1.3", SourceIndex().schemaVersion)
+    }
+
+    @Test
+    fun roundTripsTestTagConventions() {
+        val withConventions = SourceIndex(testTagConventions = listOf("^([A-Za-z]+)_([A-Za-z0-9]+)$"))
+        val roundTrip = Json.decodeFromString(SourceIndex.serializer(), Json.encodeToString(SourceIndex.serializer(), withConventions))
+        assertEquals(listOf("^([A-Za-z]+)_([A-Za-z0-9]+)$"), roundTrip.testTagConventions)
+    }
+
+    @Test
     fun roundTripsSharedComponentSignal() {
         val index = SourceIndex(
             entries = listOf(

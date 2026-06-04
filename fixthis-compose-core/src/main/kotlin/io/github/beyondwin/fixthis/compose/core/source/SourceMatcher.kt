@@ -1,6 +1,6 @@
 package io.github.beyondwin.fixthis.compose.core.source
 
-import io.github.beyondwin.fixthis.compose.core.identity.TestTagConvention
+import io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionSet
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
@@ -8,6 +8,9 @@ import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import io.github.beyondwin.fixthis.compose.core.model.SourceLocationRef
 
 class SourceMatcher(private val sourceIndex: SourceIndex) {
+    private val conventions: TestTagConventionSet =
+        TestTagConventionSet.fromPatternStrings(sourceIndex.testTagConventions)
+
     fun match(
         selectedNode: FixThisNode?,
         nearbyNodes: List<FixThisNode>,
@@ -248,7 +251,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
             accumulator = accumulator,
         )
 
-        TestTagConvention.parse(testTag)?.let { parsed ->
+        conventions.parse(testTag)?.let { parsed ->
             val conventionScore = addIfMatches(
                 hit = entry.conventionComposableWeightHit(parsed.composableName),
                 term = parsed.composableName,
