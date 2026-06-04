@@ -1,21 +1,7 @@
 package io.github.beyondwin.fixthis.compose.core.identity
 
-object TestTagConvention {
-    // Enumerated convention set: comp:<Name>:<id>, screen:<Name>:<id>,
-    // comp.<Name>.<id>, screen.<Name>.<id>. Name = [A-Za-z][A-Za-z0-9]*,
-    // id = [A-Za-z0-9_-]+. Closed set — no other prefix/delimiter is accepted.
-    // Kept in sync with the gradle-side strictCompTestTagRegex.
-    private val patterns = listOf(
-        Regex("^comp:([A-Za-z][A-Za-z0-9]*):([A-Za-z0-9_-]+)$"),
-        Regex("^screen:([A-Za-z][A-Za-z0-9]*):([A-Za-z0-9_-]+)$"),
-        Regex("^comp\\.([A-Za-z][A-Za-z0-9]*)\\.([A-Za-z0-9_-]+)$"),
-        Regex("^screen\\.([A-Za-z][A-Za-z0-9]*)\\.([A-Za-z0-9_-]+)$"),
-    )
-
-    data class Parsed(
-        val composableName: String,
-        val variant: String,
-    )
+class TestTagConventionSet internal constructor(private val patterns: List<Regex>) {
+    data class Parsed(val composableName: String, val variant: String)
 
     fun parse(testTag: String?): Parsed? {
         if (testTag == null) return null
@@ -25,4 +11,32 @@ object TestTagConvention {
             }
         }
     }
+
+    companion object {
+        private val DEFAULT_PATTERNS = listOf(
+            Regex("^comp:([A-Za-z][A-Za-z0-9]*):([A-Za-z0-9_-]+)$"),
+            Regex("^screen:([A-Za-z][A-Za-z0-9]*):([A-Za-z0-9_-]+)$"),
+            Regex("^comp\\.([A-Za-z][A-Za-z0-9]*)\\.([A-Za-z0-9_-]+)$"),
+            Regex("^screen\\.([A-Za-z][A-Za-z0-9]*)\\.([A-Za-z0-9_-]+)$"),
+        )
+
+        val Default: TestTagConventionSet = TestTagConventionSet(DEFAULT_PATTERNS)
+
+        /** Builds a set from serialized pattern strings; empty input falls back to [Default]. */
+        fun fromPatternStrings(patterns: List<String>): TestTagConventionSet {
+            val valid = patterns.filter { TestTagConventionValidation.validate(it).isValid }
+            return if (valid.isEmpty()) Default else TestTagConventionSet(valid.map(::Regex))
+        }
+    }
+}
+
+object TestTagConvention {
+    data class Parsed(
+        val composableName: String,
+        val variant: String,
+    )
+
+    /** Backward-compatible default-set parse used by identity hints. */
+    fun parse(testTag: String?): Parsed? =
+        TestTagConventionSet.Default.parse(testTag)?.let { Parsed(it.composableName, it.variant) }
 }
