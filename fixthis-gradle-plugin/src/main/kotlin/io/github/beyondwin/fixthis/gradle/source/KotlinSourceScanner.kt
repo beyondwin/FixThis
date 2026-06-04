@@ -8,6 +8,7 @@ internal class KotlinSourceScanner(
     rootProjectDirectory: File,
     private val json: Json,
     private val includeLayoutRendererSignals: Boolean = true,
+    private val conventionPatterns: List<Regex> = emptyList(),
 ) {
     private val projectDirectory = projectDirectory.canonicalFile
     private val rootProjectDirectory = rootProjectDirectory.canonicalFile
@@ -233,7 +234,7 @@ internal class KotlinSourceScanner(
             )
                 .apply {
                     testTags += value
-                    if (value.isStrictCompTestTag()) {
+                    if (value.isStrictCompTestTag(conventionPatterns)) {
                         addSignal(SourceSignalKindAsset.STRICT_COMP_TEST_TAG, value)
                     }
                     addSignal(SourceSignalKindAsset.TEST_TAG, value)

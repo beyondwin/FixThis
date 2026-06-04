@@ -69,7 +69,7 @@ class GenerateFixThisSourceIndexTaskTest {
             entry.jsonObject.getValue("symbols").jsonArray.map { it.jsonPrimitive.content }
         }
 
-        assertEquals("1.2", index.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals("1.3", index.getValue("schemaVersion").jsonPrimitive.content)
         assertTrue(textValues.contains("Checkout title"))
         assertTrue(textValues.contains("Pay now"))
         assertTrue(stringResources.contains("checkout_total"))
@@ -126,7 +126,7 @@ class GenerateFixThisSourceIndexTaskTest {
                 }
             }
 
-        assertEquals("1.2", index.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals("1.3", index.getValue("schemaVersion").jsonPrimitive.content)
         assertEquals("gradle-project", sourceRoot.getValue("kind").jsonPrimitive.content)
         assertEquals(":app", sourceRoot.getValue("gradlePath").jsonPrimitive.content)
         assertEquals("sample", sourceRoot.getValue("projectDir").jsonPrimitive.content)
@@ -413,6 +413,56 @@ class GenerateFixThisSourceIndexTaskTest {
     }
 
     @Test
+    fun `custom test tag convention flows into generated asset and strict signals`() {
+        val projectDir = temporaryFolder.newFolder("project")
+        val sourceFile = projectDir.resolve("src/main/java/io/github/fixthis/sample/MyScreen.kt")
+        sourceFile.parentFile.mkdirs()
+        sourceFile.writeText(
+            """
+            package io.github.beyondwin.fixthis.sample
+
+            import androidx.compose.material3.Text
+            import androidx.compose.runtime.Composable
+            import androidx.compose.ui.Modifier
+            import androidx.compose.ui.platform.testTag
+
+            @Composable
+            fun MyScreen() {
+                Text("Title", modifier = Modifier.testTag("MyScreen_title"))
+            }
+            """.trimIndent(),
+        )
+        val outputDir = projectDir.resolve("build/generated/fixthis/debug/assets")
+
+        runTask(
+            projectDir = projectDir,
+            kotlinSources = listOf(sourceFile),
+            resourceXmlFiles = emptyList(),
+            outputDir = outputDir,
+            testTagConventionPatterns = listOf("^([A-Za-z][A-Za-z0-9]*)_([A-Za-z0-9-]+)$"),
+        )
+
+        val asset = outputDir.resolve("fixthis/fixthis-source-index.json").readText()
+        val index = Json.parseToJsonElement(asset).jsonObject
+
+        assertEquals("1.3", index.getValue("schemaVersion").jsonPrimitive.content)
+        assertTrue(asset.contains("\"testTagConventions\""))
+        assertTrue(asset.contains("MyScreen_title"))
+        assertTrue(asset.contains("\"STRICT_COMP_TEST_TAG\""))
+
+        val conventions = index.getValue("testTagConventions").jsonArray.map { it.jsonPrimitive.content }
+        assertTrue(conventions.contains("^([A-Za-z][A-Za-z0-9]*)_([A-Za-z0-9-]+)$"))
+
+        val signals = index.getValue("entries").jsonArray.flatMap { entry ->
+            entry.jsonObject.getValue("signals").jsonArray.map { signal ->
+                signal.jsonObject.getValue("kind").jsonPrimitive.content to
+                    signal.jsonObject.getValue("value").jsonPrimitive.content
+            }
+        }
+        assertTrue(signals.contains("STRICT_COMP_TEST_TAG" to "MyScreen_title"))
+    }
+
+    @Test
     fun `task is explicitly cacheable`() {
         assertTrue(
             "GenerateFixThisSourceIndexTask must be annotated with @CacheableTask so Gradle can reuse output bytes",
@@ -505,6 +555,7 @@ class GenerateFixThisSourceIndexTaskTest {
         outputDir: File,
         generateSourceIndex: Boolean = true,
         generateProjectMetadata: Boolean = true,
+        testTagConventionPatterns: List<String> = emptyList(),
     ) {
         val project = ProjectBuilder.builder()
             .withProjectDir(projectDir)
@@ -525,6 +576,7 @@ class GenerateFixThisSourceIndexTaskTest {
         task.redactEditableText.set(true)
         task.generateSourceIndex.set(generateSourceIndex)
         task.generateProjectMetadata.set(generateProjectMetadata)
+        task.testTagConventionPatterns.set(testTagConventionPatterns)
 
         task.generate()
     }

@@ -9,6 +9,7 @@ internal class SourceIndexGenerator(
     private val projectPath: String,
     json: Json,
     includeLayoutRendererSignals: Boolean = true,
+    private val conventionPatterns: List<String> = emptyList(),
 ) {
     private val projectDirectory = projectDirectory.canonicalFile
     private val rootProjectDirectory = rootProjectDirectory.canonicalFile
@@ -17,6 +18,7 @@ internal class SourceIndexGenerator(
         rootProjectDirectory,
         json,
         includeLayoutRendererSignals = includeLayoutRendererSignals,
+        conventionPatterns = conventionPatterns.map(::Regex),
     )
     private val xmlScanner = XmlStringResourceScanner(projectDirectory, rootProjectDirectory)
 
@@ -50,6 +52,7 @@ internal class SourceIndexGenerator(
                 projectDir = projectDirectory.relativeToOrSelf(rootProjectDirectory).invariantSeparatorsPath
                     .let { if (it == ".") "" else it },
             ),
+            testTagConventions = conventionPatterns,
             entries = entries.map { it.withSharedComponentSignal(callSites) },
         )
     }

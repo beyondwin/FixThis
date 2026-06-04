@@ -4,8 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 internal data class SourceIndexAsset(
-    val schemaVersion: String = "1.2",
+    val schemaVersion: String = "1.3",
     val sourceRoot: SourceRootAsset? = null,
+    val testTagConventions: List<String> = emptyList(),
     val entries: List<SourceIndexEntryAsset> = emptyList(),
 )
 

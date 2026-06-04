@@ -125,6 +125,7 @@ class FixThisGradlePlugin : Plugin<Project> {
         )
         task.generateSourceIndex.set(extension.generateSourceIndex)
         task.generateProjectMetadata.set(extension.generateProjectMetadata)
+        task.testTagConventionPatterns.set(extension.testTagConventionPatterns)
     }
 
     private fun registerSetupTask(
