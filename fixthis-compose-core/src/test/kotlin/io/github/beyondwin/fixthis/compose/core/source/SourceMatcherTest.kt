@@ -1300,7 +1300,7 @@ class SourceMatcherTest {
     }
 
     @Test
-    fun ranksSharedComponentCallSitesBySelectionEvidenceAndKeepsMediumConfidence() {
+    fun ranksSharedComponentCallSitesBySelectionEvidenceAndKeepsHighConfidenceForConfidentSingleCallSite() {
         val index = SourceIndex(
             entries = listOf(
                 SourceIndexEntry(
@@ -1333,7 +1333,10 @@ class SourceMatcherTest {
             ),
             candidate.callSites,
         )
-        assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
+        // K2: exactly one recommended edit site + a strict comp testTag is a confident
+        // single call-site, so the shared-component cap is relaxed to keep HIGH while the
+        // SHARED_COMPONENT risk flag is still surfaced.
+        assertEquals(SelectionConfidence.HIGH, candidate.confidence)
         assertTrue(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
     }
 

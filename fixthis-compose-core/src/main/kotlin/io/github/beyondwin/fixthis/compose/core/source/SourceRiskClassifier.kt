@@ -12,6 +12,7 @@ internal object SourceRiskClassifier {
     fun applyCaps(
         profile: EvidenceProfile,
         baseConfidence: SelectionConfidence,
+        confidentCallSite: Boolean = false,
     ): Result {
         val flags = mutableListOf<SourceCandidateRisk>()
         var confidence = baseConfidence
@@ -45,7 +46,9 @@ internal object SourceRiskClassifier {
 
         if (profile.hasSharedComponentDefinition) {
             flags.add(SourceCandidateRisk.SHARED_COMPONENT)
-            confidence = capAt(confidence, SelectionConfidence.MEDIUM)
+            if (!confidentCallSite) {
+                confidence = capAt(confidence, SelectionConfidence.MEDIUM)
+            }
         }
 
         return Result(confidence, flags)
