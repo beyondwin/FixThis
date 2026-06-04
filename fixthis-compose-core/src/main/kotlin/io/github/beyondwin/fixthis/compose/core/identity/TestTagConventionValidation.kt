@@ -6,21 +6,29 @@ object TestTagConventionValidation {
     data class Result(val isValid: Boolean, val reason: String? = null)
 
     fun validate(pattern: String): Result {
-        if (pattern.length > MAX_PATTERN_LENGTH) {
-            return Result(false, "pattern exceeds $MAX_PATTERN_LENGTH characters")
-        }
-        if (!pattern.startsWith("^") || !pattern.endsWith("$")) {
-            return Result(false, "pattern must be anchored with ^ and $")
-        }
-        backtrackingReason(pattern)?.let { return Result(false, it) }
+        val reason = sequenceOf(
+            { lengthReason(pattern) },
+            { anchorReason(pattern) },
+            { backtrackingReason(pattern) },
+            { regexReason(pattern) },
+        ).firstNotNullOfOrNull { it() }
+        return Result(reason == null, reason)
+    }
+
+    private fun lengthReason(pattern: String): String? = if (pattern.length > MAX_PATTERN_LENGTH) "pattern exceeds $MAX_PATTERN_LENGTH characters" else null
+
+    private fun anchorReason(pattern: String): String? = if (!pattern.startsWith("^") || !pattern.endsWith("$")) "pattern must be anchored with ^ and $" else null
+
+    private fun regexReason(pattern: String): String? {
         val compiled = runCatching { Regex(pattern) }.getOrElse {
-            return Result(false, "pattern is not a valid regex: ${it.message}")
+            return "pattern is not a valid regex: ${it.message}"
         }
         val groupCount = compiled.toPattern().matcher("").groupCount()
-        if (groupCount < 2) {
-            return Result(false, "pattern must capture group 1 = composable name, group 2 = variant")
+        return if (groupCount < 2) {
+            "pattern must capture group 1 = composable name, group 2 = variant"
+        } else {
+            null
         }
-        return Result(true)
     }
 
     private fun isUnboundedQuantifier(ch: Char): Boolean = ch == '*' || ch == '+'
@@ -33,17 +41,17 @@ object TestTagConventionValidation {
      *
      * Returns a human-readable reason when the pattern is rejected, or `null` when safe.
      */
-    private fun backtrackingReason(pattern: String): String? {
-        for (i in pattern.indices) {
-            val ch = pattern[i]
-            val next = pattern.getOrNull(i + 1) ?: continue
-            if (ch == ')' && (isUnboundedQuantifier(next) || next == '{')) {
-                return "pattern has a quantified group ')$next' (backtracking-prone)"
-            }
-            if (isUnboundedQuantifier(ch) && isUnboundedQuantifier(next)) {
-                return "pattern has adjacent unbounded quantifiers '$ch$next' (backtracking-prone)"
+    private fun backtrackingReason(pattern: String): String? = pattern.indices.firstNotNullOfOrNull { i ->
+        val ch = pattern[i]
+        when (val next = pattern.getOrNull(i + 1)) {
+            null -> null
+            else -> when {
+                ch == ')' && (isUnboundedQuantifier(next) || next == '{') ->
+                    "pattern has a quantified group ')$next' (backtracking-prone)"
+                isUnboundedQuantifier(ch) && isUnboundedQuantifier(next) ->
+                    "pattern has adjacent unbounded quantifiers '$ch$next' (backtracking-prone)"
+                else -> null
             }
         }
-        return null
     }
 }
