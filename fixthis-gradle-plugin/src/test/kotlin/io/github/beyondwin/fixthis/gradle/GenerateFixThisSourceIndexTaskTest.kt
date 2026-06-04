@@ -10,6 +10,7 @@ import org.gradle.api.tasks.CacheableTask
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -460,6 +461,59 @@ class GenerateFixThisSourceIndexTaskTest {
             }
         }
         assertTrue(signals.contains("STRICT_COMP_TEST_TAG" to "MyScreen_title"))
+    }
+
+    @Test
+    fun `invalid test tag convention pattern fails the task`() {
+        val projectDir = temporaryFolder.newFolder("project")
+        val sourceFile = projectDir.resolve("src/main/java/io/github/fixthis/sample/MyScreen.kt")
+        sourceFile.parentFile.mkdirs()
+        sourceFile.writeText(
+            """
+            package io.github.beyondwin.fixthis.sample
+
+            import androidx.compose.material3.Text
+            import androidx.compose.runtime.Composable
+            import androidx.compose.ui.Modifier
+            import androidx.compose.ui.platform.testTag
+
+            @Composable
+            fun MyScreen() {
+                Text("Title", modifier = Modifier.testTag("MyScreen_title"))
+            }
+            """.trimIndent(),
+        )
+        val outputDir = projectDir.resolve("build/generated/fixthis/debug/assets")
+
+        // Unanchored pattern (missing ^/$) must be rejected rather than silently degrading.
+        val unanchored = assertThrows(IllegalArgumentException::class.java) {
+            runTask(
+                projectDir = projectDir,
+                kotlinSources = listOf(sourceFile),
+                resourceXmlFiles = emptyList(),
+                outputDir = outputDir,
+                testTagConventionPatterns = listOf("([A-Za-z]+)_([0-9]+)"),
+            )
+        }
+        assertTrue(
+            "unanchored pattern must fail with a clear message, was: ${unanchored.message}",
+            unanchored.message!!.contains("invalid testTagConventionPatterns"),
+        )
+
+        // ReDoS-shaped (nested unbounded quantifier) pattern must also be rejected.
+        val backtracking = assertThrows(IllegalArgumentException::class.java) {
+            runTask(
+                projectDir = projectDir,
+                kotlinSources = listOf(sourceFile),
+                resourceXmlFiles = emptyList(),
+                outputDir = outputDir,
+                testTagConventionPatterns = listOf("^(a+)+_([0-9]+)$"),
+            )
+        }
+        assertTrue(
+            "ReDoS-shaped pattern must fail with a clear message, was: ${backtracking.message}",
+            backtracking.message!!.contains("invalid testTagConventionPatterns"),
+        )
     }
 
     @Test
