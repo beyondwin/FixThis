@@ -369,6 +369,35 @@
         "releaseCritical": true,
         "promptUsabilityRequired": true
       }
+    },
+    {
+      "id": "strong-call-site-high",
+      "comment": "Make this button blue",
+      "targetType": "node",
+      "selectedText": ["Checkout"],
+      "selectedTestTag": "cartCheckoutButton",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/CartScreen.kt",
+          "line": 64,
+          "score": 96,
+          "confidence": "HIGH",
+          "matchReasons": ["selected text"],
+          "matchedTerms": ["Checkout"]
+        }
+      ],
+      "expectedRole": "CALL_SITE",
+      "expectedTop3Contains": "CartScreen.kt",
+      "allowHighConfidence": true,
+      "correctness": {
+        "category": "call-site",
+        "ownerContains": "CartScreen.kt",
+        "expectedRole": "CALL_SITE",
+        "maxConfidence": "HIGH",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     }
   ]
 }

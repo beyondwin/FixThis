@@ -25,6 +25,7 @@ class HandoffEvaluationCorpusTest {
                 "lazy-list-owner",
                 "navigation-destination-owner",
                 "custom-convention-owner",
+                "strong-call-site-high",
             ),
             corpus.cases.map { it.id },
         )
@@ -92,7 +93,7 @@ class HandoffEvaluationCorpusTest {
         for (case in corpus.cases) {
             assertTrue(markdown.contains("role=${case.expectedRole.renderToken()}"), "Missing role for ${case.id}")
         }
-        assertTrue(markdown.length <= 6500, "v0.6 corpus handoff is ${markdown.length} chars; budget is 6500")
+        assertTrue(markdown.length <= 7200, "v0.6 corpus handoff is ${markdown.length} chars; budget is 7200")
     }
 
     @Test

@@ -30,12 +30,12 @@ class EditSurfaceConfidencePolicyTest {
     }
 
     @Test
-    fun `call site caps high source confidence at medium and explains the basis`() {
+    fun `call site keeps high source confidence under strong evidence`() {
         val result = EditSurfaceConfidencePolicy.score(
             role = EditSurfaceRoleDto.CALL_SITE,
             sourceCandidate = candidate(SelectionConfidence.HIGH),
         )
-        assertEquals(SelectionConfidence.MEDIUM, result.confidence)
+        assertEquals(SelectionConfidence.HIGH, result.confidence)
         assertTrue(result.basis.contains("selected owner composable"))
     }
 

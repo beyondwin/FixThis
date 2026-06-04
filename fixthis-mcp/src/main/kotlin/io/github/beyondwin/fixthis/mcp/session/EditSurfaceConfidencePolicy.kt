@@ -37,7 +37,7 @@ internal object EditSurfaceConfidencePolicy {
                 "layout/style edit applies at the call site",
             )
             EditSurfaceRoleDto.CALL_SITE -> EditSurfaceConfidenceResult(
-                cap(source, SelectionConfidence.MEDIUM),
+                cap(source, SelectionConfidence.HIGH),
                 "call site matched${reasonSuffix(reasons)}",
             )
         }
