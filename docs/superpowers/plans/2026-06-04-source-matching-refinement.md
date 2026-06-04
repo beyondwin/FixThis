@@ -749,8 +749,19 @@ git commit -m "feat(mcp): edit-surface owner resolution honors project testTag c
 **Files:**
 - Modify: `fixthis-mcp/src/test/resources/handoff-eval/v06-corpus.json`
 - Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffEvaluationCorpusTest.kt:16-29`
+- Modify: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffEvaluationFixtures.kt` (add per-case `testTagConventions` field + thread it into `annotationFor`'s `EditSurfaceCandidateService.build` call)
 
 Add a 10th case exercising a custom-convention selection that resolves to the right owner via the candidate's `ownerComposable` (the corpus uses precomputed candidates, so this verifies the role/confidence path end-to-end, not the matcher).
+
+> **Correction (orchestrator, 2026-06-04):** the corpus fixture
+> `HandoffEvaluationFixtures.annotationFor` builds edit surfaces with the
+> DEFAULT `TestTagConventionSet`, which cannot parse a custom underscore tag
+> like `ProfileScreen_heading`. Without threading the custom set into the
+> fixture, `ownerCandidate` returns null and the case produces zero edit-surface
+> candidates (`role = null`), failing the regression gate. To genuinely exercise
+> the C1 custom-convention path the corpus case must carry its own
+> `testTagConventions`, and `annotationFor` must pass them into `build`. Steps
+> below reflect this.
 
 - [ ] **Step 1: Add the case to `v06-corpus.json`**
 
@@ -763,6 +774,7 @@ Append before the closing `]` of `cases` (add a comma after the previous case):
       "targetType": "node",
       "selectedText": ["Profile"],
       "selectedTestTag": "ProfileScreen_heading",
+      "testTagConventions": ["^([A-Za-z][A-Za-z0-9]*)_([A-Za-z0-9-]+)$"],
       "sourceCandidates": [
         {
           "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProfileScreen.kt",
@@ -793,15 +805,36 @@ Append before the closing `]` of `cases` (add a comma after the previous case):
 
 In `HandoffEvaluationCorpusTest.kt`, add `"custom-convention-owner"` to the expected id list in `corpusHasStableV06Coverage`.
 
-- [ ] **Step 3: Run test to verify it passes**
+- [ ] **Step 3: Thread per-case conventions into the fixture**
+
+In `HandoffEvaluationFixtures.kt`:
+- Add `val testTagConventions: List<String> = emptyList()` to the `HandoffEvaluationCase` data class (additive, default keeps all existing 9 cases unchanged).
+- Add the import `import io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionSet`.
+- Change the `annotationFor` build call (currently `EditSurfaceCandidateService.build(item, screenFor(case, node, nearbyNodes))`) to pass the per-case conventions:
+
+```kotlin
+return item.copy(
+    editSurfaceCandidates = EditSurfaceCandidateService.build(
+        item,
+        screenFor(case, node, nearbyNodes),
+        conventions = TestTagConventionSet.fromPatternStrings(case.testTagConventions),
+    ),
+)
+```
+
+`fromPatternStrings(emptyList())` returns `Default`, so the 9 existing cases keep their current behavior; only the new case (with its `testTagConventions`) gets the underscore convention.
+
+- [ ] **Step 4: Run test to verify it passes**
 
 Run: `./gradlew :fixthis-mcp:test --tests "*HandoffEvaluationCorpusTest" --no-daemon`
-Expected: PASS
+Expected: PASS (new case classifies as COMPONENT_DEFINITION at MEDIUM: TEXT_COLOR intent ∈ styleKinds + `hasComponentSignal` true via ownerComposable/convention matchReason; "Make this heading red" trips no copy-intent keyword).
 
-- [ ] **Step 4: Commit**
+Then the full suite: `./gradlew :fixthis-mcp:test --no-daemon` — expect BUILD SUCCESSFUL.
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add fixthis-mcp/src/test/resources/handoff-eval/v06-corpus.json fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffEvaluationCorpusTest.kt
+git add fixthis-mcp/src/test/resources/handoff-eval/v06-corpus.json fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffEvaluationCorpusTest.kt fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/HandoffEvaluationFixtures.kt
 git commit -m "test(mcp): corpus case for custom testTag convention owner"
 ```
 
