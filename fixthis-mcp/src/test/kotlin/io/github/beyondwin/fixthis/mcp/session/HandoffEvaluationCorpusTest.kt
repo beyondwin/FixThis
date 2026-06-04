@@ -24,6 +24,7 @@ class HandoffEvaluationCorpusTest {
                 "ambiguous-repeated-text",
                 "lazy-list-owner",
                 "navigation-destination-owner",
+                "custom-convention-owner",
             ),
             corpus.cases.map { it.id },
         )

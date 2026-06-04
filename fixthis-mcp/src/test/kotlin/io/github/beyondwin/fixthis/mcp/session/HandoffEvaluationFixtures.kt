@@ -3,6 +3,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionSet
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
@@ -30,6 +31,7 @@ internal data class HandoffEvaluationCase(
     val selectedText: List<String> = emptyList(),
     val selectedRole: String? = null,
     val selectedTestTag: String? = null,
+    val testTagConventions: List<String> = emptyList(),
     val targetWarnings: List<String> = emptyList(),
     val expectedBoundaryToken: String? = null,
     val nearbyNodes: List<HandoffEvaluationNode> = emptyList(),
@@ -139,7 +141,13 @@ internal object HandoffEvaluationFixtures {
             comment = case.comment,
             targetReliability = reliabilityFor(case),
         )
-        return item.copy(editSurfaceCandidates = EditSurfaceCandidateService.build(item, screenFor(case, node, nearbyNodes)))
+        return item.copy(
+            editSurfaceCandidates = EditSurfaceCandidateService.build(
+                item,
+                screenFor(case, node, nearbyNodes),
+                conventions = TestTagConventionSet.fromPatternStrings(case.testTagConventions),
+            ),
+        )
     }
 
     fun screenFor(

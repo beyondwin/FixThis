@@ -338,6 +338,37 @@
         "releaseCritical": true,
         "promptUsabilityRequired": true
       }
+    },
+    {
+      "id": "custom-convention-owner",
+      "comment": "Make this heading red",
+      "targetType": "node",
+      "selectedText": ["Profile"],
+      "selectedTestTag": "ProfileScreen_heading",
+      "testTagConventions": ["^([A-Za-z][A-Za-z0-9]*)_([A-Za-z0-9-]+)$"],
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProfileScreen.kt",
+          "line": 33,
+          "score": 70,
+          "confidence": "MEDIUM",
+          "matchReasons": ["selected testTag convention composable"],
+          "matchedTerms": ["ProfileScreen"],
+          "ownerComposable": "ProfileScreen"
+        }
+      ],
+      "expectedRole": "COMPONENT_DEFINITION",
+      "expectedTop3Contains": "ProfileScreen.kt",
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "shared-component",
+        "ownerContains": "ProfileScreen.kt",
+        "expectedRole": "COMPONENT_DEFINITION",
+        "maxConfidence": "MEDIUM",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     }
   ]
 }
