@@ -36,4 +36,21 @@ class TestTagConventionSetTest {
         assertFalse(TestTagConventionValidation.validate("^" + "a".repeat(300) + "$").isValid) // too long
         assertFalse(TestTagConventionValidation.validate("^([A-Za-z]+)$").isValid) // needs 2 groups
     }
+
+    @Test
+    fun validationRejectsBacktrackingProneConstructs() {
+        // Nested unbounded quantifiers: group-close ) immediately quantified.
+        assertFalse(TestTagConventionValidation.validate("^(a+)+$").isValid)
+        assertFalse(TestTagConventionValidation.validate("^(.*)*$").isValid)
+        // Adjacent unbounded quantifiers: two */+ in a row.
+        assertFalse(TestTagConventionValidation.validate("^([A-Za-z]*+)([0-9]+)$").isValid)
+        // Legitimate custom pattern (single bounded quantifiers) stays valid.
+        assertTrue(
+            TestTagConventionValidation.validate("^([A-Za-z][A-Za-z0-9]*)_([A-Za-z0-9-]+)$").isValid,
+        )
+        // A default-set pattern string remains valid after the new guard.
+        assertTrue(
+            TestTagConventionValidation.validate("^comp:([A-Za-z][A-Za-z0-9]*):([A-Za-z0-9_-]+)$").isValid,
+        )
+    }
 }
