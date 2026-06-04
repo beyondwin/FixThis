@@ -14,6 +14,13 @@ GitHub Release page and registry listings as release evidence.
   default SDK locations, release readiness checks a required-check observation
   snapshot, source/interop/SSE claims map to concrete gate evidence, and the
   `fixthis-mcp` detekt baseline budget was ratcheted downward.
+- Source matching refinement: projects can now declare custom
+  `testTagConventions` patterns (Gradle DSL) that thread through the source
+  index (schema 1.3) into edit-surface owner resolution and the matcher;
+  CALL_SITE edit surfaces can reach HIGH confidence under strong evidence; and
+  confident single call-site shared components keep HIGH confidence while
+  ambiguous shared components remain MEDIUM-capped with the SHARED_COMPONENT
+  flag.
 
 ## Compatibility Notes
 
@@ -33,8 +40,10 @@ GitHub Release page and registry listings as release evidence.
 - Persisted JSON changes are additive. Older sessions may omit fields such as
   `editSurfaceCandidates[].role`, `editSurfaceCandidates[].confidenceBasis`,
   ranked shared-component call-site markers, and interop boundary context rows.
-- Current source-index assets use schema version `1.2` and preserve the legacy
-  source-index field lists while adding typed `signals`.
+- Current source-index assets use schema version `1.3` and preserve the legacy
+  source-index field lists while adding typed `signals`. Schema 1.3 additively
+  introduces a `testTagConventions` header field; older `1.2` assets still load
+  without change.
 
 ## Validation Surface
 

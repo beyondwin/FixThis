@@ -36,9 +36,21 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Added source-matching fixture coverage for the shared-component call-site
   recommendation contract, keeping shared definitions medium-capped while
   pinning the recommended call-site signal.
+- Added configurable project `testTagConventions`: projects can declare custom
+  testTag patterns via the Gradle DSL; the patterns flow through the
+  source index into edit-surface owner resolution and the matcher.
 
 ### Changed
 
+- Source-index asset schema bumped to `1.3`; the new `testTagConventions`
+  header field is additive and defaults to empty — older `1.2` assets still
+  load without change.
+- Per-role confidence calibration (CALL_SITE): CALL_SITE edit surfaces can now
+  reach HIGH confidence under strong, unambiguous evidence (previously capped
+  at MEDIUM).
+- Confident single call-site shared components now keep HIGH confidence when
+  exactly one confident call site resolves; ambiguous shared components remain
+  MEDIUM-capped and always carry the SHARED_COMPONENT risk flag.
 - CLI ADB discovery now checks `ANDROID_HOME`, `ANDROID_SDK_ROOT`, project
   `local.properties`, macOS `$HOME/Library/Android/sdk`, and Linux
   `$HOME/Android/Sdk` before falling back to plain `adb`.
