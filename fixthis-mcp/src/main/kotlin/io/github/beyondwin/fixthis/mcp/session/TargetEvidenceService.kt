@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionSet
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
@@ -153,7 +154,13 @@ class TargetEvidenceService(
             targetEvidence = targetEvidence,
             targetReliability = targetReliability,
         )
-        return item.copy(editSurfaceCandidates = EditSurfaceCandidateService.build(item, screen))
+        return item.copy(
+            editSurfaceCandidates = EditSurfaceCandidateService.build(
+                item,
+                screen,
+                conventions = TestTagConventionSet.fromPatternStrings(sourceIndex?.testTagConventions.orEmpty()),
+            ),
+        )
     }
 
     fun targetEvidenceFor(
@@ -207,7 +214,7 @@ class TargetEvidenceService(
         if (item.sourceCandidates.isNotEmpty()) {
             val sourceCandidates = stalenessChecker.annotate(item.sourceCandidates, sourceIndex)
             if (sourceCandidates != item.sourceCandidates) {
-                refreshed = item.withRefreshedSourceEvidence(screen, sourceCandidates)
+                refreshed = item.withRefreshedSourceEvidence(screen, sourceCandidates, sourceIndex)
             }
         }
         return refreshed
@@ -216,6 +223,7 @@ class TargetEvidenceService(
     private fun AnnotationDto.withRefreshedSourceEvidence(
         screen: SnapshotDto,
         sourceCandidates: List<SourceCandidate>,
+        sourceIndex: SourceIndex,
     ): AnnotationDto {
         val targetType = when (target) {
             is AnnotationTargetDto.Area -> FeedbackTargetType.AREA
@@ -247,7 +255,13 @@ class TargetEvidenceService(
             targetEvidence = evidence,
             targetReliability = reliability,
         )
-        return refreshed.copy(editSurfaceCandidates = EditSurfaceCandidateService.build(refreshed, screen))
+        return refreshed.copy(
+            editSurfaceCandidates = EditSurfaceCandidateService.build(
+                refreshed,
+                screen,
+                conventions = TestTagConventionSet.fromPatternStrings(sourceIndex.testTagConventions),
+            ),
+        )
     }
 
     private fun sourceCandidatesFor(

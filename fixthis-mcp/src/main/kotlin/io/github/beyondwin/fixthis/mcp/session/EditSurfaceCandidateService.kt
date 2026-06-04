@@ -1,6 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.session
 
-import io.github.beyondwin.fixthis.compose.core.identity.TestTagConvention
+import io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionSet
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 
 internal object EditSurfaceCandidateService {
@@ -10,6 +10,7 @@ internal object EditSurfaceCandidateService {
     fun build(
         item: AnnotationDto,
         screen: SnapshotDto?,
+        conventions: TestTagConventionSet = TestTagConventionSet.Default,
     ): List<EditSurfaceCandidateDto> {
         val intent = EditIntentAnalyzer.analyze(item, screen)
         val roleDecision = EditSurfaceRoleClassifier.classify(item, intent)
@@ -18,7 +19,7 @@ internal object EditSurfaceCandidateService {
             intent.primaryKind == EditSurfaceKindDto.UNKNOWN &&
                 roleDecision.role != EditSurfaceRoleDto.COPY_OR_DATA &&
                 roleDecision.role != EditSurfaceRoleDto.LAYOUT_OR_STYLE -> emptyList()
-            else -> sourceCandidates(item, screen, intent, roleDecision)
+            else -> sourceCandidates(item, screen, intent, roleDecision, conventions)
         }
         return candidates.distinctBy { it.file to it.line }.take(2)
     }
@@ -28,12 +29,13 @@ internal object EditSurfaceCandidateService {
         screen: SnapshotDto?,
         intent: EditIntent,
         roleDecision: EditSurfaceRoleDecision,
+        conventions: TestTagConventionSet,
     ): List<EditSurfaceCandidateDto> {
         val candidates = mutableListOf<EditSurfaceCandidateDto>()
         if (roleDecision.role == EditSurfaceRoleDto.LAYOUT_OR_STYLE) {
             spacingCandidate(item, intent, roleDecision)?.let { candidates += it }
         }
-        ownerCandidate(item, screen, intent, roleDecision)?.let { candidates += it }
+        ownerCandidate(item, screen, intent, roleDecision, conventions)?.let { candidates += it }
         selectedTextCandidate(item, intent, roleDecision).takeIf { candidates.isEmpty() }?.let { candidates += it }
         if (roleDecision.role != EditSurfaceRoleDto.LAYOUT_OR_STYLE) {
             spacingCandidate(item, intent, roleDecision)?.let { candidates += it }
@@ -66,10 +68,11 @@ internal object EditSurfaceCandidateService {
         screen: SnapshotDto?,
         intent: EditIntent,
         roleDecision: EditSurfaceRoleDecision,
+        conventions: TestTagConventionSet,
     ): EditSurfaceCandidateDto? {
         val owner = TargetOwnerResolver.resolve(item, screen)
-        val ownerComposable = TestTagConvention.parse(item.selectedNode?.testTag)?.composableName
-            ?: TestTagConvention.parse(owner?.node?.testTag)?.composableName
+        val ownerComposable = conventions.parse(item.selectedNode?.testTag)?.composableName
+            ?: conventions.parse(owner?.node?.testTag)?.composableName
             ?: return null
         return item.sourceCandidates.firstOrNull { it.matchesComposable(ownerComposable) }
             ?.toEditSurface(
