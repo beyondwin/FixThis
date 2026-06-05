@@ -10,6 +10,9 @@ class EditSurfaceConfidencePolicyTest {
     private fun candidate(
         confidence: SelectionConfidence,
         reasons: List<String> = listOf("selected owner composable"),
+        riskFlags: List<io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk> = emptyList(),
+        evidenceStrength: io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength? = null,
+        ownerComposable: String? = null,
     ) = SourceCandidate(
         file = "Foo.kt",
         line = 10,
@@ -17,6 +20,9 @@ class EditSurfaceConfidencePolicyTest {
         matchedTerms = emptyList(),
         matchReasons = reasons,
         confidence = confidence,
+        riskFlags = riskFlags,
+        evidenceStrength = evidenceStrength,
+        ownerComposable = ownerComposable,
     )
 
     @Test
@@ -65,6 +71,47 @@ class EditSurfaceConfidencePolicyTest {
             sourceCandidate = candidate(SelectionConfidence.MEDIUM, listOf("selected stringResource")),
         )
         assertEquals(SelectionConfidence.MEDIUM, result.confidence)
+    }
+
+    @Test
+    fun `copy or data promotes to high under strong exact-literal evidence`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COPY_OR_DATA,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                reasons = listOf("selected text"),
+                evidenceStrength = io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG,
+            ),
+        )
+        assertEquals(SelectionConfidence.HIGH, result.confidence)
+        assertTrue(result.basis.contains("exact", ignoreCase = true))
+    }
+
+    @Test
+    fun `copy or data demotes to low under ambiguity even with exact literal`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COPY_OR_DATA,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                reasons = listOf("selected text"),
+                evidenceStrength = io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG,
+                riskFlags = listOf(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.AMBIGUOUS),
+            ),
+        )
+        assertEquals(SelectionConfidence.LOW, result.confidence)
+    }
+
+    @Test
+    fun `copy or data demotes to low under proximity-only evidence`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COPY_OR_DATA,
+            sourceCandidate = candidate(
+                SelectionConfidence.MEDIUM,
+                reasons = listOf("nearby text"),
+                riskFlags = listOf(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.NEARBY_ONLY),
+            ),
+        )
+        assertEquals(SelectionConfidence.LOW, result.confidence)
     }
 
     @Test

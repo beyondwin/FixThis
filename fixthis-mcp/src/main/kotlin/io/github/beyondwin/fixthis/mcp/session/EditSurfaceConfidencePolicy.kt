@@ -15,6 +15,7 @@ internal object EditSurfaceConfidencePolicy {
     ): EditSurfaceConfidenceResult {
         val source = sourceCandidate?.confidence ?: SelectionConfidence.NONE
         val reasons = sourceCandidate?.matchReasons.orEmpty()
+        val evidence = EditSurfaceEvidence.from(sourceCandidate)
         return when (role) {
             EditSurfaceRoleDto.INTEROP_RISK -> EditSurfaceConfidenceResult(
                 SelectionConfidence.LOW,
@@ -28,10 +29,7 @@ internal object EditSurfaceConfidencePolicy {
                 cap(source, SelectionConfidence.MEDIUM),
                 "shared component definition: editing it changes every call site",
             )
-            EditSurfaceRoleDto.COPY_OR_DATA -> EditSurfaceConfidenceResult(
-                cap(source, SelectionConfidence.MEDIUM),
-                "matched copy/data source${reasonSuffix(reasons)}",
-            )
+            EditSurfaceRoleDto.COPY_OR_DATA -> copyOrData(source, evidence, reasons)
             EditSurfaceRoleDto.LAYOUT_OR_STYLE -> EditSurfaceConfidenceResult(
                 cap(source, SelectionConfidence.LOW),
                 "layout/style edit applies at the call site",
@@ -41,6 +39,19 @@ internal object EditSurfaceConfidencePolicy {
                 "call site matched${reasonSuffix(reasons)}",
             )
         }
+    }
+
+    private fun copyOrData(
+        source: SelectionConfidence,
+        evidence: EditSurfaceEvidence,
+        reasons: List<String>,
+    ): EditSurfaceConfidenceResult {
+        val (ceiling, label) = when {
+            evidence.ambiguous || evidence.proximityOnly -> SelectionConfidence.LOW to "nearby only — verify"
+            evidence.strong && evidence.exactCopyMatch -> SelectionConfidence.HIGH to "exact literal"
+            else -> SelectionConfidence.MEDIUM to "matched copy/data"
+        }
+        return EditSurfaceConfidenceResult(cap(source, ceiling), "$label${reasonSuffix(reasons)}")
     }
 
     private val order = listOf(
