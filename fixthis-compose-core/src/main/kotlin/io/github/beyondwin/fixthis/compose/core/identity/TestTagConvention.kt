@@ -37,6 +37,5 @@ object TestTagConvention {
     )
 
     /** Backward-compatible default-set parse used by identity hints. */
-    fun parse(testTag: String?): Parsed? =
-        TestTagConventionSet.Default.parse(testTag)?.let { Parsed(it.composableName, it.variant) }
+    fun parse(testTag: String?): Parsed? = TestTagConventionSet.Default.parse(testTag)?.let { Parsed(it.composableName, it.variant) }
 }

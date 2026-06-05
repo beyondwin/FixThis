@@ -44,7 +44,12 @@ class SourceMatcherConventionTest {
     }
 
     private fun node(testTag: String) = FixThisNode(
-        uid = "n", composeNodeId = 1, rootIndex = 0, treeKind = TreeKind.MERGED,
-        boundsInWindow = FixThisRect(0f, 0f, 10f, 10f), testTag = testTag, path = listOf("root"),
+        uid = "n",
+        composeNodeId = 1,
+        rootIndex = 0,
+        treeKind = TreeKind.MERGED,
+        boundsInWindow = FixThisRect(0f, 0f, 10f, 10f),
+        testTag = testTag,
+        path = listOf("root"),
     )
 }

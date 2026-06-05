@@ -215,8 +215,7 @@ internal fun collectSemanticModifierSignals(
 
 internal fun IntRange.contains(other: IntRange): Boolean = first <= other.first && last >= other.last
 
-internal fun String.isStrictCompTestTag(extraPatterns: List<Regex> = emptyList()): Boolean =
-    strictCompTestTagRegex.matches(this) || extraPatterns.any { it.matches(this) }
+internal fun String.isStrictCompTestTag(extraPatterns: List<Regex> = emptyList()): Boolean = strictCompTestTagRegex.matches(this) || extraPatterns.any { it.matches(this) }
 
 internal fun String.lineStartOffsets(): IntArray {
     val offsets = mutableListOf(0)
