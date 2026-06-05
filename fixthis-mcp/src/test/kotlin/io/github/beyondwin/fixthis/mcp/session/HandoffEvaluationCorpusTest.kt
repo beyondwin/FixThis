@@ -243,5 +243,23 @@ class HandoffEvaluationCorpusTest {
         assertFalse(result.hardFailures.any { it.id == "overconfident-evidence" })
     }
 
+    @Test
+    fun promotionCasesReachExpectedConfidence() {
+        val corpus = HandoffEvaluationFixtures.loadCorpus()
+        val expected = mapOf(
+            "strong-copy-high" to SelectionConfidence.HIGH,
+            "single-owner-component-high" to SelectionConfidence.HIGH,
+            "confident-layout-medium" to SelectionConfidence.MEDIUM,
+        )
+        val failures = expected.mapNotNull { (id, wanted) ->
+            val case = corpus.cases.singleOrNull { it.id == id }
+                ?: return@mapNotNull "$id: case not found in corpus"
+            val top = HandoffEvaluationFixtures.annotationFor(case).editSurfaceCandidates.firstOrNull()
+                ?: return@mapNotNull "$id: produced no edit-surface candidate"
+            if (top.confidence != wanted) "$id: expected $wanted, got ${top.confidence}" else null
+        }
+        assertTrue(failures.isEmpty(), failures.joinToString(separator = "\n"))
+    }
+
     private fun EditSurfaceRoleDto.renderToken(): String = name.lowercase().replace("_", "-")
 }
