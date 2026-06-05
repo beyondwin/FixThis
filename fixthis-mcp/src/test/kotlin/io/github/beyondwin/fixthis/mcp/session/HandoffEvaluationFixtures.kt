@@ -8,6 +8,8 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
 import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
@@ -80,6 +82,8 @@ internal data class HandoffEvaluationSourceCandidate(
     val matchReasons: List<String> = emptyList(),
     val matchedTerms: List<String> = emptyList(),
     val ownerComposable: String? = null,
+    val evidenceStrength: String? = null,
+    val riskFlags: List<String> = emptyList(),
 )
 
 @Serializable
@@ -259,6 +263,8 @@ internal object HandoffEvaluationFixtures {
         matchReasons = matchReasons,
         matchedTerms = matchedTerms,
         ownerComposable = ownerComposable,
+        evidenceStrength = evidenceStrength?.let { SourceEvidenceStrength.valueOf(it) },
+        riskFlags = riskFlags.map { SourceCandidateRisk.valueOf(it) },
     )
 
     private fun HandoffEvaluationNode.toNode(caseId: String): FixThisNode = FixThisNode(

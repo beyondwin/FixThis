@@ -398,6 +398,99 @@
         "releaseCritical": true,
         "promptUsabilityRequired": true
       }
+    },
+    {
+      "id": "strong-copy-high",
+      "comment": "Rename this label to Saved",
+      "targetType": "node",
+      "selectedText": ["Save"],
+      "selectedRole": "Button",
+      "selectedTestTag": "comp:SaveButton:label",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/ProfileScreen.kt",
+          "line": 40,
+          "score": 95,
+          "confidence": "HIGH",
+          "evidenceStrength": "STRONG",
+          "matchReasons": ["selected text"],
+          "matchedTerms": ["Save"],
+          "ownerComposable": "ProfileScreen"
+        }
+      ],
+      "expectedRole": "COPY_OR_DATA",
+      "expectedTop3Contains": "ProfileScreen.kt",
+      "allowHighConfidence": true,
+      "correctness": {
+        "category": "copy-or-data",
+        "ownerContains": "ProfileScreen.kt",
+        "expectedRole": "COPY_OR_DATA",
+        "maxConfidence": "HIGH",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
+    },
+    {
+      "id": "single-owner-component-high",
+      "comment": "Make this card background green",
+      "targetType": "node",
+      "selectedText": ["Summary"],
+      "selectedTestTag": "comp:SummaryCard:summary",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/SummaryCard.kt",
+          "line": 27,
+          "score": 90,
+          "confidence": "HIGH",
+          "evidenceStrength": "STRONG",
+          "matchReasons": ["selected testTag convention composable"],
+          "matchedTerms": ["SummaryCard"],
+          "ownerComposable": "SummaryCard"
+        }
+      ],
+      "expectedRole": "COMPONENT_DEFINITION",
+      "expectedTop3Contains": "SummaryCard.kt",
+      "allowHighConfidence": true,
+      "correctness": {
+        "category": "shared-component",
+        "ownerContains": "SummaryCard.kt",
+        "expectedRole": "COMPONENT_DEFINITION",
+        "maxConfidence": "HIGH",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
+    },
+    {
+      "id": "confident-layout-medium",
+      "comment": "Reduce the bottom spacing by 8dp",
+      "targetType": "node",
+      "selectedText": ["Priority feedback"],
+      "selectedTestTag": "comp:FeedbackCard:priority",
+      "sourceCandidates": [
+        {
+          "file": "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/QueueScreen.kt",
+          "line": 76,
+          "score": 91,
+          "confidence": "HIGH",
+          "matchReasons": ["layout renderer context"],
+          "matchedTerms": ["Priority feedback"],
+          "ownerComposable": "QueueScreen"
+        }
+      ],
+      "expectedRole": "LAYOUT_OR_STYLE",
+      "expectedTop3Contains": "QueueScreen.kt",
+      "allowHighConfidence": false,
+      "correctness": {
+        "category": "layout-or-style",
+        "ownerContains": "QueueScreen.kt",
+        "expectedRole": "LAYOUT_OR_STYLE",
+        "maxConfidence": "MEDIUM",
+        "requiredCautions": [],
+        "releaseCritical": true,
+        "promptUsabilityRequired": true
+      }
     }
   ]
 }
