@@ -25,10 +25,7 @@ internal object EditSurfaceConfidencePolicy {
                 SelectionConfidence.LOW,
                 "visual-area selection: no precise semantics node",
             )
-            EditSurfaceRoleDto.COMPONENT_DEFINITION -> EditSurfaceConfidenceResult(
-                cap(source, SelectionConfidence.MEDIUM),
-                "shared component definition: editing it changes every call site",
-            )
+            EditSurfaceRoleDto.COMPONENT_DEFINITION -> componentDefinition(source, evidence)
             EditSurfaceRoleDto.COPY_OR_DATA -> copyOrData(source, evidence, reasons)
             EditSurfaceRoleDto.LAYOUT_OR_STYLE -> EditSurfaceConfidenceResult(
                 cap(source, SelectionConfidence.LOW),
@@ -39,6 +36,18 @@ internal object EditSurfaceConfidencePolicy {
                 "call site matched${reasonSuffix(reasons)}",
             )
         }
+    }
+
+    private fun componentDefinition(
+        source: SelectionConfidence,
+        evidence: EditSurfaceEvidence,
+    ): EditSurfaceConfidenceResult {
+        val (ceiling, label) = when {
+            evidence.ambiguous -> SelectionConfidence.LOW to "ambiguous owner — verify before editing"
+            !evidence.shared && evidence.strong -> SelectionConfidence.HIGH to "single-owner definition"
+            else -> SelectionConfidence.MEDIUM to "editing it changes every call site"
+        }
+        return EditSurfaceConfidenceResult(cap(source, ceiling), "shared component definition: $label")
     }
 
     private fun copyOrData(

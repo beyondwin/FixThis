@@ -65,6 +65,45 @@ class EditSurfaceConfidencePolicyTest {
     }
 
     @Test
+    fun `component definition promotes to high for non-shared strong definition`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COMPONENT_DEFINITION,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                evidenceStrength = io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG,
+            ),
+        )
+        assertEquals(SelectionConfidence.HIGH, result.confidence)
+    }
+
+    @Test
+    fun `component definition stays medium for shared definition even when strong`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COMPONENT_DEFINITION,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                evidenceStrength = io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG,
+                riskFlags = listOf(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.SHARED_COMPONENT),
+            ),
+        )
+        assertEquals(SelectionConfidence.MEDIUM, result.confidence)
+        assertTrue(result.basis.contains("call site", ignoreCase = true))
+    }
+
+    @Test
+    fun `component definition demotes to low under ambiguity`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COMPONENT_DEFINITION,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                evidenceStrength = io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG,
+                riskFlags = listOf(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.AMBIGUOUS),
+            ),
+        )
+        assertEquals(SelectionConfidence.LOW, result.confidence)
+    }
+
+    @Test
     fun `copy or data with a string-resource match is medium`() {
         val result = EditSurfaceConfidencePolicy.score(
             role = EditSurfaceRoleDto.COPY_OR_DATA,
