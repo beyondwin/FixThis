@@ -154,6 +154,24 @@ class EditSurfaceConfidencePolicyTest {
     }
 
     @Test
+    fun `layout or style promotes to medium for a confident call site`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
+            sourceCandidate = candidate(SelectionConfidence.HIGH, ownerComposable = "QueueScreen"),
+        )
+        assertEquals(SelectionConfidence.MEDIUM, result.confidence)
+    }
+
+    @Test
+    fun `layout or style stays low without a confident call site`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
+            sourceCandidate = candidate(SelectionConfidence.MEDIUM, ownerComposable = "QueueScreen"),
+        )
+        assertEquals(SelectionConfidence.LOW, result.confidence)
+    }
+
+    @Test
     fun `null source candidate yields none confidence`() {
         val result = EditSurfaceConfidencePolicy.score(
             role = EditSurfaceRoleDto.CALL_SITE,

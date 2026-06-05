@@ -27,10 +27,7 @@ internal object EditSurfaceConfidencePolicy {
             )
             EditSurfaceRoleDto.COMPONENT_DEFINITION -> componentDefinition(source, evidence)
             EditSurfaceRoleDto.COPY_OR_DATA -> copyOrData(source, evidence, reasons)
-            EditSurfaceRoleDto.LAYOUT_OR_STYLE -> EditSurfaceConfidenceResult(
-                cap(source, SelectionConfidence.LOW),
-                "layout/style edit applies at the call site",
-            )
+            EditSurfaceRoleDto.LAYOUT_OR_STYLE -> layoutOrStyle(source, evidence)
             EditSurfaceRoleDto.CALL_SITE -> EditSurfaceConfidenceResult(
                 cap(source, SelectionConfidence.HIGH),
                 "call site matched${reasonSuffix(reasons)}",
@@ -48,6 +45,14 @@ internal object EditSurfaceConfidencePolicy {
             else -> SelectionConfidence.MEDIUM to "editing it changes every call site"
         }
         return EditSurfaceConfidenceResult(cap(source, ceiling), "shared component definition: $label")
+    }
+
+    private fun layoutOrStyle(
+        source: SelectionConfidence,
+        evidence: EditSurfaceEvidence,
+    ): EditSurfaceConfidenceResult {
+        val ceiling = if (evidence.confidentCallSite) SelectionConfidence.MEDIUM else SelectionConfidence.LOW
+        return EditSurfaceConfidenceResult(cap(source, ceiling), "layout/style edit applies at the call site")
     }
 
     private fun copyOrData(
