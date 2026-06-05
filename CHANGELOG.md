@@ -48,6 +48,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 - Per-role confidence calibration (CALL_SITE): CALL_SITE edit surfaces can now
   reach HIGH confidence under strong, unambiguous evidence (previously capped
   at MEDIUM).
+- Per-role confidence calibration (COPY_OR_DATA, COMPONENT_DEFINITION,
+  LAYOUT_OR_STYLE): evidence-conditional ceilings now promote or demote
+  confidence for these three roles based on source-candidate evidence signals
+  (exact literal match, single-owner confidence, call-site match). No
+  wire-schema change; `confidenceBasis` is already emitted by the prior phase.
 - Confident single call-site shared components now keep HIGH confidence when
   exactly one confident call site resolves; ambiguous shared components remain
   MEDIUM-capped and always carry the SHARED_COMPONENT risk flag.
