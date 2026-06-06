@@ -20,6 +20,7 @@ Every ADR must include Context, Decision, Consequences, and Alternatives Conside
 - [ADR-0006: Stable Target Evidence Open Source Compatibility](0006-stable-target-evidence-open-source-compatibility.md)
 - [ADR-0007: Feedback Console Owns Connection Recovery](0007-feedback-console-connection-recovery.md)
 - [ADR-0008: Session Package Decomposition](0008-session-package-decomposition.md)
+- [ADR-0009: Feedback Target Type Polymorphism](0009-feedback-target-type-polymorphism.md)
 - [ADR 2026-05-14: Bridge Server Concurrency Model](2026-05-14-bridge-server-concurrency.md)
 
 ## Superseded ADRs
