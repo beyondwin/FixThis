@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.connection
 
 import io.github.beyondwin.fixthis.cli.AdbDevice
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
@@ -9,6 +9,8 @@ import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionDetails
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 import io.github.beyondwin.fixthis.mcp.console.toConnectionDevice
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.SessionDto
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
