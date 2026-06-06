@@ -4,6 +4,7 @@ import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditSurfaceEvidence
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

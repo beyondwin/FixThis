@@ -14,6 +14,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditSurfaceCandidateService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

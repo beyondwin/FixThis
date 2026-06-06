@@ -2,6 +2,8 @@
 
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditIntentLexicon
+import io.github.beyondwin.fixthis.mcp.session.editsurface.RawEditIntentSignal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

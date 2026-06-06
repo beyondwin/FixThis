@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.editsurface
 
 internal enum class RawEditIntentSignal {
     COLOR_STYLE,

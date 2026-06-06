@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditIntentClassifier
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

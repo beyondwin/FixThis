@@ -16,6 +16,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditIntentAnalyzer
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditSurfaceRoleClassifier
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

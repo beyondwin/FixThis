@@ -13,6 +13,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditIntentAnalyzer
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditIntentClassifier
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
