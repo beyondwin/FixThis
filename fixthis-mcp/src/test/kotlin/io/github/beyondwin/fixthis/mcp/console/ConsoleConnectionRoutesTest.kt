@@ -10,7 +10,7 @@ import io.github.beyondwin.fixthis.mcp.fixtures.assertDoesNotClearDraftOrPreview
 import io.github.beyondwin.fixthis.mcp.fixtures.javascriptFunctionBody
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject

@@ -1,14 +1,14 @@
 package io.github.beyondwin.fixthis.mcp.session.eventlog
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File

@@ -4,10 +4,10 @@ import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
 import io.github.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import java.nio.file.Files

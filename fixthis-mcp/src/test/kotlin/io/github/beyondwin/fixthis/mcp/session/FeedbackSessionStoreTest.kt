@@ -24,6 +24,10 @@ import io.github.beyondwin.fixthis.mcp.session.dto.toDomainSession
 import io.github.beyondwin.fixthis.mcp.session.dto.toSessionDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

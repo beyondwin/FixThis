@@ -9,8 +9,8 @@ import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionDetails
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 import io.github.beyondwin.fixthis.mcp.console.toConnectionDevice
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject

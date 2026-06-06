@@ -5,7 +5,7 @@ import io.github.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.github.beyondwin.fixthis.mcp.fixtures.FakeLongs
 import io.github.beyondwin.fixthis.mcp.fixtures.SessionScreenshotBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import java.net.URLEncoder
 import java.nio.file.Files
 import kotlin.test.Test

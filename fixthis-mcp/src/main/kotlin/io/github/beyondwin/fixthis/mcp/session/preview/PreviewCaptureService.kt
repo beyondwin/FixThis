@@ -5,13 +5,13 @@ import io.github.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotFingerpr
 import io.github.beyondwin.fixthis.compose.core.model.FixThisError
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.toDomainSnapshot
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.serialization.json.JsonObject

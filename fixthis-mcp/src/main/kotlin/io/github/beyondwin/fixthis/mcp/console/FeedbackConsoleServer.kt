@@ -4,9 +4,9 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import io.github.beyondwin.fixthis.cli.BridgeConnectionException
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.SESSION_CLOSED_PREFIX
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.SESSION_CLOSED_PREFIX
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress

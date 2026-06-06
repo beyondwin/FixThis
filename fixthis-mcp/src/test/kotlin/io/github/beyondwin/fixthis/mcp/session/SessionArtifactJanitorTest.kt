@@ -1,5 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.SessionArtifactJanitor
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertFalse

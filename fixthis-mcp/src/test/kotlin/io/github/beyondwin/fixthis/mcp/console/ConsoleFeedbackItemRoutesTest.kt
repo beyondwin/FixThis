@@ -14,13 +14,13 @@ import io.github.beyondwin.fixthis.mcp.fixtures.SecondCaptureIllegalArgumentBrid
 import io.github.beyondwin.fixthis.mcp.fixtures.SequencedFingerprintBridge
 import io.github.beyondwin.fixthis.mcp.fixtures.captureFakeScreenForTest
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject

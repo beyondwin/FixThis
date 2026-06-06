@@ -2,8 +2,8 @@ package io.github.beyondwin.fixthis.mcp.console
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionSummary
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionSummary
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject

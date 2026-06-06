@@ -6,6 +6,7 @@ import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionAction
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import io.github.beyondwin.fixthis.mcp.session.connection.ConsoleConnectionService
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals

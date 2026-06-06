@@ -3,7 +3,7 @@ package io.github.beyondwin.fixthis.mcp.fixtures
 import io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import java.nio.file.Files
 

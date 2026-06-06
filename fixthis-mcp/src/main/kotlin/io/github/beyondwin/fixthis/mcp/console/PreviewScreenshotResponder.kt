@@ -1,10 +1,10 @@
 package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
 import java.io.File
 
 internal class PreviewScreenshotResponder(

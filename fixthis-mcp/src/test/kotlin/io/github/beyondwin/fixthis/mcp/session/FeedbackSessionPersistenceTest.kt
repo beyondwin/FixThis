@@ -9,6 +9,11 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionIndex
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionSummary
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

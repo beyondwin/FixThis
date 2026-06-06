@@ -21,7 +21,7 @@ class ArchitectureHotspotBudgetTest {
         // These are ratchets. When a file shrinks, lower its budget in the same commit.
         // Separate maps keep production source growth from being hidden by large tests.
         val productionKotlinBudgets = mapOf(
-            "${mcpMain}session/FeedbackSessionStoreDelegate.kt" to 700,
+            "${mcpMain}session/lifecycle/store/FeedbackSessionStoreDelegate.kt" to 700,
             "${mcpMain}session/SessionReplayEngine.kt" to 340,
             "${mcpMain}tools/FixThisToolDispatcher.kt" to 70,
             "${mcpMain}tools/ToolCallSupport.kt" to 70,
@@ -50,12 +50,12 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_536,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
-            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_309,
+            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_313,
             "${mcpConsoleTest}ConsoleAssetContractTest.kt" to 1_085,
             "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 920,
         )
         val remediationBudgets = mapOf(
-            "${mcpMain}session/FeedbackSessionStore.kt" to 250,
+            "${mcpMain}session/lifecycle/store/FeedbackSessionStore.kt" to 250,
             "${sidekickBridge}BridgeServer.kt" to 180,
             "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt" to 260,
             "fixthis-mcp/src/main/console/rendering.js" to 200,

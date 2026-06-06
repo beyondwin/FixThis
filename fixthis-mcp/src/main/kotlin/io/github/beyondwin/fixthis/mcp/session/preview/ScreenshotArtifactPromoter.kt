@@ -1,7 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session.preview
 
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
 import java.io.File
 
 class ScreenshotArtifactPromoter {

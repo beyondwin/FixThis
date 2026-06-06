@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewRecord
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSaveReservationTracker
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache

@@ -1,7 +1,14 @@
 @file:Suppress("MaxLineLength")
 
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.lifecycle.store
 
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionHandoffMutation
+import io.github.beyondwin.fixthis.mcp.session.SessionEventJournal
+import io.github.beyondwin.fixthis.mcp.session.SessionEventPayloads
+import io.github.beyondwin.fixthis.mcp.session.SessionMutation
+import io.github.beyondwin.fixthis.mcp.session.SessionMutationService
+import io.github.beyondwin.fixthis.mcp.session.SessionReducer
+import io.github.beyondwin.fixthis.mcp.session.SessionReplayEngine
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto

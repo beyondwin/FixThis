@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.lifecycle.store
 
 internal class SessionArtifactJanitor(
     private val persistence: FeedbackSessionPersistence?,

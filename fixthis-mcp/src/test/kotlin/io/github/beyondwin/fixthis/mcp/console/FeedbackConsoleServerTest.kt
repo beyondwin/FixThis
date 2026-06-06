@@ -9,7 +9,7 @@ import io.github.beyondwin.fixthis.mcp.fixtures.consoleTokenFrom
 import io.github.beyondwin.fixthis.mcp.fixtures.rawHttpResponseCode
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.InputStream
 import java.io.OutputStream

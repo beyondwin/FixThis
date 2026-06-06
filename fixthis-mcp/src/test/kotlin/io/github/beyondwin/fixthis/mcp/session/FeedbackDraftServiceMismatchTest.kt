@@ -8,6 +8,7 @@ import io.github.beyondwin.fixthis.mcp.session.draft.FeedbackDraftService
 import io.github.beyondwin.fixthis.mcp.session.draft.PreviewSaveFingerprintCheck
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
