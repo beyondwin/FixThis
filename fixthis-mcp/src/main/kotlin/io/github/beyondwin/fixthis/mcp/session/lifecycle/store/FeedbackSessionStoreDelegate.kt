@@ -13,7 +13,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.withMigratedItemSequenceCount
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.FeedbackSessionHandoffMutation
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventJournal
-import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloads
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloadFactory
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutation
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutationService
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReducer
@@ -21,18 +21,8 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReplayEngi
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactionTask
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonObjectBuilder
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.put
 import java.util.UUID
-
-private val eventLogJson = Json {
-    encodeDefaults = true
-    ignoreUnknownKeys = true
-}
 
 private const val COMPACTION_FAILURE_EMIT_EVERY = 50
 private const val COMPACTION_FAILURE_EMIT_WINDOW_MILLIS = 60_000L
@@ -239,7 +229,7 @@ internal class FeedbackSessionStoreDelegate(
     fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto = withEventBackedMutation(sessionId, "addScreen") {
         val session = getSessionLocked(sessionId)
         val (updated, captured) = mutations.addScreen(session, screen)
-        SessionEventPayloads.screen(sessionId, captured) to {
+        SessionEventPayloadFactory.screen(sessionId, captured) to {
             save(updated)
             sessions[sessionId] = updated
             captured
@@ -285,7 +275,7 @@ internal class FeedbackSessionStoreDelegate(
                 nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
                 updatedAtEpochMillis = now,
             )
-            addScreenWithItemsPayload(
+            SessionEventPayloadFactory.screenWithItems(
                 sessionId = sessionId,
                 eventMetadata = eventMetadata,
                 screen = captured,
@@ -294,25 +284,10 @@ internal class FeedbackSessionStoreDelegate(
         },
     )
 
-    private fun addScreenWithItemsPayload(
-        sessionId: String,
-        eventMetadata: JsonObject,
-        screen: SnapshotDto,
-        items: List<AnnotationDto>,
-    ): JsonObject = buildJsonObject {
-        put("sessionId", sessionId)
-        eventMetadata.forEach { (key, value) -> put(key, value) }
-        put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), screen))
-        putItems(items)
-    }
-
     fun deleteScreen(sessionId: String, screenId: String): SessionDto = withEventBackedMutation(sessionId, "deleteScreen") {
         val session = getSessionLocked(sessionId)
         val updated = mutations.deleteScreen(session, screenId)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("screenId", screenId)
-        } to {
+        SessionEventPayloadFactory.deleteScreen(sessionId, screenId) to {
             // Note: disk artifact deletion is NOT replayed on boot (replay is SessionDto-only).
             commitSessionMutation(session, updated).also {
                 artifactJanitor.deleteScreenArtifacts(sessionId, screenId)
@@ -323,10 +298,7 @@ internal class FeedbackSessionStoreDelegate(
     fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto = withEventBackedMutation(sessionId, "addItem") {
         val session = getSessionLocked(sessionId)
         val (updated, created) = mutations.addItem(session, item)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("item", eventLogJson.encodeToJsonElement(AnnotationDto.serializer(), created))
-        } to {
+        SessionEventPayloadFactory.item(sessionId, created) to {
             save(updated)
             sessions[sessionId] = updated
             created
@@ -339,7 +311,7 @@ internal class FeedbackSessionStoreDelegate(
             items = session.items.filter { it.delivery != FeedbackDelivery.DRAFT },
             updatedAtEpochMillis = clock(),
         )
-        SessionEventPayloads.items(sessionId, updated.items) to {
+        SessionEventPayloadFactory.items(sessionId, updated.items) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -360,7 +332,7 @@ internal class FeedbackSessionStoreDelegate(
         ) ?: throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
         val batch = prepared.batch
         val updated = prepared.session
-        SessionEventPayloads.handoff(sessionId, batch, updated.items) to {
+        SessionEventPayloadFactory.handoff(sessionId, batch, updated.items) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -386,7 +358,7 @@ internal class FeedbackSessionStoreDelegate(
             items = updatedItems,
             updatedAtEpochMillis = now,
         )
-        SessionEventPayloads.items(sessionId, updatedItems) to {
+        SessionEventPayloadFactory.items(sessionId, updatedItems) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -408,7 +380,7 @@ internal class FeedbackSessionStoreDelegate(
     ): AnnotationDto = withEventBackedMutation(sessionId, "updateItemStatus") {
         val session = getSessionLocked(sessionId)
         val (updated, item) = mutations.updateItemStatus(session, itemId, status, agentSummary)
-        SessionEventPayloads.items(sessionId, updated.items) to {
+        SessionEventPayloadFactory.items(sessionId, updated.items) to {
             commitSessionMutation(session, updated)
             item
         }
@@ -439,7 +411,7 @@ internal class FeedbackSessionStoreDelegate(
         val item = updatedItem
             ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-        SessionEventPayloads.items(sessionId, updatedItems) to {
+        SessionEventPayloadFactory.items(sessionId, updatedItems) to {
             commitSessionMutation(session, updated)
             item
         }
@@ -472,16 +444,7 @@ internal class FeedbackSessionStoreDelegate(
         }
         if (!found) throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put(
-                "items",
-                eventLogJson.encodeToJsonElement(
-                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    updatedItems,
-                ),
-            )
-        } to {
+        SessionEventPayloadFactory.updateDraftItems(sessionId, updatedItems) to {
             save(updated)
             sessions[sessionId] = updated
             updated
@@ -503,10 +466,7 @@ internal class FeedbackSessionStoreDelegate(
             handoffBatches = updatedBatches,
             updatedAtEpochMillis = clock(),
         )
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("itemId", itemId)
-        } to {
+        SessionEventPayloadFactory.deleteItem(sessionId, itemId) to {
             save(updated)
             sessions[sessionId] = updated
             updated
@@ -596,16 +556,6 @@ internal class FeedbackSessionStoreDelegate(
 
     private fun compactionLock(sessionId: String): Any = synchronized(lock) {
         compactionLocks.getOrPut(sessionId) { Any() }
-    }
-
-    private fun JsonObjectBuilder.putItems(items: List<AnnotationDto>) {
-        put(
-            "items",
-            eventLogJson.encodeToJsonElement(
-                kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                items,
-            ),
-        )
     }
 
     // ------------------------------------------------------------------
