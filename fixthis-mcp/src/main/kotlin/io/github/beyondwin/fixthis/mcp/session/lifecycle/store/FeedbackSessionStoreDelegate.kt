@@ -12,6 +12,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.migratedNextItemSequenceNumbe
 import io.github.beyondwin.fixthis.mcp.session.dto.withMigratedItemSequenceCounter
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.FeedbackSessionHandoffMutation
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionBootReplayer
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventJournal
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloadFactory
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutation
@@ -72,7 +73,12 @@ internal class FeedbackSessionStoreDelegate(
         readerProvider = eventLogReaderProvider,
     )
     private val replayEngine = SessionReplayEngine(journal, persistence)
-    private val replaySkippedSessions = mutableMapOf<String, SkippedFeedbackSession>()
+    private val bootReplayer = SessionBootReplayer(
+        replayEngine = replayEngine,
+        journal = journal,
+        persistence = persistence,
+        hasEventLog = eventLogReaderProvider != null,
+    )
     private val compactionCoordinator = if (compactionFailureSink == null) {
         SessionCompactionCoordinator(
             eventLogCompactorProvider = eventLogCompactorProvider,
@@ -91,34 +97,10 @@ internal class FeedbackSessionStoreDelegate(
     private val artifactJanitor = SessionArtifactJanitor(persistence)
 
     init {
-        persistence?.let { p ->
-            p.list(includeClosed = true).sessions
-                .sortedBy { it.updatedAtEpochMillis }
-                .forEach { summary ->
-                    runCatching { p.load(summary.sessionId) }
-                        .getOrNull()
-                        ?.let { session ->
-                            store.put(session)
-                            if (session.status != SessionStatusDto.CLOSED) currentSessionId = session.sessionId
-                        }
-                }
-        }
-
-        // Boot replay: if readerProvider is wired, replay events for every known session.
-        // Simplification (A.4): for sessions that have events, reset items/screens/handoffBatches
-        // to empty then replay all events. The session shell (id, packageName, projectRoot,
-        // createdAt, status) is preserved from the persistence snapshot.
-        if (eventLogReaderProvider != null) {
-            val sessionIds = store.ids()
-            for (sid in sessionIds) {
-                replaySessionEvents(sid)
-            }
-            // Re-derive currentSessionId from post-replay statuses
-            currentSessionId = store.all()
-                .filter { it.status != SessionStatusDto.CLOSED }
-                .maxByOrNull { it.updatedAtEpochMillis }
-                ?.sessionId
-        }
+        // Boot reconstruction (persistence preload + optional event-log replay) is delegated to
+        // SessionBootReplayer. It runs lock-free at construction (lock is not held yet) and returns
+        // the derived current-session pointer; currentSessionId stays a delegate field.
+        currentSessionId = bootReplayer.replayAll(store, journal).currentSessionId
     }
 
     // ------------------------------------------------------------------
@@ -189,7 +171,7 @@ internal class FeedbackSessionStoreDelegate(
         packageName: String? = null,
         includeClosed: Boolean = false,
     ): FeedbackSessionList = synchronized(lock) {
-        val replaySkipped = replaySkippedSessionList(packageName, includeClosed)
+        val replaySkipped = bootReplayer.skippedList(packageName, includeClosed)
         persistence?.list(packageName, includeClosed)
             ?.let { list -> list.copy(skippedSessions = list.skippedSessions + replaySkipped) }
             ?: FeedbackSessionList(
@@ -505,52 +487,6 @@ internal class FeedbackSessionStoreDelegate(
             throw sessionClosed(type)
         }
     }
-
-    // ------------------------------------------------------------------
-    // Boot replay
-    // ------------------------------------------------------------------
-
-    /**
-     * Replays all events for [sessionId] from the event log.
-     *
-     * Simplification (A.4): resets items, screens, and handoffBatches to empty
-     * before applying events, so the snapshot and event log don't double-count.
-     * Session identity fields (id, packageName, projectRoot, createdAt, status)
-     * are preserved from the persistence snapshot if available.
-     *
-     * This method must only be called from the init block (not synchronized) since
-     * [lock] is not held yet at construction time.
-     */
-    private fun replaySessionEvents(sessionId: String) {
-        val reader = journal.reader(sessionId)
-        val shell = store.find(sessionId)
-        if (reader != null && shell != null) {
-            val replayed = replayEngine.replay(
-                sessionId = sessionId,
-                shell = shell,
-                reader = reader,
-                recordSkipped = ::recordReplaySkippedSession,
-            )
-            store.put(replayed)
-        }
-    }
-
-    private fun recordReplaySkippedSession(sessionId: String, path: String, message: String) {
-        replaySkippedSessions[sessionId] = SkippedFeedbackSession(path = path, message = message)
-    }
-
-    private fun replaySkippedSessionList(
-        packageName: String?,
-        includeClosed: Boolean,
-    ): List<SkippedFeedbackSession> = replaySkippedSessions
-        .filter { (sessionId, _) ->
-            val session = store.find(sessionId)
-            session != null &&
-                (packageName == null || session.packageName == packageName) &&
-                (includeClosed || session.status != SessionStatusDto.CLOSED)
-        }
-        .values
-        .toList()
 
     // ------------------------------------------------------------------
     // Private helpers — unchanged
