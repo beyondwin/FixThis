@@ -2,9 +2,10 @@
 
 Date: 2026-06-06
 Status: Draft for review
-Scope: `fixthis-mcp` `session` package internal structure, intra-module boundary
-enforcement, and a follow-up lift of MCP-independent edit-surface logic into
-`fixthis-compose-core`.
+Scope: `fixthis-mcp` `session` package internal structure and intra-module
+boundary enforcement. A later edit-surface domain lift is documented as a
+separate follow-up because the current implementation is still coupled to MCP
+DTOs.
 Related implementation plan:
 [`../plans/2026-06-06-session-package-decomposition-implementation.md`](../plans/2026-06-06-session-package-decomposition-implementation.md)
 
@@ -20,12 +21,13 @@ apart, so each new feature adds another file to the same flat directory and the
 only backstop is the per-file line-count ratchet in
 `ArchitectureHotspotBudgetTest`.
 
-This is **not a behavior change and not a product rewrite**. The dominant work is
-a set of behavior-preserving package moves that group files by responsibility,
-followed by an intra-`session` import rule that keeps the groups apart, and
-finally a real architecture improvement: lifting the edit-surface domain logic
-that is already MCP-independent up into `fixthis-compose-core`, paying down an
-existing ADR-0002 violation.
+This is **not a behavior change and not a product rewrite**. The work is a set
+of behavior-preserving package moves that group files by responsibility,
+followed by an intra-`session` import rule that keeps the groups apart. Earlier
+drafts also bundled an edit-surface lift into `fixthis-compose-core`; actual code
+review showed that was not executable as a mechanical follow-up because the
+edit-surface files reference MCP DTOs from the same package without imports.
+That debt remains real, but it needs its own model/mapping spec.
 
 The module-level boundaries are already healthy and stay unchanged:
 
@@ -48,10 +50,14 @@ grep -rl "import android\." fixthis-compose-core/src/main   # -> no output (clea
 # session package inventory
 wc -l fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/*.kt | sort -rn
 
-# coupling probes for the editsurface lift
+# coupling probes for the editsurface lift (imports alone are not enough; same-package
+# references to SessionDtoModels must also be checked)
 grep "^import" fixthis-mcp/.../session/TargetEvidenceService.kt | grep -v kotlin
 grep "^import" fixthis-mcp/.../session/EditSurfaceCandidateService.kt | grep -v kotlin
 grep "^import" fixthis-mcp/.../session/EditIntentLexicon.kt | grep -v kotlin
+grep -nE "AnnotationDto|SnapshotDto|EditSurface.*Dto|AnnotationTargetDto" \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditSurface*.kt \
+  fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/EditIntent*.kt
 
 # existing guardrails
 find . -path '*/test/*' -name '*.kt' | grep -iE 'arch|boundary'
@@ -93,6 +99,9 @@ fixthis-gradle-plugin/     debug DI + source-index asset generation
 4. The full module test matrix in
    [`CONTRIBUTING.md`](../../../CONTRIBUTING.md#required-local-checks) plus
    `detekt` and `spotlessCheck`.
+5. `graphify-out/` is an ignored navigation aid in this repo. Run
+   `graphify update .` after structural source/doc moves, but do not commit
+   `graphify-out/`.
 
 ### The problem, quantified
 
@@ -118,8 +127,8 @@ Flat `session/` root files by responsibility (line counts from `wc -l`):
    sub-packages so that "files that change together live together."
 2. Make the grouping **enforced**, not merely documented: an intra-`session`
    import rule and a layout-guard test prevent regression to a flat dump.
-3. Pay down the ADR-0002 violation: edit-surface domain logic that has no MCP
-   dependency belongs in `compose-core`, not `mcp/session`.
+3. Preserve the observed edit-surface DTO coupling while creating package
+   boundaries that make a later ADR-0002 cleanup tractable.
 4. Preserve **all** runtime behavior, persisted JSON field names, wire schema,
    and public MCP tool/resource contracts. Zero functional change.
 5. Set up the structural boundary that relieves `FeedbackSessionStoreDelegate.kt`
@@ -135,8 +144,15 @@ Flat `session/` root files by responsibility (line counts from `wc -l`):
 - No change to module-level Gradle structure. Per the multi-module lecture
   guidance (Hong, unit 320770), splitting these small units into separate Gradle
   modules adds DI/build overhead without payoff; **package separation is the
-  correct granularity**. The only cross-module move is the `editsurface` lift
-  into the existing `compose-core` module (Phase 5).
+  correct granularity**.
+- No `editsurface` lift into `compose-core` in this package-decomposition pass.
+  The current code uses `AnnotationDto`, `SnapshotDto`, `EditSurfaceCandidateDto`,
+  `EditSurfaceRoleDto`, `EditSurfaceKindDto`, `EditSurfaceReasonDto`, and
+  `AnnotationTargetDto` from `SessionDtoModels.kt` without imports because they
+  share the flat package today. Moving those files directly to `compose-core`
+  would either fail compilation or drag persisted MCP DTOs across the core
+  boundary. A follow-up must introduce core edit-surface domain models or a
+  mapper first.
 - No CQRS read/write rename. The store already separates the authoritative
   `session.json` write path from the derived `index.json` read cache; renaming is
   deferred to a possible later spec.
@@ -173,7 +189,7 @@ mcp/session/
 │   TargetEvidenceService.kt(290) FeedbackTargetValidator.kt(172)
 │   TargetBoundaryContextFormatter.kt(114) TargetBoundaryGuidance.kt(40)
 │   TargetSummaryFormatter.kt(63) TargetOwnerResolver.kt(49)
-├─ editsurface/               # Phase 5 lift candidates -> compose-core
+├─ editsurface/               # stays in mcp for this pass; DTO-coupled follow-up
 │   EditSurfaceCandidateService.kt(156) EditSurfaceRoleClassifier.kt(86)
 │   EditSurfaceConfidencePolicy.kt(84) EditSurfaceEvidence.kt(49)
 │   EditIntentAnalyzer.kt(90) EditIntentClassifier.kt(10) EditIntentLexicon.kt(75)
@@ -215,7 +231,7 @@ session core; the lifecycle store is a sink, not a source.
 | `handoff` | `dto`, `target`, core models | `lifecycle.store`, `preview`, `connection` |
 | `preview` | `dto`, core models | `lifecycle.store`, `handoff`, `target` |
 | `target` | `dto`, core (`compose-core.target/source/model`) | `lifecycle.store`, `handoff`, `preview`, `connection` |
-| `editsurface` | core only | everything in `mcp.*` (proves it is liftable) |
+| `editsurface` | `dto`, `target`, core models | `lifecycle.store`, `handoff`, `preview`, `connection` |
 | `source` | core models | `lifecycle.store`, `handoff`, `preview`, `target` |
 | `lifecycle.event` | `dto` | `handoff`, `preview`, `connection` |
 | `lifecycle.store` | `lifecycle.event`, `dto`, `preview` | `handoff`, `connection`, `target` |
@@ -228,38 +244,44 @@ forbidden-import regexes are spelled out in the implementation plan, Phase 4.
 Any rule that turns out to contradict a real, justified dependency is recorded
 and relaxed in ADR-0008 rather than worked around silently.
 
-## Edit-Surface Lift Into `compose-core` (ADR-0002 debt)
+## Edit-Surface Lift Follow-Up (ADR-0002 debt, deferred)
 
-Probed coupling (2026-06-06):
+Actual coupling review (2026-06-06):
 
-| File | Non-stdlib imports | Verdict |
-| --- | --- | --- |
-| `EditIntentLexicon.kt` | none | Pure data/policy → lift confirmed |
-| `EditSurfaceCandidateService.kt` | `compose-core.identity`, `compose-core.model` only | Strong lift candidate |
-| `EditSurfaceRoleClassifier.kt` | (audit in Phase 5) | Likely lift |
-| `EditSurfaceConfidencePolicy.kt` | (audit in Phase 5) | Likely lift |
-| `EditSurfaceEvidence.kt` | (audit in Phase 5) | Likely lift |
-| `EditIntentAnalyzer.kt` | (audit in Phase 5) | Likely lift |
-| `EditIntentClassifier.kt` | (audit in Phase 5) | Likely lift |
-| `TargetEvidenceService.kt` | core (many) **+ `mcp.McpProtocol`, `mcp.console.FeedbackTargetType`, `mcp.tools.FixThisBridge`** | Legit adapter — **stays in mcp** |
+| File | Non-stdlib imports | Same-package MCP DTO/model references | Verdict |
+| --- | --- | --- | --- |
+| `EditIntentLexicon.kt` | none | `RawEditIntentSignal` is consumed by `EditIntentAnalyzer` | Potentially liftable only with API visibility decision |
+| `EditSurfaceCandidateService.kt` | `compose-core.identity`, `compose-core.model` | `AnnotationDto`, `SnapshotDto`, `EditSurfaceCandidateDto`, `EditSurfaceRoleDto`, `EditSurfaceKindDto`, `EditSurfaceReasonDto`; also calls `TargetOwnerResolver` | **Not directly liftable** |
+| `EditSurfaceRoleClassifier.kt` | `compose-core.model` | `AnnotationDto`, `AnnotationTargetDto`, `EditSurfaceRoleDto`, `EditSurfaceKindDto` | **Not directly liftable** |
+| `EditSurfaceConfidencePolicy.kt` | `compose-core.model` | `EditSurfaceRoleDto`, `EditSurfaceEvidence` | Needs core model split first |
+| `EditSurfaceEvidence.kt` | `compose-core.model` | none | Liftable only after callers stop using MCP DTO roles/kinds directly |
+| `EditIntentAnalyzer.kt` | `compose-core.model` | `AnnotationDto`, `SnapshotDto`, `EditIntent`, `EditSurfaceKindDto`, `EditSurfaceReasonDto`; also calls `TargetOwnerResolver` | **Not directly liftable** |
+| `EditIntentClassifier.kt` | none | `EditIntent`, `EditIntentAnalyzer` | Depends on analyzer partition |
+| `TargetEvidenceService.kt` | core (many) **+ `mcp.McpProtocol`, `mcp.console.FeedbackTargetType`, `mcp.tools.FixThisBridge`** | session DTOs | Legit adapter — **stays in mcp** |
 
 ADR-0002 says domain models and domain rules live in `compose-core`; outer
-modules only adapt. Edit-surface intent classification and confidence policy are
-pure domain rules that happen to sit in `mcp/session`. The fix is to move the
-MCP-independent subset to `compose-core/editsurface/` and leave any MCP-coupled
-coordinator (e.g. anything touching `FixThisBridge`/console DTOs) behind in
-`mcp/session/editsurface/` as a thin adapter.
+modules only adapt. That still applies here, but the current edit-surface code
+does not have a core-domain boundary yet: most files consume persisted/session
+DTOs directly because those DTOs are in the same flat package. Import-only
+audits are therefore misleading.
 
-This phase is the only one that crosses a module boundary and the only one that
-is a genuine architecture change rather than a move. It is sequenced **last** so
-the intra-`session` boundary is already firm before code leaves the module.
+The safe follow-up is a separate spec that either:
+
+1. introduces core edit-surface domain models and maps them to/from
+   `EditSurfaceCandidateDto`, `EditSurfaceRoleDto`, `EditSurfaceKindDto`, and
+   `EditSurfaceReasonDto` at the MCP boundary, or
+2. keeps edit-surface classification in `mcp/session/editsurface` and documents
+   it as MCP DTO policy rather than core domain.
+
+This package-decomposition pass should not move edit-surface code across modules.
 
 ## ADR-0008
 
 Add `docs/architecture/adr/0008-session-package-decomposition.md` recording: the
 responsibility-named sub-package layout, the intra-`session` dependency rules,
 the decision to use packages (not Gradle modules) for the split, and the
-edit-surface lift into `compose-core`. This satisfies Toby's "commit the
+explicit deferral of the edit-surface core lift until DTO/domain models are
+separated. This satisfies Toby's "commit the
 guideline to git so reviews and automated checks can reference it" point and
 keeps the new structure from eroding.
 
@@ -270,7 +292,7 @@ keeps the new structure from eroding.
 | `ArchitectureHotspotBudgetTest` path keys break on move | Update the path key in the same commit as each file move; Phase tasks make this explicit. |
 | Import churn across the repo (tests, tools, console routes import these classes) | After each move, run a repo-wide import rewrite for the moved FQNs and run the full module test matrix before committing. |
 | `docs/architecture/overview.md` references old paths | Update overview.md path references in a docs step per phase. |
-| A "pure" editsurface file turns out MCP-coupled | Phase 5 starts with a per-file import audit; only verified-clean files lift, the rest stay as adapters. |
+| A "pure" editsurface file turns out MCP-coupled | Already confirmed: same-package DTO references make direct lifting unsafe. Defer the lift and add follow-up criteria instead of moving code across modules here. |
 | Cyclic dependency surfaced between new packages | The dependency-rule table is the contract; if a real cycle exists, record it and adjust the rule in ADR-0008 instead of forcing the move. |
 | Behavior regression from an accidental edit during a move | Moves are `git mv` + package-line + imports only; no logic edits. Full suite + detekt + spotless gate every commit. |
 
@@ -289,9 +311,8 @@ keeps the new structure from eroding.
 4. A new boundary test enforces the intra-`session` dependency-rule table and
    the "root is facade-only" layout guard; both fail if a file is added back to
    the flat root or violates a rule.
-5. `compose-core` still has zero `android`/`androidx`/MCP/CLI/sidekick imports
-   after the editsurface lift, and `ModuleBoundaryTest` proves the lifted
-   `editsurface` package imports nothing from `mcp.*`.
+5. `compose-core` still has zero `android`/`androidx`/MCP/CLI/sidekick imports;
+   no MCP DTOs are moved into `compose-core` in this pass.
 6. No persisted JSON field name, wire schema, `BridgeProtocol.VERSION`, or MCP
    tool/resource name changes. Persisted-session round-trip tests are unchanged
    and green.
@@ -300,6 +321,8 @@ keeps the new structure from eroding.
 ## Out-of-Scope Follow-ups (separate specs)
 
 - CQRS naming (`...WriteStore` / `...ReadProjection`).
+- Edit-surface ADR-0002 cleanup: introduce core edit-surface models and
+  DTO/domain mappers before any `compose-core` lift.
 - Migrating `ModuleBoundaryTest`/`SessionPackageBoundaryTest` from hand-rolled
   regex to a library (Konsist) — viable once the rule set stabilizes.
 - Splitting `FeedbackDraftService.kt` (394) further if it keeps growing.

@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the flat 57-file `fixthis-mcp/.../mcp/session/` package with cohesive responsibility-named sub-packages, enforce the grouping with an intra-`session` boundary test, and lift the MCP-independent edit-surface domain logic into `fixthis-compose-core` — all without changing any runtime behavior, persisted JSON, wire schema, or MCP contract.
+**Goal:** Replace the flat 57-file `fixthis-mcp/.../mcp/session/` package with cohesive responsibility-named sub-packages and enforce the grouping with an intra-`session` boundary test — all without changing runtime behavior, persisted JSON, wire schema, or MCP contract.
 
-**Architecture:** Behavior-preserving package moves (`git mv` + `package` declaration + import fixes only), guarded at every commit by the existing full test matrix plus detekt/spotless. Order runs low-coupling groups first, the lifecycle store/event aggregate last inside the module, and the cross-module `compose-core` lift last of all. A layout-guard test and a dependency-rule test lock in the result.
+**Architecture:** Behavior-preserving package moves (`git mv` + `package` declaration + import fixes only), guarded at every commit by the existing full test matrix plus detekt/spotless. Order runs low-coupling groups first and the lifecycle store/event aggregate last inside the module. A layout-guard test and a dependency-rule test lock in the result. The earlier proposed `compose-core` edit-surface lift is deferred because actual code review found same-package MCP DTO references that make a direct move unsafe.
 
-**Tech Stack:** Kotlin, kotlin.test (JUnit), Gradle (`:fixthis-mcp`, `:fixthis-compose-core`), detekt, spotless. No new dependencies.
+**Tech Stack:** Kotlin, kotlin.test (JUnit), Gradle (`:fixthis-mcp` plus final repo checks), detekt, spotless. No new dependencies.
 
 Design spec: [`../specs/2026-06-06-session-package-decomposition-detailed-spec.md`](../specs/2026-06-06-session-package-decomposition-detailed-spec.md)
 
@@ -21,7 +21,6 @@ MAIN=fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp
 SESS=$MAIN/session
 TEST=fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp
 ARCH=$TEST/architecture
-CORE=fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core
 ```
 
 ### Standard Move Procedure (every move task instantiates this)
@@ -52,12 +51,13 @@ Every task ends by running:
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 ```
 
 Expected: BUILD SUCCESSFUL, no test failures (behavior preserved), no whitespace
-errors. `spotlessApply` fixes import ordering introduced by step 3.
+errors. `spotlessApply` fixes import ordering introduced by step 3; `spotlessCheck`
+confirms the formatter left the tree compliant.
 
 ---
 
@@ -96,9 +96,9 @@ Group `session` files into responsibility sub-packages: `lifecycle/{store,event}
 `dto` (plus existing `domain`). The `session` root keeps only the
 `FeedbackSessionService` facade. Intra-`session` dependency direction is enforced
 by `SessionPackageBoundaryTest`. The split uses packages, not Gradle modules,
-because module granularity here adds DI/build overhead without payoff. Pure,
-MCP-independent edit-surface domain logic is lifted into
-`fixthis-compose-core/editsurface/` per ADR-0002.
+because module granularity here adds DI/build overhead without payoff. The
+edit-surface core-domain lift is deferred because the current implementation
+depends on MCP DTOs from `SessionDtoModels.kt`.
 
 ## Consequences
 
@@ -106,7 +106,8 @@ MCP-independent edit-surface domain logic is lifted into
   root dump.
 - Cross-group imports are constrained by an explicit rule table.
 - `ArchitectureHotspotBudgetTest` path keys track the new locations.
-- The edit-surface lift removes a pre-existing ADR-0002 violation.
+- The edit-surface package is isolated enough for a later ADR-0002 cleanup, but
+  this ADR does not move MCP DTOs into `compose-core`.
 
 ## Alternatives Considered
 
@@ -129,7 +130,7 @@ git add docs/architecture/adr/0008-session-package-decomposition.md docs/archite
 git commit -m "docs(adr): ADR-0008 session package decomposition"
 ```
 
-## Task 2: Layout-guard test (deferred-green until Phase 6)
+## Task 2: Layout-guard test (deferred-green until Task 15)
 
 **Files:**
 - Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageLayoutTest.kt`
@@ -138,7 +139,7 @@ git commit -m "docs(adr): ADR-0008 session package decomposition"
 
 It encodes the full target layout (filename → expected sub-package) and lists any
 file still at the `session` root that is not the facade. It is `@Ignore`-d so the
-suite stays green between phases; Phase 6 removes `@Ignore` and it must pass.
+suite stays green between phases; Task 15 removes `@Ignore` and it must pass.
 
 ```kotlin
 package io.github.beyondwin.fixthis.mcp.architecture
@@ -148,7 +149,7 @@ import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
-@Ignore // Enabled in Phase 6 once all moves are complete.
+@Ignore // Enabled in Task 15 once all moves are complete.
 class SessionPackageLayoutTest {
     private val root: File = generateSequence(File("").absoluteFile) { it.parentFile }
         .first { File(it, "settings.gradle.kts").isFile || File(it, "settings.gradle").isFile }
@@ -218,7 +219,7 @@ until clean.
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move preview files into session/preview"
 ```
@@ -247,7 +248,7 @@ file in this group.
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move host source freshness into session/source"
 ```
@@ -274,7 +275,7 @@ wherever it resolves unresolved. No budgeted file.
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move console connection into session/connection"
 ```
@@ -307,7 +308,7 @@ budgeted file in this group. Persisted JSON field names live in these DTOs and
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q   # round-trip/persistence tests must stay green
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move session DTOs and mappers into session/dto"
 ```
@@ -346,7 +347,7 @@ In `ARCH/ArchitectureHotspotBudgetTest.kt`, change
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q   # ArchitectureHotspotBudgetTest must pass
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move target evidence into session/target"
 ```
@@ -356,8 +357,11 @@ git add -A && git commit -m "refactor(mcp): move target evidence into session/ta
 **Files (move into `$SESS/editsurface/`):**
 `EditSurfaceCandidateService.kt EditSurfaceRoleClassifier.kt EditSurfaceConfidencePolicy.kt EditSurfaceEvidence.kt EditIntentAnalyzer.kt EditIntentClassifier.kt EditIntentLexicon.kt`
 
-This is the intra-module move only; the cross-module lift to `compose-core` is
-Phase 5.
+This is an intra-module move only. Do not lift these files to `compose-core` in
+this plan: actual code review shows direct references to `AnnotationDto`,
+`SnapshotDto`, `EditSurfaceCandidateDto`, `EditSurfaceRoleDto`,
+`EditSurfaceKindDto`, `EditSurfaceReasonDto`, and `AnnotationTargetDto` from
+`SessionDtoModels.kt`.
 
 - [ ] **Step 1: Create dir and move**
 
@@ -382,7 +386,7 @@ tests — their imports update here.)
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move edit-surface analysis into session/editsurface"
 ```
@@ -412,7 +416,7 @@ git mv $SESS/CompactHandoffRenderer.kt $SESS/FeedbackQueueFormatter.kt \
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q   # CompactHandoffRendererTest (test budget unchanged) must pass
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move handoff rendering into session/handoff"
 ```
@@ -446,7 +450,7 @@ In `ARCH/ArchitectureHotspotBudgetTest.kt`, change
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move draft workflow into session/draft"
 ```
@@ -489,7 +493,7 @@ In `ARCH/ArchitectureHotspotBudgetTest.kt`:
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q   # FeedbackSessionStoreTest (test budget unchanged) must pass
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move session store into session/lifecycle/store"
 ```
@@ -530,7 +534,7 @@ In `ARCH/ArchitectureHotspotBudgetTest.kt`, change
 
 ```bash
 ./gradlew :fixthis-mcp:test --no-daemon -q   # event-log replay/compaction tests must pass
-./gradlew :fixthis-mcp:detekt spotlessApply -q
+./gradlew :fixthis-mcp:detekt spotlessApply spotlessCheck -q
 git diff --check
 git add -A && git commit -m "refactor(mcp): move event sourcing into session/lifecycle/event"
 ```
@@ -547,10 +551,13 @@ sub-package directories.
 **Files:**
 - Create: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageBoundaryTest.kt`
 
-- [ ] **Step 1: Write a failing rule first**
+- [ ] **Step 1: Write the first boundary rule**
 
-Add a single rule and confirm the test mechanism works by asserting `editsurface`
-imports nothing from `mcp.*` (this is also the precondition for Phase 5).
+Add a single rule and confirm the test mechanism works by asserting
+`editsurface` does not reach into lifecycle store, handoff rendering, preview, or
+connection. Do **not** assert that `editsurface` imports nothing from `mcp.*`:
+the actual files are still MCP DTO-coupled and stay in `mcp/session/editsurface`
+for this plan.
 
 ```kotlin
 package io.github.beyondwin.fixthis.mcp.architecture
@@ -574,8 +581,11 @@ class SessionPackageBoundaryTest {
             }.toList()
 
     @Test
-    fun editsurfaceImportsNothingFromMcp() {
-        val bad = offenders("editsurface", Regex("""^import io\.github\.beyondwin\.fixthis\.mcp\."""))
+    fun editsurfaceDoesNotImportStoreHandoffPreviewOrConnection() {
+        val bad = offenders(
+            "editsurface",
+            Regex("""^import io\.github\.beyondwin\.fixthis\.mcp\.session\.(lifecycle\.store|handoff|preview|connection)\."""),
+        )
         assertTrue(bad.isEmpty(), bad.joinToString("\n"))
     }
 }
@@ -584,8 +594,8 @@ class SessionPackageBoundaryTest {
 - [ ] **Step 2: Run it**
 
 Run: `./gradlew :fixthis-mcp:test --no-daemon -q --tests '*SessionPackageBoundaryTest'`
-Expected: PASS if Task 8 left `editsurface` MCP-clean; if it FAILS, the named
-imports are the exact files Phase 5 must keep behind as adapters — record them.
+Expected: PASS. If it fails, inspect the named dependency and either move the
+shared helper to `dto`/`target` or record a narrow exception in ADR-0008.
 
 - [ ] **Step 3: Add the remaining rules from the spec table**
 
@@ -685,120 +695,44 @@ git commit -m "test(mcp): enforce intra-session package dependency direction"
 
 ---
 
-## Phase 5 — Lift edit-surface domain into `compose-core` (ADR-0002 debt)
+## Phase 5 — Close out
 
-## Task 14: Per-file coupling audit
+## Task 14: Record edit-surface lift follow-up
 
-**Files:** (read-only analysis; output recorded in the commit message of Task 15)
+**Files:**
+- Modify: `docs/architecture/overview.md`
 
-- [ ] **Step 1: Classify each editsurface file**
+- [ ] **Step 1: Capture the concrete blocker**
 
 ```bash
 for f in $SESS/editsurface/*.kt; do
   echo "== $f =="
-  grep '^import' "$f" | grep -v '^import kotlin' | grep -v '^import kotlinx'
+  grep -nE "AnnotationDto|SnapshotDto|EditSurface.*Dto|AnnotationTargetDto|TargetOwnerResolver" "$f" || true
 done
 ```
 
-- [ ] **Step 2: Partition**
+Expected: this prints the DTO/domain-model references that block a direct
+`compose-core` move. Keep this output in the Task 14 commit message or PR notes.
 
-A file is a **lift** candidate iff its only non-stdlib imports are
-`io.github.beyondwin.fixthis.compose.core.*` (or none). Any file importing
-`mcp.*` (e.g. `FixThisBridge`, `McpProtocol`, console DTOs) is an **adapter** and
-stays in `mcp/session/editsurface/`. Confirmed liftable from the spec probe:
-`EditIntentLexicon.kt`, `EditSurfaceCandidateService.kt`. Record the full
-partition before moving.
+- [ ] **Step 2: Update architecture overview**
 
-## Task 15: Move liftable files to `compose-core/editsurface`
+In `docs/architecture/overview.md`, update the `:fixthis-mcp` bullet list so the
+file references reflect the new sub-packages. For edit-surface, point to
+`session/editsurface/*` and add one sentence: "The edit-surface classification
+logic remains MCP-side in this pass because it consumes persisted session DTOs;
+lifting it to `compose-core` requires a separate model/mapping design."
 
-**Files:**
-- Create: `$CORE/editsurface/` (one file per liftable class from Task 14)
-- Modify: `ARCH/ModuleBoundaryTest.kt` (add a guard for the new core package)
-- Modify: any `mcp` caller of a lifted symbol (import path changes module)
-
-- [ ] **Step 1: Move the verified-pure files**
-
-For each liftable file (example shown for the two confirmed ones; extend with the
-Task 14 partition):
+- [ ] **Step 3: Commit**
 
 ```bash
-mkdir -p $CORE/editsurface
-git mv $SESS/editsurface/EditIntentLexicon.kt $CORE/editsurface/
-git mv $SESS/editsurface/EditSurfaceCandidateService.kt $CORE/editsurface/
+git add docs/architecture/overview.md
+git commit -m "docs(architecture): record session package decomposition follow-up"
 ```
 
-- [ ] **Step 2: Update package declarations**
-
-Set `package io.github.beyondwin.fixthis.compose.core.editsurface` in each moved
-file.
-
-- [ ] **Step 3: Fix references across modules**
-
-```bash
-./gradlew :fixthis-compose-core:compileKotlin :fixthis-mcp:compileKotlin -q
-```
-
-For every unresolved reference in `mcp`, replace the old import
-`io.github.beyondwin.fixthis.mcp.session.editsurface.<Symbol>` with
-`io.github.beyondwin.fixthis.compose.core.editsurface.<Symbol>`. Repeat until
-both modules compile.
-
-- [ ] **Step 4: Move the matching unit tests to `compose-core`**
-
-Pure domain tests follow their code. `git mv` each lifted class's test from
-`fixthis-mcp/src/test/.../session/<Name>Test.kt` to
-`fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/editsurface/`,
-update its `package` and imports. (If a test also exercises MCP wiring, split the
-pure assertions into the core test and leave the MCP assertions in the mcp test.)
-
-- [ ] **Step 5: Update budget-test keys if a lifted file was budgeted**
-
-None of the confirmed-liftable files are in `ArchitectureHotspotBudgetTest`;
-verify against the Task 14 partition and update any path key that did move into
-`compose-core`.
-
-- [ ] **Step 6: Add a core boundary guard**
-
-In `ARCH/ModuleBoundaryTest.kt`, add a test asserting the new core package stays
-pure (it is already covered by `composeCoreDoesNotImportOuterModulesOrAndroid`,
-which walks all of `fixthis-compose-core/src/main`; add a focused assertion so
-failures point at editsurface directly):
-
-```kotlin
-    @Test
-    fun composeCoreEditSurfaceImportsNoOuterModule() {
-        val forbidden = Regex(
-            """^import (android|androidx|io\.github\.beyondwin\.fixthis\.(mcp|cli|gradle|compose\.sidekick))""",
-        )
-        val offenders = kotlinFiles(
-            "fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/editsurface",
-        ).flatMap { file ->
-            file.readLines().mapIndexedNotNull { index, line ->
-                if (forbidden.containsMatchIn(line)) "${file.relativeTo(root)}:${index + 1}: $line" else null
-            }
-        }
-        assertTrue(offenders.isEmpty(), offenders.joinToString(separator = "\n"))
-    }
-```
-
-- [ ] **Step 7: Full verify and commit**
-
-```bash
-./gradlew :fixthis-compose-core:test :fixthis-mcp:test --no-daemon -q
-./gradlew :fixthis-compose-core:detekt :fixthis-mcp:detekt spotlessApply -q
-git diff --check
-git add -A && git commit -m "refactor(core): lift MCP-independent edit-surface domain into compose-core"
-```
-
----
-
-## Phase 6 — Close out
-
-## Task 16: Enable the layout guard and refresh docs
+## Task 15: Enable the layout guard
 
 **Files:**
 - Modify: `ARCH/SessionPackageLayoutTest.kt` (remove `@Ignore`)
-- Modify: `docs/architecture/overview.md` (path references under `:fixthis-mcp`)
 
 - [ ] **Step 1: Enable the layout guard**
 
@@ -809,22 +743,14 @@ Delete the `@Ignore` line (and its import) from `SessionPackageLayoutTest.kt`.
 Run: `./gradlew :fixthis-mcp:test --no-daemon -q --tests '*SessionPackageLayoutTest'`
 Expected: PASS — only `FeedbackSessionService.kt` remains at `session/` root.
 
-- [ ] **Step 3: Update `overview.md`**
-
-In `docs/architecture/overview.md`, update the `:fixthis-mcp` bullet list so the
-file references reflect the new sub-packages (e.g.
-`session/FeedbackSessionStore.kt` → `session/lifecycle/store/FeedbackSessionStore.kt`,
-`session/EditSurfaceCandidateService.kt` → `compose-core/editsurface/...`). Add a
-one-line note that `session` is now decomposed per ADR-0008.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add $ARCH/SessionPackageLayoutTest.kt docs/architecture/overview.md
-git commit -m "test(mcp): enable session layout guard; docs: refresh module map"
+git add $ARCH/SessionPackageLayoutTest.kt
+git commit -m "test(mcp): enable session layout guard"
 ```
 
-## Task 17: Final full-matrix verification
+## Task 16: Final full-matrix verification
 
 **Files:** none (verification only)
 
@@ -839,12 +765,17 @@ git commit -m "test(mcp): enable session layout guard; docs: refresh module map"
   :fixthis-gradle-plugin:test \
   --no-daemon
 ./gradlew detekt spotlessCheck --no-daemon
+node scripts/check-doc-consistency.mjs
 git diff --check
+graphify update .
 ```
 
-Expected: BUILD SUCCESSFUL across all modules; `ModuleBoundaryTest`,
+Expected: BUILD SUCCESSFUL across all modules; doc consistency is clean;
+`ModuleBoundaryTest`,
 `SessionPackageBoundaryTest`, `SessionPackageLayoutTest`, and
 `ArchitectureHotspotBudgetTest` all green; no spotless or whitespace failures.
+`graphify update .` may change ignored `graphify-out/` files; do not commit
+them.
 
 - [ ] **Step 2: Confirm zero contract drift**
 
@@ -853,7 +784,7 @@ git diff main --stat        # only moves + test/doc edits; no DTO field-name chu
 grep -rn "BridgeProtocol.VERSION" fixthis-mcp fixthis-cli fixthis-compose-sidekick   # unchanged
 ```
 
-Expected: the diff is moves plus the four guard/budget/test edits and docs; no
+Expected: the diff is moves plus the guard/budget/test edits and docs; no
 changes to persisted JSON field names, MCP tool/resource names, or
 `BridgeProtocol.VERSION`.
 
@@ -872,5 +803,8 @@ git add -A && git commit -m "chore(mcp): finalize session decomposition verifica
   responsibility analysis and characterization tests — do it as a follow-up so it
   is not bundled into this behavior-preserving move sweep.
 - **CQRS rename** (`...WriteStore` / `...ReadProjection`).
+- **Edit-surface core lift:** introduce core edit-surface domain models and
+  DTO/domain mappers before moving any edit-surface classifier/policy code into
+  `fixthis-compose-core`.
 - **Konsist migration** of the hand-rolled boundary tests, once the rule set is
   stable.
