@@ -13,6 +13,15 @@ import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateSummary
 import io.github.beyondwin.fixthis.compose.core.model.SourceInterpretation
 import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.toDomainSession
+import io.github.beyondwin.fixthis.mcp.session.dto.toSessionDto
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

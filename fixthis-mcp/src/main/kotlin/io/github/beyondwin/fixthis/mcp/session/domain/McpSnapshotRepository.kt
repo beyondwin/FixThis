@@ -4,8 +4,8 @@ import io.github.beyondwin.fixthis.compose.core.domain.common.SnapshotId
 import io.github.beyondwin.fixthis.compose.core.domain.snapshot.Snapshot
 import io.github.beyondwin.fixthis.compose.core.domain.snapshot.SnapshotRepository
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.github.beyondwin.fixthis.mcp.session.toDomainSnapshot
-import io.github.beyondwin.fixthis.mcp.session.toSnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.toDomainSnapshot
+import io.github.beyondwin.fixthis.mcp.session.dto.toSnapshotDto
 
 class McpSnapshotRepository(
     private val store: FeedbackSessionStore,

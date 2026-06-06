@@ -1,5 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+
 sealed interface SessionMutation {
     data class AddScreen(val screen: SnapshotDto, val now: Long) : SessionMutation
     data class AddScreenWithItems(

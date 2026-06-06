@@ -2,10 +2,10 @@ package io.github.beyondwin.fixthis.mcp.console
 
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.github.beyondwin.fixthis.mcp.session.AnnotationSeverityDto
-import io.github.beyondwin.fixthis.mcp.session.AnnotationStatusDto
-import io.github.beyondwin.fixthis.mcp.session.SessionDto
-import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import kotlinx.serialization.Serializable
 
 @Serializable

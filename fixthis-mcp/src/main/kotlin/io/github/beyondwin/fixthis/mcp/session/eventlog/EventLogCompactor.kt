@@ -1,6 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.session.eventlog
 
-import io.github.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import kotlinx.serialization.json.Json
 import java.io.File
 

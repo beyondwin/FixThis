@@ -2,6 +2,8 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 
 internal data class TargetOwner(
     val node: FixThisNode,

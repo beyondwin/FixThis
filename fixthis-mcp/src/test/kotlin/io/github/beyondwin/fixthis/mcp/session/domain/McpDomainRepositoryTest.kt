@@ -13,8 +13,8 @@ import io.github.beyondwin.fixthis.compose.core.domain.snapshot.WindowMode
 import io.github.beyondwin.fixthis.compose.core.domain.ui.DomainRect
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.github.beyondwin.fixthis.mcp.session.toDomainSession
-import io.github.beyondwin.fixthis.mcp.session.toSessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.toDomainSession
+import io.github.beyondwin.fixthis.mcp.session.dto.toSessionDto
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals

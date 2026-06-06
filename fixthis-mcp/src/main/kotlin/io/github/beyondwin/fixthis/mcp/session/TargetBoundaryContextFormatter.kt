@@ -3,6 +3,8 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 
 private const val BOUNDARY_ANCESTOR_AREA_MULTIPLIER = 6f
 

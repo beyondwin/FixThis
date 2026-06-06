@@ -4,7 +4,7 @@ import com.sun.net.httpserver.HttpExchange
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import java.io.File
 
 internal class PreviewScreenshotResponder(

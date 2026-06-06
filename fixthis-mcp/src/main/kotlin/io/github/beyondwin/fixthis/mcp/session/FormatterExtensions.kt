@@ -2,6 +2,7 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 
 internal fun SourceCandidate.displayFile(): String = repoFile?.takeIf { it.isNotBlank() } ?: file
 

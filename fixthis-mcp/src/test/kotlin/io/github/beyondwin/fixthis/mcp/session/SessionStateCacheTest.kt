@@ -1,5 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

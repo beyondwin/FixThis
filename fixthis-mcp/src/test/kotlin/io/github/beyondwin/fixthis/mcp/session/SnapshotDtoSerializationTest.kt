@@ -1,5 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.toDomainSnapshot
+import io.github.beyondwin.fixthis.mcp.session.dto.toSnapshotDto
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals

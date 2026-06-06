@@ -404,7 +404,7 @@
     <ID>TooManyFunctions:FixThisTools.kt$CliFixThisBridge : FixThisBridge</ID>
     <ID>TooManyFunctions:FixThisTools.kt$FixThisBridge</ID>
     <ID>TooManyFunctions:FixThisTools.kt$FixThisTools</ID>
-    <ID>TooManyFunctions:SessionDomainMappers.kt$io.github.beyondwin.fixthis.mcp.session.SessionDomainMappers.kt</ID>
+    <ID>TooManyFunctions:SessionDomainMappers.kt$io.github.beyondwin.fixthis.mcp.session.dto.SessionDomainMappers.kt</ID>
     <ID>TooManyFunctions:TargetEvidenceService.kt$TargetEvidenceService</ID>
     <ID>TopLevelPropertyNaming:FeedbackConsoleServer.kt$internal const val ConsoleTokenHeader = "X-FixThis-Console-Token"</ID>
     <ID>TopLevelPropertyNaming:FixThisTools.kt$private const val MaxRecentOverridePackages = 8</ID>

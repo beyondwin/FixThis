@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.dto
 
 import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
 import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationDelivery
@@ -27,6 +27,8 @@ import io.github.beyondwin.fixthis.compose.core.model.toSourceHint
 import io.github.beyondwin.fixthis.compose.core.model.toTargetEvidence
 import io.github.beyondwin.fixthis.compose.core.model.toTargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.toTargetReliabilityAssessment
+import io.github.beyondwin.fixthis.mcp.session.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.FeedbackHandoffBatch
 
 fun SessionDto.toDomainSession(): Session = Session(
     id = SessionId(sessionId),

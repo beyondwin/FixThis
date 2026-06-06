@@ -1,6 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceCandidateDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals

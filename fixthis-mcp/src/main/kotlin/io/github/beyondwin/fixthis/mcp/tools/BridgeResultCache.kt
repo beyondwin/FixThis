@@ -1,7 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.tools
 
 import io.github.beyondwin.fixthis.mcp.McpProtocol
-import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject

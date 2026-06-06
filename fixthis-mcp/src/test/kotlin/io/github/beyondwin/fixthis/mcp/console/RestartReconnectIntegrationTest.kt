@@ -10,7 +10,7 @@ import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.github.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.jsonObject
 import java.io.File

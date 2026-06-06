@@ -5,6 +5,10 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 import io.github.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewFingerprintPolicy
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewRecord
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSaveReservationTracker

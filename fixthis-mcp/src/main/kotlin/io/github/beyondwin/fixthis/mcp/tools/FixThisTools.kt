@@ -3,11 +3,11 @@ package io.github.beyondwin.fixthis.mcp.tools
 import io.github.beyondwin.fixthis.cli.AdbDevice
 import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.mcp.McpProtocol
-import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactor
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter

@@ -8,6 +8,13 @@ import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.github.beyondwin.fixthis.mcp.session.connection.ConsoleConnectionService
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationResult
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCacheRetentionPolicy
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache

@@ -10,6 +10,15 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceCandidateDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import org.junit.Test
 import kotlin.test.assertTrue
 

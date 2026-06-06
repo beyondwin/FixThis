@@ -6,6 +6,10 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityReason
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.dto.toAnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.toDomainAnnotation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

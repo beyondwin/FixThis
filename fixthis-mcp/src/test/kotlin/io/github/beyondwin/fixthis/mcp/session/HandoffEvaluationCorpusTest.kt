@@ -2,6 +2,8 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

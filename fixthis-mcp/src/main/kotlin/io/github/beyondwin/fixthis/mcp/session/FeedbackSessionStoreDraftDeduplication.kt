@@ -1,5 +1,10 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.migratedNextItemSequenceNumber
+
 internal fun matchingClientDraftItems(session: SessionDto, items: List<AnnotationDto>): List<AnnotationDto> {
     val existingItemsByClientKey = session.items.mapNotNull { item ->
         item.clientDraftKey()?.let { key -> key to item }

@@ -15,6 +15,10 @@ import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.github.beyondwin.fixthis.compose.core.source.SourceSignal
 import io.github.beyondwin.fixthis.compose.core.source.SourceSignalKind
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import java.io.File
 import kotlin.test.Test

@@ -3,8 +3,8 @@ package io.github.beyondwin.fixthis.mcp.session.domain
 import io.github.beyondwin.fixthis.compose.core.domain.annotation.Annotation
 import io.github.beyondwin.fixthis.compose.core.domain.annotation.AnnotationRepository
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.github.beyondwin.fixthis.mcp.session.toAnnotationDto
-import io.github.beyondwin.fixthis.mcp.session.toDomainAnnotation
+import io.github.beyondwin.fixthis.mcp.session.dto.toAnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.toDomainAnnotation
 
 class McpAnnotationRepository(
     private val store: FeedbackSessionStore,

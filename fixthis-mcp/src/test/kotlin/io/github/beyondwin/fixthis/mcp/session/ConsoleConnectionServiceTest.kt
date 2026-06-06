@@ -5,6 +5,7 @@ import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessState
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionAction
 import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import io.github.beyondwin.fixthis.mcp.session.connection.ConsoleConnectionService
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals

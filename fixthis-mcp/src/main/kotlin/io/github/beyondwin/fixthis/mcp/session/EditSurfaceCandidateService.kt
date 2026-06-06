@@ -2,6 +2,12 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionSet
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceCandidateDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 
 internal object EditSurfaceCandidateService {
     private const val TEXT_SOURCE_NOTE =

@@ -10,8 +10,8 @@ import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackFingerprintCheck
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackLiveSaveRequest
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackRequestValidationException
-import io.github.beyondwin.fixthis.mcp.session.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.StaleDraftRevisionException
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject

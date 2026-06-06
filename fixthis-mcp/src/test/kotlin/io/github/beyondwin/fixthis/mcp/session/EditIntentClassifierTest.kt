@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

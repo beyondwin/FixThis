@@ -1,6 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import kotlinx.serialization.Serializable
 import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException

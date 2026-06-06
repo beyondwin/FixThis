@@ -3,6 +3,13 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.handoffMessage
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceCandidateDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

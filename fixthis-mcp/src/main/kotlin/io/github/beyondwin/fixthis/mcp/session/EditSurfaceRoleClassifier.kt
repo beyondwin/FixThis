@@ -2,6 +2,10 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 
 internal data class EditSurfaceRoleDecision(
     val role: EditSurfaceRoleDto,

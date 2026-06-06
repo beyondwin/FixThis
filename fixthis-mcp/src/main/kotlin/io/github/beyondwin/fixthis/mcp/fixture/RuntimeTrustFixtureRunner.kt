@@ -4,11 +4,11 @@ import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
-import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationAction
-import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationAction
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.tools.CliFixThisBridge
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
@@ -148,7 +148,7 @@ class RuntimeTrustFixtureRunner(
         sessionId: String,
         screen: SnapshotDto,
         testCase: RuntimeTrustCaseInput,
-    ): io.github.beyondwin.fixthis.mcp.session.AnnotationDto = if (testCase.runtimeTarget.visualArea != null) {
+    ): io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto = if (testCase.runtimeTarget.visualArea != null) {
         service.addAreaFeedback(
             sessionId = sessionId,
             screenId = screen.screenId,

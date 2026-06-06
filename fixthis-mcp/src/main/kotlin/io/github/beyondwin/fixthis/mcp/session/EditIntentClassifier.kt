@@ -1,5 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
+
 internal data class EditIntent(
     val primaryKind: EditSurfaceKindDto,
     val reasons: List<EditSurfaceReasonDto>,

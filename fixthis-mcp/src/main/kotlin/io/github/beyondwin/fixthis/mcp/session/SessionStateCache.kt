@@ -2,6 +2,9 @@
 
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
+
 internal class SessionStateCache {
     private val sessions = linkedMapOf<String, SessionDto>()
     private var currentSessionId: String? = null

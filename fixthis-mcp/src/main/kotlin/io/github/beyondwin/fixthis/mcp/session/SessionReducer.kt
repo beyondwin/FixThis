@@ -1,5 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
+
 object SessionReducer {
     fun reduce(session: SessionDto, mutation: SessionMutation): SessionDto = when (mutation) {
         is SessionMutation.AddScreen -> session.copy(

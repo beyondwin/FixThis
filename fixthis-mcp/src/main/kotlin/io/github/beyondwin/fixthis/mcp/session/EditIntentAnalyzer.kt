@@ -2,6 +2,10 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
+import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 
 internal object EditIntentAnalyzer {
     fun analyze(item: AnnotationDto, screen: SnapshotDto?): EditIntent {

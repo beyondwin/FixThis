@@ -1,7 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.fixture
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
-import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 
 class RuntimeTargetResolutionException(
     val code: String,

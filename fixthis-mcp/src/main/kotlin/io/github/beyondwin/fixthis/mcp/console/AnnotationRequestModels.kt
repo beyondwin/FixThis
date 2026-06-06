@@ -1,8 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.console
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.github.beyondwin.fixthis.mcp.session.AnnotationSeverityDto
-import io.github.beyondwin.fixthis.mcp.session.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

@@ -3,9 +3,9 @@ package io.github.beyondwin.fixthis.mcp.console
 import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
-import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationAction
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationAction
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive

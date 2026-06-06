@@ -7,6 +7,8 @@ import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.github.beyondwin.fixthis.mcp.McpProtocol
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject

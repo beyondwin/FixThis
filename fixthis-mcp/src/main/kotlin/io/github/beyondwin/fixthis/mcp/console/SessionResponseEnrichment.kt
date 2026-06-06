@@ -1,7 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.console
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
-import io.github.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive

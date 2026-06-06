@@ -2,7 +2,7 @@ package io.github.beyondwin.fixthis.mcp.tools
 
 import io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import java.io.File
 
 internal class ConsoleServerManager(

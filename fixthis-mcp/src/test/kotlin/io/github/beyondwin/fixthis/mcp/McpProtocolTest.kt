@@ -4,11 +4,11 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
-import io.github.beyondwin.fixthis.mcp.session.AnnotationStatusDto
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
-import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import io.github.beyondwin.fixthis.mcp.tools.FixThisTools
 import kotlinx.coroutines.CancellationException

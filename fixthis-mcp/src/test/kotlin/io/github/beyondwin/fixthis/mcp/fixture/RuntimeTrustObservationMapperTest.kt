@@ -10,9 +10,9 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
-import io.github.beyondwin.fixthis.mcp.session.AnnotationDto
-import io.github.beyondwin.fixthis.mcp.session.AnnotationStatusDto
-import io.github.beyondwin.fixthis.mcp.session.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

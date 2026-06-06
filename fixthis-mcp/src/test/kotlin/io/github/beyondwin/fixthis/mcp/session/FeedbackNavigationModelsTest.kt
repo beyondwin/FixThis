@@ -1,6 +1,9 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationAction
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackSwipeDirection
 import kotlinx.serialization.encodeToString
 import kotlin.test.Test
 import kotlin.test.assertEquals

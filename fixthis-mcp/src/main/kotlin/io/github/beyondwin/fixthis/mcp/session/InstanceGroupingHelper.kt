@@ -1,5 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+
 data class InstanceLabel(val index: Int, val total: Int)
 
 data class InstanceGrouping(

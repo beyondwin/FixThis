@@ -4,10 +4,10 @@ import com.sun.net.httpserver.HttpExchange
 import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessFailureCatalog
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
-import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationResult
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
+import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationResult
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
