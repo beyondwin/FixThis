@@ -5,7 +5,6 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
-import io.github.beyondwin.fixthis.compose.core.model.TargetKind
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityInput
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
@@ -17,7 +16,6 @@ import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
-import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.editsurface.EditSurfaceCandidateService
@@ -115,14 +113,9 @@ class TargetEvidenceService(
         comment: String,
         writtenStatus: AnnotationStatusDto,
     ): AnnotationDto {
-        val sourceSelectedNode = when (validatedTarget.targetType) {
-            FeedbackTargetType.AREA -> validatedTarget.evidenceNodes.firstOrNull()
-            FeedbackTargetType.NODE -> validatedTarget.selectedNode
-        }
-        val sourceNearbyNodes = when (validatedTarget.targetType) {
-            FeedbackTargetType.AREA -> validatedTarget.evidenceNodes.drop(1)
-            FeedbackTargetType.NODE -> validatedTarget.evidenceNodes
-        }
+        val strategy = validatedTarget.targetType.strategy()
+        val sourceSelectedNode = strategy.sourceSelectedNode(validatedTarget)
+        val sourceNearbyNodes = strategy.sourceNearbyNodes(validatedTarget)
         val sourceCandidates = sourceCandidatesFor(sourceIndex, sourceSelectedNode, sourceNearbyNodes, screen.activityName)
         val targetEvidence = targetEvidenceFor(
             targetType = validatedTarget.targetType,
@@ -136,18 +129,7 @@ class TargetEvidenceService(
             sourceCandidates = sourceCandidates,
             targetEvidence = targetEvidence,
         )
-        val target = when (validatedTarget.targetType) {
-            FeedbackTargetType.AREA -> AnnotationTargetDto.Area(validatedTarget.storedBounds)
-            FeedbackTargetType.NODE -> {
-                val nodeForTarget = requireNotNull(validatedTarget.selectedNode) {
-                    "ValidatedFeedbackTarget(targetType=NODE) must carry a non-null selectedNode"
-                }
-                AnnotationTargetDto.Node(
-                    nodeUid = nodeForTarget.uid,
-                    boundsInWindow = validatedTarget.storedBounds,
-                )
-            }
-        }
+        val target = strategy.annotationTarget(validatedTarget)
         val item = AnnotationDto(
             itemId = "pending",
             screenId = screen.screenId,
@@ -178,10 +160,7 @@ class TargetEvidenceService(
         sourceCandidates: List<SourceCandidate>,
     ): TargetEvidence = TargetEvidenceFactory.build(
         TargetEvidenceInput(
-            targetKind = when (targetType) {
-                FeedbackTargetType.AREA -> TargetKind.AREA
-                FeedbackTargetType.NODE -> TargetKind.NODE
-            },
+            targetKind = targetType.strategy().targetKind,
             selectedNode = selectedNode,
             mergedNodes = screen.roots.flatMap { root -> root.mergedNodes },
             sourceCandidates = sourceCandidates,
@@ -199,10 +178,7 @@ class TargetEvidenceService(
         val meaningfulNodes = screen.allNodes().filter { node -> node.hasMeaningfulSemantic() }
         return reliabilityCalculator.calculate(
             TargetReliabilityInput(
-                targetKind = when (validatedTarget.targetType) {
-                    FeedbackTargetType.AREA -> TargetKind.AREA
-                    FeedbackTargetType.NODE -> TargetKind.NODE
-                },
+                targetKind = validatedTarget.targetType.strategy().targetKind,
                 selectedNode = validatedTarget.selectedNode,
                 nearbyNodes = validatedTarget.evidenceNodes,
                 sourceCandidates = sourceCandidates,
@@ -233,14 +209,8 @@ class TargetEvidenceService(
         sourceCandidates: List<SourceCandidate>,
         sourceIndex: SourceIndex,
     ): AnnotationDto {
-        val targetType = when (target) {
-            is AnnotationTargetDto.Area -> FeedbackTargetType.AREA
-            is AnnotationTargetDto.Node -> FeedbackTargetType.NODE
-        }
-        val bounds = when (val annotationTarget = target) {
-            is AnnotationTargetDto.Area -> annotationTarget.boundsInWindow
-            is AnnotationTargetDto.Node -> annotationTarget.boundsInWindow
-        }
+        val targetType = target.targetType()
+        val bounds = target.boundsInWindow
         val evidence = targetEvidenceFor(
             targetType = targetType,
             selectedNode = selectedNode,
