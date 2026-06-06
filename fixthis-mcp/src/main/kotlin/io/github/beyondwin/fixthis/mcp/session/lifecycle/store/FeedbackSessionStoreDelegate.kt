@@ -51,8 +51,9 @@ private fun sessionClosed(type: String): FeedbackSessionException = FeedbackSess
  * When both are null, the store behaves identically to the pre-A.4 baseline,
  * preserving backward compatibility for the ~482 existing tests.
  */
-// LargeClass suppressed: split into smaller responsibilities once the event-log API stabilises — see #ALH-followup
-@Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
+// TooManyFunctions/LongParameterList kept by design: this facade-delegate exposes the wide public
+// session-operation surface and a constructor whose arity is bound to the FeedbackSessionStore facade.
+@Suppress("LongParameterList", "TooManyFunctions")
 internal class FeedbackSessionStoreDelegate(
     private val clock: () -> Long = { System.currentTimeMillis() },
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
@@ -75,7 +76,6 @@ internal class FeedbackSessionStoreDelegate(
     private val replayEngine = SessionReplayEngine(journal, persistence)
     private val bootReplayer = SessionBootReplayer(
         replayEngine = replayEngine,
-        journal = journal,
         persistence = persistence,
         hasEventLog = eventLogReaderProvider != null,
     )
@@ -501,8 +501,7 @@ internal class FeedbackSessionStoreDelegate(
 
     private fun getSessionLocked(sessionId: String): SessionDto = store.get(sessionId)
 
-    private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto =
-        store.commit(previous, updated)
+    private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto = store.commit(previous, updated)
 }
 
 class FeedbackSessionException(message: String) : RuntimeException(message)

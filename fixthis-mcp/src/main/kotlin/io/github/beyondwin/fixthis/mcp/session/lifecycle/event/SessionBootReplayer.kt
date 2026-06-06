@@ -30,7 +30,6 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.SkippedFeedbackSe
  */
 internal class SessionBootReplayer(
     private val replayEngine: SessionReplayEngine,
-    private val journal: SessionEventJournal,
     private val persistence: FeedbackSessionPersistence?,
     private val hasEventLog: Boolean = true,
 ) {

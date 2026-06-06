@@ -1,18 +1,13 @@
 package io.github.beyondwin.fixthis.mcp.session.lifecycle.event
 
-import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
-import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
-import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionEvent
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.SessionStateStore
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File
@@ -58,7 +53,6 @@ class SessionBootReplayerTest {
         journal: SessionEventJournal,
     ): SessionBootReplayer = SessionBootReplayer(
         replayEngine = SessionReplayEngine(journal, persistence = null),
-        journal = journal,
         persistence = null,
     )
 
@@ -177,8 +171,7 @@ class SessionBootReplayerTest {
     }
 
     /** The checkpoint path embeds the session id directory, so recover the id from it. */
-    private fun skippedSessionIdFor(checkpointPath: String): String =
-        File(checkpointPath).parentFile.parentFile.name
+    private fun skippedSessionIdFor(checkpointPath: String): String = File(checkpointPath).parentFile.parentFile.name
 
     @Test
     fun `currentSessionId is highest updatedAt non-closed after replay`() {
@@ -205,18 +198,4 @@ class SessionBootReplayerTest {
 
         assertNull(result.currentSessionId)
     }
-
-    @Suppress("unused")
-    private fun draftItem(screenId: String, itemId: String) = AnnotationDto(
-        itemId = itemId,
-        screenId = screenId,
-        createdAtEpochMillis = 0L,
-        updatedAtEpochMillis = 0L,
-        target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
-        comment = "c",
-        delivery = FeedbackDelivery.DRAFT,
-    )
-
-    @Suppress("unused")
-    private val ignored = JsonPrimitive("placeholder")
 }
