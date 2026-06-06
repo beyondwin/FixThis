@@ -21,10 +21,7 @@ internal object TargetSummaryFormatter {
 
     fun isRedacted(item: AnnotationDto): Boolean = item.selectedNode?.let { shouldRedact(it, item) } ?: false
 
-    private fun fallbackTargetLine(target: AnnotationTargetDto): String = when (target) {
-        is AnnotationTargetDto.Area -> "target: visual area"
-        is AnnotationTargetDto.Node -> "target: semantics node"
-    }
+    private fun fallbackTargetLine(target: AnnotationTargetDto): String = target.targetType().strategy().fallbackSummaryLine
 
     private fun nodeTargetParts(
         node: FixThisNode,

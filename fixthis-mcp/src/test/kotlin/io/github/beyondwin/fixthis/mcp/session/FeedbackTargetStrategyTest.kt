@@ -33,6 +33,12 @@ class FeedbackTargetStrategyTest {
     }
 
     @Test
+    fun fallbackSummaryLineMatchesKind() {
+        assertEquals("target: visual area", FeedbackTargetType.AREA.strategy().fallbackSummaryLine)
+        assertEquals("target: semantics node", FeedbackTargetType.NODE.strategy().fallbackSummaryLine)
+    }
+
+    @Test
     fun dtoTargetTypeAdapterRoundTrips() {
         val rect = FixThisRect(0f, 0f, 1f, 1f)
         assertEquals(FeedbackTargetType.AREA, AnnotationTargetDto.Area(rect).targetType())

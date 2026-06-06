@@ -20,6 +20,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 internal sealed interface FeedbackTargetStrategy {
     val type: FeedbackTargetType
     val targetKind: TargetKind
+    val fallbackSummaryLine: String
 
     fun resolveSelectedNode(screen: SnapshotDto, nodeUid: String?, missingNodeContext: String): FixThisNode?
 
@@ -35,6 +36,7 @@ internal sealed interface FeedbackTargetStrategy {
 internal object AreaTargetStrategy : FeedbackTargetStrategy {
     override val type = FeedbackTargetType.AREA
     override val targetKind = TargetKind.AREA
+    override val fallbackSummaryLine = "target: visual area"
 
     override fun resolveSelectedNode(screen: SnapshotDto, nodeUid: String?, missingNodeContext: String): FixThisNode? = null
 
@@ -50,6 +52,7 @@ internal object AreaTargetStrategy : FeedbackTargetStrategy {
 internal object NodeTargetStrategy : FeedbackTargetStrategy {
     override val type = FeedbackTargetType.NODE
     override val targetKind = TargetKind.NODE
+    override val fallbackSummaryLine = "target: semantics node"
 
     override fun resolveSelectedNode(screen: SnapshotDto, nodeUid: String?, missingNodeContext: String): FixThisNode {
         val uid = nodeUid?.takeIf { it.isNotBlank() }
