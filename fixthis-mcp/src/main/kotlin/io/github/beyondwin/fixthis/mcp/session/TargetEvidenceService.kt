@@ -15,6 +15,8 @@ import io.github.beyondwin.fixthis.compose.core.target.TargetEvidenceInput
 import io.github.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.source.SourceCandidateStalenessChecker
+import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.decodeFromJsonElement

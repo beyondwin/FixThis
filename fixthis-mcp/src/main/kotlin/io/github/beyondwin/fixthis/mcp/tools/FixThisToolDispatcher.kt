@@ -1,7 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.tools
 
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
+import io.github.beyondwin.fixthis.mcp.session.source.HostSourceFreshnessProbe
 import io.github.beyondwin.fixthis.mcp.tools.handlers.McpToolHandler
 import io.github.beyondwin.fixthis.mcp.tools.handlers.defaultMcpToolHandlers
 import kotlinx.serialization.json.JsonObject

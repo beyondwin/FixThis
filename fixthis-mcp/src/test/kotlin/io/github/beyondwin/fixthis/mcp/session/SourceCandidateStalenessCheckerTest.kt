@@ -5,6 +5,7 @@ import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.github.beyondwin.fixthis.compose.core.source.SourceRoot
+import io.github.beyondwin.fixthis.mcp.session.source.SourceCandidateStalenessChecker
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

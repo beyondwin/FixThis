@@ -3,6 +3,8 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.github.beyondwin.fixthis.compose.core.source.SourceRoot
+import io.github.beyondwin.fixthis.mcp.session.source.HostSourcePathResolutionReason
+import io.github.beyondwin.fixthis.mcp.session.source.HostSourcePathResolver
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

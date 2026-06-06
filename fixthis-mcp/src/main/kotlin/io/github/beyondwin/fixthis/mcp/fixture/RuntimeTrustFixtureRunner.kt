@@ -9,7 +9,7 @@ import io.github.beyondwin.fixthis.mcp.session.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
-import io.github.beyondwin.fixthis.mcp.session.SourceIndexRegistry
+import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.tools.CliFixThisBridge
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException

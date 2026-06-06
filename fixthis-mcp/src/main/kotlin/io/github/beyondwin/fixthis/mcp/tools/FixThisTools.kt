@@ -8,10 +8,10 @@ import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPersistence
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
-import io.github.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactor
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.source.HostSourceFreshnessProbe
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject

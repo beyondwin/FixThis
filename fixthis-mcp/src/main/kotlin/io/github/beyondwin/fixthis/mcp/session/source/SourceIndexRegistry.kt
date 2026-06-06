@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.source
 
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import kotlinx.coroutines.sync.Mutex

@@ -2,8 +2,8 @@ package io.github.beyondwin.fixthis.mcp.tools
 
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.mcp.McpProtocol
-import io.github.beyondwin.fixthis.mcp.session.HostSourceFreshnessProbe
-import io.github.beyondwin.fixthis.mcp.session.HostSourceFreshnessResult
+import io.github.beyondwin.fixthis.mcp.session.source.HostSourceFreshnessProbe
+import io.github.beyondwin.fixthis.mcp.session.source.HostSourceFreshnessResult
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
