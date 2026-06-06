@@ -177,13 +177,15 @@ enum class AnnotationSeverityDto {
 
 @Serializable
 sealed interface AnnotationTargetDto {
+    val boundsInWindow: FixThisRect
+
     @Serializable
     @SerialName("semantics_node")
-    data class Node(val nodeUid: String, val boundsInWindow: FixThisRect) : AnnotationTargetDto
+    data class Node(val nodeUid: String, override val boundsInWindow: FixThisRect) : AnnotationTargetDto
 
     @Serializable
     @SerialName("visual_area")
-    data class Area(val boundsInWindow: FixThisRect) : AnnotationTargetDto
+    data class Area(override val boundsInWindow: FixThisRect) : AnnotationTargetDto
 }
 
 @Serializable
