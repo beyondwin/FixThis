@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.mcp.session.draft.PreviewSaveFingerprintCheck
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewFingerprintPolicy
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
 import kotlinx.serialization.json.boolean

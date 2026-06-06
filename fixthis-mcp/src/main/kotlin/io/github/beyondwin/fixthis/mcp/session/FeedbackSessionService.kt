@@ -8,6 +8,12 @@ import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionStatus
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.github.beyondwin.fixthis.mcp.session.connection.ConsoleConnectionService
+import io.github.beyondwin.fixthis.mcp.session.draft.AnnotationWorkflow
+import io.github.beyondwin.fixthis.mcp.session.draft.EvidenceCoordinator
+import io.github.beyondwin.fixthis.mcp.session.draft.FeedbackDraftService
+import io.github.beyondwin.fixthis.mcp.session.draft.PreviewFeedbackSaveResult
+import io.github.beyondwin.fixthis.mcp.session.draft.PreviewSaveFingerprintCheck
+import io.github.beyondwin.fixthis.mcp.session.draft.serverFrozenFingerprint
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto

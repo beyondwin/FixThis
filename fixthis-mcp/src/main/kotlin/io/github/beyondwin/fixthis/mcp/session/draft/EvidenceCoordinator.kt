@@ -1,6 +1,8 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.draft
 
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionPaths
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationResult
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto

@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.draft
 
 import java.util.concurrent.ConcurrentHashMap
 

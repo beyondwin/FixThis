@@ -1,5 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.draft.DraftSaveService
+import io.github.beyondwin.fixthis.mcp.session.draft.StaleDraftRevisionException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -5,6 +5,7 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import io.github.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.draft.FeedbackDraftService
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto

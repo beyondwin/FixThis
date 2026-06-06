@@ -4,6 +4,8 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.draft.FeedbackDraftService
+import io.github.beyondwin.fixthis.mcp.session.draft.PreviewSaveFingerprintCheck
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService

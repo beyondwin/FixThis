@@ -5,12 +5,12 @@ import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadiness
 import io.github.beyondwin.fixthis.cli.readiness.FirstRunReadinessCatalog
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.github.beyondwin.fixthis.mcp.session.DraftSaveService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackFingerprintCheck
 import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackLiveSaveRequest
-import io.github.beyondwin.fixthis.mcp.session.PreviewFeedbackRequestValidationException
-import io.github.beyondwin.fixthis.mcp.session.StaleDraftRevisionException
+import io.github.beyondwin.fixthis.mcp.session.draft.DraftSaveService
+import io.github.beyondwin.fixthis.mcp.session.draft.PreviewFeedbackRequestValidationException
+import io.github.beyondwin.fixthis.mcp.session.draft.StaleDraftRevisionException
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
 import kotlinx.coroutines.runBlocking
