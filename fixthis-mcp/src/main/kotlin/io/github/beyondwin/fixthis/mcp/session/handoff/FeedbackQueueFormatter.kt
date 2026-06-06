@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.handoff
 
 import io.github.beyondwin.fixthis.cli.fixThisJson
 import io.github.beyondwin.fixthis.compose.core.format.DetailMode

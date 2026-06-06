@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.handoff
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

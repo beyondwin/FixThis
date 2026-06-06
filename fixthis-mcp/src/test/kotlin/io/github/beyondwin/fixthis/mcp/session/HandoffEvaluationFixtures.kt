@@ -22,6 +22,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import io.github.beyondwin.fixthis.mcp.session.editsurface.EditSurfaceCandidateService
+import io.github.beyondwin.fixthis.mcp.session.handoff.CompactHandoffRenderer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File

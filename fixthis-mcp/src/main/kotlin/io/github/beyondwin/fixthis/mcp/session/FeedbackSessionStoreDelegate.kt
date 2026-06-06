@@ -13,6 +13,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.withMigratedItemSequenceCount
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactionTask
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder

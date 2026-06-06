@@ -47,10 +47,10 @@ class ArchitectureHotspotBudgetTest {
             "fixthis-mcp/src/main/console/domain/consoleReducer.js" to 410,
         )
         val testBudgets = mapOf(
-            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_535,
+            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt" to 2_536,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt" to 1_750,
             "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt" to 1_680,
-            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_307,
+            "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreTest.kt" to 1_309,
             "${mcpConsoleTest}ConsoleAssetContractTest.kt" to 1_085,
             "${mcpConsoleTest}ConsoleFeedbackItemRoutesTest.kt" to 920,
         )

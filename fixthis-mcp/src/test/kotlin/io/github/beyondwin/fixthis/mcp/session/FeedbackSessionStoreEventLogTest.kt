@@ -12,6 +12,7 @@ import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogException
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement

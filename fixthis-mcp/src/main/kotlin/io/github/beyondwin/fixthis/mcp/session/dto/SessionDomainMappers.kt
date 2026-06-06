@@ -27,8 +27,8 @@ import io.github.beyondwin.fixthis.compose.core.model.toSourceHint
 import io.github.beyondwin.fixthis.compose.core.model.toTargetEvidence
 import io.github.beyondwin.fixthis.compose.core.model.toTargetReliability
 import io.github.beyondwin.fixthis.compose.core.model.toTargetReliabilityAssessment
-import io.github.beyondwin.fixthis.mcp.session.FeedbackDelivery
-import io.github.beyondwin.fixthis.mcp.session.FeedbackHandoffBatch
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 
 fun SessionDto.toDomainSession(): Session = Session(
     id = SessionId(sessionId),

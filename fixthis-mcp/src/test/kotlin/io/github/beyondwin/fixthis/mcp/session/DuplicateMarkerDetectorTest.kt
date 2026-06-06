@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.session.handoff.DuplicateMarkerDetector
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

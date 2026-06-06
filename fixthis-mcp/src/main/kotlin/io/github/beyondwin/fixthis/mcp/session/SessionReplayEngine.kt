@@ -8,6 +8,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.withMigratedItemSequenceCount
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCheckpoint
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement

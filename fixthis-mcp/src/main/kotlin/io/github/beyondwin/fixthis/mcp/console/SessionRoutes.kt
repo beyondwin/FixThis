@@ -2,8 +2,8 @@ package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
 import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
-import io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackQueueFormatter
 import kotlinx.serialization.Serializable
 import java.io.File
 

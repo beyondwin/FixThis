@@ -22,6 +22,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.toDomainSession
 import io.github.beyondwin.fixthis.mcp.session.dto.toSessionDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

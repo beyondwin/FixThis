@@ -25,6 +25,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackQueueFormatter
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCacheRetentionPolicy
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge

@@ -3,8 +3,6 @@ package io.github.beyondwin.fixthis.mcp.tools
 import io.github.beyondwin.fixthis.compose.core.format.DetailMode
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.enrichSessionWithStaleness
-import io.github.beyondwin.fixthis.mcp.session.FeedbackDelivery
-import io.github.beyondwin.fixthis.mcp.session.FeedbackQueueFormatter
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionList
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
@@ -15,6 +13,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationResult
 import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackSwipeDirection
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackQueueFormatter
 import io.github.beyondwin.fixthis.mcp.textContent
 import io.github.beyondwin.fixthis.mcp.toolResult
 import kotlinx.serialization.json.JsonObject

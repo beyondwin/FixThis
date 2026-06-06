@@ -4,6 +4,7 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive

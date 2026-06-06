@@ -15,6 +15,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
 import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationResult
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.CompactHandoffRenderer
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCacheRetentionPolicy
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache

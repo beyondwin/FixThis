@@ -19,6 +19,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.CompactHandoffRenderer
 import org.junit.Test
 import kotlin.test.assertTrue
 

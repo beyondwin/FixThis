@@ -9,6 +9,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import java.io.File
 import java.nio.file.Files
 import kotlin.random.Random

@@ -10,6 +10,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackQueueFormatter
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

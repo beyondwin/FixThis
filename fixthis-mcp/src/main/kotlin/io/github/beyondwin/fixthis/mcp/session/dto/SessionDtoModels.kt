@@ -7,8 +7,8 @@ import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
-import io.github.beyondwin.fixthis.mcp.session.FeedbackDelivery
-import io.github.beyondwin.fixthis.mcp.session.FeedbackHandoffBatch
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

@@ -5,6 +5,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.migratedNextItemSequenceNumber
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 
 internal class SessionMutationService(
     private val clock: () -> Long,

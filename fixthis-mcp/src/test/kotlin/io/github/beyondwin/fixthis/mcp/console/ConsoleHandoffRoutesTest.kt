@@ -9,12 +9,12 @@ import io.github.beyondwin.fixthis.mcp.fixtures.FakeLongs
 import io.github.beyondwin.fixthis.mcp.fixtures.captureFakeScreenForTest
 import io.github.beyondwin.fixthis.mcp.fixtures.seedSessionWithOneItem
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
-import io.github.beyondwin.fixthis.mcp.session.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject

@@ -1,8 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.console
 
 import com.sun.net.httpserver.HttpExchange
-import io.github.beyondwin.fixthis.mcp.session.CompactHandoffRenderer
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
+import io.github.beyondwin.fixthis.mcp.session.handoff.CompactHandoffRenderer
 
 internal class HandoffPreviewRoutes(private val service: FeedbackSessionService) : ConsoleRoute {
     private val pathPrefix = "/api/sessions/"

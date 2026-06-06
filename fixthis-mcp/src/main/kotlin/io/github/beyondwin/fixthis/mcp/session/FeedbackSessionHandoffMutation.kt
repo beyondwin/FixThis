@@ -3,6 +3,8 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 
 internal data class PreparedHandoffMutation(
     val session: SessionDto,

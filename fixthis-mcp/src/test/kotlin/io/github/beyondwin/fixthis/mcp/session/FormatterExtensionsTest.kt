@@ -3,6 +3,8 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.mcp.session.handoff.formatBox
+import io.github.beyondwin.fixthis.mcp.session.handoff.staleMarkerSuffix
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
