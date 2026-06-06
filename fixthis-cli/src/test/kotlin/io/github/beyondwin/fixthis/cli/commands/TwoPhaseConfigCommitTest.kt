@@ -20,8 +20,7 @@ class TwoPhaseConfigCommitTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
-    private fun plan(writerName: String, scope: String, configFile: File, content: String) =
-        SetupWritePlan(writerName = writerName, scope = scope, configFile = configFile, content = content)
+    private fun plan(writerName: String, scope: String, configFile: File, content: String) = SetupWritePlan(writerName = writerName, scope = scope, configFile = configFile, content = content)
 
     @Test
     fun stageThenCommitWritesPlanContent() {
