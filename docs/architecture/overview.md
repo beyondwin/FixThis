@@ -152,28 +152,39 @@ MCP stdio server and local feedback console server.
   preview capture, persisted evidence capture, navigation, annotation save,
   target evidence derivation, handoff, and resolve through focused
   collaborators.
-- `session/FeedbackTargetValidator.kt` and
-  `session/PreviewFingerprintPolicy.kt`: keep target validation and preview
-  fingerprint decisions focused and testable while `FeedbackDraftService`
-  coordinates persistence.
-- `session/EditSurfaceCandidateService.kt`,
-  `session/EditSurfaceRoleClassifier.kt`, and
-  `session/CompactHandoffRenderer.kt`: derive likely visual/style edit
+- `session/target/FeedbackTargetValidator.kt` and
+  `session/preview/PreviewFingerprintPolicy.kt`: keep target validation and
+  preview fingerprint decisions focused and testable while
+  `session/draft/FeedbackDraftService` coordinates persistence.
+- `session/editsurface/*` (`EditSurfaceCandidateService.kt`,
+  `EditSurfaceRoleClassifier.kt`, `EditIntentAnalyzer.kt`,
+  `EditSurfaceConfidencePolicy.kt`) and
+  `session/handoff/CompactHandoffRenderer.kt`: derive likely visual/style edit
   surfaces, classify each candidate's role, and render the compact handoff
-  lines consumed by Copy Prompt and MCP agents.
-- `session/AnnotationWorkflow.kt`: annotation workflow boundary, including
+  lines consumed by Copy Prompt and MCP agents. The edit-surface classification
+  logic remains MCP-side in this pass because it consumes persisted session
+  DTOs; lifting it to `compose-core` requires a separate model/mapping design.
+- `session/draft/AnnotationWorkflow.kt`: annotation workflow boundary, including
   frozen-preview save, live fingerprint comparison, handoff, claim, and resolve
   operations.
-- `session/domain/McpSessionRepository.kt`, `McpSnapshotRepository.kt`, and
-  `McpAnnotationRepository.kt`: MCP adapters for the pure
-  `compose-core` session, snapshot, and annotation repository ports.
-- `session/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTOs and persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, and `targetReliability` are compatibility contracts.
-- `session/SessionDomainMappers.kt`: explicit mapper between DTOs and `compose-core` domain models. Legacy `"ready"` item status is normalized to `AnnotationStatus.OPEN` in the domain.
+- `session/domain/McpSnapshotRepository.kt` and
+  `session/domain/McpAnnotationRepository.kt`: MCP adapters for the pure
+  `compose-core` snapshot and annotation repository ports.
+- `session/dto/SessionDtoModels.kt`, `console/AnnotationRequestModels.kt`: MCP/local-console DTOs and persisted JSON field names. Existing field names such as `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, and `targetReliability` are compatibility contracts.
+- `session/dto/SessionDomainMappers.kt`: explicit mapper between DTOs and `compose-core` domain models. Legacy `"ready"` item status is normalized to `AnnotationStatus.OPEN` in the domain.
 - `console/ConsoleConnectionModels.kt`: browser console recovery card contract. Serializes `WELCOME`, `READY`, `OPEN_APP`, `STARTING`, `RECONNECT`, `CHOOSE_DEVICE`, `CHECK_PHONE`, `UNSUPPORTED_BUILD` states and primary actions.
-- `session/PreviewSnapshotCache.kt`, `SourceIndexRegistry.kt`, `ScreenshotArtifactPromoter.kt`: separates transient preview cache, source-index caching, and frozen preview screenshot promotion from the service.
-- `session/FeedbackSessionStore.kt`, `FeedbackSessionPersistence.kt`,
-  `SessionMutation.kt`, `SessionReducer.kt`, `SessionEventJournal.kt`,
-  `SessionReplayEngine.kt`, and `session/eventlog/*`:
+- `session/preview/PreviewSnapshotCache.kt`,
+  `session/preview/ScreenshotArtifactPromoter.kt`, and
+  `session/source/SourceIndexRegistry.kt`: separates transient preview cache,
+  frozen preview screenshot promotion, and source-index caching from the
+  service.
+- `session/lifecycle/store/FeedbackSessionStore.kt`,
+  `session/lifecycle/store/FeedbackSessionPersistence.kt`,
+  `session/lifecycle/event/SessionMutation.kt`,
+  `session/lifecycle/event/SessionReducer.kt`,
+  `session/lifecycle/event/SessionEventJournal.kt`,
+  `session/lifecycle/event/SessionReplayEngine.kt`, and
+  `session/lifecycle/event/eventlog/*`:
   `.fixthis/feedback-sessions/<session-id>/session.json` snapshot persistence
   plus append-only event logs under `events/`. Event-log replay is
   checkpoint-aware; compaction archives old events only after writing
