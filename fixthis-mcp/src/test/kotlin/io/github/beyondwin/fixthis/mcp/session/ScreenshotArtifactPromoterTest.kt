@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.preview.ScreenshotArtifactPromoter
 import java.io.File
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test

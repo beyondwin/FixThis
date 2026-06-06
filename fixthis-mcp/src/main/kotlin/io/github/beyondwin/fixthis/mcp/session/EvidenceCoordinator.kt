@@ -1,6 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
+import io.github.beyondwin.fixthis.mcp.session.preview.toCapturedScreen
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.booleanOrNull

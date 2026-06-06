@@ -16,6 +16,8 @@ import io.github.beyondwin.fixthis.mcp.console.ConsoleConnectionState
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCacheRetentionPolicy
+import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking

@@ -6,6 +6,10 @@ import io.github.beyondwin.fixthis.mcp.console.AnnotationDraftDto
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
+import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
+import io.github.beyondwin.fixthis.mcp.session.preview.ScreenshotArtifactPromoter
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.contentOrNull

@@ -1,5 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import java.io.File

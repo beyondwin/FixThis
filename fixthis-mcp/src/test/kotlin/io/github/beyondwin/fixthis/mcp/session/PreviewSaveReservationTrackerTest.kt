@@ -1,6 +1,9 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewRecord
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSaveReservationTracker
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.preview
 
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.mcp.console.FeedbackPreviewSnapshot

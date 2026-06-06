@@ -1,4 +1,7 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.preview
+
+import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.SnapshotDto
 
 internal data class PreviewSaveSlot(
     val inFlightKey: String,

@@ -2,6 +2,8 @@ package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
+import io.github.beyondwin.fixthis.mcp.session.preview.ScreenshotArtifactPromoter
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.test.Test

@@ -1,6 +1,7 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.preview
 
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.mcp.session.PreviewSaveFingerprintCheck
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
