@@ -28,7 +28,7 @@ class ArchitectureHotspotBudgetTest {
             "${mcpMain}tools/ScreenToolOperations.kt" to 180,
             "${mcpMain}tools/FeedbackToolOperations.kt" to 320,
             "${mcpMain}session/FeedbackDraftService.kt" to 430,
-            "${mcpMain}session/TargetEvidenceService.kt" to 320,
+            "${mcpMain}session/target/TargetEvidenceService.kt" to 320,
             "${mcpMain}tools/McpToolRegistry.kt" to 290,
             "${sidekickBridge}BridgeServer.kt" to 180,
             "${sidekickBridge}BridgeModels.kt" to 220,

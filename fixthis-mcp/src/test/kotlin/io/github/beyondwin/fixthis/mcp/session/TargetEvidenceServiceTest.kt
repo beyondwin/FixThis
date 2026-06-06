@@ -20,6 +20,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
+import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals

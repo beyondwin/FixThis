@@ -8,6 +8,7 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.target.TargetBoundaryContextFormatter
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

@@ -9,6 +9,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenshotArtifactPromoter
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
+import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.test.Test

@@ -7,6 +7,10 @@ import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
+import io.github.beyondwin.fixthis.mcp.session.target.FeedbackTargetSelection
+import io.github.beyondwin.fixthis.mcp.session.target.FeedbackTargetValidationOptions
+import io.github.beyondwin.fixthis.mcp.session.target.FeedbackTargetValidationRequest
+import io.github.beyondwin.fixthis.mcp.session.target.FeedbackTargetValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

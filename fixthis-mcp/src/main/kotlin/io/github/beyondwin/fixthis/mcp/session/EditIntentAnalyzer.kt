@@ -6,6 +6,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.target.TargetOwnerResolver
 
 internal object EditIntentAnalyzer {
     fun analyze(item: AnnotationDto, screen: SnapshotDto?): EditIntent {

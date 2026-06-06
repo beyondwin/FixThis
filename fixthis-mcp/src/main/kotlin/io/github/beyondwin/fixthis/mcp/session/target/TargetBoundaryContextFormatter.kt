@@ -1,10 +1,14 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.target
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
+import io.github.beyondwin.fixthis.mcp.session.compactQuotedValue
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.formatBounds
+import io.github.beyondwin.fixthis.mcp.session.formatBox
+import io.github.beyondwin.fixthis.mcp.session.inlineSafe
 
 private const val BOUNDARY_ANCESTOR_AREA_MULTIPLIER = 6f
 

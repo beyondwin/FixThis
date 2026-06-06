@@ -4,6 +4,7 @@ import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import io.github.beyondwin.fixthis.mcp.session.preview.toCapturedScreen
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
+import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put

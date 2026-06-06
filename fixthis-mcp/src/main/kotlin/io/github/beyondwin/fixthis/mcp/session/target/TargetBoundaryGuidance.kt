@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.target
 
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto

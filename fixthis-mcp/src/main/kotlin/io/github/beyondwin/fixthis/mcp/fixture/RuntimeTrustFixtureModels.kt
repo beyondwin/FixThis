@@ -1,8 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.fixture
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
-import io.github.beyondwin.fixthis.mcp.session.TargetBoundaryContextFormatter
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.target.TargetBoundaryContextFormatter
 import kotlinx.serialization.Serializable
 
 @Serializable

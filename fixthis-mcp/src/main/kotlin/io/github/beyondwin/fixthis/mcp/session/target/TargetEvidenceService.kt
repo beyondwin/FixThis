@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.target
 
 import io.github.beyondwin.fixthis.compose.core.identity.TestTagConventionSet
 import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
@@ -15,6 +15,7 @@ import io.github.beyondwin.fixthis.compose.core.target.TargetEvidenceInput
 import io.github.beyondwin.fixthis.compose.core.target.TargetReliabilityCalculator
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
+import io.github.beyondwin.fixthis.mcp.session.EditSurfaceCandidateService
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto

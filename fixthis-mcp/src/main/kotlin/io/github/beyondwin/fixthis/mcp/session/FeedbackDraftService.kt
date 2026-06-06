@@ -15,6 +15,7 @@ import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSaveReservationTra
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSaveSlot
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenshotArtifactPromoter
+import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import kotlinx.coroutines.runBlocking
 
 internal data class PreviewFeedbackSaveReservation(

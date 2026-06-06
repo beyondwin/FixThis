@@ -8,6 +8,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceReasonDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.target.TargetOwnerResolver
 
 internal object EditSurfaceCandidateService {
     private const val TEXT_SOURCE_NOTE =

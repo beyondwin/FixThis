@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.target.TargetSummaryFormatter
 
 internal object HandoffQualitySummary {
     fun render(
