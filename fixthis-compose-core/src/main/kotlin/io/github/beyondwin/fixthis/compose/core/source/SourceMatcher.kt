@@ -98,6 +98,26 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val accumulator = MatchAccumulator(matchedTerms, matchReasons, scoredEvidence, ctx)
         var rawScore = 0.0
 
+        rawScore += scoreSelectedNode(entry, selectedNode, accumulator)
+        rawScore += scoreNearbyNodes(entry, nearbyNodes, accumulator)
+        rawScore += scoreActivity(entry, activityName, accumulator)
+
+        deriveDerivedReasons(entry, ctx, matchReasons, sharedOwners)
+
+        return MatchScore(
+            entry = entry,
+            rawScore = rawScore,
+            matchedTerms = matchedTerms.toList(),
+            matchReasons = matchReasons.toList(),
+        )
+    }
+
+    private fun scoreSelectedNode(
+        entry: SourceIndexEntry,
+        selectedNode: FixThisNode,
+        accumulator: MatchAccumulator,
+    ): Double {
+        var rawScore = 0.0
         selectedNode.text.forEach { term ->
             rawScore += addIfMatches(
                 hit = entry.textLikeWeightHit(term),
@@ -141,7 +161,15 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 accumulator = accumulator,
             )
         }
+        return rawScore
+    }
 
+    private fun scoreNearbyNodes(
+        entry: SourceIndexEntry,
+        nearbyNodes: List<FixThisNode>,
+        accumulator: MatchAccumulator,
+    ): Double {
+        var rawScore = 0.0
         nearbyNodes.forEach { node ->
             node.text.forEach { term ->
                 rawScore += addIfMatches(
@@ -189,7 +217,15 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 )
             }
         }
+        return rawScore
+    }
 
+    private fun scoreActivity(
+        entry: SourceIndexEntry,
+        activityName: String?,
+        accumulator: MatchAccumulator,
+    ): Double {
+        var rawScore = 0.0
         activityName?.takeUnless { it.isBlank() }?.let { name ->
             rawScore += addIfMatches(
                 hit = entry.activityWeightHit(name),
@@ -198,7 +234,15 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 accumulator = accumulator,
             )
         }
+        return rawScore
+    }
 
+    private fun deriveDerivedReasons(
+        entry: SourceIndexEntry,
+        ctx: ScoreContext,
+        matchReasons: MutableSet<SourceMatchReason>,
+        sharedOwners: Set<String>,
+    ) {
         // Post-processing: emit "arbitrary literal" or "untyped fallback" origin markers
         if (ctx.anyTermMatched) {
             if (ctx.anyArbitraryLiteralSignal) {
@@ -208,6 +252,14 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
                 matchReasons.add(SourceMatchReason.UNTYPED_FALLBACK)
             }
         }
+        deriveStructuralReasons(entry, matchReasons, sharedOwners)
+    }
+
+    private fun deriveStructuralReasons(
+        entry: SourceIndexEntry,
+        matchReasons: MutableSet<SourceMatchReason>,
+        sharedOwners: Set<String>,
+    ) {
         if (
             SourceMatchReason.SELECTED_OWNER_FUNCTION in matchReasons &&
             entry.signals.any { signal -> signal.kind == SourceSignalKind.LAYOUT_RENDERER }
@@ -230,13 +282,6 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         if (ownsSharedComponent || belongsToSharedOwner) {
             matchReasons.add(SourceMatchReason.SHARED_COMPONENT_DEFINITION)
         }
-
-        return MatchScore(
-            entry = entry,
-            rawScore = rawScore,
-            matchedTerms = matchedTerms.toList(),
-            matchReasons = matchReasons.toList(),
-        )
     }
 
     private fun addSelectedTestTagScore(
