@@ -21,7 +21,7 @@ class ArchitectureHotspotBudgetTest {
         // These are ratchets. When a file shrinks, lower its budget in the same commit.
         // Separate maps keep production source growth from being hidden by large tests.
         val productionKotlinBudgets = mapOf(
-            "${mcpMain}session/lifecycle/store/FeedbackSessionStoreDelegate.kt" to 700,
+            "${mcpMain}session/lifecycle/store/FeedbackSessionStoreDelegate.kt" to 620,
             "${mcpMain}session/lifecycle/event/SessionReplayEngine.kt" to 340,
             "${mcpMain}tools/FixThisToolDispatcher.kt" to 70,
             "${mcpMain}tools/ToolCallSupport.kt" to 70,

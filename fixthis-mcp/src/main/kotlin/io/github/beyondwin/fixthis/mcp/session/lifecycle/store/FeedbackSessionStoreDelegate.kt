@@ -77,7 +77,7 @@ internal class FeedbackSessionStoreDelegate(
     private val compactionFailureSink: (sessionId: String, cause: Throwable) -> Unit = ::logCompactionFailure,
 ) {
     private val lock = Any()
-    private val sessions = linkedMapOf<String, SessionDto>()
+    private val store = SessionStateStore(persistence)
     private var currentSessionId: String? = null
     private val journal = SessionEventJournal(
         clock = clock,
@@ -100,7 +100,7 @@ internal class FeedbackSessionStoreDelegate(
                     runCatching { p.load(summary.sessionId) }
                         .getOrNull()
                         ?.let { session ->
-                            sessions[session.sessionId] = session
+                            store.put(session)
                             if (session.status != SessionStatusDto.CLOSED) currentSessionId = session.sessionId
                         }
                 }
@@ -111,12 +111,12 @@ internal class FeedbackSessionStoreDelegate(
         // to empty then replay all events. The session shell (id, packageName, projectRoot,
         // createdAt, status) is preserved from the persistence snapshot.
         if (eventLogReaderProvider != null) {
-            val sessionIds = sessions.keys.toList()
+            val sessionIds = store.ids()
             for (sid in sessionIds) {
                 replaySessionEvents(sid)
             }
             // Re-derive currentSessionId from post-replay statuses
-            currentSessionId = sessions.values
+            currentSessionId = store.all()
                 .filter { it.status != SessionStatusDto.CLOSED }
                 .maxByOrNull { it.updatedAtEpochMillis }
                 ?.sessionId
@@ -136,8 +136,7 @@ internal class FeedbackSessionStoreDelegate(
             createdAtEpochMillis = now,
             updatedAtEpochMillis = now,
         )
-        save(session)
-        sessions[session.sessionId] = session
+        store.saveAndPut(session)
         currentSessionId = session.sessionId
         session
     }
@@ -153,8 +152,7 @@ internal class FeedbackSessionStoreDelegate(
     // resolve/claim use-cases and their McpSessionRepository wrapper.
     fun replaceSessionForDomain(session: SessionDto): SessionDto = synchronized(lock) {
         val migrated = session.withMigratedItemSequenceCounter()
-        save(migrated)
-        sessions[migrated.sessionId] = migrated
+        store.saveAndPut(migrated)
         // A domain save replaces session state; it must not hijack the current-session
         // pointer (consistent with commitSessionMutation). Only clear it when the
         // currently-selected session is the one being closed.
@@ -197,7 +195,7 @@ internal class FeedbackSessionStoreDelegate(
         persistence?.list(packageName, includeClosed)
             ?.let { list -> list.copy(skippedSessions = list.skippedSessions + replaySkipped) }
             ?: FeedbackSessionList(
-                sessions = sessions.values
+                sessions = store.all()
                     .filter { packageName == null || it.packageName == packageName }
                     .filter { includeClosed || it.status != SessionStatusDto.CLOSED }
                     .map(FeedbackSessionSummary.Companion::from)
@@ -216,8 +214,7 @@ internal class FeedbackSessionStoreDelegate(
         val session = getSessionLocked(sessionId)
         val now = clock()
         val closed = SessionReducer.reduce(session, SessionMutation.Close(now))
-        save(closed)
-        sessions[sessionId] = closed
+        store.saveAndPut(closed)
         if (currentSessionId == sessionId) currentSessionId = null
         closed
     }
@@ -230,8 +227,7 @@ internal class FeedbackSessionStoreDelegate(
         val session = getSessionLocked(sessionId)
         val (updated, captured) = mutations.addScreen(session, screen)
         SessionEventPayloadFactory.screen(sessionId, captured) to {
-            save(updated)
-            sessions[sessionId] = updated
+            store.saveAndPut(updated)
             captured
         }
     }
@@ -299,8 +295,7 @@ internal class FeedbackSessionStoreDelegate(
         val session = getSessionLocked(sessionId)
         val (updated, created) = mutations.addItem(session, item)
         SessionEventPayloadFactory.item(sessionId, created) to {
-            save(updated)
-            sessions[sessionId] = updated
+            store.saveAndPut(updated)
             created
         }
     }
@@ -367,8 +362,7 @@ internal class FeedbackSessionStoreDelegate(
         val session = getSessionLocked(sessionId)
         val now = clock()
         val updated = SessionReducer.reduce(session, SessionMutation.MarkReadyForAgent(now))
-        save(updated)
-        sessions[sessionId] = updated
+        store.saveAndPut(updated)
         updated
     }
 
@@ -445,8 +439,7 @@ internal class FeedbackSessionStoreDelegate(
         if (!found) throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
         SessionEventPayloadFactory.updateDraftItems(sessionId, updatedItems) to {
-            save(updated)
-            sessions[sessionId] = updated
+            store.saveAndPut(updated)
             updated
         }
     }
@@ -467,8 +460,7 @@ internal class FeedbackSessionStoreDelegate(
             updatedAtEpochMillis = clock(),
         )
         SessionEventPayloadFactory.deleteItem(sessionId, itemId) to {
-            save(updated)
-            sessions[sessionId] = updated
+            store.saveAndPut(updated)
             updated
         }
     }
@@ -575,7 +567,7 @@ internal class FeedbackSessionStoreDelegate(
      */
     private fun replaySessionEvents(sessionId: String) {
         val reader = journal.reader(sessionId)
-        val shell = sessions[sessionId]
+        val shell = store.find(sessionId)
         if (reader != null && shell != null) {
             val replayed = replayEngine.replay(
                 sessionId = sessionId,
@@ -583,7 +575,7 @@ internal class FeedbackSessionStoreDelegate(
                 reader = reader,
                 recordSkipped = ::recordReplaySkippedSession,
             )
-            sessions[sessionId] = replayed
+            store.put(replayed)
         }
     }
 
@@ -596,7 +588,7 @@ internal class FeedbackSessionStoreDelegate(
         includeClosed: Boolean,
     ): List<SkippedFeedbackSession> = replaySkippedSessions
         .filter { (sessionId, _) ->
-            val session = sessions[sessionId]
+            val session = store.find(sessionId)
             session != null &&
                 (packageName == null || session.packageName == packageName) &&
                 (includeClosed || session.status != SessionStatusDto.CLOSED)
@@ -615,32 +607,10 @@ internal class FeedbackSessionStoreDelegate(
             AnnotationStatusDto.WONT_FIX,
         )
 
-    private fun getSessionLocked(sessionId: String): SessionDto {
-        val session = loadPersistedSessionIfAvailable(sessionId)
-            ?: sessions[sessionId]
-            ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
-        val migrated = session.withMigratedItemSequenceCounter()
-        sessions[migrated.sessionId] = migrated
-        return migrated
-    }
+    private fun getSessionLocked(sessionId: String): SessionDto = store.get(sessionId)
 
-    private fun loadPersistedSessionIfAvailable(sessionId: String): SessionDto? {
-        val loaded = persistence?.let { p ->
-            runCatching { p.load(sessionId) }.getOrNull()
-        } ?: return null
-        sessions[loaded.sessionId] = loaded
-        return loaded
-    }
-
-    private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto {
-        save(updated)
-        sessions[previous.sessionId] = updated
-        return updated
-    }
-
-    private fun save(session: SessionDto) {
-        persistence?.save(session)
-    }
+    private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto =
+        store.commit(previous, updated)
 }
 
 class FeedbackSessionException(message: String) : RuntimeException(message)
