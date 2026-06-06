@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session.eventlog
+package io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog
 
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import kotlinx.serialization.json.Json

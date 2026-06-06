@@ -6,7 +6,7 @@ import io.github.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.github.beyondwin.fixthis.mcp.fixtures.FakeLongs
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString

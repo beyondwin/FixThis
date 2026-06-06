@@ -1,8 +1,8 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.lifecycle.event
 
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
-import io.github.beyondwin.fixthis.mcp.session.eventlog.SessionEvent
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionEvent
 import kotlinx.serialization.json.JsonObject
 
 class SessionEventJournal(

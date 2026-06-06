@@ -2,13 +2,6 @@
 
 package io.github.beyondwin.fixthis.mcp.session.lifecycle.store
 
-import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionHandoffMutation
-import io.github.beyondwin.fixthis.mcp.session.SessionEventJournal
-import io.github.beyondwin.fixthis.mcp.session.SessionEventPayloads
-import io.github.beyondwin.fixthis.mcp.session.SessionMutation
-import io.github.beyondwin.fixthis.mcp.session.SessionMutationService
-import io.github.beyondwin.fixthis.mcp.session.SessionReducer
-import io.github.beyondwin.fixthis.mcp.session.SessionReplayEngine
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
@@ -17,10 +10,17 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.migratedNextItemSequenceNumber
 import io.github.beyondwin.fixthis.mcp.session.dto.withMigratedItemSequenceCounter
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactionTask
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.FeedbackSessionHandoffMutation
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventJournal
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloads
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutation
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutationService
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReducer
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReplayEngine
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactionTask
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
@@ -63,7 +63,7 @@ private fun logCompactionFailure(sessionId: String, cause: Throwable) {
  *
  * When [eventLogWriterProvider] is non-null, every spec'd mutation appends a
  * [SessionEvent] BEFORE updating in-memory state. If the append throws
- * [io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogException], memory remains
+ * [io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogException], memory remains
  * unchanged (fail-stop).
  *
  * When [eventLogReaderProvider] is non-null, the init block replays events from

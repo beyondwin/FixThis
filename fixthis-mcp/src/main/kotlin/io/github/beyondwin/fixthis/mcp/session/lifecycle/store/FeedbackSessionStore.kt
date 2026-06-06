@@ -7,9 +7,9 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactionTask
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactionTask
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 

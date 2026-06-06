@@ -1,4 +1,4 @@
-package io.github.beyondwin.fixthis.mcp.session
+package io.github.beyondwin.fixthis.mcp.session.lifecycle.event
 
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto

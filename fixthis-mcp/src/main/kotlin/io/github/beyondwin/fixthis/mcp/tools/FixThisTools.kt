@@ -5,9 +5,9 @@ import io.github.beyondwin.fixthis.cli.BridgeClient
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.dto.FeedbackNavigationRequest
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogCompactor
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactor
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore

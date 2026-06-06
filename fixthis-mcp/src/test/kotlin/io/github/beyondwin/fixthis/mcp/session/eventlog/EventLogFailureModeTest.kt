@@ -1,5 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session.eventlog
 
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogException
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionEvent
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File

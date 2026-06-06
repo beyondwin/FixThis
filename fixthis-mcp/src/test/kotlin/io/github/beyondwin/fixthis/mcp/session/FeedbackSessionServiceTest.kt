@@ -23,10 +23,10 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotRootDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogReader
-import io.github.beyondwin.fixthis.mcp.session.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackQueueFormatter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence

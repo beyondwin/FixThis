@@ -6,6 +6,12 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCheckpoint
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactor
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogDurability
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionEvent
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore

@@ -8,6 +8,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutation
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReducer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
