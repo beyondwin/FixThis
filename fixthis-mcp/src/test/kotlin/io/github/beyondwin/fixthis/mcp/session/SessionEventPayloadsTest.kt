@@ -5,7 +5,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
-import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloads
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloadFactory
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -24,7 +24,7 @@ class SessionEventPayloadsTest {
             markdownSnapshot = "handoff",
         )
 
-        val payload = SessionEventPayloads.handoff(
+        val payload = SessionEventPayloadFactory.handoff(
             sessionId = "session-1",
             batch = batch,
             updatedItems = listOf(item),
@@ -40,7 +40,7 @@ class SessionEventPayloadsTest {
 
     @Test
     fun `screen payload keeps session and screen keys`() {
-        val payload = SessionEventPayloads.screen(
+        val payload = SessionEventPayloadFactory.screen(
             sessionId = "session-1",
             screen = SnapshotDto(
                 screenId = "screen-1",
@@ -56,7 +56,7 @@ class SessionEventPayloadsTest {
 
     @Test
     fun `items payload keeps session and item keys`() {
-        val payload = SessionEventPayloads.items(
+        val payload = SessionEventPayloadFactory.items(
             sessionId = "session-1",
             items = listOf(item()),
         )

@@ -12,8 +12,9 @@ import io.github.beyondwin.fixthis.mcp.session.dto.migratedNextItemSequenceNumbe
 import io.github.beyondwin.fixthis.mcp.session.dto.withMigratedItemSequenceCounter
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.FeedbackSessionHandoffMutation
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionBootReplayer
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventJournal
-import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloads
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloadFactory
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutation
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutationService
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReducer
@@ -21,21 +22,9 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReplayEngi
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactionTask
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
-import kotlinx.serialization.json.Json
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionCompactionCoordinator
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonObjectBuilder
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.put
 import java.util.UUID
-
-private val eventLogJson = Json {
-    encodeDefaults = true
-    ignoreUnknownKeys = true
-}
-
-private const val COMPACTION_FAILURE_EMIT_EVERY = 50
-private const val COMPACTION_FAILURE_EMIT_WINDOW_MILLIS = 60_000L
 
 /**
  * Machine-readable prefix for the rejection raised when a mutation targets a closed
@@ -45,18 +34,6 @@ private const val COMPACTION_FAILURE_EMIT_WINDOW_MILLIS = 60_000L
 internal const val SESSION_CLOSED_PREFIX = "SESSION_CLOSED:"
 
 private fun sessionClosed(type: String): FeedbackSessionException = FeedbackSessionException("$SESSION_CLOSED_PREFIX Cannot run $type on a closed feedback session.")
-
-private class CompactionFailureThrottleState(
-    var consecutiveFailures: Int = 0,
-    var lastEmitAtEpochMillis: Long = Long.MIN_VALUE,
-)
-
-private fun logCompactionFailure(sessionId: String, cause: Throwable) {
-    System.err.println(
-        "WARN: event-log compaction failed for session $sessionId: " +
-            (cause.message ?: cause::class.java.simpleName),
-    )
-}
 
 /**
  * In-memory store for feedback sessions, with optional write-ahead event log support.
@@ -74,8 +51,9 @@ private fun logCompactionFailure(sessionId: String, cause: Throwable) {
  * When both are null, the store behaves identically to the pre-A.4 baseline,
  * preserving backward compatibility for the ~482 existing tests.
  */
-// LargeClass suppressed: split into smaller responsibilities once the event-log API stabilises — see #ALH-followup
-@Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
+// TooManyFunctions/LongParameterList kept by design: this facade-delegate exposes the wide public
+// session-operation surface and a constructor whose arity is bound to the FeedbackSessionStore facade.
+@Suppress("LongParameterList", "TooManyFunctions")
 internal class FeedbackSessionStoreDelegate(
     private val clock: () -> Long = { System.currentTimeMillis() },
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
@@ -84,10 +62,10 @@ internal class FeedbackSessionStoreDelegate(
     private val eventLogReaderProvider: ((sessionId: String) -> EventLogReader)? = null,
     private val eventLogCompactorProvider: ((sessionId: String) -> EventLogCompactionTask)? = null,
     private val eventLogCompactionThreshold: Int = 1000,
-    private val compactionFailureSink: (sessionId: String, cause: Throwable) -> Unit = ::logCompactionFailure,
+    private val compactionFailureSink: ((sessionId: String, cause: Throwable) -> Unit)? = null,
 ) {
     private val lock = Any()
-    private val sessions = linkedMapOf<String, SessionDto>()
+    private val store = SessionStateStore(persistence)
     private var currentSessionId: String? = null
     private val journal = SessionEventJournal(
         clock = clock,
@@ -96,41 +74,33 @@ internal class FeedbackSessionStoreDelegate(
         readerProvider = eventLogReaderProvider,
     )
     private val replayEngine = SessionReplayEngine(journal, persistence)
-    private val replaySkippedSessions = mutableMapOf<String, SkippedFeedbackSession>()
-    private val compactionLocks = mutableMapOf<String, Any>()
-    private val compactionFailureThrottle = mutableMapOf<String, CompactionFailureThrottleState>()
+    private val bootReplayer = SessionBootReplayer(
+        replayEngine = replayEngine,
+        persistence = persistence,
+        hasEventLog = eventLogReaderProvider != null,
+    )
+    private val compactionCoordinator = if (compactionFailureSink == null) {
+        SessionCompactionCoordinator(
+            eventLogCompactorProvider = eventLogCompactorProvider,
+            eventLogCompactionThreshold = eventLogCompactionThreshold,
+            clock = clock,
+        )
+    } else {
+        SessionCompactionCoordinator(
+            eventLogCompactorProvider = eventLogCompactorProvider,
+            eventLogCompactionThreshold = eventLogCompactionThreshold,
+            compactionFailureSink = compactionFailureSink,
+            clock = clock,
+        )
+    }
     private val mutations = SessionMutationService(clock, idGenerator)
     private val artifactJanitor = SessionArtifactJanitor(persistence)
 
     init {
-        persistence?.let { p ->
-            p.list(includeClosed = true).sessions
-                .sortedBy { it.updatedAtEpochMillis }
-                .forEach { summary ->
-                    runCatching { p.load(summary.sessionId) }
-                        .getOrNull()
-                        ?.let { session ->
-                            sessions[session.sessionId] = session
-                            if (session.status != SessionStatusDto.CLOSED) currentSessionId = session.sessionId
-                        }
-                }
-        }
-
-        // Boot replay: if readerProvider is wired, replay events for every known session.
-        // Simplification (A.4): for sessions that have events, reset items/screens/handoffBatches
-        // to empty then replay all events. The session shell (id, packageName, projectRoot,
-        // createdAt, status) is preserved from the persistence snapshot.
-        if (eventLogReaderProvider != null) {
-            val sessionIds = sessions.keys.toList()
-            for (sid in sessionIds) {
-                replaySessionEvents(sid)
-            }
-            // Re-derive currentSessionId from post-replay statuses
-            currentSessionId = sessions.values
-                .filter { it.status != SessionStatusDto.CLOSED }
-                .maxByOrNull { it.updatedAtEpochMillis }
-                ?.sessionId
-        }
+        // Boot reconstruction (persistence preload + optional event-log replay) is delegated to
+        // SessionBootReplayer. It runs lock-free at construction (lock is not held yet) and returns
+        // the derived current-session pointer; currentSessionId stays a delegate field.
+        currentSessionId = bootReplayer.replayAll(store, journal).currentSessionId
     }
 
     // ------------------------------------------------------------------
@@ -146,8 +116,7 @@ internal class FeedbackSessionStoreDelegate(
             createdAtEpochMillis = now,
             updatedAtEpochMillis = now,
         )
-        save(session)
-        sessions[session.sessionId] = session
+        store.saveAndPut(session)
         currentSessionId = session.sessionId
         session
     }
@@ -163,8 +132,7 @@ internal class FeedbackSessionStoreDelegate(
     // resolve/claim use-cases and their McpSessionRepository wrapper.
     fun replaceSessionForDomain(session: SessionDto): SessionDto = synchronized(lock) {
         val migrated = session.withMigratedItemSequenceCounter()
-        save(migrated)
-        sessions[migrated.sessionId] = migrated
+        store.saveAndPut(migrated)
         // A domain save replaces session state; it must not hijack the current-session
         // pointer (consistent with commitSessionMutation). Only clear it when the
         // currently-selected session is the one being closed.
@@ -203,11 +171,11 @@ internal class FeedbackSessionStoreDelegate(
         packageName: String? = null,
         includeClosed: Boolean = false,
     ): FeedbackSessionList = synchronized(lock) {
-        val replaySkipped = replaySkippedSessionList(packageName, includeClosed)
+        val replaySkipped = bootReplayer.skippedList(packageName, includeClosed)
         persistence?.list(packageName, includeClosed)
             ?.let { list -> list.copy(skippedSessions = list.skippedSessions + replaySkipped) }
             ?: FeedbackSessionList(
-                sessions = sessions.values
+                sessions = store.all()
                     .filter { packageName == null || it.packageName == packageName }
                     .filter { includeClosed || it.status != SessionStatusDto.CLOSED }
                     .map(FeedbackSessionSummary.Companion::from)
@@ -226,8 +194,7 @@ internal class FeedbackSessionStoreDelegate(
         val session = getSessionLocked(sessionId)
         val now = clock()
         val closed = SessionReducer.reduce(session, SessionMutation.Close(now))
-        save(closed)
-        sessions[sessionId] = closed
+        store.saveAndPut(closed)
         if (currentSessionId == sessionId) currentSessionId = null
         closed
     }
@@ -239,9 +206,8 @@ internal class FeedbackSessionStoreDelegate(
     fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto = withEventBackedMutation(sessionId, "addScreen") {
         val session = getSessionLocked(sessionId)
         val (updated, captured) = mutations.addScreen(session, screen)
-        SessionEventPayloads.screen(sessionId, captured) to {
-            save(updated)
-            sessions[sessionId] = updated
+        SessionEventPayloadFactory.screen(sessionId, captured) to {
+            store.saveAndPut(updated)
             captured
         }
     }
@@ -285,7 +251,7 @@ internal class FeedbackSessionStoreDelegate(
                 nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
                 updatedAtEpochMillis = now,
             )
-            addScreenWithItemsPayload(
+            SessionEventPayloadFactory.screenWithItems(
                 sessionId = sessionId,
                 eventMetadata = eventMetadata,
                 screen = captured,
@@ -294,25 +260,10 @@ internal class FeedbackSessionStoreDelegate(
         },
     )
 
-    private fun addScreenWithItemsPayload(
-        sessionId: String,
-        eventMetadata: JsonObject,
-        screen: SnapshotDto,
-        items: List<AnnotationDto>,
-    ): JsonObject = buildJsonObject {
-        put("sessionId", sessionId)
-        eventMetadata.forEach { (key, value) -> put(key, value) }
-        put("screen", eventLogJson.encodeToJsonElement(SnapshotDto.serializer(), screen))
-        putItems(items)
-    }
-
     fun deleteScreen(sessionId: String, screenId: String): SessionDto = withEventBackedMutation(sessionId, "deleteScreen") {
         val session = getSessionLocked(sessionId)
         val updated = mutations.deleteScreen(session, screenId)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("screenId", screenId)
-        } to {
+        SessionEventPayloadFactory.deleteScreen(sessionId, screenId) to {
             // Note: disk artifact deletion is NOT replayed on boot (replay is SessionDto-only).
             commitSessionMutation(session, updated).also {
                 artifactJanitor.deleteScreenArtifacts(sessionId, screenId)
@@ -323,12 +274,8 @@ internal class FeedbackSessionStoreDelegate(
     fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto = withEventBackedMutation(sessionId, "addItem") {
         val session = getSessionLocked(sessionId)
         val (updated, created) = mutations.addItem(session, item)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("item", eventLogJson.encodeToJsonElement(AnnotationDto.serializer(), created))
-        } to {
-            save(updated)
-            sessions[sessionId] = updated
+        SessionEventPayloadFactory.item(sessionId, created) to {
+            store.saveAndPut(updated)
             created
         }
     }
@@ -339,7 +286,7 @@ internal class FeedbackSessionStoreDelegate(
             items = session.items.filter { it.delivery != FeedbackDelivery.DRAFT },
             updatedAtEpochMillis = clock(),
         )
-        SessionEventPayloads.items(sessionId, updated.items) to {
+        SessionEventPayloadFactory.items(sessionId, updated.items) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -360,7 +307,7 @@ internal class FeedbackSessionStoreDelegate(
         ) ?: throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
         val batch = prepared.batch
         val updated = prepared.session
-        SessionEventPayloads.handoff(sessionId, batch, updated.items) to {
+        SessionEventPayloadFactory.handoff(sessionId, batch, updated.items) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -386,7 +333,7 @@ internal class FeedbackSessionStoreDelegate(
             items = updatedItems,
             updatedAtEpochMillis = now,
         )
-        SessionEventPayloads.items(sessionId, updatedItems) to {
+        SessionEventPayloadFactory.items(sessionId, updatedItems) to {
             commitSessionMutation(session, updated)
         }
     }
@@ -395,8 +342,7 @@ internal class FeedbackSessionStoreDelegate(
         val session = getSessionLocked(sessionId)
         val now = clock()
         val updated = SessionReducer.reduce(session, SessionMutation.MarkReadyForAgent(now))
-        save(updated)
-        sessions[sessionId] = updated
+        store.saveAndPut(updated)
         updated
     }
 
@@ -408,7 +354,7 @@ internal class FeedbackSessionStoreDelegate(
     ): AnnotationDto = withEventBackedMutation(sessionId, "updateItemStatus") {
         val session = getSessionLocked(sessionId)
         val (updated, item) = mutations.updateItemStatus(session, itemId, status, agentSummary)
-        SessionEventPayloads.items(sessionId, updated.items) to {
+        SessionEventPayloadFactory.items(sessionId, updated.items) to {
             commitSessionMutation(session, updated)
             item
         }
@@ -439,7 +385,7 @@ internal class FeedbackSessionStoreDelegate(
         val item = updatedItem
             ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-        SessionEventPayloads.items(sessionId, updatedItems) to {
+        SessionEventPayloadFactory.items(sessionId, updatedItems) to {
             commitSessionMutation(session, updated)
             item
         }
@@ -472,18 +418,8 @@ internal class FeedbackSessionStoreDelegate(
         }
         if (!found) throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put(
-                "items",
-                eventLogJson.encodeToJsonElement(
-                    kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                    updatedItems,
-                ),
-            )
-        } to {
-            save(updated)
-            sessions[sessionId] = updated
+        SessionEventPayloadFactory.updateDraftItems(sessionId, updatedItems) to {
+            store.saveAndPut(updated)
             updated
         }
     }
@@ -503,12 +439,8 @@ internal class FeedbackSessionStoreDelegate(
             handoffBatches = updatedBatches,
             updatedAtEpochMillis = clock(),
         )
-        buildJsonObject {
-            put("sessionId", sessionId)
-            put("itemId", itemId)
-        } to {
-            save(updated)
-            sessions[sessionId] = updated
+        SessionEventPayloadFactory.deleteItem(sessionId, itemId) to {
+            store.saveAndPut(updated)
             updated
         }
     }
@@ -529,7 +461,7 @@ internal class FeedbackSessionStoreDelegate(
             journal.append(sessionId = sessionId, type = type, payload = payload)
             mutate()
         }
-        compactEventLogAfterMutation(sessionId)
+        compactionCoordinator.compactAfterMutation(sessionId)
         return result
     }
 
@@ -545,7 +477,7 @@ internal class FeedbackSessionStoreDelegate(
             journal.append(sessionId = sessionId, type = type, payload = payload)
             mutate()
         }
-        compactEventLogAfterMutation(sessionId)
+        compactionCoordinator.compactAfterMutation(sessionId)
         return result
     }
 
@@ -555,104 +487,6 @@ internal class FeedbackSessionStoreDelegate(
             throw sessionClosed(type)
         }
     }
-
-    @Suppress("TooGenericExceptionCaught")
-    private fun compactEventLogAfterMutation(sessionId: String) {
-        val compactor = eventLogCompactorProvider?.invoke(sessionId) ?: return
-        try {
-            synchronized(compactionLock(sessionId)) {
-                compactor.runOnce(eventLogCompactionThreshold)
-            }
-            resetCompactionFailureThrottle(sessionId)
-        } catch (error: Exception) {
-            // Compaction is a best-effort background optimization. A failure leaves the
-            // valid, uncompacted event log intact and is retried on the next mutation, so it
-            // must NOT be surfaced as a skipped/corrupt session (that signal means the data
-            // could not be loaded). The mutation has already committed successfully. The
-            // failure is reported through a throttled WARN sink so a hot mutation loop on a
-            // persistently failing compactor cannot spam the log.
-            if (shouldEmitCompactionFailure(sessionId)) {
-                compactionFailureSink(sessionId, error)
-            }
-        }
-    }
-
-    private fun shouldEmitCompactionFailure(sessionId: String): Boolean = synchronized(lock) {
-        val state = compactionFailureThrottle.getOrPut(sessionId) { CompactionFailureThrottleState() }
-        state.consecutiveFailures += 1
-        val now = clock()
-        val firstFailure = state.consecutiveFailures == 1
-        val everyNth = state.consecutiveFailures % COMPACTION_FAILURE_EMIT_EVERY == 0
-        val windowElapsed = state.lastEmitAtEpochMillis != Long.MIN_VALUE &&
-            now - state.lastEmitAtEpochMillis >= COMPACTION_FAILURE_EMIT_WINDOW_MILLIS
-        val emit = firstFailure || everyNth || windowElapsed
-        if (emit) state.lastEmitAtEpochMillis = now
-        emit
-    }
-
-    private fun resetCompactionFailureThrottle(sessionId: String) = synchronized(lock) {
-        compactionFailureThrottle.remove(sessionId)
-    }
-
-    private fun compactionLock(sessionId: String): Any = synchronized(lock) {
-        compactionLocks.getOrPut(sessionId) { Any() }
-    }
-
-    private fun JsonObjectBuilder.putItems(items: List<AnnotationDto>) {
-        put(
-            "items",
-            eventLogJson.encodeToJsonElement(
-                kotlinx.serialization.builtins.ListSerializer(AnnotationDto.serializer()),
-                items,
-            ),
-        )
-    }
-
-    // ------------------------------------------------------------------
-    // Boot replay
-    // ------------------------------------------------------------------
-
-    /**
-     * Replays all events for [sessionId] from the event log.
-     *
-     * Simplification (A.4): resets items, screens, and handoffBatches to empty
-     * before applying events, so the snapshot and event log don't double-count.
-     * Session identity fields (id, packageName, projectRoot, createdAt, status)
-     * are preserved from the persistence snapshot if available.
-     *
-     * This method must only be called from the init block (not synchronized) since
-     * [lock] is not held yet at construction time.
-     */
-    private fun replaySessionEvents(sessionId: String) {
-        val reader = journal.reader(sessionId)
-        val shell = sessions[sessionId]
-        if (reader != null && shell != null) {
-            val replayed = replayEngine.replay(
-                sessionId = sessionId,
-                shell = shell,
-                reader = reader,
-                recordSkipped = ::recordReplaySkippedSession,
-            )
-            sessions[sessionId] = replayed
-        }
-    }
-
-    private fun recordReplaySkippedSession(sessionId: String, path: String, message: String) {
-        replaySkippedSessions[sessionId] = SkippedFeedbackSession(path = path, message = message)
-    }
-
-    private fun replaySkippedSessionList(
-        packageName: String?,
-        includeClosed: Boolean,
-    ): List<SkippedFeedbackSession> = replaySkippedSessions
-        .filter { (sessionId, _) ->
-            val session = sessions[sessionId]
-            session != null &&
-                (packageName == null || session.packageName == packageName) &&
-                (includeClosed || session.status != SessionStatusDto.CLOSED)
-        }
-        .values
-        .toList()
 
     // ------------------------------------------------------------------
     // Private helpers — unchanged
@@ -665,32 +499,9 @@ internal class FeedbackSessionStoreDelegate(
             AnnotationStatusDto.WONT_FIX,
         )
 
-    private fun getSessionLocked(sessionId: String): SessionDto {
-        val session = loadPersistedSessionIfAvailable(sessionId)
-            ?: sessions[sessionId]
-            ?: throw FeedbackSessionException("Unknown feedback session: $sessionId")
-        val migrated = session.withMigratedItemSequenceCounter()
-        sessions[migrated.sessionId] = migrated
-        return migrated
-    }
+    private fun getSessionLocked(sessionId: String): SessionDto = store.get(sessionId)
 
-    private fun loadPersistedSessionIfAvailable(sessionId: String): SessionDto? {
-        val loaded = persistence?.let { p ->
-            runCatching { p.load(sessionId) }.getOrNull()
-        } ?: return null
-        sessions[loaded.sessionId] = loaded
-        return loaded
-    }
-
-    private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto {
-        save(updated)
-        sessions[previous.sessionId] = updated
-        return updated
-    }
-
-    private fun save(session: SessionDto) {
-        persistence?.save(session)
-    }
+    private fun commitSessionMutation(previous: SessionDto, updated: SessionDto): SessionDto = store.commit(previous, updated)
 }
 
 class FeedbackSessionException(message: String) : RuntimeException(message)
