@@ -18,6 +18,7 @@ internal data class InstallRequest(
     val projectRoot: File,
     val target: String,
     val serverName: String,
+    val agent: Boolean,
     val applyGradlePlugin: Boolean,
     val pluginVersion: String,
     val dryRun: Boolean,

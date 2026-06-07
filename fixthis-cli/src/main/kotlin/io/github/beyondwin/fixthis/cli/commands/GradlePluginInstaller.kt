@@ -11,20 +11,24 @@ internal object GradlePluginInstaller {
     val DefaultPluginVersion: String
         get() = FixThisRelease.VERSION
 
+    @Suppress("LongParameterList")
     fun apply(
         projectRoot: File,
         packageName: String,
         pluginVersion: String,
         dryRun: Boolean,
         echo: (String) -> Unit,
+        onApplied: (InstallAgentJsonReport.Applied) -> Unit = {},
     ) {
         val (application, plan) = applicationPatchPlan(projectRoot, packageName, pluginVersion)
         RuntimeCompileSdkCompatibility.emitWarning(projectRoot, application.buildFile, pluginVersion, echo)
         if (plan == null) {
-            SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
-                target = "gradle-plugin",
-                path = application.buildFile.absolutePath,
-                scope = "project-local",
+            onApplied(
+                InstallAgentJsonReport.Applied(
+                    target = "gradle-plugin",
+                    path = application.buildFile.absolutePath,
+                    scope = "project-local",
+                ),
             )
             echo("Gradle plugin already applied: ${application.buildFile.absolutePath}")
             return
@@ -35,10 +39,12 @@ internal object GradlePluginInstaller {
             return
         }
         application.buildFile.writeText(plan.newText)
-        SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
-            target = "gradle-plugin",
-            path = application.buildFile.absolutePath,
-            scope = "project-local",
+        onApplied(
+            InstallAgentJsonReport.Applied(
+                target = "gradle-plugin",
+                path = application.buildFile.absolutePath,
+                scope = "project-local",
+            ),
         )
         echo("Applied Gradle plugin `$PluginId` to ${application.buildFile.absolutePath}")
     }

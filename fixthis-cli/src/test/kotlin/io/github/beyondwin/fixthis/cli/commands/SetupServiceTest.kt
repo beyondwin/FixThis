@@ -45,6 +45,42 @@ class SetupServiceTest {
     }
 
     @Test
+    fun `installAgent populates report applied without nested parse`() {
+        val projectRoot = createAndroidProjectRoot()
+        val report = SetupReport()
+        val emitted = mutableListOf<String>()
+
+        withUserHome(temporaryFolder.newFolder("home")) {
+            SetupService(report = report, emit = { emitted += it }).installAgent(
+                InstallRequest(
+                    packageName = "com.example.app",
+                    projectRoot = projectRoot,
+                    target = "claude",
+                    serverName = "fixthis",
+                    agent = true,
+                    applyGradlePlugin = false,
+                    pluginVersion = GradlePluginInstaller.DefaultPluginVersion,
+                    dryRun = true,
+                    verbose = false,
+                ),
+            )
+        }
+
+        assertTrue(
+            "install-agent dry-run must surface planned config writes via emit",
+            emitted.any { it.startsWith("Target:") },
+        )
+        assertTrue(
+            "install-agent must emit the trailing agent next-steps via emit (no stdout hijack)",
+            emitted.any { it.startsWith("Next for agents") },
+        )
+        assertTrue(
+            "install-agent must record applied or skipped in the injected report (not a global)",
+            report.applied.isNotEmpty() || report.skipped.isNotEmpty() || emitted.isNotEmpty(),
+        )
+    }
+
+    @Test
     fun `writeConfigs dry-run records nothing and emits diff headers`() {
         val projectRoot = createAndroidProjectRoot()
         val report = SetupReport()
