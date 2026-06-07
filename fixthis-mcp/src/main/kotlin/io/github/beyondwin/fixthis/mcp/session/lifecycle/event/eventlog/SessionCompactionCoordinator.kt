@@ -34,9 +34,10 @@ private class CompactionFailureThrottleState(
 internal class SessionCompactionCoordinator(
     private val eventLogCompactorProvider: ((sessionId: String) -> EventLogCompactionTask)?,
     private val eventLogCompactionThreshold: Int,
-    private val compactionFailureSink: (sessionId: String, cause: Throwable) -> Unit = ::logCompactionFailure,
+    compactionFailureSink: ((sessionId: String, cause: Throwable) -> Unit)? = null,
     private val clock: () -> Long,
 ) {
+    private val compactionFailureSink = compactionFailureSink ?: ::logCompactionFailure
     private val lock = Any()
     private val compactionLocks = mutableMapOf<String, Any>()
     private val compactionFailureThrottle = mutableMapOf<String, CompactionFailureThrottleState>()

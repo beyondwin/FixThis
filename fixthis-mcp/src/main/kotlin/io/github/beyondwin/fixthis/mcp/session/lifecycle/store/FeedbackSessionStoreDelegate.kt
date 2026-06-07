@@ -79,20 +79,12 @@ internal class FeedbackSessionStoreDelegate(
         persistence = persistence,
         hasEventLog = eventLogReaderProvider != null,
     )
-    private val compactionCoordinator = if (compactionFailureSink == null) {
-        SessionCompactionCoordinator(
-            eventLogCompactorProvider = eventLogCompactorProvider,
-            eventLogCompactionThreshold = eventLogCompactionThreshold,
-            clock = clock,
-        )
-    } else {
-        SessionCompactionCoordinator(
-            eventLogCompactorProvider = eventLogCompactorProvider,
-            eventLogCompactionThreshold = eventLogCompactionThreshold,
-            compactionFailureSink = compactionFailureSink,
-            clock = clock,
-        )
-    }
+    private val compactionCoordinator = SessionCompactionCoordinator(
+        eventLogCompactorProvider = eventLogCompactorProvider,
+        eventLogCompactionThreshold = eventLogCompactionThreshold,
+        compactionFailureSink = compactionFailureSink,
+        clock = clock,
+    )
     private val mutations = SessionMutationService(clock, idGenerator)
     private val artifactJanitor = SessionArtifactJanitor(persistence)
 
