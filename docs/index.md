@@ -44,10 +44,14 @@ pitch, scope, and sample-to-agent Quick Start.
 ## Reference Contracts
 
 - [CLI reference](reference/cli.md) — command flags and setup modes.
+- [CLI exit codes](reference/cli-exit-codes.md) — the shared exit-code contract
+  every `fixthis` command returns.
 - [Agent setup handoff schema](reference/agent-setup-schema.md) —
   `.fixthis/agent-setup.json` fields written by `fixthis install-agent`.
 - [MCP tools reference](reference/mcp-tools.md) — tool signatures and return shapes.
 - [Output schema](reference/output-schema.md) — persisted JSON fields and handoff shape.
+- [Source matching](reference/source-matching.md) — source-index schema and how
+  the runtime matcher ranks candidates.
 - [Feedback console contract](reference/feedback-console-contract.md) — console behavior and compact prompt grammar.
 - [Bridge protocol](reference/bridge-protocol.md) — sidekick/desktop wire protocol.
 - [Compatibility matrix](reference/compatibility.md) — tested and minimum toolchain axes.
