@@ -59,7 +59,7 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         SetupService(
             report = SetupReport(),
             emit = ::echo,
-            emitWarning = { echo(it, err = true) },
+            emitWarning = { System.err.println(it) },
         ).writeConfigs(request)
     }
 }
@@ -112,7 +112,7 @@ class InitCommand : CoreCliktCommand(name = "init") {
         SetupService(
             report = SetupReport(),
             emit = ::echo,
-            emitWarning = { echo(it, err = true) },
+            emitWarning = { System.err.println(it) },
         ).installAgent(
             InstallRequest(
                 packageName = packageName,
@@ -240,12 +240,15 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
 
         val report = SetupReport()
         report.skipped += earlySkipped
-        // In JSON mode all human-facing output (echoes AND warnings) is suppressed by injecting
-        // no-op sinks. This replaces the former stdout-stream hijack, which discarded everything
-        // the nested command wrote (its terminal was rebound to the captured buffer) — so warnings
-        // never reached the real stdout/stderr in JSON mode either.
+        // In JSON mode human-facing stdout echoes are suppressed by injecting a no-op sink, so that
+        // only the JSON report lands on stdout. Warnings, however, ALWAYS route to stderr regardless
+        // of json: the legacy code only rebound System.out (the captured discard buffer), so the two
+        // setup warnings still reached the real stderr even in --json mode. Suppressing them here was
+        // a behavior regression. They go straight to System.err (mirroring Main.printCliktError) so
+        // they never contaminate the JSON report on stdout — clikt's terminal collapses err=true onto
+        // stdout in non-TTY/captured contexts, which would pollute the report.
         val emit: (String) -> Unit = if (json) { _ -> } else ::echo
-        val emitWarning: (String) -> Unit = if (json) { _ -> } else { msg -> echo(msg, err = true) }
+        val emitWarning: (String) -> Unit = { msg -> System.err.println(msg) }
         SetupService(
             report = report,
             emit = emit,
