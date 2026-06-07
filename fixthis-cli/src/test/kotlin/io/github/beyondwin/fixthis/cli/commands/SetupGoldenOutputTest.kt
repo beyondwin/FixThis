@@ -58,7 +58,7 @@ class SetupGoldenOutputTest {
         val json = Json.parseToJsonElement(rendered!!).jsonObject
 
         // Top-level keys required by the behavior-preservation contract (Track A).
-        listOf("schemaVersion", "ok", "applied", "skipped", "errors", "next", "restartRequired").forEach { key ->
+        listOf("schemaVersion", "ok", "applied", "skipped", "errors", "next", "readiness", "restartRequired").forEach { key ->
             assertTrue("expected top-level field `$key`, got: ${json.keys}", key in json)
         }
 
