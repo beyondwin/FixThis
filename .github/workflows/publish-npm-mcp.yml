@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: v${{ inputs.version }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -40,6 +42,8 @@ jobs:
 
       - name: Publish package to npm
         working-directory: npm/fixthis
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
 
       - name: Install mcp-publisher

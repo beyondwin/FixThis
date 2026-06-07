@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.version }}
 
       - name: Set up Java
         uses: actions/setup-java@v5
