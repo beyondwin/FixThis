@@ -508,15 +508,31 @@ export function fixturePaths(fixture) {
 
 export function patchSettingsText(text, fixThisGradlePluginDir) {
   const includeLine = `    includeBuild(${JSON.stringify(fixThisGradlePluginDir)})`;
+  const withMavenLocal = addMavenLocalRepository(text);
   if (text.includes(includeLine) || text.includes(`includeBuild(${JSON.stringify(fixThisGradlePluginDir)})`)) {
-    return text;
+    return withMavenLocal;
   }
-  const pluginManagement = text.match(/pluginManagement\s*\{/);
-  if (!pluginManagement) {
-    return `pluginManagement {\n${includeLine}\n}\n\n${text}`;
-  }
-  const insertAt = text.indexOf("\n", pluginManagement.index + pluginManagement[0].length);
-  return `${text.slice(0, insertAt + 1)}${includeLine}\n${text.slice(insertAt + 1)}`;
+  const pluginManagement = withMavenLocal.match(/pluginManagement\s*\{/);
+  const withPluginInclude = pluginManagement
+    ? (() => {
+        const insertAt = withMavenLocal.indexOf("\n", pluginManagement.index + pluginManagement[0].length);
+        return `${withMavenLocal.slice(0, insertAt + 1)}${includeLine}\n${withMavenLocal.slice(insertAt + 1)}`;
+      })()
+    : `pluginManagement {\n${includeLine}\n}\n\n${withMavenLocal}`;
+  return withPluginInclude;
+}
+
+function addMavenLocalRepository(text) {
+  if (text.includes("mavenLocal()")) return text;
+  const dependencyResolutionIndex = text.indexOf("dependencyResolutionManagement");
+  if (dependencyResolutionIndex < 0) return text;
+  const repositoriesIndex = text.indexOf("repositories", dependencyResolutionIndex);
+  if (repositoriesIndex < 0) return text;
+  const repositories = text.slice(repositoriesIndex).match(/repositories\s*\{/);
+  if (!repositories) return text;
+  const insertAt = text.indexOf("\n", repositoriesIndex + repositories.index + repositories[0].length);
+  if (insertAt < 0) return text;
+  return `${text.slice(0, insertAt + 1)}        mavenLocal()\n${text.slice(insertAt + 1)}`;
 }
 
 export function patchAppBuildFileText(text, options = {}) {
@@ -877,6 +893,15 @@ export function installRuntimeFixture(fixture, options = {}) {
   return paths;
 }
 
+export function publishLocalRuntimeArtifacts(options = {}) {
+  const run = options.run || runCommand;
+  return run(
+    "./gradlew",
+    [":fixthis-compose-core:publishToMavenLocal", ":fixthis-compose-sidekick:publishToMavenLocal", "--no-daemon"],
+    { cwd: repoRoot, stdio: options.stdio || "inherit", env: options.env || {} },
+  );
+}
+
 function withEnvironmentPatch(options = {}, envPatch = {}) {
   return {
     ...options,
@@ -1030,6 +1055,9 @@ export async function main(argv = process.argv.slice(2)) {
     const strict = argv.includes("--strict");
     const androidEnvironment = resolveAndroidEnvironment();
     const fixtures = [];
+    if (runtimeFixtures(manifest).some((fixture) => (fixture.source || externalFixtureSource) === externalFixtureSource)) {
+      publishLocalRuntimeArtifacts({ env: androidEnvironment.envPatch });
+    }
     for (const fixture of runtimeFixtures(manifest)) {
       try {
         fixtures.push(runRuntimeTrustEvaluation(fixture, { strict, envPatch: androidEnvironment.envPatch }));

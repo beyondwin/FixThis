@@ -16,6 +16,7 @@ import {
   markdownReport,
   patchAppBuildFileText,
   patchSettingsText,
+  publishLocalRuntimeArtifacts,
   reportStatus,
   runRuntimeTrustEvaluation,
   runtimeTrustFailureCase,
@@ -840,6 +841,26 @@ test("patchSettingsText inserts the FixThis Gradle plugin included build once", 
   assert.equal(patchSettingsText(patched, "/repo/fixthis-gradle-plugin"), patched);
 });
 
+test("patchSettingsText adds mavenLocal for unpublished local runtime artifacts", () => {
+  const original = [
+    "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }",
+    "dependencyResolutionManagement {",
+    "    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)",
+    "    repositories {",
+    "        google()",
+    "        mavenCentral()",
+    "    }",
+    "}",
+    "rootProject.name = \"Reply\"",
+    "",
+  ].join("\n");
+
+  const patched = patchSettingsText(original, "/repo/fixthis-gradle-plugin");
+
+  assert.match(patched, /repositories \{\n        mavenLocal\(\)\n        google\(\)/);
+  assert.equal(patchSettingsText(patched, "/repo/fixthis-gradle-plugin"), patched);
+});
+
 test("patchAppBuildFileText applies FixThis without runtime dependency", () => {
   const original = [
     "plugins {",
@@ -970,6 +991,22 @@ test("installRuntimeFixture prepares runtime source index before installing debu
       stdio: "pipe",
     },
   ]);
+});
+
+test("publishLocalRuntimeArtifacts publishes core and sidekick to mavenLocal", () => {
+  const calls = [];
+
+  publishLocalRuntimeArtifacts({
+    run: (command, args, options) => calls.push({ command, args, cwd: options.cwd, stdio: options.stdio }),
+    stdio: "pipe",
+  });
+
+  assert.deepEqual(calls, [{
+    command: "./gradlew",
+    args: [":fixthis-compose-core:publishToMavenLocal", ":fixthis-compose-sidekick:publishToMavenLocal", "--no-daemon"],
+    cwd: repoRoot,
+    stdio: "pipe",
+  }]);
 });
 
 test("runRuntimeTrustEvaluation passes Android env patch to fixture install and runner", () => {

@@ -11,6 +11,9 @@ Maven Central, and the Gradle Plugin Portal.
 ## Releases
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [v1.2.0](v1.2.0.md) — configurable test-tag conventions, sharper
+  edit-surface confidence, residual-risk release gates, session package
+  decomposition, and release-version sync hardening.
 - [v1.1.0](v1.1.0.md) — release reality checks, external agent lifecycle smoke,
   interop boundary evidence, SSE reliability reporting, and the unified release
   gate.

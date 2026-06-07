@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   currentReleaseFiles,
   readFixThisVersion,
-  releaseVersionPattern,
+  replaceReleaseVersionsInText,
   repoRoot,
 } from "./release-version.mjs";
 
@@ -27,9 +27,7 @@ function updateTextFile(path, update) {
 }
 
 function replaceReleaseVersions(text) {
-  return text.replaceAll(releaseVersionPattern, (match) => {
-    return match.startsWith("v") ? `v${version}` : version;
-  });
+  return replaceReleaseVersionsInText(text, version);
 }
 
 function updateJsonFile(path, update) {

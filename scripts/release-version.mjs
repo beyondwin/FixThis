@@ -17,7 +17,22 @@ export const currentReleaseFiles = [
   "scripts/install-fixthis.sh",
 ];
 
-export const releaseVersionPattern = /(?<![0-9.])v?0\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/g;
+export const releaseVersionPattern = /(?<![0-9.])v?(?:0|[1-9]\d?)\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/g;
+
+const fixThisReleaseContextPattern =
+  /FixThis|fixthis|FIXTHIS|io\.github\.beyondwin|@beyondwin\/fixthis|--version|--plugin-version|runtimeVersion\.set|cliVersion|scripts\/install-fixthis/;
+
+export function replaceReleaseVersionsInText(text, version) {
+  return text.replaceAll(releaseVersionPattern, (match, offset) => {
+    const lineStart = text.lastIndexOf("\n", offset) + 1;
+    const nextLineBreak = text.indexOf("\n", offset);
+    const lineEnd = nextLineBreak === -1 ? text.length : nextLineBreak;
+    const line = text.slice(lineStart, lineEnd);
+
+    if (!fixThisReleaseContextPattern.test(line)) return match;
+    return match.startsWith("v") ? `v${version}` : version;
+  });
+}
 
 export function readFixThisVersion(root = repoRoot) {
   const version = readFileSync(join(root, "gradle.properties"), "utf8")

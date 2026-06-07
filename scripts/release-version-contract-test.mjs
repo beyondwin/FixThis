@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { replaceReleaseVersionsInText } from "./release-version.mjs";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -57,6 +58,33 @@ test("Gradle version providers do not hardcode current release fallbacks", () =>
     offenders,
     [],
     "Gradle builds should require FIXTHIS_VERSION or read gradle.properties, not carry a release fallback",
+  );
+});
+
+test("release version replacement updates v1 FixThis contexts without rewriting dependency versions", () => {
+  const text = [
+    "curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh | bash -s -- --version v1.1.0",
+    "curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \\",
+    "  | bash -s -- --version v1.1.0",
+    'id("io.github.beyondwin.fixthis.compose") version "1.1.0"',
+    'debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:1.1.0")',
+    "# fixthis 1.1.0 (bridge protocol v1.3)",
+    '# {"cliVersion":"1.1.0","bridgeProtocolVersion":"1.3"}',
+    "The current source tree uses Compose UI test artifacts `1.7.8`.",
+  ].join("\n");
+
+  assert.equal(
+    replaceReleaseVersionsInText(text, "1.2.0"),
+    [
+      "curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh | bash -s -- --version v1.2.0",
+      "curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \\",
+      "  | bash -s -- --version v1.2.0",
+      'id("io.github.beyondwin.fixthis.compose") version "1.2.0"',
+      'debugImplementation("io.github.beyondwin:fixthis-compose-sidekick:1.2.0")',
+      "# fixthis 1.2.0 (bridge protocol v1.3)",
+      '# {"cliVersion":"1.2.0","bridgeProtocolVersion":"1.3"}',
+      "The current source tree uses Compose UI test artifacts `1.7.8`.",
+    ].join("\n"),
   );
 });
 

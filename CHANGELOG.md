@@ -27,6 +27,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+No unreleased user-visible changes yet.
+
+## v1.2.0 — 2026-06-07
+
 ### Added
 
 - Added the v1 residual-risk closure gate: release readiness now requires a

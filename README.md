@@ -64,7 +64,7 @@ npm install -g @beyondwin/fixthis
 
 # macOS/Linux fallback path
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v1.1.0
+  | bash -s -- --version v1.2.0
 
 fixthis install-agent --project-dir . --target all
 fixthis doctor --project-dir . --json
@@ -86,7 +86,7 @@ The published Gradle plugin coordinates:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "1.1.0"
+    id("io.github.beyondwin.fixthis.compose") version "1.2.0"
 }
 ```
 

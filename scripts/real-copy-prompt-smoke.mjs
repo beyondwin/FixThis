@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   installRuntimeFixture,
   loadManifest,
+  publishLocalRuntimeArtifacts,
   runCommand,
 } from "./source-matching-fixtures.mjs";
 import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
@@ -512,6 +513,9 @@ export async function runSmoke(options) {
   const mcpBin = await ensureMcpDistribution();
   const manifest = loadManifest();
   const fixtures = selectRuntimeFixtures(manifest, options.fixtureIds);
+  if (fixtures.some((fixture) => (fixture.source || "external-github") === "external-github")) {
+    publishLocalRuntimeArtifacts({ env: environment.envPatch });
+  }
   const apps = [];
   for (const fixture of fixtures) {
     apps.push(await runSelectedFixture(fixture, { ...options, environment, mcpBin }));
