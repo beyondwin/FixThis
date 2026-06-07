@@ -26,7 +26,7 @@ internal class TwoPhaseConfigCommit(
     private val emit: (String) -> Unit = { /* no-op: callers opt in to user-facing echo */ },
 ) {
     @Suppress("LongMethod", "CyclomaticComplexMethod", "ThrowsCount", "TooGenericExceptionCaught", "SpreadOperator")
-    fun commit(plans: List<SetupWritePlan>) {
+    fun commit(plans: List<SetupWritePlan>): List<SetupWritePlan> {
         // Phase 1: stage all writes to <configFile>.fixthis-staging.
         val staged = mutableListOf<Pair<SetupWritePlan, File>>()
         try {
@@ -94,11 +94,6 @@ internal class TwoPhaseConfigCommit(
                 // P2 durability: fsync parent dir so the rename is persisted.
                 plan.configFile.toPath().parent?.let { forceDirectory(it) }
                 committed += plan
-                SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
-                    target = plan.writerName,
-                    path = plan.configFile.absolutePath,
-                    scope = plan.scope,
-                )
                 emit("Wrote ${plan.writerName} MCP config (${plan.scope}): ${plan.configFile.absolutePath}")
             }
             // Clean up rollback files on success.
@@ -122,5 +117,6 @@ internal class TwoPhaseConfigCommit(
                 cause = e,
             )
         }
+        return committed
     }
 }

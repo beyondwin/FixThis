@@ -108,13 +108,20 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         },
         emit: (String) -> Unit = ::echo,
     ) {
-        TwoPhaseConfigCommit(
+        val committed = TwoPhaseConfigCommit(
             move = move,
             forceFile = forceFile,
             forceDirectory = forceDirectory,
             copyForRollback = copyForRollback,
             emit = emit,
         ).commit(plans)
+        committed.forEach { plan ->
+            SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
+                target = plan.writerName,
+                path = plan.configFile.absolutePath,
+                scope = plan.scope,
+            )
+        }
     }
 
     internal fun runWritePlansAtomicForTest(
