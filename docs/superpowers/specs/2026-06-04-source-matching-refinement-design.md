@@ -57,9 +57,10 @@ Calibration:
 - **K1 — role confidence is cap-only.** `EditSurfaceRoleClassifier` lowers a
   ceiling per role but never lets role refine the score; `CALL_SITE` is capped
   at MEDIUM even with strong, unambiguous evidence.
-- **K2 — confident call-sites still MEDIUM.** `SourceRiskClassifier` caps every
-  shared-component candidate at MEDIUM, even when call-site ranking marks a
-  single `mostLikely` site with a clear margin.
+- **K2 — recommended edit sites keep definitions capped.**
+  `SourceRiskClassifier` caps shared-component definitions at MEDIUM-or-lower
+  even when call-site ranking marks a single `mostLikely` /
+  `recommendedEditSite` with a clear margin.
 
 Measurement:
 
@@ -70,7 +71,7 @@ Measurement:
 ## Scope (this spec)
 
 In order: **Measurement → C1 → K1 → K2.** Measurement lands first so the
-calibration changes (K1, K2) are validated by gates, not intuition.
+calibration changes are validated by gates, not intuition.
 
 ### 1. Measurement foundation
 
@@ -79,7 +80,7 @@ calibration changes (K1, K2) are validated by gates, not intuition.
   declares `expectedConfidence == HIGH`, its top-1 candidate file must equal the
   expected file. The existing "weak case must not be HIGH" gate is retained.
 - Add new static corpus cases covering: a custom-convention tag (C1), a
-  confident shared-component call-site (K2), and per-role scenarios (K1).
+  recommended shared-component call-site (K2), and per-role scenarios (K1).
 - Add the **`SHARED_COMPONENT` fixture-lab case**: a pinned static source-index
   fixture asserting the `SHARED_COMPONENT` signal is emitted for a known reused
   component definition.
@@ -119,16 +120,19 @@ calibration changes (K1, K2) are validated by gates, not intuition.
 - Document the rationale per role inline so the ceiling choices are auditable.
 - Guarded by the new precision gate from the measurement foundation.
 
-### 4. K2 — confident call-site relaxes the shared-component cap
+### 4. K2 correction - recommended edit site does not raise the shared definition
 
-- `SourceRiskClassifier` keeps the MEDIUM shared-component cap **except** when
-  all hold: the candidate has a single `mostLikely`/`recommendedEditSite` from
-  call-site ranking, the ranking margin is clear, there is exactly one such
-  site, and a selected owner/tag locator is present. In that case the cap rises
-  to HIGH.
-- The `mostLikely` decision already computed in `SharedComponentCallSiteRanking`
-  is threaded into the cap decision (today the cap never sees it).
-- Guarded by a dedicated corpus case (confident vs. ambiguous shared-component).
+The earlier K2 idea to raise the shared-component cap is superseded by runtime
+fixture evidence. A single `recommendedEditSite` remains valuable, but the
+source candidate for the shared definition must stay MEDIUM-or-lower because
+editing the definition changes every call site. The HIGH confidence path belongs
+to non-shared strong evidence and to edit-surface roles that identify a precise
+call-site surface.
+
+- The `mostLikely` decision computed in `SharedComponentCallSiteRanking` remains
+  visible as verification context on the candidate.
+- Guarded by a dedicated corpus/runtime fixture case pair (recommended vs.
+  ambiguous shared-component).
 
 ## Out of scope
 
@@ -145,9 +149,9 @@ calibration changes (K1, K2) are validated by gates, not intuition.
 - Gradle scanner tests asserting `STRICT_COMP_TEST_TAG` emission for configured
   conventions and `schemaVersion 1.3` header round-trip.
 - `HandoffEvaluationCorpusTest`: new precision gate + new cases (custom
-  convention, confident call-site, per-role).
+  convention, recommended call-site, per-role).
 - `SourceRiskClassifier` / `SourceMatcher` unit tests for the K1 ceilings and
-  K2 cap relaxation, including the ambiguous-case negative.
+  K2 recommended-edit-site context, including the ambiguous-case negative.
 - Backward compatibility: source-index assets without the convention header
   resolve to the built-in default set (no regression for existing projects).
 
@@ -155,5 +159,5 @@ calibration changes (K1, K2) are validated by gates, not intuition.
 
 Measurement first establishes the baseline and the precision gate. C1 next
 because it adds a recognizable evidence kind that later cases can exercise. K1
-and K2 last because they are confidence reweightings that must be proven safe
+and K2 last because they are confidence calibrations that must be proven safe
 against the now-extended corpus.

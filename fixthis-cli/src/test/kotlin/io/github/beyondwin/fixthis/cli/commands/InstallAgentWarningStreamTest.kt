@@ -30,10 +30,11 @@ class InstallAgentWarningStreamTest {
         // wired emitWarning to a no-op in JSON mode, silently dropping them. This asserts the warning
         // lands on stderr AND never contaminates the JSON report on stdout.
         //
-        // The Android-SDK warning is deterministic here: user.home is redirected to an empty temp
-        // dir and ANDROID_HOME/ANDROID_SDK_ROOT are not set in CI, so AndroidSdkLocator.find()
-        // returns null. The fixthis-mcp-executable warning is environment dependent (a Homebrew
-        // install puts it on PATH), so we only assert it routes to stderr when it actually fires.
+        // The Android-SDK warning is deterministic only when the surrounding process has no SDK
+        // env. Release checks may set ANDROID_HOME/ANDROID_SDK_ROOT for Gradle; in that case the
+        // warning correctly does not fire. The fixthis-mcp-executable warning is environment
+        // dependent too (a Homebrew install puts it on PATH), so we only assert warnings route to
+        // stderr when the corresponding warning actually fires.
         val tempProject = temporaryFolder.newFolder("warn-json").also { setupFakeAndroidProject(it) }
         val out = ByteArrayOutputStream()
         val err = ByteArrayOutputStream()
@@ -66,11 +67,12 @@ class InstallAgentWarningStreamTest {
         val stdout = out.toString()
         val stderr = err.toString()
 
-        // The deterministic SDK warning must reach stderr even in --json mode.
-        assertTrue(
-            "Android SDK warning must appear on stderr in --json mode, stderr was:\n$stderr",
-            stderr.contains("Warning: Android SDK not found"),
-        )
+        if (System.getenv("ANDROID_HOME").isNullOrBlank() && System.getenv("ANDROID_SDK_ROOT").isNullOrBlank()) {
+            assertTrue(
+                "Android SDK warning must appear on stderr in --json mode, stderr was:\n$stderr",
+                stderr.contains("Warning: Android SDK not found"),
+            )
+        }
         // When the executable warning fires (no fixthis-mcp on PATH), it must also be on stderr.
         if (McpExecutableLocator.find() == null) {
             assertTrue(

@@ -53,9 +53,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   confidence for these three roles based on source-candidate evidence signals
   (exact literal match, single-owner confidence, call-site match). No
   wire-schema change; `confidenceBasis` is already emitted by the prior phase.
-- Confident single call-site shared components now keep HIGH confidence when
-  exactly one confident call site resolves; ambiguous shared components remain
-  MEDIUM-capped and always carry the SHARED_COMPONENT risk flag.
+- Shared-component definitions now keep MEDIUM-or-lower confidence while still
+  surfacing a single ranked `recommendedEditSite` when the call-site evidence is
+  clear. This keeps the agent's first place to inspect visible without claiming
+  exact ownership of the reused definition.
 - CLI ADB discovery now checks `ANDROID_HOME`, `ANDROID_SDK_ROOT`, project
   `local.properties`, macOS `$HOME/Library/Android/sdk`, and Linux
   `$HOME/Android/Sdk` before falling back to plain `adb`.

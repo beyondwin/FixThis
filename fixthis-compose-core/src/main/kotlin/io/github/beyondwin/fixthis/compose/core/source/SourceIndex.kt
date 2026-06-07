@@ -42,23 +42,34 @@ data class SourceSignal(
     val confidenceWeight: Double = 1.0,
 )
 
+internal object SourceSignalWeights {
+    const val EXACT: Double = 1.0
+    const val STRING_RESOURCE: Double = 0.85
+    const val STRICT_COMP_TEST_TAG: Double = 1.15
+    const val ROLE: Double = 0.85
+    const val ACTIVITY_NAME: Double = 0.85
+    const val ARBITRARY_STRING_LITERAL: Double = 0.35
+    const val LAYOUT_RENDERER: Double = 0.75
+    const val STRUCTURAL_MARKER: Double = 0.0
+}
+
 @Serializable
 enum class SourceSignalKind(val baseMatchWeight: Double) {
-    COMPOSABLE_SYMBOL(1.0),
-    UI_TEXT(1.0),
-    STRING_RESOURCE(0.85),
-    TEST_TAG(1.0),
-    STRICT_COMP_TEST_TAG(1.15),
-    CONTENT_DESCRIPTION(1.0),
-    ROLE(0.85),
-    ACTIVITY_NAME(0.85),
-    ARBITRARY_STRING_LITERAL(0.35),
-    STRING_RESOURCE_RESOLVED(1.0),
-    LAMBDA_OWNER_FUNCTION(1.0),
-    LAZY_ITEM_OWNER(1.0),
-    NAV_DESTINATION_OWNER(1.0),
-    MODIFIER_TARGET(1.0),
-    LAYOUT_RENDERER(0.75),
-    SHARED_COMPONENT(0.0),
-    SHARED_COMPONENT_CALL_SITE(0.0),
+    COMPOSABLE_SYMBOL(SourceSignalWeights.EXACT),
+    UI_TEXT(SourceSignalWeights.EXACT),
+    STRING_RESOURCE(SourceSignalWeights.STRING_RESOURCE),
+    TEST_TAG(SourceSignalWeights.EXACT),
+    STRICT_COMP_TEST_TAG(SourceSignalWeights.STRICT_COMP_TEST_TAG),
+    CONTENT_DESCRIPTION(SourceSignalWeights.EXACT),
+    ROLE(SourceSignalWeights.ROLE),
+    ACTIVITY_NAME(SourceSignalWeights.ACTIVITY_NAME),
+    ARBITRARY_STRING_LITERAL(SourceSignalWeights.ARBITRARY_STRING_LITERAL),
+    STRING_RESOURCE_RESOLVED(SourceSignalWeights.EXACT),
+    LAMBDA_OWNER_FUNCTION(SourceSignalWeights.EXACT),
+    LAZY_ITEM_OWNER(SourceSignalWeights.EXACT),
+    NAV_DESTINATION_OWNER(SourceSignalWeights.EXACT),
+    MODIFIER_TARGET(SourceSignalWeights.EXACT),
+    LAYOUT_RENDERER(SourceSignalWeights.LAYOUT_RENDERER),
+    SHARED_COMPONENT(SourceSignalWeights.STRUCTURAL_MARKER),
+    SHARED_COMPONENT_CALL_SITE(SourceSignalWeights.STRUCTURAL_MARKER),
 }

@@ -10,16 +10,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * End-to-end exercise of the K2 shared-component confidence relaxation through the real
+ * End-to-end exercise of the shared-component confidence cap through the real
  * [SourceMatcher.match] pipeline (not just [SourceRiskClassifier] in isolation).
  *
- * Both fixtures share an identical shared-component definition (same strict-comp testTag,
- * same fan-in) selected via the same strict-comp testTag, so the ONLY difference is whether the
- * call-site ranking yields exactly one confident `recommendedEditSite`:
- *  - [confidentCallSiteYieldsHigh]: one call site's literal strongly overlaps the selection tokens
- *    and clears the next site by the margin, so `confidentCallSite` is true and HIGH is preserved.
- *  - [ambiguousCallSitesStayMedium]: both call sites carry identical, non-overlapping context so no
- *    site is marked, `confidentCallSite` is false, and the SHARED_COMPONENT cap forces MEDIUM.
+ * The confident fixture must still expose exactly one `recommendedEditSite`,
+ * but the shared definition candidate remains MEDIUM because the edit site is
+ * verification context, not exact ownership.
  *
  * Call-site signal value format (confirmed against `parseCallSiteSignal` /
  * `rankSharedComponentCallSites`): `file:line<TAB>enclosingFunction<TAB>literal|literal`.
@@ -28,7 +24,7 @@ private const val COMP_SOURCE_PREFIX = "sample/src/main/java/io/github/beyondwin
 
 class SourceMatcherSharedComponentTest {
     @Test
-    fun confidentCallSiteYieldsHigh() {
+    fun confidentCallSiteKeepsRecommendedEditSiteButDefinitionStaysMedium() {
         val index = SourceIndex(
             entries = listOf(
                 SourceIndexEntry(
@@ -62,9 +58,7 @@ class SourceMatcherSharedComponentTest {
             activityName = null,
         ).first()
 
-        // K2: exactly one confident recommended edit site + a strict-comp testTag relaxes the
-        // shared-component cap, so HIGH survives while SHARED_COMPONENT is still surfaced.
-        assertEquals(SelectionConfidence.HIGH, candidate.confidence)
+        assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
         assertTrue(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
         assertEquals(1, candidate.callSites.count { it.recommendedEditSite })
     }
@@ -104,7 +98,6 @@ class SourceMatcherSharedComponentTest {
             activityName = null,
         ).first()
 
-        // No single confident call site -> confidentCallSite is false -> SHARED_COMPONENT cap holds.
         assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
         assertTrue(candidate.riskFlags.contains(SourceCandidateRisk.SHARED_COMPONENT))
         assertEquals(0, candidate.callSites.count { it.recommendedEditSite })

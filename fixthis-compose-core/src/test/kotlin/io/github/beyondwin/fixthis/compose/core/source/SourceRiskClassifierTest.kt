@@ -16,14 +16,13 @@ class SourceRiskClassifierTest {
     )
 
     @Test
-    fun confidentSingleCallSiteAllowsHighDespiteSharedComponent() {
+    fun sharedComponentDefinitionCapsAtMediumEvenWithRecommendedCallSite() {
         val result = SourceRiskClassifier.applyCaps(
             sharedProfile,
             SelectionConfidence.HIGH,
-            confidentCallSite = true,
         )
 
-        assertEquals(SelectionConfidence.HIGH, result.confidence)
+        assertEquals(SelectionConfidence.MEDIUM, result.confidence)
         assertTrue(result.flags.contains(SourceCandidateRisk.SHARED_COMPONENT))
     }
 
@@ -32,7 +31,6 @@ class SourceRiskClassifierTest {
         val result = SourceRiskClassifier.applyCaps(
             sharedProfile,
             SelectionConfidence.HIGH,
-            confidentCallSite = false,
         )
 
         assertEquals(SelectionConfidence.MEDIUM, result.confidence)

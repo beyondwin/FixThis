@@ -48,8 +48,8 @@ test('session store does not dedupe retries using pre-client-key semantic fallba
     'semantic duplicate fallback for old draft items must stay removed',
   );
   for (const path of [
-    'fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDelegate.kt',
-    'fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionStoreDraftDeduplication.kt',
+    'fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/lifecycle/store/FeedbackSessionStoreDelegate.kt',
+    'fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/lifecycle/store/FeedbackSessionStoreDraftDeduplication.kt',
   ]) {
     assertNoPattern(path, /legacySemanticDraftKey|incomingSemanticDraftKey|existingLegacySemanticKeys|semanticDraftKey/, 'current idempotency uses client draft keys only');
   }

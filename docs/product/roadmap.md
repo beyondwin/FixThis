@@ -95,9 +95,9 @@ of source patterns FixThis recognizes:
 - more composable-name conventions (delivered: configurable `testTagConventions`)
 - richer handling for shared reusable components (initial: high fan-in
   component definitions are flagged `SHARED_COMPONENT` and capped at medium
-  confidence; confident single call-site disambiguation delivered — keeps HIGH
-  when exactly one confident call site resolves; ambiguous cases remain
-  medium-capped with the SHARED_COMPONENT flag)
+  confidence; single call-site disambiguation delivered as a
+  `recommendedEditSite` hint while shared definitions remain MEDIUM-or-lower;
+  ambiguous cases remain caveated)
   - Follow-up: add a pinned-repo `source-index` fixture-lab case asserting a
     known reused component definition emits the `SHARED_COMPONENT` signal, once
     a sample repo with a clearly reused component is selected.

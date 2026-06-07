@@ -17,10 +17,10 @@ GitHub Release page and registry listings as release evidence.
 - Source matching refinement: projects can now declare custom
   `testTagConventions` patterns (Gradle DSL) that thread through the source
   index (schema 1.3) into edit-surface owner resolution and the matcher;
-  CALL_SITE edit surfaces can reach HIGH confidence under strong evidence; and
-  confident single call-site shared components keep HIGH confidence while
-  ambiguous shared components remain MEDIUM-capped with the SHARED_COMPONENT
-  flag.
+  CALL_SITE edit surfaces can reach HIGH confidence under strong,
+  unambiguous evidence. Shared-component definitions remain capped at
+  MEDIUM-or-lower; a clear single call site is surfaced as `recommendedEditSite`
+  verification context instead of promoting the shared definition itself.
 
 ## Compatibility Notes
 

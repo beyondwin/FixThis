@@ -413,9 +413,7 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
         val wireReasons = matchReasons.map { it.wireLabel }
         val margin = MarginContext.of(normalizedScores, index)
         val baseConfidence = baseConfidenceFor(profile, margin)
-        val confidentCallSite = callSites.count { it.recommendedEditSite } == 1 &&
-            (profile.hasSelectedOwnerFunction || profile.hasStrictCompTag || profile.hasSelectedTestTag)
-        val capInfo = SourceRiskClassifier.applyCaps(profile, baseConfidence, confidentCallSite)
+        val capInfo = SourceRiskClassifier.applyCaps(profile, baseConfidence)
         val (afterAmbiguity, ambiguousFlag) = if (
             profile.hasSelectedOwnerFunction &&
             capInfo.confidence == SelectionConfidence.MEDIUM &&
