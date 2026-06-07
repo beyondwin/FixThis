@@ -43,8 +43,6 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     }
 
     companion object {
-        private const val LAYOUT_RENDERER_BASE_WEIGHT: Double = 0.75
-
         fun match(
             sourceIndex: SourceIndex,
             selectedNode: FixThisNode?,
@@ -504,30 +502,6 @@ class SourceMatcher(private val sourceIndex: SourceIndex) {
     }
 
     private fun legacyWeight(matches: Boolean): Double = if (matches) 1.0 else 0.0
-
-    private val SourceSignalKind.baseMatchWeight: Double
-        get() = when (this) {
-            SourceSignalKind.STRICT_COMP_TEST_TAG -> 1.15
-            SourceSignalKind.STRING_RESOURCE_RESOLVED,
-            SourceSignalKind.UI_TEXT,
-            SourceSignalKind.TEST_TAG,
-            SourceSignalKind.CONTENT_DESCRIPTION,
-            SourceSignalKind.COMPOSABLE_SYMBOL,
-            SourceSignalKind.LAMBDA_OWNER_FUNCTION,
-            SourceSignalKind.LAZY_ITEM_OWNER,
-            SourceSignalKind.NAV_DESTINATION_OWNER,
-            SourceSignalKind.MODIFIER_TARGET,
-            -> 1.0
-            SourceSignalKind.STRING_RESOURCE,
-            SourceSignalKind.ROLE,
-            SourceSignalKind.ACTIVITY_NAME,
-            -> 0.85
-            SourceSignalKind.LAYOUT_RENDERER -> LAYOUT_RENDERER_BASE_WEIGHT
-            SourceSignalKind.SHARED_COMPONENT,
-            SourceSignalKind.SHARED_COMPONENT_CALL_SITE,
-            -> 0.0
-            SourceSignalKind.ARBITRARY_STRING_LITERAL -> 0.35
-        }
 
     private fun matchesAny(term: String, candidates: List<String>): Boolean {
         val normalizedTerm = term.normalizedForMatch()
