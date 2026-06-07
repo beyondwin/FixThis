@@ -29,10 +29,13 @@
     <ID>MagicNumber:NodeSelector.kt$NodeSelector$55.0</ID>
     <ID>MagicNumber:NodeSelector.kt$NodeSelector$6.0</ID>
     <ID>MagicNumber:NodeSelector.kt$NodeSelector$85.0</ID>
+    <ID>MagicNumber:SourceIndex.kt$SourceSignalKind.ACTIVITY_NAME$0.85</ID>
+    <ID>MagicNumber:SourceIndex.kt$SourceSignalKind.ARBITRARY_STRING_LITERAL$0.35</ID>
+    <ID>MagicNumber:SourceIndex.kt$SourceSignalKind.LAYOUT_RENDERER$0.75</ID>
+    <ID>MagicNumber:SourceIndex.kt$SourceSignalKind.ROLE$0.85</ID>
+    <ID>MagicNumber:SourceIndex.kt$SourceSignalKind.STRICT_COMP_TEST_TAG$1.15</ID>
+    <ID>MagicNumber:SourceIndex.kt$SourceSignalKind.STRING_RESOURCE$0.85</ID>
     <ID>MagicNumber:SourceInterpretationFactory.kt$SourceInterpretationFactory$5</ID>
-    <ID>MagicNumber:SourceMatcher.kt$SourceMatcher$0.35</ID>
-    <ID>MagicNumber:SourceMatcher.kt$SourceMatcher$0.85</ID>
-    <ID>MagicNumber:SourceMatcher.kt$SourceMatcher$1.15</ID>
     <ID>MaxLineLength:EvidenceProfile.kt$EvidenceProfile.Companion$fun fromReasons(reasons: Collection&lt;String&gt;, rawScore: Double): EvidenceProfile</ID>
     <ID>MaxLineLength:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter$appendLine(" - details: ${error.details.entries.joinToString { "${it.key.markdownInline()}=${it.value.markdownInline()}" }}")</ID>
     <ID>MaxLineLength:FixThisMarkdownFormatter.kt$FixThisMarkdownFormatter$appendLine("- ${node.summary()} (${node.uid.markdownInline()}, ${node.treeKind}, ${node.boundsInWindow.format()})")</ID>
@@ -48,10 +51,8 @@
     <ID>MaxLineLength:SourceCandidateRiskPrecedenceTest.kt$SourceCandidateRiskPrecedenceTest$val flags = listOf(SourceCandidateRisk.TEXT_ONLY, SourceCandidateRisk.AMBIGUOUS, SourceCandidateRisk.LEGACY_FALLBACK)</ID>
     <ID>MaxLineLength:SourceInterpretationFactoryTest.kt$SourceInterpretationFactoryTest$assertEquals("sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", interpretation.topCandidate?.file)</ID>
     <ID>MaxLineLength:SourceMatcher.kt$SourceMatcher$private</ID>
-    <ID>MaxLineLength:SourceMatcher.kt$SourceMatcher.WeightHit$// Weight-hit carrier: weight from the winning signal, its kind (null = legacy), and whether it came from legacy path</ID>
     <ID>MaxLineLength:SourceMatcherTest.kt$SourceMatcherTest$assertEquals("sample/src/main/java/io/github/beyondwin/fixthis/sample/components/AppPrimaryButton.kt", matches.first().file)</ID>
     <ID>MaxLineLength:SourceMatcherTest.kt$SourceMatcherTest$assertEquals(listOf("Screen1.kt", "Screen2.kt", "Screen3.kt", "Screen4.kt", "Screen5.kt"), matches.map { it.file })</ID>
-    <ID>NestedBlockDepth:SourceMatcher.kt$SourceMatcher$private fun SourceIndexEntry.bestSignalHit( terms: List&lt;String&gt;, kinds: Set&lt;SourceSignalKind&gt;, ): Pair&lt;Double, SourceSignalKind?&gt;</ID>
     <ID>ReturnCount:IdentityHintFactory.kt$IdentityHintFactory$fun from(node: FixThisNode?): IdentityHint?</ID>
     <ID>ReturnCount:OccurrenceCalculator.kt$OccurrenceCalculator$fun calculate( selectedNode: FixThisNode?, nodes: List&lt;FixThisNode&gt;, identityHint: IdentityHint?, ): Occurrence?</ID>
     <ID>ReturnCount:OccurrenceCalculator.kt$OccurrenceCalculator$private fun FixThisNode.signature(identityHint: IdentityHint?): OccurrenceSignature?</ID>

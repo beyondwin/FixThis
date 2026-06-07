@@ -2,7 +2,6 @@ package io.github.beyondwin.fixthis.cli.commands
 
 import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.CoreCliktCommand
-import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
@@ -17,21 +16,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.PrintStream
 import kotlin.system.exitProcess
-
-internal object SetupRunResults {
-    val applied = ThreadLocal.withInitial { mutableListOf<InstallAgentJsonReport.Applied>() }
-    val skipped = ThreadLocal.withInitial { mutableListOf<InstallAgentJsonReport.Skipped>() }
-    val errors = ThreadLocal.withInitial { mutableListOf<InstallAgentJsonReport.ErrorEntry>() }
-    fun reset() {
-        applied.get().clear()
-        skipped.get().clear()
-        errors.get().clear()
-    }
-}
 
 class SetupCommand : CoreCliktCommand(name = "setup") {
     private val packageName by option("--package", help = "Android application id for generated MCP config")
@@ -52,148 +38,47 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             DiagnosticContext.verbose = true
         }
         val root = File(projectDir).canonicalFile
-        val client = BridgeClient(projectRoot = root)
-        val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
         if (!write) {
+            val client = BridgeClient(projectRoot = root)
+            val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
             val config = buildMcpClientConfig(resolvedPackage, root)
             echo(fixThisJson.encodeToString(config))
             return
         }
 
-        val validServerName = validateMcpServerName(serverName)
-        val sdk = AndroidSdkLocator.find()
-        val executable = McpExecutableLocator.find()
-        if (sdk == null) {
-            echo(
-                "Warning: Android SDK not found; writing MCP config without ANDROID_HOME. " +
-                    "Run `fixthis doctor --package $resolvedPackage --project-dir ${root.absolutePath}` next.",
-                err = true,
-            )
-        }
-        if (executable == null) {
-            echo(
-                "Warning: fixthis-mcp executable not found.\n" +
-                    "  The written config will use `fixthis mcp` as a command fallback.\n" +
-                    "  MCP clients will fail to start FixThis unless `fixthis` is on PATH.\n" +
-                    "  Fix: run `./gradlew :fixthis-mcp:installDist` then re-run `fixthis setup --write`.",
-                err = true,
-            )
-        }
-
-        val entry = buildMcpConfigEntry(
-            resolvedPackage = resolvedPackage,
-            root = root,
-            serverName = validServerName,
-            sdk = sdk,
-            executable = executable,
+        val request = SetupRequest(
+            packageName = packageName,
+            projectRoot = root,
+            target = target,
+            serverName = serverName,
+            write = true,
+            dryRun = dryRun,
+            fullDiff = fullDiff,
+            verbose = verbose,
         )
-        val plans = SetupPlanner.buildWritePlans(SetupPlanner.selectedWriters(target), root, entry)
-        if (dryRun) {
-            plans.forEach { plan -> applyWritePlan(plan, dryRun = true, fullDiff = fullDiff) }
-            return
-        }
-        runWritePlansAtomic(plans)
+        SetupService(
+            report = SetupReport(),
+            emit = ::echo,
+            emitWarning = { System.err.println(it) },
+        ).writeConfigs(request)
     }
+}
 
-    @Suppress("LongParameterList")
-    private fun runWritePlansAtomic(
-        plans: List<SetupWritePlan>,
-        move: (java.nio.file.Path, java.nio.file.Path, Array<out java.nio.file.CopyOption>) -> java.nio.file.Path = { source, target, options ->
-            java.nio.file.Files.move(source, target, *options)
-        },
-        forceFile: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceRegularFile,
-        forceDirectory: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceDirectoryBestEffort,
-        copyForRollback: (File, File) -> Unit = { source, destination ->
-            source.copyTo(destination, overwrite = true)
-        },
-        emit: (String) -> Unit = ::echo,
-    ) {
-        TwoPhaseConfigCommit(
-            move = move,
-            forceFile = forceFile,
-            forceDirectory = forceDirectory,
-            copyForRollback = copyForRollback,
-            emit = emit,
-        ).commit(plans)
-    }
+private const val DRY_RUN_BYTE_BUDGET = 4096
 
-    internal fun runWritePlansAtomicForTest(
-        plans: List<Pair<Triple<String, String, File>, String>>,
-        move: (java.nio.file.Path, java.nio.file.Path, Array<out java.nio.file.CopyOption>) -> java.nio.file.Path = { source, target, options ->
-            java.nio.file.Files.move(source, target, *options)
-        },
-        forceFile: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceRegularFile,
-        forceDirectory: (java.nio.file.Path) -> Unit = AtomicConfigFileWriter::forceDirectoryBestEffort,
-        copyForRollback: (File, File) -> Unit = { source, destination ->
-            source.copyTo(destination, overwrite = true)
-        },
-        emit: (String) -> Unit = { /* no-op: tests do not need user-facing echo */ },
-    ) {
-        val agentPlans = plans.map { (meta, content) ->
-            SetupWritePlan(
-                writerName = meta.first,
-                scope = meta.second,
-                configFile = meta.third,
-                content = content,
-            )
-        }
-        runWritePlansAtomic(agentPlans, move, forceFile, forceDirectory, copyForRollback, emit)
+internal fun renderDryRunOutput(plan: SetupWritePlan, fullDiff: Boolean): List<String> {
+    val configFile = plan.configFile
+    val before = if (configFile.isFile) configFile.readText() else ""
+    val format = when {
+        configFile.name.endsWith(".toml") -> DryRunDiff.Format.TOML
+        else -> DryRunDiff.Format.JSON
     }
-
-    private fun applyWritePlan(plan: SetupWritePlan, dryRun: Boolean, fullDiff: Boolean = false) {
-        val configFile = plan.configFile
-        val merged = plan.content
-        if (dryRun) {
-            renderDryRunOutput(plan, fullDiff).forEach { echo(it) }
-            return
-        }
-        try {
-            AtomicConfigFileWriter.write(configFile, merged)
-        } catch (e: Exception) {
-            throw CliktError(
-                "Could not write ${plan.writerName} MCP config at ${configFile.absolutePath}.",
-                cause = e,
-            )
-        }
-        SetupRunResults.applied.get() += InstallAgentJsonReport.Applied(
-            target = plan.writerName,
-            path = configFile.absolutePath,
-            scope = plan.scope,
-        )
-        echo("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
-    }
-
-    internal fun applyWritePlanForTest(
-        writerName: String,
-        scope: String,
-        configFile: File,
-        content: String,
-        dryRun: Boolean,
-        fullDiff: Boolean = false,
-    ) {
-        val plan = SetupWritePlan(writerName, scope, configFile, content)
-        if (dryRun) {
-            renderDryRunOutput(plan, fullDiff).forEach { println(it) }
-            return
-        }
-        AtomicConfigFileWriter.write(configFile, content)
-        println("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
-    }
-
-    private fun renderDryRunOutput(plan: SetupWritePlan, fullDiff: Boolean): List<String> {
-        val configFile = plan.configFile
-        val before = if (configFile.isFile) configFile.readText() else ""
-        val format = when {
-            configFile.name.endsWith(".toml") -> DryRunDiff.Format.TOML
-            else -> DryRunDiff.Format.JSON
-        }
-        val budget = if (fullDiff) Int.MAX_VALUE else 4096
-        return listOf(
-            "Target: ${plan.writerName} (${plan.scope})",
-            "Path: ${configFile.absolutePath}",
-            DryRunDiff.render(before = before, after = plan.content, format = format, byteBudget = budget),
-        )
-    }
+    val budget = if (fullDiff) Int.MAX_VALUE else DRY_RUN_BYTE_BUDGET
+    return listOf(
+        "Target: ${plan.writerName} (${plan.scope})",
+        "Path: ${configFile.absolutePath}",
+        DryRunDiff.render(before = before, after = plan.content, format = format, byteBudget = budget),
+    )
 }
 
 class InitCommand : CoreCliktCommand(name = "init") {
@@ -220,82 +105,27 @@ class InitCommand : CoreCliktCommand(name = "init") {
     private val verbose by option("--verbose", "-v", help = "Print full stack trace on failure").flag(default = false)
 
     override fun run() {
+        if (verbose) {
+            DiagnosticContext.verbose = true
+        }
         val root = File(projectDir).canonicalFile
-        val resolvedPackage = resolvePackageForInstall(root)
-        preflightGradlePlugin(root, resolvedPackage)
-        runSetupWrite(resolvedPackage ?: packageName)
-        writeInstallArtifacts(root, resolvedPackage)
-        echo("")
-        echo("Next for agents:")
-        echo("  1. Restart Claude Code or Codex so the MCP config is reloaded.")
-        echo("  2. Run `fixthis doctor --project-dir ${File(projectDir).canonicalFile.absolutePath}`.")
-        echo("  3. Open the console with `fixthis_open_feedback_console`.")
-    }
-
-    private fun resolvePackageForInstall(root: File): String? = if (agent || applyGradlePlugin) {
-        failAsCliError {
-            BridgeClient(projectRoot = root).resolvePackageName(packageName)
-        }
-    } else {
-        null
-    }
-
-    private fun preflightGradlePlugin(root: File, resolvedPackage: String?) {
-        if (!applyGradlePlugin) return
-        GradlePluginInstaller.preflight(
-            projectRoot = root,
-            packageName = checkNotNull(resolvedPackage),
-            pluginVersion = pluginVersion,
-        )
-    }
-
-    private fun runSetupWrite(packageForConfig: String?) {
-        SetupCommand().parse(
-            buildList {
-                packageForConfig?.let {
-                    add("--package")
-                    add(it)
-                }
-                add("--project-dir")
-                add(projectDir)
-                add("--write")
-                add("--target")
-                add(target)
-                add("--server-name")
-                add(serverName)
-                if (dryRun) {
-                    add("--dry-run")
-                }
-                if (verbose) {
-                    add("--verbose")
-                }
-            },
-        )
-    }
-
-    private fun writeInstallArtifacts(root: File, resolvedPackage: String?) {
-        if (!agent && !applyGradlePlugin) return
-        val packageForSetup = resolvedPackage ?: failAsCliError {
-            BridgeClient(projectRoot = root).resolvePackageName(packageName)
-        }
-        if (applyGradlePlugin) {
-            GradlePluginInstaller.apply(
+        SetupService(
+            report = SetupReport(),
+            emit = ::echo,
+            emitWarning = { System.err.println(it) },
+        ).installAgent(
+            InstallRequest(
+                packageName = packageName,
                 projectRoot = root,
-                packageName = packageForSetup,
+                target = target,
+                serverName = serverName,
+                agent = agent,
+                applyGradlePlugin = applyGradlePlugin,
                 pluginVersion = pluginVersion,
                 dryRun = dryRun,
-                echo = ::echo,
-            )
-        }
-        if (agent) {
-            AgentSetupFiles.write(
-                projectRoot = root,
-                packageName = packageForSetup,
-                serverName = validateMcpServerName(serverName),
-                dryRun = dryRun,
-                echo = ::echo,
-            )
-        }
+                verbose = verbose,
+            ),
+        )
     }
 }
 
@@ -355,7 +185,9 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
     ).flag(default = false)
 
     override fun run() {
-        SetupRunResults.reset()
+        if (verbose) {
+            DiagnosticContext.verbose = true
+        }
         val root = File(projectDir).canonicalFile
         val decision = GlobalScopeGuard.decide(root, allowGlobal = allowGlobal)
 
@@ -406,39 +238,39 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             )
         }
 
-        captureStdoutWhenJson(json) {
-            InitCommand().parse(
-                buildList {
-                    add("--agent")
-                    if (!skipGradlePlugin) {
-                        add("--apply-gradle-plugin")
-                        add("--plugin-version")
-                        add(pluginVersion)
-                    }
-                    packageName?.let {
-                        add("--package")
-                        add(it)
-                    }
-                    add("--project-dir")
-                    add(projectDir)
-                    add("--target")
-                    add(effectiveTarget)
-                    add("--server-name")
-                    add(serverName)
-                    if (dryRun) {
-                        add("--dry-run")
-                    }
-                    if (verbose) {
-                        add("--verbose")
-                    }
-                },
-            )
-        }
+        val report = SetupReport()
+        report.skipped += earlySkipped
+        // In JSON mode human-facing stdout echoes are suppressed by injecting a no-op sink, so that
+        // only the JSON report lands on stdout. Warnings, however, ALWAYS route to stderr regardless
+        // of json: the legacy code only rebound System.out (the captured discard buffer), so the two
+        // setup warnings still reached the real stderr even in --json mode. Suppressing them here was
+        // a behavior regression. They go straight to System.err (mirroring Main.printCliktError) so
+        // they never contaminate the JSON report on stdout — clikt's terminal collapses err=true onto
+        // stdout in non-TTY/captured contexts, which would pollute the report.
+        val emit: (String) -> Unit = if (json) { _ -> } else ::echo
+        val emitWarning: (String) -> Unit = { msg -> System.err.println(msg) }
+        SetupService(
+            report = report,
+            emit = emit,
+            emitWarning = emitWarning,
+        ).installAgent(
+            InstallRequest(
+                packageName = packageName,
+                projectRoot = root,
+                target = effectiveTarget,
+                serverName = serverName,
+                agent = true,
+                applyGradlePlugin = !skipGradlePlugin,
+                pluginVersion = pluginVersion,
+                dryRun = dryRun,
+                verbose = verbose,
+            ),
+        )
 
         if (json) {
-            val skippedAll = SetupRunResults.skipped.get() + earlySkipped
-            val applied = SetupRunResults.applied.get()
-            val errors = SetupRunResults.errors.get()
+            val skippedAll = report.skipped
+            val applied = report.applied
+            val errors = report.errors
             val reportReadiness = installAgentTopLevelReadiness(root, skippedAll, errors)
             val restartRequired = applied.any { it.target == "claude" || it.target == "codex" }
             echo(
@@ -457,9 +289,8 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             )
         }
 
-        val accumulated = SetupRunResults.skipped.get() + earlySkipped
-        val hasSkipped = accumulated.isNotEmpty()
-        val hasErrors = SetupRunResults.errors.get().isNotEmpty()
+        val hasSkipped = report.skipped.isNotEmpty()
+        val hasErrors = report.errors.isNotEmpty()
         if (hasErrors) {
             throw CliktError("install-agent failed", statusCode = ExitCode.INTERNAL_ERROR.value)
         }
@@ -470,20 +301,6 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             )
         }
         // OK path: exit 0 implicit
-    }
-}
-
-private inline fun captureStdoutWhenJson(json: Boolean, block: () -> Unit) {
-    if (!json) {
-        block()
-        return
-    }
-    val previous = System.out
-    System.setOut(PrintStream(ByteArrayOutputStream()))
-    try {
-        block()
-    } finally {
-        System.setOut(previous)
     }
 }
 

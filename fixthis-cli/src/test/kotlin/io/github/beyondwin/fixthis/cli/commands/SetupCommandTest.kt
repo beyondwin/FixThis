@@ -340,53 +340,43 @@ class SetupCommandTest {
     }
 
     @Test
-    fun applyWritePlanDryRunPrintsDiffOnly() {
+    fun dryRunRenderPrintsDiffOnly() {
+        // A5: ported from the deleted SetupCommand.applyWritePlanForTest seam to the
+        // renderDryRunOutput function that SetupService.writeConfigs now drives.
         val marker = "EXISTING-MARKER-123"
         val tempFile = java.io.File.createTempFile("ft-cfg", ".json").apply {
             writeText("""{"mcpServers":{"other":{"command":"$marker"}}}""")
         }
-        val out = java.io.ByteArrayOutputStream()
-        val oldOut = System.out
-        System.setOut(java.io.PrintStream(out))
-        try {
-            SetupCommand().applyWritePlanForTest(
+        val captured = renderDryRunOutput(
+            SetupWritePlan(
                 writerName = "claude",
                 scope = "project-local",
                 configFile = tempFile,
                 content = """{"mcpServers":{"other":{"command":"$marker"},"fixthis":{"command":"y"}}}""",
-                dryRun = true,
-            )
-        } finally {
-            System.setOut(oldOut)
-        }
-        val captured = out.toString()
+            ),
+            fullDiff = false,
+        ).joinToString("\n")
         assertFalse("existing marker should not leak", captured.contains(marker))
         assertTrue("expected added fixthis entry in diff", captured.contains("fixthis"))
     }
 
     @Test
     fun fullDiffFlagDisablesByteBudget() {
+        // A5: ported from the deleted seam — exercises renderDryRunOutput's fullDiff budget.
         // Build content that overflows the default 4 KiB JSON budget.
         // Use TOML format because JSON-parsing rejects non-JSON content
         // (and JSON budget overflow is hard to trigger from a single new mcpServer entry).
         val tempFile = java.io.File.createTempFile("ft-cfg", ".toml").apply { writeText("") }
         val largeContent = (1..600).joinToString("\n") { "[section_$it]" }
-        val out = java.io.ByteArrayOutputStream()
-        val oldOut = System.out
-        System.setOut(java.io.PrintStream(out))
-        try {
-            SetupCommand().applyWritePlanForTest(
+        val captured = renderDryRunOutput(
+            SetupWritePlan(
                 writerName = "codex",
                 scope = "global",
                 configFile = tempFile,
                 content = largeContent,
-                dryRun = true,
-                fullDiff = true,
-            )
-        } finally {
-            System.setOut(oldOut)
-        }
-        val captured = out.toString()
+            ),
+            fullDiff = true,
+        ).joinToString("\n")
         assertFalse("--full-diff should disable elision footer", captured.contains("elided"))
         assertTrue(
             "expected full content (>4KiB) when --full-diff is set",
@@ -396,6 +386,8 @@ class SetupCommandTest {
 
     @Test
     fun setupWriteIsAtomicWhenSecondPlanFails() {
+        // A5: ported from the deleted runWritePlansAtomicForTest seam to drive TwoPhaseConfigCommit
+        // directly via its SetupWritePlan API.
         val tempProject = temporaryFolder.newFolder("ft-atomic")
         val claudeFile = java.io.File(tempProject, ".claude/settings.json")
         val codexFile = java.io.File(tempProject, "fake-codex/config.toml").apply {
@@ -410,10 +402,10 @@ class SetupCommandTest {
         unwritableDir.setWritable(false, false)
 
         try {
-            SetupCommand().runWritePlansAtomicForTest(
-                plans = listOf(
-                    Triple("claude", "project-local", claudeFile) to """{"mcpServers":{"fixthis":{"command":"x"}}}""",
-                    Triple("codex-unwritable", "global", unwritableTarget) to "[mcp_servers.fixthis]\ncommand = \"x\"\n",
+            TwoPhaseConfigCommit().commit(
+                listOf(
+                    SetupWritePlan("claude", "project-local", claudeFile, """{"mcpServers":{"fixthis":{"command":"x"}}}"""),
+                    SetupWritePlan("codex-unwritable", "global", unwritableTarget, "[mcp_servers.fixthis]\ncommand = \"x\"\n"),
                 ),
             )
             org.junit.Assert.fail("expected commit-phase failure")
@@ -436,7 +428,8 @@ class SetupCommandTest {
     }
 
     @Test
-    fun runWritePlansAtomicRollsBackFirstCommitWhenSecondMoveFails() {
+    fun commitRollsBackFirstCommitWhenSecondMoveFails() {
+        // A5: ported from runWritePlansAtomicForTest to TwoPhaseConfigCommit.
         // P1: Phase 2 commit-failure path — inject Files.move that throws on the second commit.
         // Verifies the first plan's already-committed file is restored from its rollback snapshot.
         val projectRoot = temporaryFolder.newFolder("project")
@@ -459,12 +452,11 @@ class SetupCommandTest {
         }
 
         val error = assertThrows(CliktError::class.java) {
-            SetupCommand().runWritePlansAtomicForTest(
-                plans = listOf(
-                    Triple("claude", "project-local", firstTarget) to """{"existing":"v2"}""",
-                    Triple("codex", "global", secondTarget) to "key = \"v2\"\n",
+            TwoPhaseConfigCommit(move = injectedMove).commit(
+                listOf(
+                    SetupWritePlan("claude", "project-local", firstTarget, """{"existing":"v2"}"""),
+                    SetupWritePlan("codex", "global", secondTarget, "key = \"v2\"\n"),
                 ),
-                move = injectedMove,
             )
         }
 
@@ -495,7 +487,8 @@ class SetupCommandTest {
     }
 
     @Test
-    fun runWritePlansAtomicStagingFailureAttachesCause() {
+    fun commitStagingFailureAttachesCause() {
+        // A5: ported from runWritePlansAtomicForTest to TwoPhaseConfigCommit.
         // P5: staging-phase CliktError must carry cause= for --verbose diagnostic context.
         val projectRoot = temporaryFolder.newFolder("project")
         val unwritable = java.io.File(projectRoot, "unwritable").apply { mkdirs() }
@@ -503,9 +496,7 @@ class SetupCommandTest {
         unwritable.setWritable(false, false)
         try {
             val error = assertThrows(CliktError::class.java) {
-                SetupCommand().runWritePlansAtomicForTest(
-                    plans = listOf(Triple("test", "scope", target) to "content"),
-                )
+                TwoPhaseConfigCommit().commit(listOf(SetupWritePlan("test", "scope", target, "content")))
             }
             assertNotNull("staging-failure CliktError must carry cause", error.cause)
         } finally {
@@ -514,26 +505,25 @@ class SetupCommandTest {
     }
 
     @Test
-    fun runWritePlansAtomicCommitFailureAttachesCause() {
+    fun commitFailureAttachesCause() {
+        // A5: ported from runWritePlansAtomicForTest to TwoPhaseConfigCommit.
         // P5: commit-phase CliktError must carry cause= for --verbose diagnostic context.
         val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
         val error = assertThrows(CliktError::class.java) {
-            SetupCommand().runWritePlansAtomicForTest(
-                plans = listOf(Triple("test", "scope", target) to "new"),
-                move = { _, _, _ -> throw IOException("simulated commit failure") },
-            )
+            TwoPhaseConfigCommit(move = { _, _, _ -> throw IOException("simulated commit failure") })
+                .commit(listOf(SetupWritePlan("test", "scope", target, "new")))
         }
         assertNotNull("commit-failure CliktError must carry cause", error.cause)
         assertEquals("target must be restored on commit failure", "original", target.readText())
     }
 
     @Test
-    fun runWritePlansAtomicFsyncsStagingFileBeforeMoveAndParentDirectoryAfter() {
+    fun commitFsyncsStagingFileBeforeMoveAndParentDirectoryAfter() {
+        // A5: ported from runWritePlansAtomicForTest to TwoPhaseConfigCommit.
         // P2: durability — staging file must be fsync'd before move; parent dir fsync'd after.
         val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
         val events = mutableListOf<String>()
-        SetupCommand().runWritePlansAtomicForTest(
-            plans = listOf(Triple("test", "scope", target) to "new"),
+        TwoPhaseConfigCommit(
             forceFile = { path ->
                 assertTrue(
                     "forceFile must target the staging file, got $path",
@@ -549,7 +539,7 @@ class SetupCommandTest {
                 )
                 events += "force-parent"
             },
-        )
+        ).commit(listOf(SetupWritePlan("test", "scope", target, "new")))
         assertEquals(
             "fsync ordering: staging file forced before move, parent dir forced after",
             listOf("force-staging", "force-parent"),
@@ -559,15 +549,14 @@ class SetupCommandTest {
     }
 
     @Test
-    fun runWritePlansAtomicRollbackCreationFailureCleansUpAndAttachesCause() {
+    fun commitRollbackCreationFailureCleansUpAndAttachesCause() {
+        // A5: ported from runWritePlansAtomicForTest to TwoPhaseConfigCommit.
         // P0: rollback-creation loop must be wrapped in try/catch with best-effort cleanup
         // and cause preservation. Inject a copyForRollback that throws to exercise the path.
         val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
         val error = assertThrows(CliktError::class.java) {
-            SetupCommand().runWritePlansAtomicForTest(
-                plans = listOf(Triple("test", "scope", target) to "new"),
-                copyForRollback = { _, _ -> throw IOException("simulated rollback-snapshot failure") },
-            )
+            TwoPhaseConfigCommit(copyForRollback = { _, _ -> throw IOException("simulated rollback-snapshot failure") })
+                .commit(listOf(SetupWritePlan("test", "scope", target, "new")))
         }
         assertNotNull("rollback-snapshot CliktError must carry cause", error.cause)
         assertEquals("target untouched when rollback-creation fails", "original", target.readText())

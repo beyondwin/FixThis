@@ -21,7 +21,6 @@
     <ID>MagicNumber:RunCommand.kt$1_500L</ID>
     <ID>MagicNumber:RunCommand.kt$200L</ID>
     <ID>MagicNumber:RunCommand.kt$RunCommand$30_000L</ID>
-    <ID>MagicNumber:SetupCommand.kt$SetupCommand$4096</ID>
     <ID>MatchingDeclarationName:CliExit.kt$ExitCode</ID>
     <ID>MaxLineLength:Adb.kt$Adb$override fun forDevice(serial: String?): AdbFacade</ID>
     <ID>MaxLineLength:Adb.kt$Adb$override fun runAsCat(packageName: String, path: String): String</ID>

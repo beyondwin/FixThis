@@ -50,6 +50,19 @@ class TwoPhaseConfigCommitTest {
     }
 
     @Test
+    fun commitReturnsCommittedPlansInsteadOfWritingGlobalState() {
+        val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
+
+        val committed = TwoPhaseConfigCommit().commit(listOf(plan("test", "scope", target, "new")))
+
+        assertEquals(
+            "commit must return the committed plans for the caller to record",
+            listOf("test"),
+            committed.map { it.writerName },
+        )
+    }
+
+    @Test
     fun commitFallsBackToCopyDeleteWhenAtomicMoveUnsupported() {
         val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
         var sawAtomicAttempt = false

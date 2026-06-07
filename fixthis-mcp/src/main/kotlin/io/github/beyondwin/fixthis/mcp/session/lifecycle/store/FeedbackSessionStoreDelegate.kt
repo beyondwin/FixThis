@@ -79,20 +79,12 @@ internal class FeedbackSessionStoreDelegate(
         persistence = persistence,
         hasEventLog = eventLogReaderProvider != null,
     )
-    private val compactionCoordinator = if (compactionFailureSink == null) {
-        SessionCompactionCoordinator(
-            eventLogCompactorProvider = eventLogCompactorProvider,
-            eventLogCompactionThreshold = eventLogCompactionThreshold,
-            clock = clock,
-        )
-    } else {
-        SessionCompactionCoordinator(
-            eventLogCompactorProvider = eventLogCompactorProvider,
-            eventLogCompactionThreshold = eventLogCompactionThreshold,
-            compactionFailureSink = compactionFailureSink,
-            clock = clock,
-        )
-    }
+    private val compactionCoordinator = SessionCompactionCoordinator(
+        eventLogCompactorProvider = eventLogCompactorProvider,
+        eventLogCompactionThreshold = eventLogCompactionThreshold,
+        compactionFailureSink = compactionFailureSink,
+        clock = clock,
+    )
     private val mutations = SessionMutationService(clock, idGenerator)
     private val artifactJanitor = SessionArtifactJanitor(persistence)
 
@@ -206,7 +198,7 @@ internal class FeedbackSessionStoreDelegate(
     fun addScreen(sessionId: String, screen: SnapshotDto): SnapshotDto = withEventBackedMutation(sessionId, "addScreen") {
         val session = getSessionLocked(sessionId)
         val (updated, captured) = mutations.addScreen(session, screen)
-        SessionEventPayloadFactory.screen(sessionId, captured) to {
+        EventBackedMutation(SessionEventPayloadFactory.screen(sessionId, captured)) {
             store.saveAndPut(updated)
             captured
         }
@@ -251,19 +243,16 @@ internal class FeedbackSessionStoreDelegate(
                 nextItemSequenceNumber = maxOf(firstSequence, nextSequence),
                 updatedAtEpochMillis = now,
             )
-            SessionEventPayloadFactory.screenWithItems(
-                sessionId = sessionId,
-                eventMetadata = eventMetadata,
-                screen = captured,
-                items = createdItems,
-            ) to { commitSessionMutation(session, updated) }
+            EventBackedMutation(
+                SessionEventPayloadFactory.screenWithItems(sessionId, eventMetadata, captured, createdItems),
+            ) { commitSessionMutation(session, updated) }
         },
     )
 
     fun deleteScreen(sessionId: String, screenId: String): SessionDto = withEventBackedMutation(sessionId, "deleteScreen") {
         val session = getSessionLocked(sessionId)
         val updated = mutations.deleteScreen(session, screenId)
-        SessionEventPayloadFactory.deleteScreen(sessionId, screenId) to {
+        EventBackedMutation(SessionEventPayloadFactory.deleteScreen(sessionId, screenId)) {
             // Note: disk artifact deletion is NOT replayed on boot (replay is SessionDto-only).
             commitSessionMutation(session, updated).also {
                 artifactJanitor.deleteScreenArtifacts(sessionId, screenId)
@@ -274,7 +263,7 @@ internal class FeedbackSessionStoreDelegate(
     fun addItem(sessionId: String, item: AnnotationDto): AnnotationDto = withEventBackedMutation(sessionId, "addItem") {
         val session = getSessionLocked(sessionId)
         val (updated, created) = mutations.addItem(session, item)
-        SessionEventPayloadFactory.item(sessionId, created) to {
+        EventBackedMutation(SessionEventPayloadFactory.item(sessionId, created)) {
             store.saveAndPut(updated)
             created
         }
@@ -286,7 +275,7 @@ internal class FeedbackSessionStoreDelegate(
             items = session.items.filter { it.delivery != FeedbackDelivery.DRAFT },
             updatedAtEpochMillis = clock(),
         )
-        SessionEventPayloadFactory.items(sessionId, updated.items) to {
+        EventBackedMutation(SessionEventPayloadFactory.items(sessionId, updated.items)) {
             commitSessionMutation(session, updated)
         }
     }
@@ -307,7 +296,7 @@ internal class FeedbackSessionStoreDelegate(
         ) ?: throw FeedbackSessionException("NO_DRAFT_FEEDBACK: No draft feedback items to send")
         val batch = prepared.batch
         val updated = prepared.session
-        SessionEventPayloadFactory.handoff(sessionId, batch, updated.items) to {
+        EventBackedMutation(SessionEventPayloadFactory.handoff(sessionId, batch, updated.items)) {
             commitSessionMutation(session, updated)
         }
     }
@@ -333,7 +322,7 @@ internal class FeedbackSessionStoreDelegate(
             items = updatedItems,
             updatedAtEpochMillis = now,
         )
-        SessionEventPayloadFactory.items(sessionId, updatedItems) to {
+        EventBackedMutation(SessionEventPayloadFactory.items(sessionId, updatedItems)) {
             commitSessionMutation(session, updated)
         }
     }
@@ -354,7 +343,7 @@ internal class FeedbackSessionStoreDelegate(
     ): AnnotationDto = withEventBackedMutation(sessionId, "updateItemStatus") {
         val session = getSessionLocked(sessionId)
         val (updated, item) = mutations.updateItemStatus(session, itemId, status, agentSummary)
-        SessionEventPayloadFactory.items(sessionId, updated.items) to {
+        EventBackedMutation(SessionEventPayloadFactory.items(sessionId, updated.items)) {
             commitSessionMutation(session, updated)
             item
         }
@@ -385,7 +374,7 @@ internal class FeedbackSessionStoreDelegate(
         val item = updatedItem
             ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-        SessionEventPayloadFactory.items(sessionId, updatedItems) to {
+        EventBackedMutation(SessionEventPayloadFactory.items(sessionId, updatedItems)) {
             commitSessionMutation(session, updated)
             item
         }
@@ -418,7 +407,7 @@ internal class FeedbackSessionStoreDelegate(
         }
         if (!found) throw FeedbackSessionException("Unknown feedback item: $itemId")
         val updated = session.copy(items = updatedItems, updatedAtEpochMillis = now)
-        SessionEventPayloadFactory.updateDraftItems(sessionId, updatedItems) to {
+        EventBackedMutation(SessionEventPayloadFactory.updateDraftItems(sessionId, updatedItems)) {
             store.saveAndPut(updated)
             updated
         }
@@ -439,7 +428,7 @@ internal class FeedbackSessionStoreDelegate(
             handoffBatches = updatedBatches,
             updatedAtEpochMillis = clock(),
         )
-        SessionEventPayloadFactory.deleteItem(sessionId, itemId) to {
+        EventBackedMutation(SessionEventPayloadFactory.deleteItem(sessionId, itemId)) {
             store.saveAndPut(updated)
             updated
         }
@@ -452,14 +441,14 @@ internal class FeedbackSessionStoreDelegate(
     private fun <T> withEventBackedMutation(
         sessionId: String,
         type: String,
-        prepare: () -> Pair<JsonObject, () -> T>,
+        prepare: () -> EventBackedMutation<T>,
     ): T {
         val result = synchronized(lock) {
             requireOpenSessionForMutation(sessionId, type)
-            val (payload, mutate) = prepare()
-            // Throws EventLogException on failure, so mutate() is never reached.
-            journal.append(sessionId = sessionId, type = type, payload = payload)
-            mutate()
+            val mutation = prepare()
+            // Throws EventLogException on failure, so apply() is never reached.
+            journal.append(sessionId = sessionId, type = type, payload = mutation.payload)
+            mutation.apply()
         }
         compactionCoordinator.compactAfterMutation(sessionId)
         return result
@@ -468,14 +457,14 @@ internal class FeedbackSessionStoreDelegate(
     private fun <T> withOptionalEventBackedMutation(
         sessionId: String,
         type: String,
-        prepare: () -> Pair<JsonObject, () -> T>?,
+        prepare: () -> EventBackedMutation<T>?,
         noop: () -> T,
     ): T {
         val result = synchronized(lock) {
             requireOpenSessionForMutation(sessionId, type)
-            val (payload, mutate) = prepare() ?: return@synchronized noop()
-            journal.append(sessionId = sessionId, type = type, payload = payload)
-            mutate()
+            val mutation = prepare() ?: return@synchronized noop()
+            journal.append(sessionId = sessionId, type = type, payload = mutation.payload)
+            mutation.apply()
         }
         compactionCoordinator.compactAfterMutation(sessionId)
         return result
