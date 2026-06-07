@@ -52,47 +52,36 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
             DiagnosticContext.verbose = true
         }
         val root = File(projectDir).canonicalFile
-        val client = BridgeClient(projectRoot = root)
-        val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
         if (!write) {
+            val client = BridgeClient(projectRoot = root)
+            val resolvedPackage = failAsCliError { client.resolvePackageName(packageName) }
             val config = buildMcpClientConfig(resolvedPackage, root)
             echo(fixThisJson.encodeToString(config))
             return
         }
 
-        val validServerName = validateMcpServerName(serverName)
-        val sdk = AndroidSdkLocator.find()
-        val executable = McpExecutableLocator.find()
-        if (sdk == null) {
-            echo(
-                "Warning: Android SDK not found; writing MCP config without ANDROID_HOME. " +
-                    "Run `fixthis doctor --package $resolvedPackage --project-dir ${root.absolutePath}` next.",
-                err = true,
-            )
-        }
-        if (executable == null) {
-            echo(
-                "Warning: fixthis-mcp executable not found.\n" +
-                    "  The written config will use `fixthis mcp` as a command fallback.\n" +
-                    "  MCP clients will fail to start FixThis unless `fixthis` is on PATH.\n" +
-                    "  Fix: run `./gradlew :fixthis-mcp:installDist` then re-run `fixthis setup --write`.",
-                err = true,
-            )
-        }
-
-        val entry = buildMcpConfigEntry(
-            resolvedPackage = resolvedPackage,
-            root = root,
-            serverName = validServerName,
-            sdk = sdk,
-            executable = executable,
+        val request = SetupRequest(
+            packageName = packageName,
+            projectRoot = root,
+            target = target,
+            serverName = serverName,
+            write = true,
+            dryRun = dryRun,
+            fullDiff = fullDiff,
+            verbose = verbose,
         )
-        val plans = SetupPlanner.buildWritePlans(SetupPlanner.selectedWriters(target), root, entry)
-        if (dryRun) {
-            plans.forEach { plan -> applyWritePlan(plan, dryRun = true, fullDiff = fullDiff) }
-            return
-        }
-        runWritePlansAtomic(plans)
+        // A4: record into a local report, then bridge into the global SetupRunResults so the
+        // existing install-agent JSON readers (which still read the global) stay byte-identical.
+        // This bridge is TEMPORARY — A5 removes it along with the argv re-parse chain.
+        val report = SetupReport()
+        SetupService(
+            report = report,
+            emit = ::echo,
+            emitWarning = { echo(it, err = true) },
+        ).writeConfigs(request)
+        SetupRunResults.applied.get() += report.applied
+        SetupRunResults.skipped.get() += report.skipped
+        SetupRunResults.errors.get() += report.errors
     }
 
     @Suppress("LongParameterList")
@@ -186,21 +175,21 @@ class SetupCommand : CoreCliktCommand(name = "setup") {
         AtomicConfigFileWriter.write(configFile, content)
         println("Wrote ${plan.writerName} MCP config (${plan.scope}): ${configFile.absolutePath}")
     }
+}
 
-    private fun renderDryRunOutput(plan: SetupWritePlan, fullDiff: Boolean): List<String> {
-        val configFile = plan.configFile
-        val before = if (configFile.isFile) configFile.readText() else ""
-        val format = when {
-            configFile.name.endsWith(".toml") -> DryRunDiff.Format.TOML
-            else -> DryRunDiff.Format.JSON
-        }
-        val budget = if (fullDiff) Int.MAX_VALUE else 4096
-        return listOf(
-            "Target: ${plan.writerName} (${plan.scope})",
-            "Path: ${configFile.absolutePath}",
-            DryRunDiff.render(before = before, after = plan.content, format = format, byteBudget = budget),
-        )
+internal fun renderDryRunOutput(plan: SetupWritePlan, fullDiff: Boolean): List<String> {
+    val configFile = plan.configFile
+    val before = if (configFile.isFile) configFile.readText() else ""
+    val format = when {
+        configFile.name.endsWith(".toml") -> DryRunDiff.Format.TOML
+        else -> DryRunDiff.Format.JSON
     }
+    val budget = if (fullDiff) Int.MAX_VALUE else 4096
+    return listOf(
+        "Target: ${plan.writerName} (${plan.scope})",
+        "Path: ${configFile.absolutePath}",
+        DryRunDiff.render(before = before, after = plan.content, format = format, byteBudget = budget),
+    )
 }
 
 class InitCommand : CoreCliktCommand(name = "init") {
