@@ -511,12 +511,574 @@ local persistence를 지금의 조합으로 묶었는지 설명합니다. 각각
 
 ## 실제 로직 추적
 
+이 섹션은 사용자가 보는 한 동작이 어느 명령, Android runtime, bridge,
+MCP server, browser console, local file로 이어지는지 추적하는 지도입니다.
+Graphify나 검색 결과는 탐색 힌트로만 쓰고, 행동을 바꿀 때는 아래에 적은
+실제 코드 경로와 `docs/reference/*` 계약을 먼저 확인합니다.
+
+### 외부 앱 설치: `fixthis install-agent`
+
+- 사용자가 보는 동작: 외부 Android repo에서 `fixthis install-agent --project-dir . --target all`을
+  실행하면 app module의 debug 설정과 agent
+  MCP config가 준비되고, `.fixthis/project.json` 같은 handoff 파일이
+  생성됩니다. README의 agent-first quick start는 바로 다음 단계로
+  `fixthis doctor --project-dir . --json`을 요구합니다.
+- 시작 명령/도구: `fixthis install-agent --project-dir . --target all`,
+  `fixthis init`, recovery path의 `./gradlew fixthisSetup`.
+- 핵심 코드 경로: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt`,
+  `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/InstallAgentJsonReport.kt`,
+  `docs/reference/cli.md`, `docs/getting-started/agent-install-snippet.md`.
+- 데이터가 이동하는 방식: CLI가 Gradle project에서 application id와 app
+  module을 추론하고, debug dependency/setup metadata를 쓰며, agent가 읽을
+  MCP 실행 정보와 project metadata를 `.fixthis/` 아래에 남깁니다. 이
+  단계는 Android app process를 실행하지 않고 desktop filesystem과 Gradle
+  files만 다룹니다.
+- 실패할 수 있는 지점: application id가 여러 개라 모호한 경우, app
+  module을 못 찾는 경우, Gradle 파일을 자동 patch할 수 없는 경우, 이미
+  사용자가 편집 중인 agent config와 merge conflict가 나는 경우입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/InstallAgentJsonReportTest.kt`,
+  `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommandTest.kt`,
+  `npm run docs:agent-bootstrap:test`, `bash scripts/check-docs-cli-surface.sh`.
+
+### 상태 진단: `fixthis doctor --json`
+
+- 사용자가 보는 동작: agent나 사용자가 JSON report를 보고 project setup,
+  package, generated metadata, ADB, device, sidekick bridge 상태 중 어디가
+  막혔는지 확인합니다. README는 이 JSON readiness result를 source of truth로
+  다룹니다.
+- 시작 명령/도구: `fixthis doctor --project-dir . --json`,
+  `fixthis doctor --package <applicationId> --json`, MCP의 `fixthis_status`.
+- 핵심 코드 경로: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/DoctorCommand.kt`,
+  `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Adb.kt`,
+  `docs/architecture/overview.md`, `docs/reference/mcp-tools.md`.
+- 데이터가 이동하는 방식: CLI가 local Gradle/project metadata와 ADB device
+  상태를 읽고, running debug app이 있으면 `adb run-as`와 `adb forward`를
+  통해 app-side bridge status를 조회합니다. app은 HTTP/MCP를 host하지 않고
+  sidekick session token과 local socket만 제공합니다.
+- 실패할 수 있는 지점: Android SDK/ADB 미설치, unauthorized/offline
+  device, app 미설치 또는 미실행, non-debuggable build, `files/fixthis/session.json`
+  token 읽기 실패, bridge protocol version drift입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/DoctorCommandTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`,
+  `npm run first-run:smoke:test`, `npm run evidence:test`.
+
+### 샘플 실행: `fixthis run`
+
+- 사용자가 보는 동작: sample debug APK가 install/launch되고 CLI가 sidekick
+  bridge에 붙어 사용자가 feedback console이나 MCP handoff를 시도할 수 있는
+  상태로 만듭니다.
+- 시작 명령/도구: `fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample`,
+  `fixthis run --package <applicationId>`, README의 sample quick start.
+- 핵심 코드 경로: `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/RunCommand.kt`,
+  `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`,
+  `README.md`, `docs/reference/mcp-tools.md`.
+- 데이터가 이동하는 방식: CLI가 Gradle install task를 실행하고 launcher
+  activity를 시작한 뒤, ADB forward로 app-side localabstract socket에
+  연결해 bridge status를 확인합니다. 샘플 앱 자체는 validation target이고
+  desktop MCP/HTTP session store를 소유하지 않습니다.
+- 실패할 수 있는 지점: install task 실패, package/activity 불일치,
+  emulator lockscreen이나 background app, stale sample APK와 새 console의
+  bridge version mismatch, `adb forward` port 충돌입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-cli/src/test/kotlin/io/github/beyondwin/fixthis/cli/commands/RunCommandTest.kt`,
+  `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SampleAppSmokeTest.kt`,
+  `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`.
+
+### 앱 내부 sidekick 시작
+
+- 사용자가 보는 동작: debug 앱이 뜨면 작은 connection status pill이 보이고,
+  console heartbeat가 recent일 때만 `MCP connected`처럼 표시됩니다. 앱 안에서
+  annotation UI가 열리지는 않습니다.
+- 시작 명령/도구: debug build 실행, AndroidX Startup의
+  `FixThisInitializer`, `fixthis run`, console의 `Start`.
+- 핵심 코드 경로: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt`,
+  `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThis.kt`,
+  `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`,
+  `docs/architecture/overview.md`.
+- 데이터가 이동하는 방식: initializer가 app process 안에서 lifecycle
+  callback, status pill, bridge runtime을 등록하고, `SessionTokenStore`가
+  `files/fixthis/session.json`을 app-private storage에 씁니다. desktop은
+  나중에 `adb run-as`로 이 token을 읽습니다.
+- 실패할 수 있는 지점: dependency가 debug variant에 들어가지 않은 경우,
+  Startup metadata 누락, release/non-debuggable build, process lifecycle이
+  예상과 다르게 시작되는 경우, stale socket name retry입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/FixThisTest.kt`,
+  `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerStartupTest.kt`,
+  `:fixthis-compose-sidekick:testDebugUnitTest`.
+
+### Bridge 요청 처리
+
+- 사용자가 보는 동작: CLI/MCP 명령이 현재 화면, screenshot, navigation,
+  status, verify 결과를 받아옵니다. 사용자는 localhost console을 보지만,
+  Android 앱이 console HTTP route를 제공하는 것은 아닙니다.
+- 시작 명령/도구: `fixthis_status`, `fixthis_get_current_screen`,
+  `fixthis_capture_screen`, `fixthis_navigate_app`, CLI bridge calls.
+- 핵심 코드 경로: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`,
+  `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeModels.kt`,
+  `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`,
+  `docs/reference/bridge-protocol.md`.
+- 데이터가 이동하는 방식: desktop이 `adb forward tcp:<port>
+  localabstract:fixthis_<package>`를 만들고, token이 들어간 length-prefixed
+  JSON frame을 app-side socket으로 보냅니다. `BridgeProtocol.kt`는
+  `VERSION`, frame format, request/response shape를 갖고, `BridgeModels.kt`는
+  `BridgeStatus`, `BridgeCapabilities`, screen/screenshot/verification DTO를
+  갖습니다.
+- 실패할 수 있는 지점: token mismatch, frame size/JSON parse error,
+  unsupported method, protocol version drift, app foreground/interactive
+  상태 부족, socket bind/forward stale state입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocolTest.kt`,
+  `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/BridgeProtocolVersionSyncTest.kt`.
+
+### Compose screen inspection
+
+- 사용자가 보는 동작: agent가 현재 Compose screen tree, activity, roots,
+  selected/nearby nodes, screenshot artifact URI를 받아 UI 수정 근거로 씁니다.
+- 시작 명령/도구: `fixthis_get_current_screen`, `fixthis_capture_screen`,
+  console live preview capture, `fixthis_navigate_app`의 `captureAfter`.
+- 핵심 코드 경로: `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/inspect/SemanticsInspector.kt`,
+  `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/screenshot/ScreenshotCapturer.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/preview/PreviewCaptureService.kt`,
+  `docs/reference/output-schema.md`.
+- 데이터가 이동하는 방식: app-side inspector가 merged/unmerged Compose
+  semantics roots와 screenshot metadata를 bridge DTO로 반환하고, MCP session
+  layer가 이를 captured screen DTO나 transient preview로 변환합니다. live
+  preview frame은 session history가 아니며 persisted `screens`는 frozen
+  preview를 handoff할 때 생긴 evidence snapshot입니다.
+- 실패할 수 있는 지점: Compose root가 아직 없음, system UI/keyboard/permission
+  dialog가 화면을 가림, screenshot capture 실패, View/WebView interop로
+  semantics가 약함, preview fingerprint 불일치입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-compose-sidekick/src/androidTest/kotlin/io/github/beyondwin/fixthis/compose/sidekick/SemanticsInspectorTest.kt`,
+  `sample/src/androidTest/java/io/github/beyondwin/fixthis/sample/SemanticsInspectorSampleAppTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/PreviewCaptureServiceTest.kt`.
+
+### Source matching
+
+- 사용자가 보는 동작: handoff와 queue Markdown에 source candidate가 표시되어
+  agent가 먼저 열어볼 파일/라인 힌트를 얻습니다. 이 후보는 ranked hint이고
+  확정 정답이 아닙니다.
+- 시작 명령/도구: Gradle plugin의 source-index generation, `fixthis_status`의
+  source-index availability, `Copy Prompt`, `Save to MCP`, `fixthis_read_feedback`.
+- 핵심 코드 경로: `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`,
+  `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceIndex.kt`,
+  `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`,
+  `docs/reference/output-schema.md`.
+- 데이터가 이동하는 방식: Gradle plugin이 source index asset을 만들고
+  sidekick이 asset을 읽어 bridge snapshot에 availability와 candidates를
+  반영합니다. MCP/core는 semantics label, strict tag, owner, text signal을
+  조합해 후보를 score/rank하고 `sourceCandidates`와 target evidence에
+  보존합니다.
+- 실패할 수 있는 지점: source index asset 누락, APK가 source보다 stale,
+  weak semantics, shared component call-site ambiguity, 낮은 score margin,
+  generated/third-party UI입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherTest.kt`,
+  `fixthis-compose-core/src/test/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcherSharedComponentTest.kt`,
+  `fixthis-gradle-plugin/src/test/kotlin/io/github/beyondwin/fixthis/gradle/GenerateFixThisSourceIndexTaskTest.kt`,
+  `npm run source-matching:fixtures:test`.
+
+### Feedback console 열기
+
+- 사용자가 보는 동작: MCP tool이 localhost URL을 열거나 반환하고, 브라우저에
+  session history, connection card, preview stage, inspector가 나타납니다.
+- 시작 명령/도구: `fixthis_open_feedback_console`,
+  `fixthis console --package <applicationId>`, `scripts/fixthis-console-dev.sh`.
+- 핵심 코드 경로: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRoutes.kt`,
+  `docs/reference/feedback-console-contract.md`.
+- 데이터가 이동하는 방식: MCP process가 local HTTP server를 띄우고 session
+  id와 console token을 가진 URL을 browser에 제공합니다. Mutating `/api/*`
+  요청은 localhost origin과 `X-FixThis-Console-Token`으로 보호됩니다.
+- 실패할 수 있는 지점: port 충돌, stale console JAR/assets, browser token
+  mismatch, non-local origin, old session reopen 실패, stdout JSON-RPC 오염입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServerTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleAssetContractTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`.
+
+### Live preview와 Annotate
+
+- 사용자가 보는 동작: Select mode에서는 preview click이 debug-only navigation을
+  수행하고, Annotate를 누르면 최신 preview가 frozen state가 되어 target
+  selection과 visual-area drag가 pending annotation을 만듭니다.
+- 시작 명령/도구: console의 `Start`, `Select`, `Annotate`, `/api/preview`,
+  `/api/events`, `/api/items/draft` 계열 route.
+- 핵심 코드 경로: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/PreviewRoutes.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`,
+  `fixthis-mcp/src/main/console/preview.js`,
+  `fixthis-mcp/src/main/console/annotations.js`,
+  `docs/reference/feedback-console-contract.md`.
+- 데이터가 이동하는 방식: MCP console이 bridge capture를 transient preview로
+  저장하고, healthy path에서는 SSE `preview-ready`가 browser를 갱신합니다.
+  Annotate는 preview를 freeze할 뿐 durable session item을 쓰지 않고,
+  pending draft는 browser state와 localStorage recovery envelope에 남습니다.
+- 실패할 수 있는 지점: SSE drop 후 fallback polling race, session switch 중
+  stale response, hidden tab, frozen preview와 live app drift, target bounds가
+  screenshot 밖으로 나간 경우입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsolePreviewRoutesTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleFeedbackItemValidationRoutesTest.kt`,
+  `scripts/consoleEvents-test.mjs`, `npm run console:preview:test`.
+
+### `Copy Prompt`와 `Save to MCP`
+
+- 사용자가 보는 동작: `Copy Prompt`는 written pending annotation을 compact
+  Markdown으로 clipboard에 복사하고, `Save to MCP`는 같은 written subset을
+  MCP queue에 보냅니다. pin-only residual은 Copy Prompt에서는 browser-local로
+  남고, Save to MCP에서는 handoff 완료 과정에서 버려집니다.
+- 시작 명령/도구: console top bar의 `Copy Prompt`, `Save to MCP`,
+  `/api/items/batch`, `/api/agent-handoffs`.
+- 핵심 코드 경로: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackItemRoutes.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/HandoffPreviewRoutes.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`,
+  `fixthis-mcp/src/main/console/prompt.js`,
+  `docs/reference/mcp-tools.md`.
+- 데이터가 이동하는 방식: frozen preview가 한 번 promoted되어 persisted
+  `screenId`를 가진 evidence snapshot이 되고, written items가 그 screen을
+  공유합니다. Copy Prompt는 copied item에 handoff timestamp를 남기고
+  clipboard text를 만들며, Save to MCP는 local handoff batch를 만들고 item
+  `delivery`를 `sent`로 바꿉니다. 외부 AI API 호출은 없습니다.
+- 실패할 수 있는 지점: written comment가 없는 draft, screen fingerprint
+  mismatch로 인한 HTTP 409, idempotency key 누락, screenshot artifact promote
+  실패, clipboard permission 실패, stale draft workspace입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleHandoffRoutesTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/CompactHandoffRendererTest.kt`,
+  `scripts/real-copy-prompt-smoke-test.mjs`.
+
+### Agent queue 처리: read/claim/resolve
+
+- 사용자가 보는 동작: agent가 sent feedback을 읽고, 작업 전 claim해서
+  `in_progress`로 표시한 뒤, 수정 후 resolved/needs_clarification/wont_fix로
+  닫습니다. console history row에는 working 상태가 반영됩니다.
+- 시작 명령/도구: `fixthis_list_feedback`, `fixthis_read_feedback`,
+  `fixthis_claim_feedback`, `fixthis_resolve_feedback`.
+- 핵심 코드 경로: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`,
+  `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt`,
+  `docs/reference/mcp-tools.md`.
+- 데이터가 이동하는 방식: MCP tools는 authoritative
+  `.fixthis/feedback-sessions/<session-id>/session.json`을 읽고 mutation을
+  event log와 session snapshot에 반영합니다. 기본 list/read는
+  `delivery: sent`이고 unfinished인 item 중심이며, `includeAll: true`는 확장
+  조회입니다.
+- 실패할 수 있는 지점: session id 누락/closed session, 이미 다른 agent가
+  claim한 item, draft-only item을 queue로 착각, stale index cache,
+  resolve status enum mismatch입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionServiceClaimTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsEventLogIntegrationTest.kt`,
+  `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackQueueFormatterTest.kt`.
+
+### `fixthis_verify_ui_change`
+
+- 사용자가 보는 동작: agent가 변경 후 현재 화면에 기대 text가 존재하는지
+  빠르게 확인하고, optional role hint와 함께 pass/fail message를 받습니다.
+- 시작 명령/도구: MCP tool `fixthis_verify_ui_change` with `expectedText`,
+  optional `role`.
+- 핵심 코드 경로: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`,
+  `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`,
+  `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeModels.kt`,
+  `docs/reference/mcp-tools.md`.
+- 데이터가 이동하는 방식: MCP tool이 bridge request로 expected text와 role
+  hint를 보내고, sidekick이 현재 Compose semantics에서 match를 찾은 뒤
+  `BridgeUiVerificationResult`를 반환합니다. 이 도구는 UI assertion 보조
+  도구이지 screenshot/source candidate를 대체하지 않습니다.
+- 실패할 수 있는 지점: 앱이 다른 화면에 있음, text가 redaction 또는
+  localization 때문에 다름, Compose semantics에 text가 노출되지 않음,
+  role hint가 너무 좁음, bridge가 stale APK에 붙어 있음입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`,
+  `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`,
+  `docs/reference/mcp-tools.md`의 tool contract.
+
 ## 데이터와 저장소 구조
+
+FixThis의 저장소는 app-private runtime artifact, desktop project artifact,
+browser-local recovery artifact로 나뉩니다. persisted feedback에서는
+per-session `session.json`이 authoritative source이고,
+`.fixthis/feedback-sessions/index.json`은 재생성 가능한 derived cache입니다.
+`.fixthis/` 전체는 local-only handoff/screenshot/workspace 영역이라 commit하지
+않습니다.
+
+- `files/fixthis/session.json`: target debug app의 app-private storage에 있는
+  sidekick session token과 bridge socket 정보를 담습니다. desktop CLI/MCP가
+  `adb shell run-as <package> cat files/fixthis/session.json`으로 읽고, bridge
+  request token으로 사용합니다. 관련 문서: `docs/reference/bridge-protocol.md`.
+- `cache/fixthis/<yyyy-MM-dd>/<annotation-id>-full.png`: app-side
+  `ScreenshotCapturer`가 저장하는 full screenshot artifact입니다. bridge가
+  path와 metadata를 반환하고, desktop session layer가 preview 또는 persisted
+  evidence artifact로 복사할 수 있습니다.
+- `cache/fixthis/<yyyy-MM-dd>/<annotation-id>-crop.png`: 선택 target/visual
+  area에 대응하는 crop screenshot artifact입니다. crop은 있을 때만 handoff
+  Markdown이나 item screenshot metadata에 나타납니다.
+- `.fixthis/project.json`: 외부 Android repo의 package/setup/project root
+  힌트를 담는 desktop-side project metadata입니다. `fixthis install-agent`와
+  `fixthis doctor`가 agent-first setup/recovery를 이어 가는 데 사용합니다.
+- `.fixthis/feedback-sessions/<session-id>/session.json`: feedback session의
+  authoritative snapshot입니다. `screens`, `items`, `handoffBatches`,
+  sequence/status/counters가 여기에 있고, read/claim/resolve mutation의
+  최종 truth입니다.
+- `.fixthis/feedback-sessions/<session-id>/events/`: session mutation event
+  log입니다. Save to MCP, claim, resolve, close 같은 변경을 append/replay할
+  수 있게 남기며, 장애 분석에서 `session.json`과 함께 봅니다.
+- `.fixthis/feedback-sessions/index.json`: session list를 빠르게 보여 주는
+  derived cache입니다. per-session `session.json`을 훑어 재생성할 수 있으므로
+  사람이 직접 고치는 대상이 아닙니다.
+- `.fixthis/preview-cache/<session-id>/`: live preview와 frozen preview의
+  transient screenshot/cache 영역입니다. preview frame은 session history가
+  아니며, Copy Prompt/Save to MCP가 실행될 때만 필요한 screenshot이
+  `.fixthis/feedback-sessions/<session-id>/` 아래 persisted evidence로
+  promoted됩니다.
+- `localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`: browser-only
+  DraftWorkspace recovery envelope입니다. frozen context, screenshot URL,
+  pending items, revision, lifecycle, undo/redo history를 담고 reload/reattach
+  후 Recover/Recapture/Discard 선택을 가능하게 합니다. per-session index는
+  `localStorage["fixthis.workspace.index.<sessionId>"]`입니다.
 
 ## 호환성 계약과 금지사항
 
+- Debug-only scope: FixThis sidekick은 `debugImplementation`/debuggable app
+  전용입니다. release build 지원처럼 보이는 코드, 문서, install path를
+  추가하지 않습니다.
+- Compose-only V1 scope: V1의 inspection과 target evidence는 Compose
+  semantics 중심입니다. View 기반 앱, Flutter, remote AccessibilityService
+  지원을 현재 계약처럼 문서화하지 않습니다.
+- no committed `.fixthis/` or `graphify-out/`: `.fixthis/`는 screenshot,
+  feedback, local setup artifact를 담고 `graphify-out/`은 navigation aid입니다.
+  둘 다 product runtime dependency가 아니며 commit 대상이 아닙니다.
+- persisted JSON fields: `items`, `screens`, `itemId`, `screenId`,
+  `targetEvidence`, `targetReliability`, `sourceCandidates`는 compatibility
+  anchor입니다. rename/remove 대신 additive field와 nullable/default migration을
+  사용합니다.
+- MCP tool names and queue semantics: `fixthis_status`,
+  `fixthis_get_current_screen`, `fixthis_verify_ui_change`,
+  `fixthis_open_feedback_console`, `fixthis_list_feedback_sessions`,
+  `fixthis_capture_screen`, `fixthis_navigate_app`, `fixthis_list_feedback`,
+  `fixthis_read_feedback`, `fixthis_claim_feedback`,
+  `fixthis_resolve_feedback` 이름과 sent/unfinished 기본 queue 의미를 깨지
+  않습니다.
+- Bridge protocol additive compatibility: `BridgeProtocol.VERSION`과 wire
+  shape는 `docs/reference/bridge-protocol.md`의 version policy를 따릅니다.
+  wire-visible rename/remove/semantics change는 version bump와 mirror update가
+  필요하고, additive nullable field는 older partner가 무시할 수 있어야 합니다.
+- Source index as best-effort ranked hints: `sourceCandidates`와 edit-surface
+  후보는 inspection hint입니다. agent-facing 문구는 screenshot, target,
+  source를 함께 검증하라고 안내해야 하며 확정 파일/라인처럼 쓰면 안 됩니다.
+- Screenshot privacy and redaction limits: semantics text redaction은 screenshot
+  pixel redaction이 아닙니다. screenshot, comments, prompt text, source hints,
+  target evidence는 기본적으로 업로드하지 않지만 local artifact도 민감할 수
+  있어 공유/commit 금지입니다.
+- stdio JSON-RPC stdout/stderr rules: `fixthis mcp` stdio mode의 stdout에는
+  JSON-RPC response만 나가야 하고 diagnostics/log는 stderr로 가야 합니다.
+  wrapper script가 stdout을 오염시키면 MCP client parse가 깨집니다.
+- `:fixthis-compose-core` dependency boundary: core는 pure Kotlin domain으로
+  MCP, CLI, Android UI surface, `.fixthis/` path, browser DTO에 의존하지
+  않습니다. outer module이 DTO/storage/protocol boundary translation을 맡습니다.
+
 ## 변경 유형별 작업 가이드
+
+### CLI 명령을 추가하거나 바꿀 때
+
+먼저 `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Main.kt`,
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/`,
+`docs/reference/cli.md`, README quick start를 엽니다. ADB나 bridge를 건드리면
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/Adb.kt`와
+`fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt`도
+같이 봅니다.
+
+Focused checks는 `:fixthis-cli:test`, 관련 command test, `bash
+scripts/check-docs-cli-surface.sh`, CLI docs를 바꾼 경우 `node
+scripts/check-doc-consistency.mjs`입니다.
+
+### MCP tool을 바꿀 때
+
+먼저 `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`,
+`fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/McpToolRegistry.kt`,
+`fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocol.kt`,
+`docs/reference/mcp-tools.md`를 엽니다. queue semantics를 바꾸면
+`FeedbackSessionService`와 output schema도 함께 확인합니다.
+
+Focused checks는 `:fixthis-mcp:test --tests '*tools*'`, 관련 session service
+test, `docs/reference/mcp-tools.md` consistency review, stdio stdout/stderr
+manual smoke입니다.
+
+### Console HTTP route를 바꿀 때
+
+먼저 `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRoutes.kt`,
+`FeedbackConsoleServer.kt`, 변경 대상 route 파일(`PreviewRoutes.kt`,
+`FeedbackItemRoutes.kt`, `SessionRoutes.kt`, `ConnectionRoutes.kt` 등),
+`docs/reference/feedback-console-contract.md`를 엽니다.
+
+Focused checks는 `./gradlew :fixthis-mcp:test --tests '*console*' --no-daemon`,
+route별 test(`ConsolePreviewRoutesTest`, `ConsoleFeedbackItemRoutesTest`,
+`ConsoleSessionRoutesTest`), browser token/origin rejection test입니다.
+
+### Browser console 동작을 바꿀 때
+
+먼저 `fixthis-mcp/src/main/console/consoleApp.js`,
+`fixthis-mcp/src/main/console/domain/consoleReducer.js`,
+`fixthis-mcp/src/main/console/api.js`, 변경 대상 view/effect 파일,
+`docs/reference/feedback-console-contract.md`를 엽니다. packaged asset을 바꾸면
+`fixthis-mcp/src/main/resources/console/app.js`도 generated output으로
+갱신되어야 합니다.
+
+Focused checks는 `npm run console:test:fast`, 관련 named script
+(`npm run console:preview:test`, `npm run console:draft:test`,
+`npm run console:fsm:test`), `node scripts/build-console-assets.mjs --check`입니다.
+
+### Sidekick bridge를 바꿀 때
+
+먼저 `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeProtocol.kt`,
+`BridgeModels.kt`, `BridgeServer.kt`, CLI의 `BridgeClient.kt`,
+`docs/reference/bridge-protocol.md`를 엽니다. method나 field가 wire-visible이면
+version bump checklist를 그대로 따릅니다.
+
+Focused checks는 `:fixthis-compose-sidekick:testDebugUnitTest`,
+`BridgeProtocolTest`, `BridgeServerTest`,
+`:fixthis-mcp:test --tests '*BridgeProtocolVersionSyncTest*'`, bridge runtime
+변경이면 connected smoke입니다.
+
+### Source matching 또는 target reliability를 바꿀 때
+
+먼저 `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/`,
+`fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/target/`,
+`fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/domain/evidence/`,
+`docs/reference/output-schema.md`, `docs/reference/feedback-console-contract.md`를
+엽니다.
+
+Focused checks는 `:fixthis-compose-core:test --tests '*SourceMatcher*'`,
+`:fixthis-compose-core:test --tests '*TargetReliability*'`,
+`npm run source-matching:fixtures:test`, handoff renderer tests입니다.
+
+### Gradle plugin/source index를 바꿀 때
+
+먼저 `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`,
+`fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/task/GenerateFixThisSourceIndexTask.kt`,
+`fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/`,
+`docs/product/decision-rationale.md`를 엽니다.
+
+Focused checks는 `:fixthis-gradle-plugin:test`,
+`GenerateFixThisSourceIndexTaskTest`, `SourceIndexGeneratorTest`, external fixture
+또는 first-run smoke입니다. source index schema가 바뀌면 output schema와
+source-matching fixtures를 함께 확인합니다.
+
+### 문서나 release claim을 바꿀 때
+
+먼저 변경 claim의 source of truth 문서(`CONTRIBUTING.md`,
+`docs/reference/*`, `docs/architecture/overview.md`,
+`docs/contributing/release-readiness.md`)와 해당 구현 파일을 함께 엽니다.
+문서 claim은 코드와 runnable command가 받쳐야 합니다.
+
+Focused checks는 docs-only면 `node scripts/check-doc-consistency.mjs`와
+`git diff --check`, release/trust claim이면
+`node scripts/check-release-readiness.mjs`, `npm run release:gate:test`, 해당
+evidence profile입니다.
 
 ## 검증 명령과 실패 해석
 
+검증 명령의 source of truth는 `CONTRIBUTING.md`입니다. 아래 목록은 변경
+유형별 출발점이며, release/runtime trust claim을 바꿀수록 더 넓은 gate로
+올립니다.
+
+### Docs-only 변경
+
+```bash
+node scripts/check-doc-consistency.mjs
+git diff --check
+graphify update .
+```
+
+`check-doc-consistency`가 anchor나 문서 surface drift를 잡고, `git diff
+--check`는 whitespace/error를 잡습니다. `graphify update .`는 navigation
+artifact 갱신용이며 이 repo에서는 `graphify-out/`을 commit하지 않습니다.
+이번 문서처럼 단일 guide만 바꾸고 CLI/README/CONTRIBUTING surface를 바꾸지
+않으면 필요한 좁은 docs check를 우선합니다.
+
+### 빠른 Kotlin/JVM 확인
+
+```bash
+./gradlew :fixthis-compose-core:test --no-daemon
+./gradlew :fixthis-cli:test --no-daemon
+./gradlew :fixthis-mcp:test --no-daemon
+./gradlew :fixthis-gradle-plugin:test --no-daemon
+```
+
+core 정책, CLI command, MCP/session, Gradle plugin 변경의 기본 확인입니다.
+실패가 특정 package에 갇히면 `--tests '*SourceMatcher*'`, `--tests '*console*'`
+처럼 좁혀 재현한 뒤 전체 module test로 되돌립니다.
+
+### Android runtime 확인
+
+```bash
+./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
+```
+
+sidekick lifecycle, bridge, screenshot, semantics mapping을 바꿀 때의 빠른
+확인입니다. 실제 device state, ADB forward, app launch, screenshot evidence가
+claim에 들어가면 connected tests나 `CONTRIBUTING.md`의 strict runtime
+evidence command로 올립니다. device/emulator가 없어서 deferred가 나오면
+release/trust claim에는 그 한계를 명시합니다.
+
+### Console JS 확인
+
+```bash
+npm run console:test:fast
+npm run console:draft:test
+npm run console:preview:test
+node scripts/build-console-assets.mjs --check
+```
+
+browser console state, draft recovery, preview/SSE/polling, packaged asset
+drift를 확인합니다. route 변경은 Kotlin `:fixthis-mcp:test --tests '*console*'`
+도 같이 실행합니다.
+
+### Release/trust evidence
+
+```bash
+npm run evidence:trust
+npm run evidence:trust -- --strict-runtime
+npm run release:check
+node scripts/check-release-readiness.mjs
+```
+
+이 명령들은 release/runtime trust claim을 바꿀 때만 올립니다. 실패 해석은
+runner summary가 출력한 canonical command를 다시 실행하는 방식으로 합니다.
+Android SDK, ready emulator, Playwright/Chromium, npm install 상태가 부족하면
+환경 문제인지 제품 regression인지 분리해 기록합니다.
+
 ## 처음 3일 온보딩 루트
+
+### Day 1: 제품 경계와 happy path를 몸으로 확인
+
+1. `README.md`, `docs/architecture/overview.md`,
+   `docs/product/decision-rationale.md`, `docs/reference/mcp-tools.md`를 읽고
+   debug-only, Compose-only, local-first, browser-console-first 경계를 적습니다.
+2. `./gradlew :app:installDebug`와
+   `fixthis run --package io.github.beyondwin.fixthis.sample` sample path를
+   따라가며 앱 status pill과
+   bridge status가 어디서 나오는지 확인합니다.
+3. `fixthis_open_feedback_console` 또는
+   `fixthis console --package io.github.beyondwin.fixthis.sample`로 console을
+   열고 Start, live preview,
+   Annotate, Copy Prompt, Save to MCP의 차이를 직접 확인합니다.
+
+### Day 2: 데이터와 contract를 따라 읽기
+
+1. `files/fixthis/session.json`에서 `.fixthis/feedback-sessions/<session-id>/session.json`
+   까지 token, preview, persisted screen, item, handoff batch가 이동하는 순서를
+   그립니다.
+2. `docs/reference/bridge-protocol.md`, `docs/reference/output-schema.md`,
+   `docs/reference/feedback-console-contract.md`에서 rename/remove 금지 필드와
+   source candidate warning 문구를 표시합니다.
+3. `BridgeProtocol.kt`, `BridgeModels.kt`, `FeedbackSessionService.kt`,
+   `SessionDtoModels.kt`, `SourceMatcher.kt`를 열어 reference 문서와 실제 DTO가
+   맞는지 확인합니다.
+
+### Day 3: 작은 변경을 가정하고 검증 루프 설계
+
+1. CLI command, MCP tool, console route, browser JS, sidekick bridge, source
+   matching, Gradle source index 중 하나의 가상 변경을 고르고 이 문서의
+   변경 유형별 작업 가이드에 따라 first files와 focused tests를 적습니다.
+2. docs-only 변경이면 `node scripts/check-doc-consistency.mjs`와
+   `git diff --check`를, console JS 변경이면 `npm run console:test:fast`와
+   `node scripts/build-console-assets.mjs --check`를, bridge 변경이면 protocol
+   version sync test를 어떤 순서로 돌릴지 정합니다.
+3. 마지막으로 `.fixthis/`, `graphify-out/`, screenshot artifact, generated
+   preview cache가 commit 대상이 아닌지 `git status --short`로 확인하는 습관을
+   붙입니다.
