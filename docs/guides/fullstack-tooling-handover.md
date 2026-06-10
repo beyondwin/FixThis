@@ -769,21 +769,26 @@ Graphify나 검색 결과는 탐색 힌트로만 쓰고, 행동을 바꿀 때는
 ### `fixthis_verify_ui_change`
 
 - 사용자가 보는 동작: agent가 변경 후 현재 화면에 기대 text가 존재하는지
-  빠르게 확인하고, optional role hint와 함께 pass/fail message를 받습니다.
+  빠르게 확인하고 pass/fail message를 받습니다. `role`은 caller가 넘긴
+  semantic hint로 결과 normalization에 남지만, 현재 sidekick matching은
+  text/contentDescription 중심입니다.
 - 시작 명령/도구: MCP tool `fixthis_verify_ui_change` with `expectedText`,
   optional `role`.
 - 핵심 코드 경로: `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisTools.kt`,
   `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`,
   `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeModels.kt`,
   `docs/reference/mcp-tools.md`.
-- 데이터가 이동하는 방식: MCP tool이 bridge request로 expected text와 role
-  hint를 보내고, sidekick이 현재 Compose semantics에서 match를 찾은 뒤
-  `BridgeUiVerificationResult`를 반환합니다. 이 도구는 UI assertion 보조
-  도구이지 screenshot/source candidate를 대체하지 않습니다.
+- 데이터가 이동하는 방식: MCP tool이 bridge request로 expected text와
+  optional role hint를 보냅니다. sidekick은 현재 Compose semantics의
+  text/contentDescription에서 expected text match를 찾고,
+  `BridgeUiVerificationResult`를 반환합니다. MCP layer는 role hint를
+  fallback normalized output에 반영할 수 있지만, role로 semantics match를
+  필터링하지는 않습니다. 이 도구는 UI assertion 보조 도구이지
+  screenshot/source candidate를 대체하지 않습니다.
 - 실패할 수 있는 지점: 앱이 다른 화면에 있음, text가 redaction 또는
   localization 때문에 다름, Compose semantics에 text가 노출되지 않음,
-  role hint가 너무 좁음, bridge가 stale APK에 붙어 있음입니다.
-- 수정할 때 먼저 볼 테스트: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/tools/FixThisToolsStatusTest.kt`,
+  role hint를 match filter로 오해함, bridge가 stale APK에 붙어 있음입니다.
+- 수정할 때 먼저 볼 테스트: `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/McpProtocolTest.kt`,
   `fixthis-compose-sidekick/src/test/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServerTest.kt`,
   `docs/reference/mcp-tools.md`의 tool contract.
 
