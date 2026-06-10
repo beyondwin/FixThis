@@ -15,7 +15,7 @@ pitch, scope, and sample-to-agent Quick Start.
 | Try FixThis without changing my app | [Quick Start — sample app](getting-started/try-the-sample.md) |
 | Add FixThis to my Compose debug build | [Add FixThis to your app](getting-started/add-to-your-app.md) |
 | Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) |
-| Take over FixThis as a junior fullstack/tooling maintainer | [Fullstack/tooling handover guide](guides/fullstack-tooling-handover.md) |
+| Take over FixThis as a new fullstack/tooling maintainer | [Fullstack/tooling handover guide](guides/fullstack-tooling-handover.md) |
 | Navigate this repo with Graphify as an agent | [Agent Graphify workflow](guides/agent-graphify.md) |
 | Learn the browser annotation workflow | [Feedback console tour](guides/feedback-console-tour.md) |
 | Evaluate FixThis source matching on external Compose samples — including device-backed runtime trust evaluation (local-only) | [Source matching fixture lab](guides/source-matching-fixture-lab.md) |

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create a single Korean handover guide that teaches junior fullstack/tooling developers how FixThis is built, why its technologies were chosen, and how the real maintenance flows move through the repo.
+**Goal:** Create a single Korean handover guide that teaches new fullstack/tooling maintainers how FixThis is built, why its technologies were chosen, and how the real maintenance flows move through the repo.
 
 **Architecture:** Add one new guide under `docs/guides/` and expose it from `docs/index.md`. The guide links to canonical architecture/reference docs, but the explanatory narrative is self-contained enough for a first handover read. Implementation is docs-only: no Kotlin, JavaScript, Gradle, CLI, MCP, or Android behavior changes.
 
@@ -129,7 +129,7 @@ Create `docs/guides/fullstack-tooling-handover.md` with this initial content:
 ````markdown
 # FixThis 풀스택/툴링 인수인계 가이드
 
-이 문서는 FixThis를 처음 인수인계 받는 주니어 풀스택/툴링 개발자를 위한 긴 형식의 가이드입니다. Android Compose 앱 안에서 수집한 UI 근거가 어떻게 데스크톱 CLI/MCP, 브라우저 콘솔, 로컬 `.fixthis/` handoff로 이어지는지 한 흐름으로 설명합니다.
+이 문서는 FixThis를 처음 인수인계 받는 풀스택/툴링 개발자를 위한 긴 형식의 가이드입니다. Android Compose 앱 안에서 수집한 UI 근거가 어떻게 데스크톱 CLI/MCP, 브라우저 콘솔, 로컬 `.fixthis/` handoff로 이어지는지 한 흐름으로 설명합니다.
 
 기존 문서를 대체하지 않습니다. 빠른 제품 이해는 [README](../../README.md), 현재 아키텍처 지도는 [Architecture overview](../architecture/overview.md), 결정 근거는 [Decision rationale](../product/decision-rationale.md), 호환성 계약은 [Reference docs](../index.md#reference-contracts), 검증 명령은 [CONTRIBUTING](../../CONTRIBUTING.md)을 우선합니다.
 
@@ -577,7 +577,7 @@ Expected: commit succeeds with only guide changes staged.
 In `docs/index.md`, add this row to the `## Start Here` table near the agent workflow and Graphify rows:
 
 ```markdown
-| Take over FixThis as a junior fullstack/tooling maintainer | [Fullstack/tooling handover guide](guides/fullstack-tooling-handover.md) |
+| Take over FixThis as a new fullstack/tooling maintainer | [Fullstack/tooling handover guide](guides/fullstack-tooling-handover.md) |
 ```
 
 - [ ] **Step 2: Confirm the new link is present once**

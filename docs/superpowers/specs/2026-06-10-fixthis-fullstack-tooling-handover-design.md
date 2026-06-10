@@ -2,7 +2,7 @@
 
 Date: 2026-06-10
 Status: Proposed
-Scope: one Korean long-form onboarding guide for junior fullstack/tooling
+Scope: one Korean long-form onboarding guide for new fullstack/tooling
 developers taking over FixThis maintenance.
 
 Related work:
@@ -20,7 +20,7 @@ Related work:
 ## Summary
 
 Create a single, detailed Korean handover guide at
-`docs/guides/fullstack-tooling-handover.md`. The guide is for a junior
+`docs/guides/fullstack-tooling-handover.md`. The guide is for a new
 fullstack/tooling developer who may know only part of the stack: Android
 Compose, Gradle, CLI tooling, MCP, browser JavaScript, or local persistence.
 
@@ -37,7 +37,7 @@ verification commands in one coherent handover narrative.
   `Compose debug app -> sidekick -> ADB bridge -> CLI/MCP -> browser console -> .fixthis handoff`.
 - Explain the major technology choices with trade-offs, not just a list of
   dependencies.
-- Help a junior developer find the right module and file before changing code.
+- Help a new maintainer find the right module and file before changing code.
 - Make compatibility boundaries visible before implementation work starts.
 - Document the practical maintenance workflow for CLI, MCP, console, sidekick,
   source matching, Gradle plugin, and docs/release changes.
@@ -58,7 +58,7 @@ verification commands in one coherent handover narrative.
 
 ## Audience
 
-The primary audience is a junior fullstack/tooling developer taking over
+The primary audience is a new fullstack/tooling maintainer taking over
 maintenance. The guide should assume the reader can read code and run commands
 but may not already understand:
 
@@ -346,7 +346,7 @@ source files and maintained docs before publication.
 
 The guide is complete when:
 
-- a junior fullstack/tooling developer can explain FixThis's runtime shape
+- a new fullstack/tooling maintainer can explain FixThis's runtime shape
   without reading every source file;
 - each major technology entry includes benefits, limitations, and maintenance
   considerations;
@@ -375,7 +375,7 @@ part of the committed docs.
 
 The user has approved these decisions:
 
-- target reader: junior fullstack/tooling developer;
+- target reader: new fullstack/tooling maintainer;
 - output shape: one long guide;
 - language: Korean prose with source identifiers preserved;
 - primary location: `docs/guides/fullstack-tooling-handover.md`;
