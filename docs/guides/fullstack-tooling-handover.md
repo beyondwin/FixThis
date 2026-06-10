@@ -597,7 +597,7 @@ Graphify나 검색 결과는 탐색 힌트로만 쓰고, 행동을 바꿀 때는
 - 데이터가 이동하는 방식: initializer가 app process 안에서 lifecycle
   callback, status pill, bridge runtime을 등록하고, `SessionTokenStore`가
   `files/fixthis/session.json`을 app-private storage에 씁니다. desktop은
-  나중에 `adb run-as`로 이 token을 읽습니다.
+  이후 `adb run-as`로 이 token을 읽습니다.
 - 실패할 수 있는 지점: dependency가 debug variant에 들어가지 않은 경우,
   Startup metadata 누락, release/non-debuggable build, process lifecycle이
   예상과 다르게 시작되는 경우, stale socket name retry입니다.
