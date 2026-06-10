@@ -13,6 +13,7 @@ export const releaseClaimDefinitions = Object.freeze([
   { id: 'release-reality', evidenceNames: ['Release reality'] },
   { id: 'release-source-drift', evidenceNames: ['Release drift strict'] },
   { id: 'external-agent-loop', evidenceNames: ['Agent loop smoke'] },
+  { id: 'external-first-handoff-recovery', evidenceNames: ['Agent loop smoke contracts', 'Agent loop smoke'], requireAllEvidence: true },
   { id: 'external-fixture-matrix', evidenceNames: ['External fixture matrix strict'] },
   { id: 'handoff-correctness-v2', evidenceNames: ['Handoff evaluation'] },
   { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
@@ -62,13 +63,18 @@ function statusRank(status) {
 export function buildReleaseClaims(steps) {
   const byName = new Map((steps || []).map((step) => [step.name, step]));
   return releaseClaimDefinitions.map((definition) => {
+    const missingEvidenceNames = definition.evidenceNames.filter((name) => !byName.has(name));
     const evidence = definition.evidenceNames
       .map((name) => byName.get(name))
       .filter(Boolean);
-    const status = evidence.length === 0
+    const status = missingEvidenceNames.length > 0 && (definition.requireAllEvidence || evidence.length === 0)
       ? 'fail'
       : evidence.map((step) => step.status).sort((a, b) => statusRank(b) - statusRank(a))[0];
-    const reason = evidence.find((step) => step.reason)?.reason || (evidence.length === 0 ? 'missing evidence command' : null);
+    const reason = missingEvidenceNames.length > 0 && (definition.requireAllEvidence || evidence.length === 0)
+      ? evidence.length === 0
+        ? 'missing evidence command'
+        : `missing evidence command${missingEvidenceNames.length === 1 ? `: ${missingEvidenceNames[0]}` : `s: ${missingEvidenceNames.join(', ')}`}`
+      : evidence.find((step) => step.reason)?.reason || null;
     return {
       id: definition.id,
       status,

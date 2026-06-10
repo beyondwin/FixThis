@@ -154,6 +154,22 @@ registry version response for `io.github.beyondwin/fixthis`.
 When Android SDK or an unlocked emulator is unavailable, record the connected
 commands as deferred rather than implying they passed.
 
+## External App First Handoff Recovery
+
+The first external-app handoff recovery line may be claimed only when the
+release commit has evidence that an external debug Compose app can move from
+setup through one agent-readable sent feedback item, or that the report records
+the exact recovery action when runtime prerequisites are missing.
+
+| Claim | Required evidence |
+| --- | --- |
+| External app first handoff reaches one MCP-readable sent item, and failure reports carry `failureCode`, `readiness`, `nextAction`, `verify`, and `fix`. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict`. |
+| Install and doctor JSON do not contradict the first handoff recovery path. | `./gradlew :fixthis-cli:test --tests "*DoctorCommandTest" --tests "*InstallAgentJsonReportTest" --tests "*AgentSetupFilesTest" --no-daemon`. |
+
+Non-strict missing-runtime runs must be recorded as deferred with a recovery-oriented readiness object.
+Strict connected smoke must fail when Android SDK, ADB, a ready
+emulator/device, or the launched debug app is unavailable.
+
 ## Release Gate, Interop Evidence, And SSE Closure
 
 This umbrella may be claimed only when the release gate report includes each

@@ -141,6 +141,12 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       reason: 'Android SDK unavailable',
     },
     {
+      id: 'external-first-handoff-recovery',
+      status: 'fail',
+      evidence: ['Agent loop smoke'],
+      reason: 'missing evidence command: Agent loop smoke contracts',
+    },
+    {
       id: 'external-fixture-matrix',
       status: 'fail',
       evidence: [],
@@ -208,6 +214,41 @@ test('release gate maps external fixture matrix claim', () => {
     status: 'deferred',
     evidence: ['External fixture matrix strict'],
     reason: 'Android SDK unavailable',
+  });
+});
+
+test('release gate maps external first handoff recovery claim', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-06-09T00:00:00.000Z',
+    steps: [
+      { name: 'Agent loop smoke contracts', command: 'npm run agent-loop:smoke:test', status: 'pass' },
+      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+    ],
+  });
+
+  assert.deepEqual(report.claims.find((claim) => claim.id === 'external-first-handoff-recovery'), {
+    id: 'external-first-handoff-recovery',
+    status: 'deferred',
+    evidence: ['Agent loop smoke contracts', 'Agent loop smoke'],
+    reason: 'Android SDK unavailable',
+  });
+});
+
+test('release gate fails external first handoff recovery when contract evidence is missing', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-06-09T00:00:00.000Z',
+    steps: [
+      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+    ],
+  });
+
+  assert.deepEqual(report.claims.find((claim) => claim.id === 'external-first-handoff-recovery'), {
+    id: 'external-first-handoff-recovery',
+    status: 'fail',
+    evidence: ['Agent loop smoke'],
+    reason: 'missing evidence command: Agent loop smoke contracts',
   });
 });
 

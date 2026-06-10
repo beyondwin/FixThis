@@ -121,6 +121,22 @@ class DoctorCommandTest {
     }
 
     @Test
+    fun doctorDeviceBlockedNextActionMatchesFirstHandoffRecoveryWording() {
+        val readiness = readinessForDoctorCheck(
+            name = "device_connected",
+            message = "No connected Android device or emulator found",
+            fix = "Start an emulator or connect a device, then run `adb devices`.",
+        )
+
+        assertEquals(FirstRunReadinessState.DEVICE_BLOCKED, readiness.state)
+        assertEquals(
+            "Start an emulator or connect a device, then run `adb devices`.",
+            readiness.nextAction,
+        )
+        assertEquals(readiness.fix, readiness.nextAction)
+    }
+
+    @Test
     fun doctorMapsAmbiguousPackageToConfigRecoverable() {
         val readiness = readinessForDoctorCheck(
             name = "fixthis_project_metadata_found",

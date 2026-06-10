@@ -133,6 +133,22 @@ export function categorizeFeedbackLifecycleFailure(operation, error) {
   return `${prefix}_unknown_failure`;
 }
 
+export function categorizeFirstHandoffFailure(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (message.includes("android sdk is unavailable")) return "android_environment_unavailable";
+  if (message.includes("ready emulator") || message.includes("connected android device")) return "device_unavailable";
+  if (message.includes("multiple android applicationid") || message.includes("pass --package")) return "package_ambiguous";
+  if (message.includes("metadata") || message.includes("project.json")) return "metadata_missing";
+  if (message.includes("not debuggable") || message.includes("unsupported build")) return "unsupported_build";
+  if (message.includes("debug app is not connected") || (message.includes("bridge") && message.includes("timed out"))) return "app_not_launched";
+  if (message.includes("annotation detail") || message.includes("annotation target") || message.includes("annotation pins") || message.includes("pins after drag") || message.includes("pending annotation")) return "annotation_unavailable";
+  if (message.includes("snapshot image") || message.includes("preview") || message.includes("capture")) return "preview_capture_unavailable";
+  if (message.includes("save to mcp") || message.includes("agent-handoffs")) return "save_to_mcp_failed";
+  if (message.includes("read_feedback_missing_items")) return "read_feedback_missing_items";
+  if (message.includes("mcp process") || message.includes("econnrefused") || message.includes("socket")) return "mcp_transport_failure";
+  return "mcp_transport_failure";
+}
+
 export function handoffLifecycleActionOrder() {
   return ["copy-prompt", "save-to-mcp"];
 }
@@ -159,7 +175,135 @@ export function statusForEnvironment({ strict, androidReady, reason }) {
   };
 }
 
-export function buildReport({ strict, device = null, startedAt, finishedAt, fixture }) {
+const FirstHandoffFailureCatalog = Object.freeze({
+  android_environment_unavailable: {
+    state: "ENV_BLOCKER",
+    cause: "Android SDK is unavailable.",
+    verify: "fixthis doctor --project-dir . --json",
+    fix: "Install Android SDK platform-tools or fix ANDROID_HOME.",
+    nextAction: "Install Android SDK platform-tools or fix ANDROID_HOME.",
+  },
+  device_unavailable: {
+    state: "DEVICE_BLOCKED",
+    cause: "No connected Android device or emulator found.",
+    verify: "adb devices",
+    fix: "Start an emulator or connect a device, then run `adb devices`.",
+    nextAction: "Start an emulator or connect a device, then run `adb devices`.",
+  },
+  metadata_missing: {
+    state: "NEEDS_INSTALL",
+    cause: "FixThis project metadata was not found.",
+    verify: "./gradlew fixthisSetup",
+    fix: "Run `fixthis install-agent --project-dir . --target all` from the Android project root.",
+    nextAction: "Run `fixthis install-agent --project-dir . --target all`",
+  },
+  package_ambiguous: {
+    state: "CONFIG_RECOVERABLE",
+    cause: "FixThis could not choose a unique Android applicationId.",
+    verify: "fixthis install-agent --project-dir . --target all --dry-run",
+    fix: "Pass `--package com.example.app` or inspect the dry-run output before writing config.",
+    nextAction: "Run `fixthis install-agent --project-dir . --target all --dry-run`",
+  },
+  app_not_launched: {
+    state: "NEEDS_APP_LAUNCH",
+    cause: "The debug app is not connected to the FixThis bridge.",
+    verify: "fixthis doctor --project-dir . --json",
+    fix: "Launch the debug app so the FixThis sidekick can write its bridge session.",
+    nextAction: "Open app",
+  },
+  unsupported_build: {
+    state: "UNSUPPORTED_BUILD",
+    cause: "This build cannot expose the FixThis bridge.",
+    verify: "adb shell run-as com.example.app ls files/fixthis/session.json",
+    fix: "Install a debuggable build with the FixThis sidekick enabled.",
+    nextAction: "Install a debuggable build with FixThis enabled.",
+  },
+  preview_capture_unavailable: {
+    state: "CAPTURE_UNAVAILABLE",
+    cause: "Screenshot bytes unavailable.",
+    verify: "Open the app foreground and tap Capture, or open doctor for the bridge log.",
+    fix: "Reopen the app foreground and tap Retry capture, or open doctor for the bridge log.",
+    nextAction: "Retry capture",
+  },
+  annotation_unavailable: {
+    state: "CAPTURE_UNAVAILABLE",
+    cause: "Annotation target capture did not complete.",
+    verify: "Recapture the screen and verify the frozen preview matches the app.",
+    fix: "Recapture and retry annotation.",
+    nextAction: "Retry capture",
+  },
+  save_to_mcp_failed: {
+    state: "UNKNOWN_ERROR",
+    cause: "Save to MCP did not complete.",
+    verify: "Open diagnostic details and rerun the failed command with --verbose.",
+    fix: "Open diagnostics and rerun with report artifacts.",
+    nextAction: "Open diagnostic details",
+  },
+  read_feedback_missing_items: {
+    state: "SESSION_MISMATCH",
+    cause: "Saved feedback items were not readable through MCP.",
+    verify: "Compare the response sessionId with the active feedback session.",
+    fix: "Refresh the active session or inspect the saved handoff batch.",
+    nextAction: "Refresh session",
+  },
+  mcp_transport_failure: {
+    state: "UNKNOWN_ERROR",
+    cause: "MCP transport failed during first handoff.",
+    verify: "fixthis doctor --project-dir . --json",
+    fix: "Restart the MCP server and rerun the smoke.",
+    nextAction: "Restart MCP server",
+  },
+});
+
+function readinessWithDetails(entry, message, details) {
+  return {
+    state: entry.state,
+    cause: message || entry.cause,
+    verify: entry.verify,
+    fix: entry.fix,
+    nextAction: entry.nextAction,
+    details: { ...details },
+  };
+}
+
+export function firstHandoffFailure({ failureCode, message = null, details = {}, status = "fail" } = {}) {
+  const entry = FirstHandoffFailureCatalog[failureCode] || FirstHandoffFailureCatalog.mcp_transport_failure;
+  const readiness = readinessWithDetails(entry, message, details);
+  return {
+    status,
+    failureCode: FirstHandoffFailureCatalog[failureCode] ? failureCode : "mcp_transport_failure",
+    readiness,
+    nextAction: readiness.nextAction,
+  };
+}
+
+export function firstHandoffSuccess({
+  savedItemCount = 0,
+  readFeedbackItemCount = 0,
+  readFeedbackSentCount = 0,
+} = {}) {
+  return {
+    status: "pass",
+    savedItemCount,
+    readFeedbackItemCount,
+    readFeedbackSentCount,
+  };
+}
+
+export function firstHandoffForEnvironment({ strict, androidReady, reason }) {
+  if (androidReady) return { status: "pending" };
+  const failureCode = reason === "Android SDK is unavailable."
+    ? "android_environment_unavailable"
+    : "device_unavailable";
+  return firstHandoffFailure({
+    failureCode,
+    status: strict ? "fail" : "deferred",
+    message: reason,
+    details: { reason },
+  });
+}
+
+export function buildReport({ strict, device = null, startedAt, finishedAt, fixture, firstHandoff = null }) {
   const status = fixture.status === "pass" ? "pass" : fixture.status === "deferred" ? "deferred" : "fail";
   return {
     status,
@@ -167,6 +311,18 @@ export function buildReport({ strict, device = null, startedAt, finishedAt, fixt
     device,
     startedAt,
     finishedAt,
+    firstHandoff: firstHandoff || (
+      status === "pass"
+        ? firstHandoffSuccess({
+            savedItemCount: fixture.savedItemCount || 0,
+            readFeedbackItemCount: fixture.readFeedbackItemCount || 0,
+            readFeedbackSentCount: fixture.readFeedbackSentCount || 0,
+          })
+        : firstHandoffFailure({
+            failureCode: "mcp_transport_failure",
+            message: (fixture.failures || [])[0] || "First handoff failed.",
+          })
+    ),
     fixture,
     failures: fixture.failures || [],
   };
@@ -181,10 +337,21 @@ export function renderMarkdownReport(report) {
     `- Device: ${report.device || "unavailable"}`,
     `- Started: ${report.startedAt}`,
     `- Finished: ${report.finishedAt}`,
+  ];
+  const firstHandoff = report.firstHandoff || {};
+  lines.push("", "## First Handoff", "");
+  lines.push(`- Status: ${firstHandoff.status || "unknown"}`);
+  if (firstHandoff.failureCode) lines.push(`- Failure code: ${firstHandoff.failureCode}`);
+  if (firstHandoff.readiness?.state) lines.push(`- Readiness: ${firstHandoff.readiness.state}`);
+  if (firstHandoff.nextAction) lines.push(`- Next action: ${firstHandoff.nextAction}`);
+  if (Number.isFinite(firstHandoff.savedItemCount)) lines.push(`- Saved items: ${firstHandoff.savedItemCount}`);
+  if (Number.isFinite(firstHandoff.readFeedbackItemCount)) lines.push(`- Read feedback items: ${firstHandoff.readFeedbackItemCount}`);
+  if (Number.isFinite(firstHandoff.readFeedbackSentCount)) lines.push(`- Sent items read: ${firstHandoff.readFeedbackSentCount}`);
+  lines.push(
     "",
     "| Fixture | Package | Status | Saved | Read | Sent | Resolved | Needs clarification | Won't fix |",
     "|---|---|---:|---:|---:|---:|---:|---:|---:|",
-  ];
+  );
   const fixture = report.fixture || {};
   lines.push(`| ${fixture.fixtureId || ""} | ${fixture.packageName || ""} | ${fixture.status || ""} | ${fixture.savedItemCount || 0} | ${fixture.readFeedbackItemCount || 0} | ${fixture.readFeedbackSentCount || 0} | ${fixture.resolved || 0} | ${fixture.needsClarification || 0} | ${fixture.wontFix || 0} |`);
   if (report.failures.length > 0) {
@@ -499,6 +666,11 @@ export async function runSmoke(options) {
       device: null,
       startedAt,
       finishedAt: new Date().toISOString(),
+      firstHandoff: firstHandoffForEnvironment({
+        strict: options.strict,
+        androidReady: environment.ready,
+        reason: environment.reason,
+      }),
       fixture: {
         fixtureId: options.fixtureId || defaultFixtureId,
         status: preflight.status,
@@ -574,6 +746,11 @@ export async function runSmoke(options) {
     }
     const reflected = await browserFlow.waitForResolvedStatuses(plan);
     const counts = assertLifecycleSessionState(reflected.session, plan);
+    const firstHandoff = firstHandoffSuccess({
+      savedItemCount: protocol.itemIds.length,
+      readFeedbackItemCount: queueStats.itemCount,
+      readFeedbackSentCount: queueStats.sentCount,
+    });
     if (!reflected.bodyText.includes("Resolved") || !reflected.bodyText.includes("Needs Clarification") || !reflected.bodyText.includes("Won't Fix")) {
       throw new Error(`Console did not render all terminal statuses: ${reflected.bodyText}`);
     }
@@ -582,9 +759,16 @@ export async function runSmoke(options) {
       savedItemCount: protocol.itemIds.length,
       readFeedbackItemCount: queueStats.itemCount,
       readFeedbackSentCount: queueStats.sentCount,
+      firstHandoff,
       ...counts,
     });
   } catch (error) {
+    const failureCode = categorizeFirstHandoffFailure(error);
+    fixtureResult.firstHandoff = firstHandoffFailure({
+      failureCode,
+      message: error.message,
+      details: { fixtureId: fixture.id },
+    });
     fixtureResult.failures.push(error.message);
   } finally {
     await browserFlow?.close?.();
@@ -596,6 +780,7 @@ export async function runSmoke(options) {
     device: environment.device || null,
     startedAt,
     finishedAt: new Date().toISOString(),
+    firstHandoff: fixtureResult.firstHandoff,
     fixture: fixtureResult,
   });
   writeReports(report, options.reportDir);

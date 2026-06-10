@@ -114,6 +114,42 @@ class InstallAgentJsonReportTest {
     }
 
     @Test
+    fun successfulInstallAgentJsonPointsAtDoctorBeforeConsole() {
+        val rendered = InstallAgentJsonReport.render(
+            applied = listOf(
+                InstallAgentJsonReport.Applied("claude", "/repo/.claude/settings.json", "project-local"),
+                InstallAgentJsonReport.Applied("gradle-plugin", "/repo/app/build.gradle.kts", "project-local"),
+            ),
+            skipped = emptyList(),
+            errors = emptyList(),
+            next = listOf(
+                "fixthis doctor --project-dir /repo --json",
+                "# Restart Claude Code / Codex to reload MCP config",
+                "fixthis_open_feedback_console",
+            ),
+            readiness = FirstRunReadinessCatalog.configRecoverable(
+                cause = "FixThis setup completed; verify the debug app before opening the console.",
+            ).copy(
+                verify = "fixthis doctor --project-dir /repo --json",
+                fix = "Run doctor, restart Claude Code or Codex if MCP config changed, then open the feedback console.",
+                nextAction = "fixthis doctor --project-dir /repo --json",
+            ),
+            restartRequired = true,
+        )
+
+        val obj = Json.parseToJsonElement(rendered).jsonObject
+        assertEquals(
+            "fixthis doctor --project-dir /repo --json",
+            obj.getValue("nextAction").jsonPrimitive.content,
+        )
+        assertEquals(
+            "fixthis doctor --project-dir /repo --json",
+            obj.getValue("readiness").jsonObject
+                .getValue("nextAction").jsonPrimitive.content,
+        )
+    }
+
+    @Test
     fun emptyReportIsOk() {
         val rendered = InstallAgentJsonReport.render(
             applied = listOf(

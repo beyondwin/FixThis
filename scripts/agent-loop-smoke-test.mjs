@@ -7,8 +7,12 @@ import {
   assertReadFeedbackQueueContains,
   buildReport,
   categorizeFeedbackLifecycleFailure,
+  categorizeFirstHandoffFailure,
   combineVisibleAnnotationStatusText,
   expectedResolutionPlan,
+  firstHandoffFailure,
+  firstHandoffForEnvironment,
+  firstHandoffSuccess,
   handoffLifecycleActionOrder,
   parseArgs,
   renderMarkdownReport,
@@ -169,6 +173,60 @@ test("environment status distinguishes strict failure and non-strict deferral", 
   });
 });
 
+test("first handoff maps Android environment deferral to readiness", () => {
+  const handoff = firstHandoffForEnvironment({
+    strict: false,
+    androidReady: false,
+    reason: "Android SDK is unavailable.",
+  });
+
+  assert.equal(handoff.status, "deferred");
+  assert.equal(handoff.failureCode, "android_environment_unavailable");
+  assert.equal(handoff.readiness.state, "ENV_BLOCKER");
+  assert.equal(handoff.nextAction, "Install Android SDK platform-tools or fix ANDROID_HOME.");
+  assert.equal(handoff.readiness.details.reason, "Android SDK is unavailable.");
+});
+
+test("first handoff maps strict missing runtime to failure", () => {
+  const handoff = firstHandoffForEnvironment({
+    strict: true,
+    androidReady: false,
+    reason: "Android SDK or ready emulator is unavailable.",
+  });
+
+  assert.equal(handoff.status, "fail");
+  assert.equal(handoff.failureCode, "device_unavailable");
+  assert.equal(handoff.readiness.state, "DEVICE_BLOCKED");
+  assert.match(handoff.readiness.nextAction, /Start an emulator/);
+});
+
+test("first handoff failure catalog keeps stable recovery fields", () => {
+  const handoff = firstHandoffFailure({
+    failureCode: "read_feedback_missing_items",
+    message: "read_feedback_missing_items: item-404",
+    details: { itemIds: "item-404" },
+  });
+
+  assert.equal(handoff.status, "fail");
+  assert.equal(handoff.failureCode, "read_feedback_missing_items");
+  assert.equal(handoff.readiness.state, "SESSION_MISMATCH");
+  assert.equal(handoff.nextAction, "Refresh session");
+  assert.equal(handoff.readiness.details.itemIds, "item-404");
+});
+
+test("first handoff success carries saved and readable item counts", () => {
+  assert.deepEqual(firstHandoffSuccess({
+    savedItemCount: 3,
+    readFeedbackItemCount: 4,
+    readFeedbackSentCount: 3,
+  }), {
+    status: "pass",
+    savedItemCount: 3,
+    readFeedbackItemCount: 4,
+    readFeedbackSentCount: 3,
+  });
+});
+
 test("categorizeFeedbackLifecycleFailure labels lifecycle gate failures", () => {
   assert.equal(
     categorizeFeedbackLifecycleFailure("claim", new Error("Unknown feedback item: item-404")),
@@ -192,12 +250,48 @@ test("categorizeFeedbackLifecycleFailure labels lifecycle gate failures", () => 
   );
 });
 
-test("buildReport and markdown summarize lifecycle counts", () => {
+test("categorizeFirstHandoffFailure separates capture save queue and transport failures", () => {
+  assert.equal(
+    categorizeFirstHandoffFailure(new Error("Snapshot image is not visible")),
+    "preview_capture_unavailable",
+  );
+  assert.equal(
+    categorizeFirstHandoffFailure(new Error("Annotation detail did not open after pin creation")),
+    "annotation_unavailable",
+  );
+  assert.equal(
+    categorizeFirstHandoffFailure(new Error("Expected at least 2 annotation pins after drag")),
+    "annotation_unavailable",
+  );
+  assert.equal(
+    categorizeFirstHandoffFailure(new Error("Pending annotation comment did not persist for Agent loop smoke")),
+    "annotation_unavailable",
+  );
+  assert.equal(
+    categorizeFirstHandoffFailure(new Error("Save to MCP did not complete after Copy Prompt")),
+    "save_to_mcp_failed",
+  );
+  assert.equal(
+    categorizeFirstHandoffFailure(new Error("read_feedback_missing_items: item-404")),
+    "read_feedback_missing_items",
+  );
+  assert.equal(
+    categorizeFirstHandoffFailure(new Error("MCP process exited before initialize")),
+    "mcp_transport_failure",
+  );
+});
+
+test("buildReport and markdown summarize first handoff and lifecycle counts", () => {
   const report = buildReport({
     strict: true,
     device: "emulator-5554",
-    startedAt: "2026-05-31T00:00:00.000Z",
-    finishedAt: "2026-05-31T00:01:00.000Z",
+    startedAt: "2026-06-09T00:00:00.000Z",
+    finishedAt: "2026-06-09T00:01:00.000Z",
+    firstHandoff: firstHandoffSuccess({
+      savedItemCount: 3,
+      readFeedbackItemCount: 3,
+      readFeedbackSentCount: 3,
+    }),
     fixture: {
       fixtureId: "reply",
       packageName: "com.example.reply",
@@ -212,7 +306,12 @@ test("buildReport and markdown summarize lifecycle counts", () => {
   });
 
   assert.equal(report.status, "pass");
-  assert.match(renderMarkdownReport(report), /\| reply \| com\.example\.reply \| pass \| 3 \| 3 \| 3 \| 1 \| 1 \| 1 \|/);
+  assert.equal(report.firstHandoff.status, "pass");
+  assert.equal(report.firstHandoff.savedItemCount, 3);
+  const markdown = renderMarkdownReport(report);
+  assert.match(markdown, /## First Handoff/);
+  assert.match(markdown, /- Status: pass/);
+  assert.match(markdown, /\| reply \| com\.example\.reply \| pass \| 3 \| 3 \| 3 \| 1 \| 1 \| 1 \|/);
 });
 
 test("buildReport fails when lifecycle assertions fail", () => {
@@ -231,4 +330,32 @@ test("buildReport fails when lifecycle assertions fail", () => {
 
   assert.equal(report.status, "fail");
   assert.match(renderMarkdownReport(report), /item-1 status expected resolved/);
+});
+
+test("markdown report renders first handoff recovery details", () => {
+  const report = buildReport({
+    strict: false,
+    device: null,
+    startedAt: "2026-06-09T00:00:00.000Z",
+    finishedAt: "2026-06-09T00:01:00.000Z",
+    firstHandoff: firstHandoffFailure({
+      failureCode: "device_unavailable",
+      message: "Android SDK or ready emulator is unavailable.",
+      details: { reason: "Android SDK or ready emulator is unavailable." },
+      status: "deferred",
+    }),
+    fixture: {
+      fixtureId: "reply",
+      packageName: "com.example.reply",
+      status: "deferred",
+      failures: ["Android SDK or ready emulator is unavailable."],
+    },
+  });
+
+  const markdown = renderMarkdownReport(report);
+  assert.equal(report.status, "deferred");
+  assert.equal(report.firstHandoff.failureCode, "device_unavailable");
+  assert.match(markdown, /- Failure code: device_unavailable/);
+  assert.match(markdown, /- Readiness: DEVICE_BLOCKED/);
+  assert.match(markdown, /- Next action: Start an emulator or connect a device/);
 });

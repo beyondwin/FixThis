@@ -321,22 +321,37 @@ requireIncludes(
   'npm run checks:observation -- --json',
 );
 requireIncludes(
-  'R43.required-checks-observation-policy-link',
+  'R43.external-first-handoff-recovery-section',
+  'docs/contributing/release-readiness.md',
+  '## External App First Handoff Recovery',
+);
+requireIncludes(
+  'R44.external-first-handoff-strict-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run agent-loop:smoke -- --strict`',
+);
+requireIncludes(
+  'R45.external-first-handoff-deferral-rule',
+  'docs/contributing/release-readiness.md',
+  'Non-strict missing-runtime runs must be recorded as deferred with a recovery-oriented readiness object.',
+);
+requireIncludes(
+  'R46.required-checks-observation-policy-link',
   'docs/contributing/required-checks-observation.md',
   'docs/contributing/required-checks.md',
 );
 requireIncludes(
-  'R44.v1-residual-risk-closure-gate',
+  'R47.v1-residual-risk-closure-gate',
   'docs/contributing/release-readiness.md',
   '## v1 Residual Risk Closure Gate',
 );
 requireIncludes(
-  'R45.v1-adb-discovery-evidence',
+  'R48.v1-adb-discovery-evidence',
   'docs/contributing/release-readiness.md',
   '`./gradlew :fixthis-cli:test --tests "*AdbTest" --no-daemon`',
 );
 requireIncludes(
-  'R46.v1-sse-fallback-evidence',
+  'R49.v1-sse-fallback-evidence',
   'docs/contributing/release-readiness.md',
   '`npm run console:browser:reliability`',
 );
