@@ -22,6 +22,40 @@ const allowedShapes = new Set([
   'missing-generated-metadata',
 ]);
 const allowedExpectedSetup = new Set(['ready', 'needs-fixthis-setup']);
+export const runtimeCapabilities = Object.freeze(['setup-only', 'first-handoff-trust']);
+export const trustExpectationKinds = Object.freeze([
+  'visual-area',
+  'interop-boundary',
+  'shared-component',
+  'weak-source',
+]);
+
+function arrayOfStrings(value, fieldName) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string' || entry.length === 0)) {
+    throw new Error(`${fieldName} must be an array of non-empty strings`);
+  }
+  return value;
+}
+
+export function validateTrustExpectations(fixture) {
+  const errors = [];
+  const expectations = fixture.trustExpectations ?? [];
+  if (!Array.isArray(expectations)) return [`${fixture.id || 'fixture'} trustExpectations must be an array`];
+  expectations.forEach((expectation, index) => {
+    const label = `${fixture.id || 'fixture'} trustExpectations[${index}]`;
+    if (!trustExpectationKinds.includes(expectation?.kind)) errors.push(`${label} kind is unsupported`);
+    try { arrayOfStrings(expectation.mustWarn, `${label} mustWarn`); } catch (error) { errors.push(error.message); }
+    try { arrayOfStrings(expectation.mustRisk, `${label} mustRisk`); } catch (error) { errors.push(error.message); }
+    if (expectation.mustNotHighConfidence !== undefined && typeof expectation.mustNotHighConfidence !== 'boolean') {
+      errors.push(`${label} mustNotHighConfidence must be boolean`);
+    }
+    if (expectation.mustNotExactOwnership !== undefined && typeof expectation.mustNotExactOwnership !== 'boolean') {
+      errors.push(`${label} mustNotExactOwnership must be boolean`);
+    }
+  });
+  return errors;
+}
 
 function safeRelativePath(value, fieldName = 'path') {
   if (typeof value !== 'string' || value.length === 0) throw new Error(`${fieldName} must be a non-empty string`);
@@ -48,7 +82,7 @@ export function cliExecutablePath(root = repoRoot) {
 export function validateExternalMatrixManifest(manifest) {
   const errors = [];
   if (!manifest || typeof manifest !== 'object') errors.push('manifest must be an object');
-  if (manifest?.schemaVersion !== 1) errors.push('schemaVersion must be 1');
+  if (manifest?.schemaVersion !== 2) errors.push('schemaVersion must be 2');
   if (!Array.isArray(manifest?.fixtures) || manifest.fixtures.length === 0) errors.push('fixtures must contain at least one fixture');
   for (const fixture of manifest?.fixtures || []) {
     const label = fixture.id || 'fixture';
@@ -60,6 +94,8 @@ export function validateExternalMatrixManifest(manifest) {
     if (!/^[-A-Za-z0-9_.]+$/.test(fixture.applicationId || '')) errors.push(`${label} applicationId must be package-like`);
     if (!fixture.variant) errors.push(`${label} variant must be present`);
     if (!allowedExpectedSetup.has(fixture.expectedSetup)) errors.push(`${label} expectedSetup must be ready or needs-fixthis-setup`);
+    if (!runtimeCapabilities.includes(fixture.runtimeCapability)) errors.push(`${label} runtimeCapability is unsupported`);
+    errors.push(...validateTrustExpectations(fixture));
   }
   if (errors.length) throw new Error(errors.join('; '));
   return manifest;
@@ -103,12 +139,24 @@ function reportStatus(fixtures, strict = false) {
   return 'pass';
 }
 
+function reportSummary(fixtures = []) {
+  return {
+    total: fixtures.length,
+    pass: fixtures.filter((fixture) => fixture.status === 'pass').length,
+    deferred: fixtures.filter((fixture) => fixture.status === 'deferred').length,
+    fail: fixtures.filter((fixture) => fixture.status === 'fail').length,
+    fixtureDrift: fixtures.filter((fixture) => fixture.outcome === 'fixture_drift').length,
+    caveatedPass: fixtures.filter((fixture) => fixture.outcome === 'caveated_pass').length,
+  };
+}
+
 export function buildMatrixReport({ strict = false, generatedAt = new Date().toISOString(), fixtures = [] } = {}) {
   return {
-    schemaVersion: '1.0',
+    schemaVersion: '2.0',
     status: reportStatus(fixtures, strict),
     strict,
     generatedAt,
+    summary: reportSummary(fixtures),
     fixtures,
   };
 }
@@ -124,12 +172,32 @@ export function renderMatrixMarkdown(report) {
     '',
     `- Status: ${report.status}`,
     `- Strict: ${report.strict}`,
+    `- Schema: ${report.schemaVersion}`,
     '',
-    '| Fixture | Status | Reason |',
-    '| --- | --- | --- |',
+    '## Summary',
+    '',
+    '| Metric | Count |',
+    '| --- | --- |',
+    `| Total | ${cell(report.summary?.total ?? 0)} |`,
+    `| Pass | ${cell(report.summary?.pass ?? 0)} |`,
+    `| Deferred | ${cell(report.summary?.deferred ?? 0)} |`,
+    `| Fail | ${cell(report.summary?.fail ?? 0)} |`,
+    `| Fixture drift | ${cell(report.summary?.fixtureDrift ?? 0)} |`,
+    `| Caveated pass | ${cell(report.summary?.caveatedPass ?? 0)} |`,
+    '',
+    '## Fixtures',
+    '',
+    '| Fixture | Status | Outcome | Runtime capability | Reason |',
+    '| --- | --- | --- | --- | --- |',
   ];
   for (const fixture of report.fixtures || []) {
-    lines.push(`| ${cell(fixture.fixtureId)} | ${cell(fixture.status)} | ${cell(fixture.reason)} |`);
+    lines.push(`| ${cell(fixture.fixtureId)} | ${cell(fixture.status)} | ${cell(fixture.outcome)} | ${cell(fixture.runtimeCapability)} | ${cell(fixture.reason)} |`);
+  }
+  lines.push('', '## Trust Findings', '', '| Fixture | Kind | Status | Message |', '| --- | --- | --- | --- |');
+  for (const fixture of report.fixtures || []) {
+    for (const finding of fixture.trustFindings || []) {
+      lines.push(`| ${cell(fixture.fixtureId)} | ${cell(finding.kind)} | ${cell(finding.status)} | ${cell(finding.message)} |`);
+    }
   }
   lines.push('', '## Commands', '', '| Fixture | Step | Status | Command | Duration |', '| --- | --- | --- | --- | --- |');
   for (const fixture of report.fixtures || []) {

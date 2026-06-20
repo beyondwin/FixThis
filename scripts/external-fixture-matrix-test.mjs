@@ -23,7 +23,7 @@ test('manifest covers required external project shapes', () => {
   const manifest = loadExternalMatrixManifest(defaultManifestPath);
   const shapes = new Set(manifest.fixtures.map((fixture) => fixture.projectShape));
 
-  assert.equal(manifest.schemaVersion, 1);
+  assert.equal(manifest.schemaVersion, 2);
   assert.ok(shapes.has('single-module'));
   assert.ok(shapes.has('multi-module'));
   assert.ok(shapes.has('single-module-flavor'));
@@ -32,10 +32,72 @@ test('manifest covers required external project shapes', () => {
   assert.ok(shapes.has('missing-generated-metadata'));
 });
 
+test('manifest v2 declares runtime capability and trust expectations', () => {
+  const manifest = loadExternalMatrixManifest(defaultManifestPath);
+  const single = manifest.fixtures.find((fixture) => fixture.id === 'single-kotlin-dsl');
+  const weak = manifest.fixtures.find((fixture) => fixture.id === 'weak-source-caveated');
+  const runtime = manifest.fixtures.find((fixture) => fixture.id === 'local-sample-first-handoff');
+
+  assert.equal(manifest.schemaVersion, 2);
+  assert.equal(single.runtimeCapability, 'setup-only');
+  assert.equal(weak.runtimeCapability, 'setup-only');
+  assert.deepEqual(weak.trustExpectations, [{
+    kind: 'weak-source',
+    mustNotHighConfidence: true,
+    mustWarn: ['WEAK_SOURCE_EVIDENCE'],
+  }]);
+  assert.equal(runtime.runtimeCapability, 'first-handoff-trust');
+  assert.deepEqual(runtime.trustExpectations.map((entry) => entry.kind), [
+    'visual-area',
+    'interop-boundary',
+    'shared-component',
+  ]);
+});
+
+test('manifest v2 rejects invalid runtime capability and trust expectations', () => {
+  assert.throws(
+    () => validateExternalMatrixManifest({
+      schemaVersion: 2,
+      fixtures: [{
+        id: 'bad-runtime',
+        projectShape: 'single-module',
+        dsl: 'kotlin',
+        appModule: ':app',
+        moduleDir: 'app',
+        applicationId: 'io.example.bad',
+        variant: 'debug',
+        expectedSetup: 'ready',
+        runtimeCapability: 'browser-cloud',
+        trustExpectations: [],
+      }],
+    }),
+    /bad-runtime runtimeCapability is unsupported/,
+  );
+
+  assert.throws(
+    () => validateExternalMatrixManifest({
+      schemaVersion: 2,
+      fixtures: [{
+        id: 'bad-trust',
+        projectShape: 'single-module',
+        dsl: 'kotlin',
+        appModule: ':app',
+        moduleDir: 'app',
+        applicationId: 'io.example.bad',
+        variant: 'debug',
+        expectedSetup: 'ready',
+        runtimeCapability: 'setup-only',
+        trustExpectations: [{ kind: 'exact-webview-source', mustWarn: 'POSSIBLE_VIEW_INTEROP' }],
+      }],
+    }),
+    /bad-trust trustExpectations\[0\] kind is unsupported.*mustWarn must be an array/s,
+  );
+});
+
 test('manifest rejects unsafe ids modules and expected setup values', () => {
   assert.throws(
     () => validateExternalMatrixManifest({
-      schemaVersion: 1,
+      schemaVersion: 2,
       fixtures: [{
         id: 'Bad Id',
         projectShape: 'single-module',
@@ -45,6 +107,8 @@ test('manifest rejects unsafe ids modules and expected setup values', () => {
         applicationId: 'bad',
         variant: 'debug',
         expectedSetup: 'ready',
+        runtimeCapability: 'setup-only',
+        trustExpectations: [],
       }],
     }),
     /fixture id must use lowercase slug syntax.*appModule must start with :.*moduleDir escapes fixture root/s,
@@ -52,7 +116,7 @@ test('manifest rejects unsafe ids modules and expected setup values', () => {
 
   assert.throws(
     () => validateExternalMatrixManifest({
-      schemaVersion: 1,
+      schemaVersion: 2,
       fixtures: [{
         id: 'bad-setup',
         projectShape: 'single-module',
@@ -62,6 +126,8 @@ test('manifest rejects unsafe ids modules and expected setup values', () => {
         applicationId: 'io.example.bad',
         variant: 'debug',
         expectedSetup: 'unknown',
+        runtimeCapability: 'setup-only',
+        trustExpectations: [],
       }],
     }),
     /expectedSetup must be ready or needs-fixthis-setup/,
@@ -111,11 +177,52 @@ test('matrix report and markdown include fixture command statuses', () => {
   assert.match(renderMatrixMarkdown(report), /fixthis doctor --json/);
 });
 
+test('matrix v2 report summarizes outcomes and trust findings', () => {
+  const report = buildMatrixReport({
+    strict: false,
+    generatedAt: '2026-06-20T00:00:00.000Z',
+    fixtures: [
+      {
+        fixtureId: 'weak-source-caveated',
+        status: 'pass',
+        outcome: 'caveated_pass',
+        runtimeCapability: 'setup-only',
+        trustFindings: [{ kind: 'weak-source', status: 'pass', message: 'weak evidence stayed caveated' }],
+        commands: [{ name: 'doctor-json', command: 'fixthis doctor --json', status: 'pass', durationMs: 5 }],
+      },
+      {
+        fixtureId: 'local-sample-first-handoff',
+        status: 'deferred',
+        outcome: 'environment_deferred',
+        runtimeCapability: 'first-handoff-trust',
+        reason: 'Android SDK or ready emulator is unavailable.',
+        trustFindings: [],
+        commands: [],
+      },
+    ],
+  });
+
+  assert.equal(report.schemaVersion, '2.0');
+  assert.deepEqual(report.summary, {
+    total: 2,
+    pass: 1,
+    deferred: 1,
+    fail: 0,
+    fixtureDrift: 0,
+    caveatedPass: 1,
+  });
+  const markdown = renderMatrixMarkdown(report);
+  assert.match(markdown, /## Summary/);
+  assert.match(markdown, /\| Caveated pass \| 1 \|/);
+  assert.match(markdown, /## Trust Findings/);
+  assert.match(markdown, /\| weak-source-caveated \| weak-source \| pass \| weak evidence stayed caveated \|/);
+});
+
 test('writeMatrixReports writes json and markdown reports', () => {
   const dir = mkdtempSync(join(tmpdir(), 'fixthis-external-matrix-'));
   try {
     const paths = writeMatrixReports(buildMatrixReport({ fixtures: [] }), dir);
-    assert.match(readFileSync(paths.json, 'utf8'), /"schemaVersion": "1.0"/);
+    assert.match(readFileSync(paths.json, 'utf8'), /"schemaVersion": "2.0"/);
     assert.match(readFileSync(paths.markdown, 'utf8'), /External Fixture Matrix Report/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
