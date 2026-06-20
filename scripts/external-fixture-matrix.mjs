@@ -132,6 +132,186 @@ export function externalMatrixStatusForEnvironment({ strict = false, androidRead
     : { status: 'deferred', exitCode: 0, reason };
 }
 
+const confidenceRanks = new Map([
+  ['unknown', 0],
+  ['none', 0],
+  ['low', 1],
+  ['medium', 2],
+  ['high', 3],
+]);
+
+function normalizeConfidence(value) {
+  if (typeof value !== 'string') return 'unknown';
+  return value.trim().toLowerCase().replaceAll('_', '-');
+}
+
+export function confidenceRank(value) {
+  return confidenceRanks.get(normalizeConfidence(value).replaceAll('-', '_')) ??
+    confidenceRanks.get(normalizeConfidence(value)) ??
+    0;
+}
+
+function normalizeTrustToken(value) {
+  return String(value || '').trim().toUpperCase().replaceAll('-', '_');
+}
+
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object || {}, key);
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  return value === undefined || value === null ? [] : [value];
+}
+
+function observationItems(observation) {
+  if (!observation) return [];
+  if (Array.isArray(observation)) return observation;
+  if (Array.isArray(observation.items)) return observation.items;
+  if (observation.item) return [observation.item];
+  return [observation];
+}
+
+function collectWarnings(observation) {
+  const warnings = new Set();
+  for (const item of observationItems(observation)) {
+    for (const warning of [
+      ...asArray(item.warnings),
+      ...asArray(item.warning),
+      ...asArray(item.targetReliability?.warnings),
+      ...asArray(item.targetEvidence?.warnings),
+    ]) {
+      warnings.add(normalizeTrustToken(warning));
+    }
+  }
+  return warnings;
+}
+
+function collectRiskFlags(observation) {
+  const riskFlags = new Set();
+  for (const item of observationItems(observation)) {
+    for (const risk of [...asArray(item.riskFlags), ...asArray(item.riskFlag)]) {
+      riskFlags.add(normalizeTrustToken(risk));
+    }
+    for (const candidate of asArray(item.sourceCandidates)) {
+      for (const risk of asArray(candidate?.riskFlags)) {
+        riskFlags.add(normalizeTrustToken(risk));
+      }
+    }
+  }
+  return riskFlags;
+}
+
+function collectConfidenceValues(observation) {
+  const values = [];
+  for (const item of observationItems(observation)) {
+    if (hasOwn(item, 'confidence')) values.push(item.confidence);
+    if (hasOwn(item.targetReliability, 'confidence')) values.push(item.targetReliability.confidence);
+    for (const candidate of asArray(item.sourceCandidates)) {
+      if (hasOwn(candidate, 'confidence')) values.push(candidate.confidence);
+    }
+    for (const candidate of asArray(item.editSurfaceCandidates)) {
+      if (hasOwn(candidate, 'confidence')) values.push(candidate.confidence);
+    }
+  }
+  return values;
+}
+
+function highestConfidence(observation) {
+  return collectConfidenceValues(observation).reduce((highest, value) => (
+    confidenceRank(value) > confidenceRank(highest) ? value : highest
+  ), 'unknown');
+}
+
+function hasExactOwnershipClaim(observation) {
+  for (const item of observationItems(observation)) {
+    if (item.exactOwnershipClaimed === true) return true;
+    if (item.exactOwnership === true || item.claimsExactOwnership === true) return true;
+    if (String(item.ownership || '').toLowerCase() === 'exact') return true;
+    for (const candidate of asArray(item.editSurfaceCandidates)) {
+      if (candidate?.exactOwnership === true || candidate?.claimsExactOwnership === true) return true;
+      if (String(candidate?.ownership || '').toLowerCase() === 'exact') return true;
+    }
+  }
+  return false;
+}
+
+export function evaluateTrustExpectations(fixture, observation) {
+  const expectations = fixture?.trustExpectations ?? [];
+  if (!Array.isArray(expectations) || expectations.length === 0) return [];
+  if (!observation) {
+    return expectations.map((expectation) => ({
+      kind: expectation.kind,
+      status: 'fail',
+      message: `${expectation.kind} trust observation unavailable`,
+    }));
+  }
+
+  const warnings = collectWarnings(observation);
+  const riskFlags = collectRiskFlags(observation);
+  const confidence = highestConfidence(observation);
+  const confidenceLabel = normalizeConfidence(confidence);
+
+  return expectations.map((expectation) => {
+    const requiredWarnings = arrayOfStrings(expectation.mustWarn, `${expectation.kind} mustWarn`);
+    const requiredRisks = arrayOfStrings(expectation.mustRisk, `${expectation.kind} mustRisk`);
+    const missingWarnings = requiredWarnings.filter((warning) => !warnings.has(normalizeTrustToken(warning)));
+    const missingRisks = requiredRisks.filter((risk) => !riskFlags.has(normalizeTrustToken(risk)));
+    const highConfidence = expectation.mustNotHighConfidence === true && confidenceRank(confidence) >= confidenceRank('high');
+    const exactOwnership = expectation.mustNotExactOwnership === true && hasExactOwnershipClaim(observation);
+
+    if (expectation.kind === 'interop-boundary') {
+      if (exactOwnership || missingWarnings.length > 0) {
+        return {
+          kind: expectation.kind,
+          status: 'fail',
+          message: `exact ownership claimed or missing warnings: ${missingWarnings.join(', ') || requiredWarnings.join(', ') || 'none'}`,
+        };
+      }
+      return {
+        kind: expectation.kind,
+        status: 'pass',
+        message: `no exact ownership claim and warnings ${requiredWarnings.join(', ')}`,
+      };
+    }
+
+    if (missingRisks.length > 0) {
+      return {
+        kind: expectation.kind,
+        status: 'fail',
+        message: `missing risk flags: ${missingRisks.join(', ')}`,
+      };
+    }
+    if (highConfidence || missingWarnings.length > 0) {
+      return {
+        kind: expectation.kind,
+        status: 'fail',
+        message: `high confidence or missing warnings: ${missingWarnings.join(', ') || 'none'}`,
+      };
+    }
+    if (requiredRisks.length > 0) {
+      return {
+        kind: expectation.kind,
+        status: 'pass',
+        message: `confidence ${confidenceLabel} with risk flags ${requiredRisks.join(', ')}`,
+      };
+    }
+    return {
+      kind: expectation.kind,
+      status: 'pass',
+      message: `confidence ${confidenceLabel} with warnings ${requiredWarnings.join(', ')}`,
+    };
+  });
+}
+
+export function outcomeForFixture({ status, trustFindings = [], reason = null } = {}) {
+  if (status === 'deferred') return 'environment_deferred';
+  if (/fixture[_ -]drift/i.test(String(reason || ''))) return 'fixture_drift';
+  if (status === 'fail' || trustFindings.some((finding) => finding.status === 'fail')) return 'product_failure';
+  if (trustFindings.some((finding) => finding.status === 'pass')) return 'caveated_pass';
+  return 'pass';
+}
+
 function reportStatus(fixtures, strict = false) {
   if ((fixtures || []).some((fixture) => fixture.status === 'fail')) return 'fail';
   if (strict && (fixtures || []).some((fixture) => fixture.status === 'deferred')) return 'fail';
@@ -350,6 +530,7 @@ export function runExternalMatrix({
   prepareCliDistributionFn = (activeRoot, envPatch, runner) => prepareCliDistribution(activeRoot, envPatch, runner),
   generateFixtureProjectFn = generateFixtureProject,
   cleanupFixtureFn = cleanupFixture,
+  trustObservationFn = () => null,
 } = {}) {
   const fixtures = [];
   let cliPreparation = null;
@@ -358,15 +539,22 @@ export function runExternalMatrix({
     if (cliPreparation.status === 'fail') {
       return buildMatrixReport({
         strict,
-        fixtures: manifest.fixtures.map((fixture) => ({
-          fixtureId: fixture.id,
-          status: 'fail',
-          reason: cliPreparation.stderr?.split('\n').find(Boolean) || cliPreparation.stdout?.split('\n').find(Boolean) || 'prepare-cli failed',
-          commands: [
-            cliPreparation,
-            ...planFixtureCommands(fixture, join(workRoot, fixture.id), root).map((entry) => ({ ...entry, status: 'deferred', durationMs: 0 })),
-          ],
-        })),
+        fixtures: manifest.fixtures.map((fixture) => {
+          const reason = cliPreparation.stderr?.split('\n').find(Boolean) || cliPreparation.stdout?.split('\n').find(Boolean) || 'prepare-cli failed';
+          const trustFindings = [];
+          return {
+            fixtureId: fixture.id,
+            status: 'fail',
+            outcome: outcomeForFixture({ status: 'fail', reason, trustFindings }),
+            runtimeCapability: fixture.runtimeCapability,
+            reason,
+            trustFindings,
+            commands: [
+              cliPreparation,
+              ...planFixtureCommands(fixture, join(workRoot, fixture.id), root).map((entry) => ({ ...entry, status: 'deferred', durationMs: 0 })),
+            ],
+          };
+        }),
       });
     }
   }
@@ -378,10 +566,14 @@ export function runExternalMatrix({
       reason: androidEnvironment.reason,
     });
     if (!androidEnvironment.ready) {
+      const trustFindings = [];
       fixtures.push({
         fixtureId: fixture.id,
         status: environment.status,
+        outcome: outcomeForFixture({ status: environment.status, reason: environment.reason, trustFindings }),
+        runtimeCapability: fixture.runtimeCapability,
         reason: environment.reason,
+        trustFindings,
         commands: planFixtureCommands(fixture, projectDir, root).map((entry) => ({ ...entry, status: 'deferred', durationMs: 0 })),
       });
       continue;
@@ -399,8 +591,25 @@ export function runExternalMatrix({
         break;
       }
     }
+    const trustFindings = evaluateTrustExpectations(
+      fixture,
+      trustObservationFn(fixture, { projectDir, commands, root, workRoot, androidEnvironment }),
+    );
+    const failedTrustFinding = trustFindings.find((finding) => finding.status === 'fail');
+    if (status === 'pass' && failedTrustFinding) {
+      status = 'fail';
+      reason = failedTrustFinding.message;
+    }
     cleanupFixtureFn(projectDir);
-    fixtures.push({ fixtureId: fixture.id, status, reason, commands });
+    fixtures.push({
+      fixtureId: fixture.id,
+      status,
+      outcome: outcomeForFixture({ status, trustFindings, reason }),
+      runtimeCapability: fixture.runtimeCapability,
+      reason,
+      trustFindings,
+      commands,
+    });
   }
   return buildMatrixReport({ strict, fixtures });
 }

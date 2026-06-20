@@ -6,11 +6,14 @@ import test from 'node:test';
 import {
   buildMatrixReport,
   cliExecutablePath,
+  confidenceRank,
   defaultManifestPath,
+  evaluateTrustExpectations,
   externalMatrixStatusForEnvironment,
   generateFixtureProject,
   loadExternalMatrixManifest,
   normalizeFixtureCommandResult,
+  outcomeForFixture,
   planFixtureCommands,
   prepareCliDistribution,
   renderMatrixMarkdown,
@@ -218,6 +221,72 @@ test('matrix v2 report summarizes outcomes and trust findings', () => {
   assert.match(markdown, /\| weak-source-caveated \| weak-source \| pass \| weak evidence stayed caveated \|/);
 });
 
+test('confidenceRank orders handoff confidence levels', () => {
+  assert.equal(confidenceRank('unknown'), 0);
+  assert.equal(confidenceRank('low'), 1);
+  assert.equal(confidenceRank('medium'), 2);
+  assert.equal(confidenceRank('high'), 3);
+  assert.equal(confidenceRank('HIGH'), 3);
+  assert.equal(confidenceRank(undefined), 0);
+});
+
+test('evaluateTrustExpectations passes caveated visual interop and shared-component observations', () => {
+  const fixture = {
+    id: 'local-sample-first-handoff',
+    trustExpectations: [
+      { kind: 'visual-area', mustNotHighConfidence: true, mustWarn: ['VISUAL_AREA_ONLY'] },
+      { kind: 'interop-boundary', mustNotExactOwnership: true, mustWarn: ['POSSIBLE_VIEW_INTEROP'] },
+      { kind: 'shared-component', mustNotHighConfidence: true, mustRisk: ['SHARED_COMPONENT'] },
+    ],
+  };
+
+  assert.deepEqual(evaluateTrustExpectations(fixture, {
+    targetReliability: {
+      confidence: 'medium',
+      warnings: ['VISUAL_AREA_ONLY', 'POSSIBLE_VIEW_INTEROP'],
+    },
+    sourceCandidates: [
+      {
+        confidence: 'medium',
+        riskFlags: ['SHARED_COMPONENT'],
+        callSites: [{ file: 'sample/Home.kt', line: 42, recommendedEditSite: true }],
+      },
+    ],
+    exactOwnershipClaimed: false,
+  }), [
+    { kind: 'visual-area', status: 'pass', message: 'confidence medium with warnings VISUAL_AREA_ONLY' },
+    { kind: 'interop-boundary', status: 'pass', message: 'no exact ownership claim and warnings POSSIBLE_VIEW_INTEROP' },
+    { kind: 'shared-component', status: 'pass', message: 'confidence medium with risk flags SHARED_COMPONENT' },
+  ]);
+});
+
+test('evaluateTrustExpectations fails high confidence missing warning and exact ownership', () => {
+  const fixture = {
+    id: 'bad-runtime',
+    trustExpectations: [
+      { kind: 'visual-area', mustNotHighConfidence: true, mustWarn: ['VISUAL_AREA_ONLY'] },
+      { kind: 'interop-boundary', mustNotExactOwnership: true, mustWarn: ['POSSIBLE_VIEW_INTEROP'] },
+    ],
+  };
+
+  assert.deepEqual(evaluateTrustExpectations(fixture, {
+    targetReliability: { confidence: 'high', warnings: [] },
+    sourceCandidates: [{ confidence: 'high', riskFlags: [] }],
+    exactOwnershipClaimed: true,
+  }), [
+    { kind: 'visual-area', status: 'fail', message: 'high confidence or missing warnings: VISUAL_AREA_ONLY' },
+    { kind: 'interop-boundary', status: 'fail', message: 'exact ownership claimed or missing warnings: POSSIBLE_VIEW_INTEROP' },
+  ]);
+});
+
+test('outcomeForFixture classifies trust outcomes without hiding deferred or drift states', () => {
+  assert.equal(outcomeForFixture({ status: 'deferred', reason: 'Android SDK unavailable', trustFindings: [] }), 'environment_deferred');
+  assert.equal(outcomeForFixture({ status: 'fail', reason: 'fixture_drift: expected path disappeared', trustFindings: [] }), 'fixture_drift');
+  assert.equal(outcomeForFixture({ status: 'fail', reason: 'doctor-json failed', trustFindings: [] }), 'product_failure');
+  assert.equal(outcomeForFixture({ status: 'pass', trustFindings: [{ kind: 'weak-source', status: 'pass', message: 'caveated' }] }), 'caveated_pass');
+  assert.equal(outcomeForFixture({ status: 'pass', trustFindings: [] }), 'pass');
+});
+
 test('writeMatrixReports writes json and markdown reports', () => {
   const dir = mkdtempSync(join(tmpdir(), 'fixthis-external-matrix-'));
   try {
@@ -356,6 +425,44 @@ test('runExternalMatrix executes non-connected commands with injected runner', (
   assert.equal(calls.length, 3);
   assert.equal(report.fixtures[0].commands[0].name, 'prepare-cli');
   assert.equal(lifecycle[0], 'prepare-cli');
+});
+
+test('runExternalMatrix attaches trust findings from injected observations', () => {
+  const fixture = {
+    ...loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff'),
+    trustExpectations: [
+      { kind: 'visual-area', mustNotHighConfidence: true, mustWarn: ['VISUAL_AREA_ONLY'] },
+    ],
+  };
+  const report = runExternalMatrix({
+    manifest: {
+      schemaVersion: 2,
+      fixtures: [fixture],
+    },
+    strict: true,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: {} },
+    root: '/repo',
+    runCommandFn: () => ({ status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    prepareCliDistributionFn: () => ({ name: 'prepare-cli', command: './gradlew :fixthis-cli:installDist --no-daemon', status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+    trustObservationFn: (activeFixture) => {
+      assert.equal(activeFixture.id, 'local-sample-first-handoff');
+      return {
+        targetReliability: {
+          confidence: 'medium',
+          warnings: ['VISUAL_AREA_ONLY'],
+        },
+      };
+    },
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(report.fixtures[0].outcome, 'caveated_pass');
+  assert.deepEqual(report.fixtures[0].trustFindings, [
+    { kind: 'visual-area', status: 'pass', message: 'confidence medium with warnings VISUAL_AREA_ONLY' },
+  ]);
 });
 
 test('runExternalMatrix continues after accepted doctor next action', () => {
