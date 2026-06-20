@@ -15,6 +15,7 @@ import {
   normalizeFixtureCommandResult,
   outcomeForFixture,
   planFixtureCommands,
+  planRuntimeTrustCommands,
   prepareCliDistribution,
   renderMatrixMarkdown,
   runExternalMatrix,
@@ -149,6 +150,21 @@ test('planFixtureCommands uses install-agent doctor and source-index commands', 
   assert.equal(commands[0].command, "JAVA_OPTS='-Duser.home=/tmp/fixthis-matrix/single-kotlin-dsl/.home' '/repo/fixthis-cli/build/install/fixthis/bin/fixthis' install-agent --project-dir '/tmp/fixthis-matrix/single-kotlin-dsl' --target all --package 'io.github.beyondwin.fixthis.matrix.single'");
   assert.equal(commands[1].command, "JAVA_OPTS='-Duser.home=/tmp/fixthis-matrix/single-kotlin-dsl/.home' '/repo/fixthis-cli/build/install/fixthis/bin/fixthis' doctor --project-dir '/tmp/fixthis-matrix/single-kotlin-dsl' --package 'io.github.beyondwin.fixthis.matrix.single' --json");
   assert.equal(commands[2].command, './gradlew :app:generateDebugFixThisSourceIndex --no-daemon');
+});
+
+test('planRuntimeTrustCommands adds handoff and runtime trust checks for runtime-capable fixtures', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff');
+  const commands = planRuntimeTrustCommands(fixture);
+
+  assert.deepEqual(commands, [
+    { name: 'agent-loop-smoke', command: 'npm run agent-loop:smoke -- --strict' },
+    { name: 'runtime-trust-strict', command: 'npm run source-matching:fixtures:runtime -- --strict' },
+  ]);
+});
+
+test('planRuntimeTrustCommands returns no commands for setup-only fixtures', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'single-kotlin-dsl');
+  assert.deepEqual(planRuntimeTrustCommands(fixture), []);
 });
 
 test('environment status distinguishes non-strict deferral and strict failure', () => {
@@ -533,4 +549,57 @@ test('runExternalMatrix keeps deferred fixtures out of command execution when An
   assert.equal(report.status, 'pass_with_deferred');
   assert.equal(report.fixtures[0].status, 'deferred');
   assert.equal(calls.length, 0);
+});
+
+test('runExternalMatrix executes runtime trust commands for runtime-capable fixture', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff');
+  const calls = [];
+  const report = runExternalMatrix({
+    manifest: { schemaVersion: 2, fixtures: [fixture] },
+    strict: true,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: { ANDROID_HOME: '/sdk' } },
+    root: '/repo',
+    runCommandFn: (command) => {
+      calls.push(command);
+      return { status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 };
+    },
+    prepareCliDistributionFn: () => ({ name: 'prepare-cli', command: './gradlew :fixthis-cli:installDist --no-daemon', status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+    trustObservationFn: () => ({
+      targetReliability: { confidence: 'medium', warnings: ['VISUAL_AREA_ONLY', 'POSSIBLE_VIEW_INTEROP'] },
+      sourceCandidates: [{ confidence: 'medium', riskFlags: ['SHARED_COMPONENT'] }],
+      exactOwnershipClaimed: false,
+    }),
+  });
+
+  assert.ok(calls.includes('npm run agent-loop:smoke -- --strict'));
+  assert.ok(calls.includes('npm run source-matching:fixtures:runtime -- --strict'));
+  assert.equal(report.fixtures[0].status, 'pass');
+});
+
+test('runExternalMatrix marks runtime trust command failure as product failure', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff');
+  const report = runExternalMatrix({
+    manifest: { schemaVersion: 2, fixtures: [fixture] },
+    strict: true,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: {} },
+    root: '/repo',
+    runCommandFn: (command) => {
+      if (command === 'npm run source-matching:fixtures:runtime -- --strict') {
+        return { status: 'fail', durationMs: 1, stdout: '', stderr: 'missing_warning_observation\n', exitCode: 1 };
+      }
+      return { status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 };
+    },
+    prepareCliDistributionFn: () => ({ name: 'prepare-cli', command: './gradlew :fixthis-cli:installDist --no-daemon', status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+  });
+
+  assert.equal(report.status, 'fail');
+  assert.equal(report.fixtures[0].status, 'fail');
+  assert.equal(report.fixtures[0].outcome, 'product_failure');
+  assert.equal(report.fixtures[0].reason, 'missing_warning_observation');
 });

@@ -39,6 +39,19 @@ test("trust profile includes source matching and runtime strict as deferrable", 
   assert.equal(agentLoop.requiresAndroid, true);
 });
 
+test('trust and gate profiles include external trust matrix v2 strict evidence', () => {
+  const trustCommands = expandProfile('trust').map((step) => step.command);
+  const gateCommands = expandProfile('gate').map((step) => step.command);
+
+  assert.ok(trustCommands.includes('npm run external-fixture:matrix -- --strict'));
+  assert.ok(gateCommands.includes('npm run external-fixture:matrix -- --strict'));
+
+  const trustStep = expandProfile('trust').find((step) => step.command === 'npm run external-fixture:matrix -- --strict');
+  assert.equal(trustStep.name, 'External trust matrix v2 strict');
+  assert.equal(trustStep.deferrable, true);
+  assert.equal(trustStep.requiresAndroid, true);
+});
+
 test("android device parser returns the first ready adb device", () => {
   assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\tdevice\nphone-1\toffline\n"), "emulator-5554");
   assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\toffline\n"), null);

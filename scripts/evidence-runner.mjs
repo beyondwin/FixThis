@@ -22,7 +22,7 @@ const profileDefinitions = {
     step("Handoff evaluation", "npm run handoff:eval:test"),
     step("Source fixture contracts", "npm run source-matching:fixtures:test"),
     step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),
-    step("External fixture matrix strict", "npm run external-fixture:matrix -- --strict", {
+    step("External trust matrix v2 strict", "npm run external-fixture:matrix -- --strict", {
       deferrable: true,
       requiresAndroid: true,
     }),
@@ -72,7 +72,7 @@ const profileDefinitions = {
     }),
     step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
     step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),
-    step("External fixture matrix strict", "npm run external-fixture:matrix -- --strict", {
+    step("External trust matrix v2 strict", "npm run external-fixture:matrix -- --strict", {
       deferrable: true,
       requiresAndroid: true,
     }),

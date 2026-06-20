@@ -125,6 +125,14 @@ export function planFixtureCommands(fixture, projectDir, root = '/repo') {
   ];
 }
 
+export function planRuntimeTrustCommands(fixture) {
+  if (fixture.runtimeCapability !== 'first-handoff-trust') return [];
+  return [
+    { name: 'agent-loop-smoke', command: 'npm run agent-loop:smoke -- --strict' },
+    { name: 'runtime-trust-strict', command: 'npm run source-matching:fixtures:runtime -- --strict' },
+  ];
+}
+
 export function externalMatrixStatusForEnvironment({ strict = false, androidReady = false, reason = 'Android SDK or ready emulator is unavailable.' } = {}) {
   if (androidReady) return { status: 'pass', exitCode: 0, reason: null };
   return strict
@@ -591,9 +599,20 @@ export function runExternalMatrix({
         break;
       }
     }
+    if (status === 'pass') {
+      for (const entry of planRuntimeTrustCommands(fixture)) {
+        const result = runCommandFn(entry.command, root, androidEnvironment.envPatch);
+        commands.push({ ...entry, ...result });
+        if (result.status === 'fail') {
+          status = 'fail';
+          reason = result.stderr?.split('\n').find(Boolean) || result.stdout?.split('\n').find(Boolean) || `${entry.name} failed`;
+          break;
+        }
+      }
+    }
     const trustFindings = evaluateTrustExpectations(
       fixture,
-      trustObservationFn(fixture, { projectDir, commands, root, workRoot, androidEnvironment }),
+      status === 'pass' ? trustObservationFn(fixture, { projectDir, commands, root, workRoot, androidEnvironment }) : null,
     );
     const failedTrustFinding = trustFindings.find((finding) => finding.status === 'fail');
     if (status === 'pass' && failedTrustFinding) {

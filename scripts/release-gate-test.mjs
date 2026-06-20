@@ -205,14 +205,14 @@ test('release gate maps external fixture matrix claim', () => {
     strict: false,
     generatedAt: '2026-06-01T00:00:00.000Z',
     steps: [
-      { name: 'External fixture matrix strict', command: 'npm run external-fixture:matrix -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'External trust matrix v2 strict', command: 'npm run external-fixture:matrix -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
     ],
   });
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'external-fixture-matrix'), {
     id: 'external-fixture-matrix',
     status: 'deferred',
-    evidence: ['External fixture matrix strict'],
+    evidence: ['External trust matrix v2 strict'],
     reason: 'Android SDK unavailable',
   });
 });
