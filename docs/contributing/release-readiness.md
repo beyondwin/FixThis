@@ -259,6 +259,23 @@ installed and launched.
 When Android SDK or an unlocked emulator is unavailable, non-strict reports must
 record the exact deferred reason and strict connected evidence must fail.
 
+## External App Trust Matrix v2 Evidence
+
+The External App Trust Matrix v2 line may be claimed only when the release
+commit has evidence that external project setup, first-handoff runtime proof,
+and handoff trust caveats are reported in one matrix.
+
+| Claim | Required evidence |
+| --- | --- |
+| External project setup and runtime-capable handoff trust are classified as pass, deferred, fail, fixture drift, or caveated pass without overclaiming exact source ownership. | `npm run external-fixture:matrix:test` and `npm run external-fixture:matrix -- --strict`. |
+| Release gate consumes the matrix v2 report as the `external-trust-matrix-v2` claim. | `npm run release:gate:test` and `npm run release:gate`. |
+
+When Android SDK, ADB, an unlocked emulator/device, or the launched debug app is
+unavailable, non-strict reports must record the exact deferred reason and
+strict connected evidence must fail. A caveated pass is acceptable only when
+the handoff preserves the required warning or risk signal, such as
+`VISUAL_AREA_ONLY`, `POSSIBLE_VIEW_INTEROP`, or `SHARED_COMPONENT`.
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.

@@ -15,6 +15,7 @@ export const releaseClaimDefinitions = Object.freeze([
   { id: 'external-agent-loop', evidenceNames: ['Agent loop smoke'] },
   { id: 'external-first-handoff-recovery', evidenceNames: ['Agent loop smoke contracts', 'Agent loop smoke'], requireAllEvidence: true },
   { id: 'external-fixture-matrix', evidenceNames: ['External trust matrix v2 strict'] },
+  { id: 'external-trust-matrix-v2', evidenceNames: ['External trust matrix v2 strict'] },
   { id: 'handoff-correctness-v2', evidenceNames: ['Handoff evaluation'] },
   { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
   { id: 'console-sse-reliability', evidenceNames: ['Console browser reliability'] },

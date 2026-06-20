@@ -310,6 +310,18 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`npm run external-fixture:matrix -- --strict`',
 );
+requireRegex(
+  'R50.external-trust-matrix-v2-evidence',
+  'docs/contributing/release-readiness.md',
+  /## External App Trust Matrix v2 Evidence[\s\S]*npm run external-fixture:matrix:test[\s\S]*npm run external-fixture:matrix -- --strict[\s\S]*external-trust-matrix-v2/,
+  'external trust matrix v2 evidence section',
+);
+requireRegex(
+  'R51.external-trust-matrix-v2-caveats',
+  'docs/contributing/release-readiness.md',
+  /VISUAL_AREA_ONLY[\s\S]*POSSIBLE_VIEW_INTEROP[\s\S]*SHARED_COMPONENT/,
+  'external trust matrix v2 caveat signals',
+);
 requireIncludes(
   'R41.handoff-correctness-command',
   'docs/contributing/release-readiness.md',

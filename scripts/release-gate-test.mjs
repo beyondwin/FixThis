@@ -153,6 +153,12 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       reason: 'missing evidence command',
     },
     {
+      id: 'external-trust-matrix-v2',
+      status: 'fail',
+      evidence: [],
+      reason: 'missing evidence command',
+    },
+    {
       id: 'handoff-correctness-v2',
       status: 'pass',
       evidence: ['Handoff evaluation'],
@@ -211,6 +217,23 @@ test('release gate maps external fixture matrix claim', () => {
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'external-fixture-matrix'), {
     id: 'external-fixture-matrix',
+    status: 'deferred',
+    evidence: ['External trust matrix v2 strict'],
+    reason: 'Android SDK unavailable',
+  });
+});
+
+test('release gate maps external trust matrix v2 claim', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-06-20T00:00:00.000Z',
+    steps: [
+      { name: 'External trust matrix v2 strict', command: 'npm run external-fixture:matrix -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+    ],
+  });
+
+  assert.deepEqual(report.claims.find((claim) => claim.id === 'external-trust-matrix-v2'), {
+    id: 'external-trust-matrix-v2',
     status: 'deferred',
     evidence: ['External trust matrix v2 strict'],
     reason: 'Android SDK unavailable',
