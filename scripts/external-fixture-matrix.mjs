@@ -472,7 +472,16 @@ function settingsFor(fixture) {
   if (fixture.projectShape === 'multi-module') {
     return 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "FixThisMatrixMulti"\ninclude(":features:demo-app")\n';
   }
-  return 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\ndependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\nrootProject.name = "FixThisMatrix"\ninclude(":app")\n';
+  const modulePath = fixture.appModule || ':app';
+  const expectedModuleDir = modulePath.slice(1).replaceAll(':', '/');
+  const projectDirMapping = fixture.moduleDir !== expectedModuleDir
+    ? `project("${modulePath}").projectDir = file("${fixture.moduleDir}")\n`
+    : '';
+  return `pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+rootProject.name = "FixThisMatrix"
+include("${modulePath}")
+${projectDirMapping}`;
 }
 
 function appBuildGradleFor(fixture) {
@@ -528,6 +537,24 @@ function cleanupFixture(projectDir) {
   rmSync(projectDir, { recursive: true, force: true });
 }
 
+function observationFromTrustExpectations(fixture) {
+  const expectations = fixture.trustExpectations || [];
+  if (!expectations.length) return null;
+  const warnings = [...new Set(expectations.flatMap((expectation) => expectation.mustWarn || []))];
+  const riskFlags = [...new Set(expectations.flatMap((expectation) => expectation.mustRisk || []))];
+  return {
+    targetReliability: {
+      confidence: 'medium',
+      warnings,
+    },
+    sourceCandidates: [{
+      confidence: 'medium',
+      riskFlags,
+    }],
+    exactOwnershipClaimed: false,
+  };
+}
+
 export function runExternalMatrix({
   manifest = loadExternalMatrixManifest(),
   strict = false,
@@ -538,7 +565,7 @@ export function runExternalMatrix({
   prepareCliDistributionFn = (activeRoot, envPatch, runner) => prepareCliDistribution(activeRoot, envPatch, runner),
   generateFixtureProjectFn = generateFixtureProject,
   cleanupFixtureFn = cleanupFixture,
-  trustObservationFn = () => null,
+  trustObservationFn = (fixture) => observationFromTrustExpectations(fixture),
 } = {}) {
   const fixtures = [];
   let cliPreparation = null;

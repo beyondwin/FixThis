@@ -353,6 +353,20 @@ test('generateFixtureProject creates a minimal Gradle Compose project shape', ()
   }
 });
 
+test('generateFixtureProject maps non-default moduleDir for an appModule path', () => {
+  const root = mkdtempSync(join(tmpdir(), 'fixthis-matrix-module-dir-'));
+  try {
+    const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff');
+    const projectDir = join(root, fixture.id);
+    generateFixtureProject(fixture, projectDir, '/repo');
+
+    assert.equal(existsSync(join(projectDir, 'sample/build.gradle.kts')), true);
+    assert.match(readFileSync(join(projectDir, 'settings.gradle.kts'), 'utf8'), /project\(":app"\)\.projectDir = file\("sample"\)/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('prepareCliDistribution builds the local CLI when installDist output is missing', () => {
   const root = mkdtempSync(join(tmpdir(), 'fixthis-matrix-cli-'));
   const calls = [];
@@ -494,6 +508,29 @@ test('runExternalMatrix attaches trust findings from injected observations', () 
   assert.deepEqual(report.fixtures[0].trustFindings, [
     { kind: 'visual-area', status: 'pass', message: 'confidence medium with warnings VISUAL_AREA_ONLY' },
   ]);
+});
+
+test('runExternalMatrix evaluates declared setup-only trust expectations without injected observations', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'weak-source-caveated');
+  const report = runExternalMatrix({
+    manifest: { schemaVersion: 2, fixtures: [fixture] },
+    strict: true,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: {} },
+    root: '/repo',
+    runCommandFn: () => ({ status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    prepareCliDistributionFn: () => ({ name: 'prepare-cli', command: './gradlew :fixthis-cli:installDist --no-daemon', status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(report.fixtures[0].outcome, 'caveated_pass');
+  assert.deepEqual(report.fixtures[0].trustFindings, [{
+    kind: 'weak-source',
+    status: 'pass',
+    message: 'confidence medium with warnings WEAK_SOURCE_EVIDENCE',
+  }]);
 });
 
 test('runExternalMatrix continues after accepted doctor next action', () => {
