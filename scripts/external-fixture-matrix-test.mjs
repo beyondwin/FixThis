@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -18,6 +19,7 @@ import {
   planRuntimeTrustCommands,
   prepareCliDistribution,
   renderMatrixMarkdown,
+  repoRoot,
   runExternalMatrix,
   validateExternalMatrixManifest,
   writeMatrixReports,
@@ -312,6 +314,19 @@ test('writeMatrixReports writes json and markdown reports', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('dry-run report keeps v2 runtime metadata for runtime-capable fixtures', () => {
+  const result = spawnSync(process.execPath, ['scripts/external-fixture-matrix.mjs', '--dry-run'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(readFileSync('build/reports/fixthis-external-fixture-matrix/report.json', 'utf8'));
+  assert.equal(report.schemaVersion, '2.0');
+  assert.equal(report.summary.total, 8);
+  assert.equal(report.fixtures.some((fixture) => fixture.runtimeCapability === 'first-handoff-trust'), true);
 });
 
 test('package exposes external fixture matrix commands', () => {

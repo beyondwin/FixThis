@@ -657,7 +657,13 @@ function main() {
       fixtures: manifest.fixtures.map((fixture) => ({
         fixtureId: fixture.id,
         status: 'planned',
-        commands: planFixtureCommands(fixture, join(defaultMatrixWorkRoot, fixture.id), repoRoot).map((entry) => ({ ...entry, status: 'planned', durationMs: 0 })),
+        outcome: 'planned',
+        runtimeCapability: fixture.runtimeCapability,
+        trustFindings: [],
+        commands: [
+          ...planFixtureCommands(fixture, join(defaultMatrixWorkRoot, fixture.id), repoRoot),
+          ...planRuntimeTrustCommands(fixture),
+        ].map((entry) => ({ ...entry, status: 'planned', durationMs: 0 })),
       })),
     })
     : runExternalMatrix({ manifest, strict: args.strict });
