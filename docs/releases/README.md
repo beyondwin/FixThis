@@ -11,6 +11,8 @@ Maven Central, and the Gradle Plugin Portal.
 ## Releases
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [v1.3.0](v1.3.0.md) — external app trust matrix v2, first-handoff recovery
+  evidence, release-gate aggregation, and the maintainer handover guide.
 - [v1.2.0](v1.2.0.md) — configurable test-tag conventions, sharper
   edit-surface confidence, residual-risk release gates, session package
   decomposition, and release-version sync hardening.

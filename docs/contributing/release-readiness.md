@@ -32,7 +32,7 @@ discovery.
 - Install the CLI/MCP package with npm:
   `npm install -g @beyondwin/fixthis`.
 - Install the CLI/MCP package from GitHub Releases:
-  `scripts/install-fixthis.sh --version v1.2.0`.
+  `scripts/install-fixthis.sh --version v1.3.0`.
 - Use `fixthis install-agent --project-dir . --target all` in an external
   debug Compose app.
 - Use **Copy Prompt** for chat-style agents without MCP.

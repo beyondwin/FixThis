@@ -13,7 +13,7 @@ evidence. It is not a tagged release.
 ## Compatibility Notes
 
 - External Android apps should use Gradle plugin
-  `io.github.beyondwin.fixthis.compose` version `1.2.0` until the next release
+  `io.github.beyondwin.fixthis.compose` version `1.3.0` until the next release
   candidate updates this page.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - The current source tree builds the sidekick and sample with Android

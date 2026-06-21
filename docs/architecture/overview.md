@@ -107,7 +107,7 @@ Extension defaults:
 ```kotlin
 fixthis {
     enabled.set(true)
-    runtimeVersion.set("1.2.0")
+    runtimeVersion.set("1.3.0")
     addDebugRuntime.set(true)
     generateSourceIndex.set(true)
     generateProjectMetadata.set(true)

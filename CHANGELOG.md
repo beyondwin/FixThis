@@ -29,6 +29,51 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 No unreleased user-visible changes yet.
 
+## v1.3.0 — 2026-06-21
+
+### Added
+
+- Added the External App Trust Matrix v2 evidence line. The external fixture
+  matrix now models setup-only and first-handoff-trust project shapes, checks
+  required handoff caveats for visual-area, interop, shared-component, and weak
+  source cases, and reports pass, deferred, fail, fixture drift, or caveated
+  pass without overclaiming exact source ownership.
+- Added release-gate aggregation for the `external-trust-matrix-v2` claim, so
+  maintainers can see the external project setup and runtime trust evidence in
+  the same local release decision report as release reality, drift, agent-loop,
+  source trust, interop, and console reliability evidence.
+- Added first external-app handoff recovery evidence. Agent-loop smoke reports
+  now carry recovery-oriented `failureCode`, `readiness`, `nextAction`,
+  `verify`, and `fix` details when runtime prerequisites are missing, while
+  strict connected runs still fail when Android SDK, ADB, a ready emulator, or
+  the launched debug app is unavailable.
+- Added a long-form fullstack/tooling handover guide for maintainers who need
+  to understand how the debug Android runtime, desktop CLI/MCP server, browser
+  console, local `.fixthis/` workspace, and release evidence scripts fit
+  together.
+
+### Changed
+
+- External fixture matrix reports now distinguish setup validation from
+  runtime-capable handoff trust validation, build the local CLI distribution
+  before fixture execution, and keep fixture-local agent configuration writes
+  isolated under a fixture-specific JVM `user.home`.
+- Release readiness now documents the External App Trust Matrix v2 gate and the
+  first-handoff recovery gate as explicit evidence-backed claims rather than
+  loose release-note promises.
+- The documentation index now links the CLI exit-code reference, source
+  matching reference, and fullstack handover guide so agent-facing and
+  maintainer-facing docs are easier to find from the top-level docs entry.
+
+### Fixed
+
+- Closed strict-runtime gaps in the external trust matrix evidence path so
+  missing Android runtime prerequisites cannot be mistaken for a passing
+  connected handoff proof.
+- Aligned `doctor --json` and `install-agent --json` recovery wording through
+  CLI agreement tests, keeping generated agent instructions consistent with the
+  first-handoff recovery path.
+
 ## v1.2.0 — 2026-06-07
 
 ### Added
