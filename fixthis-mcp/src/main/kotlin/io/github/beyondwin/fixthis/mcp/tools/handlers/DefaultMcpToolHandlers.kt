@@ -19,6 +19,7 @@ internal fun defaultMcpToolHandlers(
     OperationBackedToolHandler("fixthis_read_feedback", feedbackOps::readFeedback),
     OperationBackedToolHandler("fixthis_resolve_feedback", feedbackOps::resolveFeedback),
     OperationBackedToolHandler("fixthis_claim_feedback", feedbackOps::claimFeedback),
+    OperationBackedToolHandler("fixthis_capture_runtime_evidence", feedbackOps::captureRuntimeEvidence),
 )
 
 private class OperationBackedToolHandler(

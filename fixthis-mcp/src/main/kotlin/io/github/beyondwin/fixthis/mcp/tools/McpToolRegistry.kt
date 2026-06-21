@@ -42,6 +42,9 @@ private const val CLAIM_FEEDBACK_DESCRIPTION =
         "Call this AFTER reading the item and BEFORE making code changes. Returns the updated item. " +
         "The user's browser console reflects the change within 2 seconds. " +
         "After this call you must eventually call fixthis_resolve_feedback for the same itemId."
+private const val CAPTURE_RUNTIME_EVIDENCE_DESCRIPTION =
+    "Attach bounded local runtime evidence to a feedback item. " +
+        "Stores a summary and optional local artifact path; raw logs and traces are not emitted in compact handoff."
 
 private data class ToolDefinition(
     val name: String,
@@ -186,6 +189,21 @@ private val ToolDefinitions = listOf(
             "itemId" to stringProperty("Feedback item id to claim."),
             "agentNote" to stringProperty("Optional short note shown next to the item in the user's console."),
             required = listOf("itemId"),
+        ),
+    ),
+    ToolDefinition(
+        name = "fixthis_capture_runtime_evidence",
+        description = CAPTURE_RUNTIME_EVIDENCE_DESCRIPTION,
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "itemId" to stringProperty("Feedback item id to attach evidence to."),
+            "type" to enumStringProperty(
+                description = "Runtime evidence type.",
+                values = listOf("logcat_window", "frame_summary", "memory_summary", "trace_artifact"),
+            ),
+            "summary" to stringProperty("Bounded evidence summary. Do not include raw logs or trace payloads."),
+            "artifactPath" to stringProperty("Optional local artifact path under ignored storage."),
+            required = listOf("itemId", "type", "summary"),
         ),
     ),
 )

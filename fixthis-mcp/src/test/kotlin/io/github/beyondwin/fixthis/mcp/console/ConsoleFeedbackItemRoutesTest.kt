@@ -66,6 +66,44 @@ private inline fun withConsoleServer(service: FeedbackSessionService, block: (Fe
 @Suppress("LargeClass")
 class ConsoleFeedbackItemRoutesTest {
     @Test
+    fun runtimeEvidenceRouteAttachesEvidenceToRequestedItem() {
+        val fixture = newConsoleSessionFixtureWithTempRoot(
+            idGenerator = FakeIds("session-1", "item-1", "evidence-1").next,
+        )
+        fixture.use { context ->
+            val service = context.service
+            val store = context.store
+            val server = context.server
+            val session = service.openSession(null, newSession = true)
+            store.addScreen(
+                session.sessionId,
+                SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 100L, displayName = "Screen"),
+            )
+            store.addItem(
+                session.sessionId,
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 3f, 4f)),
+                    comment = "Needs evidence",
+                ),
+            )
+
+            val response = ConsoleHttpTestClient(server.url).postJson(
+                "/api/items/item-1/runtime-evidence",
+                """{"sessionId":"session-1","type":"logcat_window","summary":"2 warnings","artifactPath":".fixthis/runtime-evidence/evidence-1/logcat.txt"}""",
+            )
+
+            assertEquals(200, response.statusCode, response.body)
+            val updated = service.getSession("session-1")
+            assertEquals(1, updated.runtimeEvidence.size)
+            assertEquals("evidence-1", updated.items.single().runtimeEvidenceIds.single())
+        }
+    }
+
+    @Test
     fun itemPatchUpdatesDraftAnnotation() {
         val fixture = newConsoleSessionFixture(
             clock = FakeLongs(100L, 200L, 300L, 400L).next,

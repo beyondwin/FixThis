@@ -120,6 +120,30 @@ internal class FeedbackItemRoutes(
             }
             else -> {
                 if (!exchange.requestURI.path.startsWith("/api/items/")) return
+                if (exchange.requestURI.path.endsWith("/runtime-evidence")) {
+                    exchange.requireMethod("POST") {
+                        val itemId = exchange.requestURI.path
+                            .removePrefix("/api/items/")
+                            .removeSuffix("/runtime-evidence")
+                            .trim('/')
+                            .takeIf { it.isNotBlank() }
+                            ?: throw FeedbackConsoleHttpException(404, "Feedback item not found")
+                        val request = exchange.decodeRuntimeEvidenceBody()
+                        val sessionId = requestSessionId(request.sessionId)
+                        val summary = request.summary?.takeIf { it.isNotBlank() }
+                            ?: throw FeedbackConsoleHttpException(422, "runtime evidence summary is required")
+                        val session = service.captureRuntimeEvidence(
+                            sessionId = sessionId,
+                            itemId = itemId,
+                            type = request.type,
+                            summary = summary,
+                            artifactPath = request.artifactPath,
+                        )
+                        eventBus.emitSessionUpdated(session)
+                        exchange.sendJson(200, session)
+                    }
+                    return
+                }
                 val itemId = exchange.requestURI.path.removePrefix("/api/items/")
                     .takeIf { it.isNotBlank() }
                     ?: throw FeedbackConsoleHttpException(404, "Feedback item not found")
@@ -174,6 +198,8 @@ internal class FeedbackItemRoutes(
     private fun HttpExchange.decodeSavePreviewFeedbackItemsBody(): SaveSnapshotRequest = decodeJsonBody(SaveSnapshotRequest.serializer())
 
     private fun HttpExchange.decodeUpdateFeedbackItemBody(): UpdateAnnotationRequest = decodeJsonBody(UpdateAnnotationRequest.serializer())
+
+    private fun HttpExchange.decodeRuntimeEvidenceBody(): RuntimeEvidenceRequest = decodeJsonBody(RuntimeEvidenceRequest.serializer())
 
     private fun HttpExchange.decodeAgentHandoffBody(): AgentHandoffRequest = decodeJsonBody(AgentHandoffRequest.serializer(), blankValue = AgentHandoffRequest())
 

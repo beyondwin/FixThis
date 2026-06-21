@@ -3,6 +3,7 @@ package io.github.beyondwin.fixthis.mcp.console
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -32,6 +33,16 @@ data class UpdateAnnotationRequest(
     val severity: AnnotationSeverityDto? = null,
     val comment: String? = null,
     val status: AnnotationStatusDto? = null,
+)
+
+@Serializable
+data class RuntimeEvidenceRequest(
+    val sessionId: String? = null,
+    val type: RuntimeEvidenceType,
+    val durationMillis: Long? = null,
+    val filter: String? = null,
+    val summary: String? = null,
+    val artifactPath: String? = null,
 )
 
 @Serializable

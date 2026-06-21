@@ -29,6 +29,8 @@ import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCacheRetentionPoli
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenshotArtifactPromoter
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceService
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
@@ -102,6 +104,9 @@ class FeedbackSessionService(
         bridge = bridge,
         store = store,
         previewCaptureService = previewCaptureService,
+    )
+    private val runtimeEvidenceService = RuntimeEvidenceService(
+        idGenerator = { store.nextId() },
     )
 
     // --- Session lifecycle (delegates to FeedbackSessionRegistry) ---
@@ -296,6 +301,24 @@ class FeedbackSessionService(
     fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto = annotations.deleteDraftFeedback(sessionId, itemId)
 
     fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = annotations.markItemsHandedOff(sessionId, itemIds)
+
+    fun captureRuntimeEvidence(
+        sessionId: String,
+        itemId: String,
+        type: RuntimeEvidenceType,
+        summary: String,
+        artifactPath: String?,
+    ): SessionDto {
+        val session = registry.getSession(sessionId)
+        val updated = runtimeEvidenceService.attachManualSummary(
+            session = session,
+            itemId = itemId,
+            type = type,
+            summary = summary,
+            artifactPath = artifactPath,
+        )
+        return store.replaceSessionForDomain(updated)
+    }
 
     // --- Handoff (kept on façade; uses registry for session lookup) ---
 

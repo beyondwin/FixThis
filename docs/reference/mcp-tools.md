@@ -317,6 +317,21 @@ Arguments:
 - `status`: required status. Must be one of `resolved`, `needs_clarification`, or `wont_fix`.
 - `summary`: optional agent-facing summary or reason. The browser console shows this on the saved annotation detail.
 
+`fixthis_capture_runtime_evidence`
+
+Attaches bounded local runtime evidence to a feedback item. The first supported
+path stores a summary and optional local artifact path; raw logs and traces are
+not emitted in compact handoff.
+
+Arguments:
+
+- `sessionId`: optional feedback session id. If omitted, the active session is used.
+- `itemId`: required feedback item id.
+- `type`: one of `logcat_window`, `frame_summary`, `memory_summary`, or
+  `trace_artifact`.
+- `summary`: required bounded evidence summary.
+- `artifactPath`: optional local artifact path under ignored storage.
+
 ### Optional SourceCandidate fields
 
 `SourceCandidate` objects appear in the JSON payload returned by `fixthis_read_feedback` under each feedback item's `sourceCandidates` list. The following fields are optional and were added to carry confidence and risk metadata. Older persisted sessions (written before this feature was introduced) deserialize correctly because all new fields are optional; the formatter emits them only when they are present.
