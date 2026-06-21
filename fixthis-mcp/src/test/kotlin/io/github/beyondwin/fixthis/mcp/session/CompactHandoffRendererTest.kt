@@ -2429,6 +2429,180 @@ class CompactHandoffRendererTest {
         assertTrue(!markdown.contains("exact ownership"), markdown)
     }
 
+    @Test
+    fun compactHandoffRendersSourceFirstVerificationGuidanceForStrongTargetAndSource() {
+        val markdown = CompactHandoffRenderer.render(
+            oneItemSession(
+                verificationGuidanceItem(
+                    targetReliability = TargetReliability(confidence = TargetConfidence.HIGH),
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 56,
+                            score = 0.96,
+                            confidence = SelectionConfidence.HIGH,
+                            scoreMargin = 0.55,
+                            matchReasons = listOf("selected testTag"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(
+            markdown.contains("  verify: source-first  because=strong-target,strong-source,clear-margin"),
+            markdown,
+        )
+        assertTrue(
+            markdown.contains("  verifyBeforeEdit: claim-feedback,inspect-source,compare-screenshot"),
+            markdown,
+        )
+    }
+
+    @Test
+    fun compactHandoffDowngradesStaleSourceCandidateToHintOnlyVerification() {
+        val markdown = CompactHandoffRenderer.render(
+            oneItemSession(
+                verificationGuidanceItem(
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.HIGH,
+                        warnings = listOf(TargetReliabilityWarning.SOURCE_INDEX_STALE),
+                    ),
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 56,
+                            score = 0.96,
+                            confidence = SelectionConfidence.HIGH,
+                            scoreMargin = 0.31,
+                            stale = true,
+                            staleReason = "excerpt mismatch",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(markdown.contains("  verify: hint-only"), markdown)
+        assertTrue(markdown.contains("stale-source"), markdown)
+        assertTrue(markdown.contains("  verifyBeforeEdit: claim-feedback,compare-screenshot,review-edit-surface,verify-manually"), markdown)
+        assertTrue(!markdown.contains("  verify: source-first"), markdown)
+    }
+
+    @Test
+    fun compactHandoffDowngradesVisualAreaTargetToManualVerification() {
+        val markdown = CompactHandoffRenderer.render(
+            oneItemSession(
+                verificationGuidanceItem(
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 120f, 80f)),
+                    selectedNode = null,
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.VISUAL_AREA_ONLY),
+                    ),
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 56,
+                            score = 0.96,
+                            confidence = SelectionConfidence.HIGH,
+                            scoreMargin = 0.31,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(markdown.contains("  verify: manual"), markdown)
+        assertTrue(markdown.contains("visual-area"), markdown)
+        assertTrue(markdown.contains("  verifyBeforeEdit: claim-feedback,compare-screenshot,verify-manually"), markdown)
+        assertTrue(!markdown.contains("  verify: source-first"), markdown)
+    }
+
+    @Test
+    fun compactHandoffDowngradesInteropToHintOnlyVerification() {
+        val markdown = CompactHandoffRenderer.render(
+            oneItemSession(
+                verificationGuidanceItem(
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.LOW,
+                        warnings = listOf(TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP),
+                    ),
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 56,
+                            score = 0.68,
+                            confidence = SelectionConfidence.MEDIUM,
+                            scoreMargin = 0.21,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(markdown.contains("  verify: hint-only  because=interop-risk,low-target-confidence"), markdown)
+        assertTrue(
+            markdown.contains("  verifyBeforeEdit: claim-feedback,compare-screenshot,review-edit-surface,verify-manually"),
+            markdown,
+        )
+        assertTrue(!markdown.contains("  verify: source-first"), markdown)
+    }
+
+    @Test
+    fun compactHandoffDowngradesSensitiveWarningToManualVerification() {
+        val markdown = CompactHandoffRenderer.render(
+            oneItemSession(
+                verificationGuidanceItem(
+                    targetReliability = TargetReliability(
+                        confidence = TargetConfidence.HIGH,
+                        warnings = listOf(TargetReliabilityWarning.SENSITIVE_TEXT_REDACTED),
+                    ),
+                    sourceCandidates = listOf(
+                        SourceCandidate(
+                            file = "sample/src/main/java/ReviewScreen.kt",
+                            line = 56,
+                            score = 0.96,
+                            confidence = SelectionConfidence.HIGH,
+                            scoreMargin = 0.55,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(markdown.contains("  verify: manual"), markdown)
+        assertTrue(markdown.contains("sensitive-redaction"), markdown)
+        assertTrue(markdown.contains("  verifyBeforeEdit: claim-feedback,verify-manually"), markdown)
+        assertTrue(!markdown.contains("  verify: source-first"), markdown)
+    }
+
+    private fun verificationGuidanceItem(
+        target: AnnotationTargetDto = AnnotationTargetDto.Node("node-1", FixThisRect(0f, 0f, 100f, 50f)),
+        selectedNode: FixThisNode? = FixThisNode(
+            uid = "node-1",
+            composeNodeId = 1,
+            rootIndex = 0,
+            treeKind = TreeKind.MERGED,
+            boundsInWindow = FixThisRect(0f, 0f, 100f, 50f),
+            testTag = "comp:ReviewScreen:submit",
+            role = "Button",
+        ),
+        targetReliability: TargetReliability,
+        sourceCandidates: List<SourceCandidate>,
+    ): AnnotationDto = AnnotationDto(
+        itemId = "item-guidance",
+        screenId = "screen-1",
+        createdAtEpochMillis = 1L,
+        updatedAtEpochMillis = 1L,
+        target = target,
+        selectedNode = selectedNode,
+        comment = "Tune this target",
+        sequenceNumber = 1,
+        targetReliability = targetReliability,
+        sourceCandidates = sourceCandidates,
+    )
+
     private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(
         sessionId = "session-one-item",
         packageName = "io.github.beyondwin.fixthis.sample",

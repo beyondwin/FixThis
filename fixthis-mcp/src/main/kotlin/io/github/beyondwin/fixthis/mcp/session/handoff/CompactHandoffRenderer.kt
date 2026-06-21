@@ -221,6 +221,13 @@ object CompactHandoffRenderer {
         appendEditSurfaceBlock(item)
         appendCandidatesBlock(item, context.sourceRoot)
         appendReliabilityBlock(item.targetReliability)
+        appendVerificationGuidanceBlock(
+            AgentVerificationGuidanceClassifier.classify(
+                item = item,
+                isOverlap = context.isOverlap,
+                hasDuplicateReference = context.dupRefMarker != null,
+            ),
+        )
         if (context.isInstanceLeader && context.groupSize >= 2 && !context.isOverlap) {
             appendLine(
                 "  note: ${context.groupSize} markers map to same call site — " +
@@ -266,6 +273,15 @@ object CompactHandoffRenderer {
             appendLine("  warning: ${warning.handoffMessage().inlineSafe()}")
         }
     }
+
+    private fun StringBuilder.appendVerificationGuidanceBlock(guidance: AgentVerificationGuidance) {
+        appendLine(
+            "  verify: ${guidance.mode.token()}  because=${guidance.reasons.joinToString(",")}",
+        )
+        appendLine("  verifyBeforeEdit: ${guidance.beforeEdit.joinToString(",")}")
+    }
+
+    private fun AgentVerificationMode.token(): String = name.lowercase().replace("_", "-")
 
     private fun TargetReliability.compactActionToken(): String = when (confidence) {
         io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.HIGH -> "inspect-source-first"

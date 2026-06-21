@@ -252,7 +252,7 @@ screenshot_line = "screenshot: " path
 viewport_line   = "viewport: " width "×" height          ; emitted iff screenshot has dims
 activity_line   = "activity: " activity_name             ; emitted iff != display_name
 overlap_block = "Overlap group " N " (resolve one marker at a time):" item_block+
-item_block    = item_header id_line target_summary_line target_line crop_line? edit_surface_block source_block reliability_block? ""
+item_block    = item_header id_line target_summary_line target_line crop_line? edit_surface_block source_block reliability_block ""
 item_header   = "[" N "] " title                         ; title may include severity prefix
 id_line       = "  id: " item_id
 target_summary_line = "  target: " target_summary
@@ -269,10 +269,12 @@ candidate_line= "  " file ":" line "  conf=" lvl [ "  owner=" composable ] "  ma
                                                                           ↑ owner/margin/matched are first line only; runner-ups omit them
                                                                           ; file is stripped of source_root prefix when present
 caution_line  = "  note: " text                          ; emitted iff caution OR collision
-reliability_block = target_confidence_line target_action_line? warning_line*
+reliability_block = target_confidence_line? target_action_line? warning_line* verification_line verify_before_edit_line
 target_confidence_line = "  targetConfidence=" ("high" | "medium" | "low" | "unknown")
 target_action_line = "  targetAction=" ("inspect-source-first" | "inspect-and-corroborate" | "treat-source-paths-as-hints" | "verify-manually")
 warning_line   = "  warning: " text
+verification_line = "  verify: " ("source-first" | "corroborate" | "hint-only" | "manual") "  because=" reason_token ("," reason_token)*
+verify_before_edit_line = "  verifyBeforeEdit: " action_token ("," action_token)*
 footer         = "---"
                  "agent_protocol:"
                  "  before_work: fixthis_claim_feedback({sessionId, itemId})"
@@ -336,6 +338,22 @@ When no source candidates are available for the item, the source block consists 
 - `warning:` — optional target-level caveats, such as visual-area-only,
   possible AndroidView/WebView interop, stale source index, forced screen
   mismatch, missing fingerprint, or sensitive text redaction.
+- `verify:` — item-level agent verification posture derived at render time
+  from target reliability, source-candidate confidence/margin/staleness,
+  overlap/duplicate risk, target kind, and edit-surface hints. `source-first`
+  means strong target plus strong source evidence; `corroborate` means useful
+  evidence that still needs screenshot, semantics, and code cross-checking;
+  `hint-only` means source paths are search hints; `manual` means evidence is
+  missing or risky enough that the agent must verify manually before editing.
+- `verifyBeforeEdit:` — comma-separated action tokens for the agent before
+  changing app code. Current tokens are `claim-feedback`, `inspect-source`,
+  `compare-screenshot`, `check-target-summary`, `review-edit-surface`, and
+  `verify-manually`. Future runtime-evidence tokens such as `check-logcat`,
+  `check-frame-summary`, and `check-memory-summary` are reserved for optional
+  evidence attachments.
+- Items with stale source candidates, visual-area targets, forced fingerprint
+  mismatch, sensitive redaction, interop warnings, overlap risk, or duplicate
+  marker references must not render `verify: source-first`.
 
 ### Reason-token mapping
 
