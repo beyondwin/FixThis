@@ -8,7 +8,7 @@ evidence. It is not a tagged release.
 
 ## Highlights
 
-- No unreleased user-visible changes yet.
+- Android agent evidence umbrella: compact handoffs now include explicit verification posture, runtime evidence summaries can be attached locally, and Codex workflow skills package install, feedback, evidence, and release-smoke guidance.
 
 ## Compatibility Notes
 

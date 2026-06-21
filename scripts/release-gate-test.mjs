@@ -164,6 +164,12 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       evidence: ['Handoff evaluation'],
     },
     {
+      id: 'android-agent-evidence-umbrella',
+      status: 'fail',
+      evidence: ['Handoff evaluation'],
+      reason: 'missing evidence commands: Runtime evidence attachment, Plugin contract',
+    },
+    {
       id: 'runtime-source-trust',
       status: 'deferred',
       evidence: ['Runtime trust strict'],
@@ -255,6 +261,22 @@ test('release gate maps external first handoff recovery claim', () => {
     status: 'deferred',
     evidence: ['Agent loop smoke contracts', 'Agent loop smoke'],
     reason: 'Android SDK unavailable',
+  });
+});
+
+test('release gate maps Android agent evidence umbrella claim', () => {
+  const report = buildReleaseGateReport({
+    steps: [
+      { name: 'Handoff evaluation', command: 'npm run handoff:eval:test', status: 'pass' },
+      { name: 'Runtime evidence attachment', command: 'npm run runtime-evidence:smoke', status: 'pass' },
+      { name: 'Plugin contract', command: 'npm run plugin:contract:test', status: 'pass' },
+    ],
+  });
+
+  assert.deepEqual(report.claims.find((claim) => claim.id === 'android-agent-evidence-umbrella'), {
+    id: 'android-agent-evidence-umbrella',
+    status: 'pass',
+    evidence: ['Handoff evaluation', 'Runtime evidence attachment', 'Plugin contract'],
   });
 });
 

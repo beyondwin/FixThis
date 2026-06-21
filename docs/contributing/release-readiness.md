@@ -276,6 +276,21 @@ strict connected evidence must fail. A caveated pass is acceptable only when
 the handoff preserves the required warning or risk signal, such as
 `VISUAL_AREA_ONLY`, `POSSIBLE_VIEW_INTEROP`, or `SHARED_COMPONENT`.
 
+## Android Agent Evidence Umbrella
+
+The Android agent evidence umbrella may be claimed only when each area below
+has matching local evidence from the release commit. This evidence pack does
+not add release-build, XML/View, WebView, or cloud support.
+
+| Claim | Evidence | Strict behavior |
+| --- | --- | --- |
+| Compact handoff renders agent verification posture. | `npm run handoff:eval:test` plus `./gradlew :fixthis-mcp:test --tests "*CompactHandoffRendererTest" --no-daemon` | Fails on renderer regression. |
+| Runtime evidence attachments stay optional and local. | `npm run runtime-evidence:smoke` | Non-strict Android absence is deferred; strict connected run fails when unavailable. |
+| Codex plugin workflows preserve safety language. | `npm run plugin:contract:test` | Fails when required skills, commands, or safety language drift. |
+
+The release gate consumes these rows as the `android-agent-evidence-umbrella`
+claim.
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.

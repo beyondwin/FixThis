@@ -367,6 +367,26 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   '`npm run console:browser:reliability`',
 );
+requireIncludes(
+  'R52.android-agent-evidence-umbrella-section',
+  'docs/contributing/release-readiness.md',
+  'Android Agent Evidence Umbrella',
+);
+requireIncludes(
+  'R53.android-agent-evidence-runtime-smoke',
+  'docs/contributing/release-readiness.md',
+  'npm run runtime-evidence:smoke',
+);
+requireIncludes(
+  'R54.android-agent-evidence-plugin-contract',
+  'docs/contributing/release-readiness.md',
+  'npm run plugin:contract:test',
+);
+requireIncludes(
+  'R55.android-agent-evidence-gate-claim',
+  'scripts/release-gate.mjs',
+  'android-agent-evidence-umbrella',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

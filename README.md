@@ -153,6 +153,7 @@ FixThis adds the missing handoff structure:
 - **Honest target confidence.** Handoffs can mark visual-only, stale, or
   possible AndroidView/WebView targets so agents know when to verify rather
   than trust source hints directly.
+- **Agent verification posture.** Handoffs say whether the agent should inspect source first, corroborate multiple signals, treat source paths as hints, or verify manually.
 - **Retry-safe local batches.** Slow or retried `Copy Prompt` / `Save to MCP`
   saves reuse browser draft ids, so duplicate requests do not create duplicate
   agent work.

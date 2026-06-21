@@ -17,6 +17,11 @@ export const releaseClaimDefinitions = Object.freeze([
   { id: 'external-fixture-matrix', evidenceNames: ['External trust matrix v2 strict'] },
   { id: 'external-trust-matrix-v2', evidenceNames: ['External trust matrix v2 strict'] },
   { id: 'handoff-correctness-v2', evidenceNames: ['Handoff evaluation'] },
+  {
+    id: 'android-agent-evidence-umbrella',
+    evidenceNames: ['Handoff evaluation', 'Runtime evidence attachment', 'Plugin contract'],
+    requireAllEvidence: true,
+  },
   { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
   { id: 'console-sse-reliability', evidenceNames: ['Console browser reliability'] },
   { id: 'adb-discovery', evidenceNames: ['ADB discovery tests'] },
