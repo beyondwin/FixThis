@@ -2,6 +2,11 @@
 
 FixThis MCP is the primary agent workflow for the feedback console. The Android app only shows MCP browser connection status; selection, comments, `Copy Prompt`, `Save to MCP`, and persistence happen in the desktop browser console.
 
+Codex plugin skills wrap the same CLI and MCP workflows for install,
+feedback-loop, Android evidence, and release-smoke use cases. They do not
+change MCP tool schemas or persisted queue contracts; the signatures below
+remain canonical.
+
 ## Repository Sample
 
 In this repository the FixThis Studio sample Android app is exposed as Gradle project `:app`, with sources under `sample/` and application id `io.github.beyondwin.fixthis.sample`. The local smoke flow is:

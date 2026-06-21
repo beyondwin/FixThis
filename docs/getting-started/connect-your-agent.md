@@ -67,6 +67,14 @@ fixthis install-agent --project-dir . --target all
 fixthis doctor --project-dir . --json
 ```
 
+## Codex Plugin
+
+The Codex plugin packages the install, feedback-loop, Android evidence, and
+release-smoke workflows as skills. It does not replace setup: canonical
+bootstrap still starts with `fixthis install-agent --project-dir . --target all`
+and uses `fixthis doctor --project-dir . --json` as the readiness source of
+truth.
+
 Restart Claude Code or Codex after MCP config is written. Then open the
 console with `fixthis_open_feedback_console`.
 
