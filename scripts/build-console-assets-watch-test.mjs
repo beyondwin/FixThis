@@ -31,7 +31,7 @@ test('watch mode rewrites artifacts atomically on source change', async (t) => {
   const consoleSrc = join(repoRoot, 'fixthis-mcp/src/main/console');
   const probeFile = join(consoleSrc, 'devReloadProbe.js');
   // Use a unique probe module to avoid touching real sources.
-  writeFileSync(probeFile, '// @requires (none)\nconst FixThisDevReloadProbe = 1;\n');
+  writeFileSync(probeFile, '// @requires (none)\n// probe: 1\n');
 
   // Cleanup: remove the probe and rebuild reproducibly so any subsequent
   // `node scripts/build-console-assets.mjs --check` sees the canonical artifacts.
@@ -69,7 +69,7 @@ test('watch mode rewrites artifacts atomically on source change', async (t) => {
 
   // Touch the probe to trigger a rebuild.
   await wait(100);
-  writeFileSync(probeFile, '// @requires (none)\nconst FixThisDevReloadProbe = 2;\n');
+  writeFileSync(probeFile, '// @requires (none)\n// probe: 2\n');
 
   await waitFor(() => rebuildCount >= 2 && statSync(metaPath).mtimeMs > firstMtime, 10000);
 

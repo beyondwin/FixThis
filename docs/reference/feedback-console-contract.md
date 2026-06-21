@@ -14,6 +14,7 @@
 | Pending target secondary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="cancel"]` | `Cancel` |
 | Pending target primary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="addAnnotation"]` | `Add annotation` |
 | Saved annotation destructive action | `inspectorFooter[data-editor-state="saved"] [data-action="delete"]` | `Delete annotation` |
+| Saved annotation runtime evidence action | `attachEvidenceButton` | `Attach evidence` |
 | Refresh devices | `refreshDevicesButton` | `Refresh devices` |
 | Clear FixThis device selection | `disconnectDeviceButton` | `x` icon |
 | Workflow progress | `workflowProgress` | `FixThis feedback workflow` |
@@ -62,6 +63,10 @@
   browser can show prompt-handoff history, but it does not require or imply
   `delivery: sent`.
 - `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
+- `Attach evidence` appears on saved annotation detail and posts a bounded
+  manual `logcat_window` summary to
+  `/api/items/<itemId>/runtime-evidence` for the active session. The browser
+  action does not stream or copy raw logs into the console.
 - `Clear Draft` deletes unsent draft feedback after confirmation.
 - Live preview frames are transient. Persisted `screens` are evidence snapshots, not every preview frame.
 - Browser-only pending work is stored as a schema-v2 DraftWorkspace envelope
@@ -357,6 +362,10 @@ When no source candidates are available for the item, the source block consists 
   the item. Compact handoff renders at most 3 attachments per item, local
   artifact paths or `no-artifact`, and bounded summaries only. Raw logcat,
   frame, memory, or trace payloads are not emitted in compact Markdown.
+- `npm run runtime-evidence:smoke` writes a local runtime evidence report and
+  defers missing Android prerequisites in non-strict mode. The strict variant
+  (`npm run runtime-evidence:smoke -- --strict`) fails when connected runtime
+  evidence prerequisites are unavailable.
 - Items with stale source candidates, visual-area targets, forced fingerprint
   mismatch, sensitive redaction, interop warnings, overlap risk, or duplicate
   marker references must not render `verify: source-first`.

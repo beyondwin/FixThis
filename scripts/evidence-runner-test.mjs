@@ -28,6 +28,8 @@ test("fast profile expands to cheap local commands", () => {
 test("trust profile includes source matching and runtime strict as deferrable", () => {
   const steps = expandProfile("trust");
   assert.ok(steps.some((step) => step.command === "npm run source-matching:fixtures:test"));
+  const runtimeEvidence = steps.find((step) => step.command === "npm run runtime-evidence:smoke");
+  assert.equal(runtimeEvidence.name, "Runtime evidence attachment");
   const runtime = steps.find((step) => step.command === "npm run source-matching:fixtures:runtime -- --strict");
   assert.equal(runtime.deferrable, true);
   assert.equal(runtime.requiresAndroid, true);
@@ -159,6 +161,7 @@ test("release profile starts with release reality and includes agent loop contra
   const commands = expandProfile("release").map((step) => step.command);
   assert.equal(commands[0], "npm run release:reality");
   assert.ok(commands.includes("npm run agent-loop:smoke:test"));
+  assert.ok(commands.includes("npm run runtime-evidence:smoke -- --strict"));
 });
 
 test("release and gate profiles include release drift guard", () => {
@@ -202,6 +205,12 @@ test("package exposes release drift commands", () => {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   assert.equal(pkg.scripts["release:drift"], "node scripts/release-drift-guard.mjs");
   assert.equal(pkg.scripts["release:drift:test"], "node --test scripts/release-drift-guard-test.mjs");
+});
+
+test("package exposes runtime evidence smoke commands", () => {
+  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  assert.equal(pkg.scripts["runtime-evidence:smoke"], "node scripts/runtime-evidence-smoke.mjs");
+  assert.equal(pkg.scripts["runtime-evidence:smoke:test"], "node --test scripts/runtime-evidence-smoke-test.mjs");
 });
 
 test("writeReports writes json and markdown summaries", () => {

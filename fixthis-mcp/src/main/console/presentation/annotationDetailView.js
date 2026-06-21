@@ -29,10 +29,6 @@
                 .filter(Boolean);
             }
 
-            // Mirrors TargetBoundaryContextFormatter on the MCP side: for interop-risk
-            // selections (possible_view_interop), surface the nearby Compose context
-            // nodes that bracket the boundary. Task 4 widened this to a ranked top-3, so
-            // we render ONE row per node here. The caveat is appended exactly once below.
             const INTEROP_BOUNDARY_CONTEXT_LIMIT = 3;
 
             function isInteropRiskItem(item) {
@@ -120,7 +116,6 @@
                 const boundsLabel = bounds ? ' · ' + formatBounds(bounds) : '';
                 return [boundaryContextLabel(entry.kind, index), entry.summary + boundsLabel];
               });
-              // Single trailing caveat for the whole subtree, never repeated per row.
               rows.push(['Boundary context note', 'helps locate the host; it does not prove Compose owns the selected pixels.']);
               return rows;
             }
@@ -501,6 +496,7 @@
                   '<section class="annotation-section evidence-section">' +
                     evidenceDetailsHtml(item) +
                   '</section>' +
+                  '<button id="attachEvidenceButton">Attach evidence</button>' +
                 '</div>';
               const labelInput = draftItems.querySelector('#annotationLabelInput');
               const commentInput = draftItems.querySelector('#annotationCommentInput');
@@ -564,5 +560,12 @@
                     showError(error);
                   }
                 });
+              });
+              draftItems.querySelector('#attachEvidenceButton').addEventListener('click', () => {
+                requestJson(`/api/items/${item.itemId}/runtime-evidence`, {
+                    method:'POST',
+                    body:JSON.stringify({sessionId:editSessionId,type:'logcat_window',summary:'x'}),
+                  })
+                  .catch(showError);
               });
             }

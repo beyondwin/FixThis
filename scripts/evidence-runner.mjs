@@ -22,6 +22,7 @@ const profileDefinitions = {
     step("Handoff evaluation", "npm run handoff:eval:test"),
     step("Source fixture contracts", "npm run source-matching:fixtures:test"),
     step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),
+    step("Runtime evidence attachment", "npm run runtime-evidence:smoke"),
     step("External trust matrix v2 strict", "npm run external-fixture:matrix -- --strict", {
       deferrable: true,
       requiresAndroid: true,
@@ -48,6 +49,7 @@ const profileDefinitions = {
     step("Release reality", "npm run release:reality"),
     step("Release drift", "npm run release:drift"),
     step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
+    step("Runtime evidence attachment strict", "npm run runtime-evidence:smoke -- --strict"),
     step("Release readiness", "node scripts/check-release-readiness.mjs"),
     step("Docs CLI surface", "bash scripts/check-docs-cli-surface.sh"),
     step("Agent bootstrap docs", "npm run docs:agent-bootstrap:test"),

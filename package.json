@@ -19,6 +19,8 @@
     "evidence:release": "node scripts/evidence-runner.mjs --profile release",
     "evidence:full": "node scripts/evidence-runner.mjs --profile full",
     "evidence:test": "node --test scripts/evidence-runner-test.mjs",
+    "runtime-evidence:smoke": "node scripts/runtime-evidence-smoke.mjs",
+    "runtime-evidence:smoke:test": "node --test scripts/runtime-evidence-smoke-test.mjs",
   "prepush": "./gradlew spotlessApply --no-daemon && FIXTHIS_BUNDLE_REPRODUCIBLE=1 node scripts/build-console-assets.mjs && npm run ci:local:prepush",
   "release:check": "npm run ci:local",
   "release:reality": "node scripts/release-reality-check.mjs",
