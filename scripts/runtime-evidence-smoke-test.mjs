@@ -22,8 +22,15 @@ test("normalizeRuntimeEvidenceStatus defers missing Android prerequisites in non
     { status: "fail", reason: "No connected Android device." },
   );
   assert.deepEqual(
-    normalizeRuntimeEvidenceStatus({ strict: true, androidReady: true }),
+    normalizeRuntimeEvidenceStatus({ strict: true, androidReady: true, evidenceCount: 1 }),
     { status: "pass", reason: null },
+  );
+});
+
+test("strict runtime evidence fails when no evidence rows were captured", () => {
+  assert.deepEqual(
+    normalizeRuntimeEvidenceStatus({ strict: true, androidReady: true, evidenceCount: 0 }),
+    { status: "fail", reason: "Strict runtime evidence requires at least one captured evidence row." },
   );
 });
 

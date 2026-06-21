@@ -18,6 +18,15 @@ function runConsoleContractGuards() {
   if (!detailSource.includes("/runtime-evidence")) {
     throw new Error("Attach evidence action must call the runtime-evidence item route.");
   }
+  if (!detailSource.includes("encodeURIComponent(item.itemId)")) {
+    throw new Error("Attach evidence action must encode the feedback item id.");
+  }
+  if (!detailSource.includes("setConsoleSession(result)")) {
+    throw new Error("Attach evidence action must refresh console session state.");
+  }
+  if (!detailSource.includes("showSuccess('Attached evidence")) {
+    throw new Error("Attach evidence action must show success feedback.");
+  }
   if (!apiSource.includes("X-FixThis-Console-Token")) {
     throw new Error("Console mutation requests must keep token header wiring.");
   }

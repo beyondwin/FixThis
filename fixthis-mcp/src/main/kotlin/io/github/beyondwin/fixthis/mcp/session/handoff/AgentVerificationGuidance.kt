@@ -2,7 +2,6 @@ package io.github.beyondwin.fixthis.mcp.session.handoff
 
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
 import io.github.beyondwin.fixthis.compose.core.model.TargetConfidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
@@ -57,7 +56,7 @@ internal object AgentVerificationGuidanceClassifier {
         }
 
         val strongTarget = targetConfidence == TargetConfidence.HIGH
-        val strongSource = topSource?.confidence == SelectionConfidence.HIGH && topSource.isLowRisk().not()
+        val strongSource = topSource?.confidence == SelectionConfidence.HIGH && topSource.hasSourceRisk().not()
         val clearMargin = margin != null && margin >= CLEAR_MARGIN_THRESHOLD
         if (strongTarget && strongSource && clearMargin) {
             return AgentVerificationGuidance(
@@ -149,6 +148,7 @@ internal object AgentVerificationGuidanceClassifier {
         if (TargetReliabilityWarning.SOURCE_INDEX_STALE in warnings || topSource?.stale == true) {
             add("stale-source")
         }
+        if (topSource?.hasSourceRisk() == true) add("source-risk")
         if (isOverlap) add("overlap-risk")
         if (hasDuplicateReference) add("duplicate-marker")
         if (TargetReliabilityWarning.POSSIBLE_VIEW_INTEROP in warnings) {
@@ -177,12 +177,7 @@ internal object AgentVerificationGuidanceClassifier {
         TargetConfidence.UNKNOWN -> "unknown-target"
     }
 
-    private fun SourceCandidate?.isLowRisk(): Boolean {
-        val candidate = this ?: return false
-        return candidate.riskFlags.any { risk ->
-            risk != SourceCandidateRisk.SHARED_COMPONENT
-        }
-    }
+    private fun SourceCandidate?.hasSourceRisk(): Boolean = this?.riskFlags?.isNotEmpty() == true
 
     private const val CLEAR_MARGIN_THRESHOLD = 0.50
 }

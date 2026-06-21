@@ -242,6 +242,7 @@ class McpProtocolTest {
                 "fixthis_read_feedback",
                 "fixthis_resolve_feedback",
                 "fixthis_claim_feedback",
+                "fixthis_capture_runtime_evidence",
             ),
             tools,
         )

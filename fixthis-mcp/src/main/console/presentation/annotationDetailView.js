@@ -116,7 +116,7 @@
                 const boundsLabel = bounds ? ' · ' + formatBounds(bounds) : '';
                 return [boundaryContextLabel(entry.kind, index), entry.summary + boundsLabel];
               });
-              rows.push(['Boundary context note', 'helps locate the host; it does not prove Compose owns the selected pixels.']);
+              rows.push(['Boundary context note', 'locates host; not Compose ownership.']);
               return rows;
             }
 
@@ -197,7 +197,7 @@
               return '<details class="evidence-details" open>' +
                 '<summary>Evidence</summary>' +
                 (empty
-                  ? '<div class="empty-evidence">No source candidates or structured target evidence captured yet.</div>'
+                  ? '<div class="empty-evidence">No evidence.</div>'
                   : evidenceGridHtml(bodyRows)) +
               '</details>';
             }
@@ -496,7 +496,7 @@
                   '<section class="annotation-section evidence-section">' +
                     evidenceDetailsHtml(item) +
                   '</section>' +
-                  '<button id="attachEvidenceButton">Attach evidence</button>' +
+                  '<button id="attachEvidenceButton">Log</button>' +
                 '</div>';
               const labelInput = draftItems.querySelector('#annotationLabelInput');
               const commentInput = draftItems.querySelector('#annotationCommentInput');
@@ -561,11 +561,8 @@
                   }
                 });
               });
-              draftItems.querySelector('#attachEvidenceButton').addEventListener('click', () => {
-                requestJson(`/api/items/${item.itemId}/runtime-evidence`, {
-                    method:'POST',
-                    body:JSON.stringify({sessionId:editSessionId,type:'logcat_window',summary:'x'}),
-                  })
-                  .catch(showError);
-              });
+              draftItems.querySelector('#attachEvidenceButton').onclick = () => {
+                requestJson('/api/items/' + encodeURIComponent(item.itemId) + '/runtime-evidence', { method:'POST', body:JSON.stringify({ sessionId:editSessionId, type:'logcat_window', summary:'log' }) })
+                  .then(result => (renderInspectorRegion(setConsoleSession(result)), showSuccess('Attached evidence', 2e3))).catch(showError);
+              };
             }

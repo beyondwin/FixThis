@@ -67,6 +67,8 @@ const profileDefinitions = {
       "./gradlew :fixthis-mcp:test --tests \"*TargetBoundaryContextFormatterTest\" --tests \"*TargetBoundaryGuidanceTest\" --tests \"*CompactHandoffRendererTest.compactHandoffRendersInteropBoundaryContextFromNearbyComposeHost\" --no-daemon",
     ),
     step("Handoff evaluation", "npm run handoff:eval:test"),
+    step("Runtime evidence attachment", "npm run runtime-evidence:smoke"),
+    step("Plugin contract", "npm run plugin:contract:test"),
     step("Runtime trust boundary observations", "npm run source-matching:fixtures:test"),
     step("Runtime trust strict", "npm run source-matching:fixtures:runtime -- --strict", {
       deferrable: true,

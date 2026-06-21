@@ -14,7 +14,7 @@
 | Pending target secondary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="cancel"]` | `Cancel` |
 | Pending target primary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="addAnnotation"]` | `Add annotation` |
 | Saved annotation destructive action | `inspectorFooter[data-editor-state="saved"] [data-action="delete"]` | `Delete annotation` |
-| Saved annotation runtime evidence action | `attachEvidenceButton` | `Attach evidence` |
+| Saved annotation runtime evidence action | `attachEvidenceButton` | `Log` |
 | Refresh devices | `refreshDevicesButton` | `Refresh devices` |
 | Clear FixThis device selection | `disconnectDeviceButton` | `x` icon |
 | Workflow progress | `workflowProgress` | `FixThis feedback workflow` |
@@ -63,7 +63,7 @@
   browser can show prompt-handoff history, but it does not require or imply
   `delivery: sent`.
 - `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
-- `Attach evidence` appears on saved annotation detail and posts a bounded
+- `Log` appears on saved annotation detail and posts a bounded
   manual `logcat_window` summary to
   `/api/items/<itemId>/runtime-evidence` for the active session. The browser
   action does not stream or copy raw logs into the console.

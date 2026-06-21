@@ -280,6 +280,14 @@ test('release gate maps Android agent evidence umbrella claim', () => {
   });
 });
 
+test('release gate profile produces Android agent evidence umbrella inputs', () => {
+  const stepNames = releaseGateSteps().map((step) => step.name);
+
+  assert.ok(stepNames.includes('Handoff evaluation'));
+  assert.ok(stepNames.includes('Runtime evidence attachment'));
+  assert.ok(stepNames.includes('Plugin contract'));
+});
+
 test('release gate fails external first handoff recovery when contract evidence is missing', () => {
   const report = buildReleaseGateReport({
     strict: false,

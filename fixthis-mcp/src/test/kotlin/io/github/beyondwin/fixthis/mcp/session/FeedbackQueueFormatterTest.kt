@@ -716,9 +716,9 @@ class FeedbackQueueFormatterTest {
     /**
      * Token-budget regression guard for the v2 compact handoff prompt.
      *
-     * Baseline measured 2026-05-10 (post-agent_protocol-footer): 1660 chars for
+     * Baseline measured 2026-06-21 (post-agent-verification-posture): 2162 chars for
      * expected-prompt-v2.txt (rendered from session-v2.json, 4-item fixture).
-     * Budget = ceil(1660 × 1.2) rounded to nearest 100 = 2000 chars.
+     * Budget = ceil(2162 x 1.2) rounded to nearest 100 = 2600 chars.
      *
      * If the v2 fixtures change and the baseline legitimately grows, update
      * both the measured comment and the budget constant below.
@@ -729,7 +729,7 @@ class FeedbackQueueFormatterTest {
         org.junit.Assume.assumeTrue("session-v2.json fixture present", sessionFile.exists())
         val session = fixThisJson.decodeFromString(SessionDto.serializer(), sessionFile.readText())
         val rendered = CompactHandoffRenderer.render(session)
-        val budget = 2000 // baseline measured 2026-05-10 (post-agent_protocol-footer): 1660 chars
+        val budget = 2600 // baseline measured 2026-06-21 (post-agent-verification-posture): 2162 chars
         assertTrue(
             rendered.length <= budget,
             "v2 compact prompt (${rendered.length} chars) exceeded budget of $budget",

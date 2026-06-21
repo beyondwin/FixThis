@@ -13,10 +13,17 @@ const summaryLimit = 140;
 export function normalizeRuntimeEvidenceStatus({
   strict = false,
   androidReady = false,
+  evidenceCount = 0,
   reason = defaultAndroidReason,
 } = {}) {
-  if (androidReady) return { status: "pass", reason: null };
-  return { status: strict ? "fail" : "deferred", reason };
+  if (!androidReady) return { status: strict ? "fail" : "deferred", reason };
+  if (strict && evidenceCount === 0) {
+    return {
+      status: "fail",
+      reason: "Strict runtime evidence requires at least one captured evidence row.",
+    };
+  }
+  return { status: "pass", reason: null };
 }
 
 export function selectRuntimeEvidenceCommand(type) {
@@ -152,6 +159,7 @@ export function createRuntimeEvidenceSmokeReport({ args = parseArgs(), androidEn
   const status = normalizeRuntimeEvidenceStatus({
     strict: args.strict,
     androidReady: androidEnvironment.ready,
+    evidenceCount: args.evidence.length,
     reason: androidEnvironment.reason || defaultAndroidReason,
   });
   return buildRuntimeEvidenceReport({

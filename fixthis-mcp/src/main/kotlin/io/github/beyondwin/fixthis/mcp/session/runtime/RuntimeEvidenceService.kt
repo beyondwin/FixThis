@@ -23,7 +23,7 @@ internal class RuntimeEvidenceService(
             capturedAtEpochMillis = now,
             packageName = session.packageName,
             summary = summary.take(MaxSummaryChars),
-            artifactPath = artifactPath,
+            artifactPath = artifactPath?.validatedArtifactPath(),
         )
         return session.copy(
             runtimeEvidence = session.runtimeEvidence + attachment,
@@ -41,4 +41,11 @@ internal class RuntimeEvidenceService(
     private companion object {
         const val MaxSummaryChars = 240
     }
+}
+
+private fun String.validatedArtifactPath(): String {
+    require(!startsWith("/")) { "Runtime evidence artifactPath must be a relative .fixthis/ path" }
+    require(!contains("..")) { "Runtime evidence artifactPath must not traverse directories" }
+    require(startsWith(".fixthis/")) { "Runtime evidence artifactPath must be under .fixthis/" }
+    return this
 }

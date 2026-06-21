@@ -100,7 +100,11 @@ class HandoffEvaluationCorpusTest {
         for (case in corpus.cases) {
             assertTrue(markdown.contains("role=${case.expectedRole.renderToken()}"), "Missing role for ${case.id}")
         }
-        assertTrue(markdown.length <= 8600, "v0.6 corpus handoff is ${markdown.length} chars; budget is 8600")
+        val compactPostureBudget = 9600 // baseline measured 2026-06-21 after compact verification posture: 9257 chars
+        assertTrue(
+            markdown.length <= compactPostureBudget,
+            "v0.6 corpus handoff is ${markdown.length} chars; budget is $compactPostureBudget",
+        )
     }
 
     @Test

@@ -285,7 +285,6 @@ object CompactHandoffRenderer {
         appendLine(
             "  verify: ${guidance.mode.token()}  because=${guidance.reasons.joinToString(",")}",
         )
-        appendLine("  verifyBeforeEdit: ${guidance.beforeEdit.joinToString(",")}")
     }
 
     private fun AgentVerificationMode.token(): String = name.lowercase().replace("_", "-")
