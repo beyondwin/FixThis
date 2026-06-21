@@ -184,7 +184,10 @@ publish by itself.
 
 Connected Android evidence remains local-only. If Android SDK or an unlocked
 emulator is unavailable, non-strict reports must record the exact deferred
-reason and strict reports must fail.
+reason and strict reports must fail. When Android is ready,
+`npm run runtime-evidence:smoke -- --strict` must create a bounded logcat
+evidence row with the raw artifact stored only under ignored `.fixthis/`
+storage.
 
 ## v1 Residual Risk Closure Gate
 

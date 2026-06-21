@@ -5,6 +5,8 @@ import { join } from "node:path";
 import test from "node:test";
 import {
   buildRuntimeEvidenceReport,
+  captureStrictRuntimeEvidence,
+  createRuntimeEvidenceSmokeReport,
   normalizeRuntimeEvidenceStatus,
   parseArgs,
   renderRuntimeEvidenceMarkdown,
@@ -32,6 +34,60 @@ test("strict runtime evidence fails when no evidence rows were captured", () => 
     normalizeRuntimeEvidenceStatus({ strict: true, androidReady: true, evidenceCount: 0 }),
     { status: "fail", reason: "Strict runtime evidence requires at least one captured evidence row." },
   );
+});
+
+test("strict runtime evidence captures a bounded logcat row when Android is ready", () => {
+  const report = createRuntimeEvidenceSmokeReport({
+    args: { strict: true, outDir: "build/custom", evidence: [] },
+    androidEnvironment: { ready: true, device: "emulator-5554", envPatch: {} },
+    captureRuntimeEvidence: () => ({
+      itemId: "strict-runtime",
+      type: "logcat_window",
+      summary: "Captured 2 logcat lines from emulator-5554.",
+      artifactPath: ".fixthis/runtime-evidence/strict-runtime-logcat.txt",
+    }),
+  });
+
+  assert.equal(report.status, "pass");
+  assert.equal(report.evidence.length, 1);
+  assert.equal(report.evidence[0].itemId, "strict-runtime");
+  assert.equal(report.evidence[0].type, "logcat_window");
+  assert.match(report.evidence[0].artifactPath, /^\.fixthis\/runtime-evidence\//);
+});
+
+test("strict runtime evidence fails when ready capture cannot produce a row", () => {
+  const report = createRuntimeEvidenceSmokeReport({
+    args: { strict: true, outDir: "build/custom", evidence: [] },
+    androidEnvironment: { ready: true, device: "emulator-5554", envPatch: {} },
+    captureRuntimeEvidence: () => null,
+  });
+
+  assert.equal(report.status, "fail");
+  assert.match(report.reason, /requires at least one captured evidence row/);
+  assert.equal(report.evidence.length, 0);
+});
+
+test("strict runtime evidence capture records the concrete adb command and local artifact", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-runtime-capture-"));
+  try {
+    const evidence = captureStrictRuntimeEvidence({
+      root,
+      now: () => new Date("2026-06-21T16:48:29.832Z"),
+      androidEnvironment: { ready: true, device: "emulator-5554", envPatch: { PATH: "/sdk/platform-tools" } },
+      spawn: (command, args, options) => {
+        assert.equal(command, "adb");
+        assert.deepEqual(args, ["-s", "emulator-5554", "logcat", "-d", "-t", "80"]);
+        assert.equal(options.env.PATH, "/sdk/platform-tools");
+        return { status: 0, stdout: "line 1\nline 2\n" };
+      },
+    });
+
+    assert.equal(evidence.command, "adb -s emulator-5554 logcat -d -t 80");
+    assert.equal(evidence.artifactPath, ".fixthis/runtime-evidence/2026-06-21T16-48-29-832Z-logcat.txt");
+    assert.match(readFileSync(join(root, evidence.artifactPath), "utf8"), /line 2/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("selectRuntimeEvidenceCommand maps evidence type to stable command description", () => {

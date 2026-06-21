@@ -364,8 +364,10 @@ When no source candidates are available for the item, the source block consists 
   frame, memory, or trace payloads are not emitted in compact Markdown.
 - `npm run runtime-evidence:smoke` writes a local runtime evidence report and
   defers missing Android prerequisites in non-strict mode. The strict variant
-  (`npm run runtime-evidence:smoke -- --strict`) fails when connected runtime
-  evidence prerequisites are unavailable.
+  (`npm run runtime-evidence:smoke -- --strict`) captures a bounded logcat row
+  into ignored `.fixthis/runtime-evidence/` storage when a ready Android device
+  is present, and fails when connected runtime evidence prerequisites are
+  unavailable.
 - Items with stale source candidates, visual-area targets, forced fingerprint
   mismatch, sensitive redaction, interop warnings, overlap risk, or duplicate
   marker references must not render `verify: source-first`.

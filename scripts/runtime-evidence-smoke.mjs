@@ -1,14 +1,17 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
+const repoRoot = resolve(dirname(scriptPath), "..");
 const defaultReportDir = "build/reports/fixthis-runtime-evidence";
 const defaultAndroidReason = "Android SDK or ready emulator is unavailable.";
 const summaryLimit = 140;
+const strictRuntimeItemId = "strict-runtime";
 
 export function normalizeRuntimeEvidenceStatus({
   strict = false,
@@ -93,6 +96,45 @@ export function writeRuntimeEvidenceReport(report, outDir = defaultReportDir) {
   return { json, markdown };
 }
 
+function strictArtifactPath(now = new Date()) {
+  const timestamp = now.toISOString().replace(/[:.]/g, "-");
+  return `.fixthis/runtime-evidence/${timestamp}-logcat.txt`;
+}
+
+function logcatSummary(stdout = "", device = null) {
+  const lines = stdout.split(/\r?\n/).filter((line) => line.trim()).length;
+  return `Captured ${lines} logcat lines from ${device || "ready Android device"}.`;
+}
+
+export function captureStrictRuntimeEvidence({
+  androidEnvironment,
+  now = () => new Date(),
+  spawn = spawnSync,
+  root = repoRoot,
+} = {}) {
+  const artifactPath = strictArtifactPath(now());
+  const fullPath = resolve(root, artifactPath);
+  const adbArgs = [];
+  if (androidEnvironment?.device) adbArgs.push("-s", androidEnvironment.device);
+  adbArgs.push("logcat", "-d", "-t", "80");
+  const command = ["adb", ...adbArgs].join(" ");
+  const result = spawn("adb", adbArgs, {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, ...(androidEnvironment?.envPatch || {}) },
+  });
+  if (result.status !== 0) return null;
+  mkdirSync(dirname(fullPath), { recursive: true });
+  writeFileSync(fullPath, result.stdout || "");
+  return {
+    itemId: strictRuntimeItemId,
+    type: "logcat_window",
+    summary: logcatSummary(result.stdout || "", androidEnvironment?.device),
+    artifactPath,
+    command,
+  };
+}
+
 function requireValue(argv, index, flag) {
   const value = argv[index + 1];
   if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
@@ -155,18 +197,27 @@ export function parseArgs(argv = process.argv.slice(2)) {
   return args;
 }
 
-export function createRuntimeEvidenceSmokeReport({ args = parseArgs(), androidEnvironment = resolveAndroidEnvironment() } = {}) {
+export function createRuntimeEvidenceSmokeReport({
+  args = parseArgs(),
+  androidEnvironment = resolveAndroidEnvironment(),
+  captureRuntimeEvidence = captureStrictRuntimeEvidence,
+} = {}) {
+  const evidence = args.evidence.slice();
+  if (args.strict && androidEnvironment.ready && evidence.length === 0) {
+    const captured = captureRuntimeEvidence({ androidEnvironment });
+    if (captured) evidence.push(captured);
+  }
   const status = normalizeRuntimeEvidenceStatus({
     strict: args.strict,
     androidReady: androidEnvironment.ready,
-    evidenceCount: args.evidence.length,
+    evidenceCount: evidence.length,
     reason: androidEnvironment.reason || defaultAndroidReason,
   });
   return buildRuntimeEvidenceReport({
     strict: args.strict,
     status: status.status,
     reason: status.reason,
-    evidence: args.evidence,
+    evidence,
   });
 }
 
