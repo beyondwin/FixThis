@@ -9,6 +9,7 @@ import io.github.beyondwin.fixthis.compose.core.model.TargetEvidence
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliability
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -22,6 +23,7 @@ data class SessionDto(
     val updatedAtEpochMillis: Long,
     val screens: List<SnapshotDto> = emptyList(),
     val items: List<AnnotationDto> = emptyList(),
+    val runtimeEvidence: List<RuntimeEvidenceAttachment> = emptyList(),
     val handoffBatches: List<FeedbackHandoffBatch> = emptyList(),
     val status: SessionStatusDto = SessionStatusDto.ACTIVE,
     val nextItemSequenceNumber: Int = 1,
@@ -114,6 +116,7 @@ data class AnnotationDto(
     val agentSummary: String? = null,
     val targetEvidence: TargetEvidence? = null,
     val targetReliability: TargetReliability? = null,
+    val runtimeEvidenceIds: List<String> = emptyList(),
 )
 
 @Serializable

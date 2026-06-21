@@ -92,6 +92,9 @@ Feedback console sessions are returned by `fixthis_open_feedback_console` and se
 - `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
 - `screens`: persisted evidence snapshots saved from frozen previews.
 - `items`: feedback queue items.
+- `runtimeEvidence`: optional additive list of bounded local runtime evidence
+  summaries and artifact paths. Runtime evidence artifacts are local files and
+  must not be committed.
 - `handoffBatches`: persisted sent handoff batches.
 - `nextItemSequenceNumber`: next monotonic human-readable feedback item
   number for this session. Legacy sessions that do not contain this field are
@@ -214,8 +217,32 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 - `agentSummary`: optional agent resolution summary.
 - `targetEvidence`: optional additive evidence for stable agent handoff. When present, it follows the annotation `targetEvidence` shape above.
 - `targetReliability`: optional target confidence and warning metadata. When present, it follows the annotation `targetReliability` shape above.
+- `runtimeEvidenceIds`: optional additive list of ids referencing
+  session-level `runtimeEvidence` attachments. Items reference evidence by id
+  so large local artifacts are not duplicated across feedback items.
 
 `ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
+
+### `runtimeEvidence`
+
+Runtime evidence attachments are optional, local-first summaries that can help
+an agent verify a feedback item. They do not make runtime capture required for
+normal `Copy Prompt` or `Save to MCP` flows.
+
+- `evidenceId`: stable id referenced by item-level `runtimeEvidenceIds`.
+- `type`: `logcat_window`, `frame_summary`, `memory_summary`, or
+  `trace_artifact`.
+- `capturedAtEpochMillis`: local capture timestamp.
+- `deviceSerial`: optional ADB serial.
+- `packageName`: Android application id used for capture.
+- `timeRangeEpochMillis`: optional `{startEpochMillis,endEpochMillis}` window.
+- `summary`: bounded text summary. Raw logs and traces are not embedded in
+  compact handoff output.
+- `artifactPath`: optional local path, usually under ignored `.fixthis/`
+  storage.
+- `captureCommand`: optional command description used for the capture.
+- `warnings`: optional caveats such as `capture_deferred`,
+  `sensitive_logs_possible`, or `artifact_missing`.
 
 ### `editSurfaceCandidates`
 

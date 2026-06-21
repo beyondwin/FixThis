@@ -269,12 +269,14 @@ candidate_line= "  " file ":" line "  conf=" lvl [ "  owner=" composable ] "  ma
                                                                           ↑ owner/margin/matched are first line only; runner-ups omit them
                                                                           ; file is stripped of source_root prefix when present
 caution_line  = "  note: " text                          ; emitted iff caution OR collision
-reliability_block = target_confidence_line? target_action_line? warning_line* verification_line verify_before_edit_line
+reliability_block = target_confidence_line? target_action_line? warning_line* verification_line verify_before_edit_line runtime_evidence_block?
 target_confidence_line = "  targetConfidence=" ("high" | "medium" | "low" | "unknown")
 target_action_line = "  targetAction=" ("inspect-source-first" | "inspect-and-corroborate" | "treat-source-paths-as-hints" | "verify-manually")
 warning_line   = "  warning: " text
 verification_line = "  verify: " ("source-first" | "corroborate" | "hint-only" | "manual") "  because=" reason_token ("," reason_token)*
 verify_before_edit_line = "  verifyBeforeEdit: " action_token ("," action_token)*
+runtime_evidence_block = "  runtimeEvidence:" runtime_evidence_line{1,3}
+runtime_evidence_line = "    - " type " -> " artifact_or_no_artifact "\n      summary: " bounded_text
 footer         = "---"
                  "agent_protocol:"
                  "  before_work: fixthis_claim_feedback({sessionId, itemId})"
@@ -351,6 +353,10 @@ When no source candidates are available for the item, the source block consists 
   `verify-manually`. Future runtime-evidence tokens such as `check-logcat`,
   `check-frame-summary`, and `check-memory-summary` are reserved for optional
   evidence attachments.
+- `runtimeEvidence:` — optional local runtime evidence summaries attached to
+  the item. Compact handoff renders at most 3 attachments per item, local
+  artifact paths or `no-artifact`, and bounded summaries only. Raw logcat,
+  frame, memory, or trace payloads are not emitted in compact Markdown.
 - Items with stale source candidates, visual-area targets, forced fingerprint
   mismatch, sensitive redaction, interop warnings, overlap risk, or duplicate
   marker references must not render `verify: source-first`.

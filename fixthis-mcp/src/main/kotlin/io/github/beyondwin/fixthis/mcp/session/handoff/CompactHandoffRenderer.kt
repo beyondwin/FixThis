@@ -9,6 +9,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceCandidateDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import io.github.beyondwin.fixthis.mcp.session.target.TargetBoundaryContextFormatter
 import io.github.beyondwin.fixthis.mcp.session.target.TargetBoundaryGuidance
 import io.github.beyondwin.fixthis.mcp.session.target.TargetOwnerResolver
@@ -16,6 +18,7 @@ import io.github.beyondwin.fixthis.mcp.session.target.TargetSummaryFormatter
 
 object CompactHandoffRenderer {
     private const val MAX_CANDIDATES_RENDERED = 3
+    private const val MAX_RUNTIME_EVIDENCE_SUMMARY_CHARS = 180
     fun render(session: SessionDto, itemIds: List<String>? = null): String = buildString {
         val effectiveSession = if (itemIds == null) {
             session
@@ -44,6 +47,7 @@ object CompactHandoffRenderer {
         }
 
         val itemsByScreen = orderedItems.groupBy { it.value.screenId }
+        val runtimeEvidenceById = effectiveSession.runtimeEvidence.associateBy { it.evidenceId }
         var precomputedMarkerCounter = 0
         val analysesByScreen = itemsByScreen.mapValues { (_, indexedItems) ->
             analyzeScreen(indexedItems, precomputedMarkerCounter).also { analysis ->
@@ -109,6 +113,7 @@ object CompactHandoffRenderer {
                             groupSize = groupSize,
                             dupRefMarker = dupRefMarker,
                             sourceRoot = sourceRoot,
+                            runtimeEvidenceById = runtimeEvidenceById,
                         ),
                     )
                 }
@@ -140,6 +145,7 @@ object CompactHandoffRenderer {
         val groupSize: Int = 0,
         val dupRefMarker: Int? = null,
         val sourceRoot: String? = null,
+        val runtimeEvidenceById: Map<String, RuntimeEvidenceAttachment> = emptyMap(),
     )
 
     private fun analyzeScreen(
@@ -228,6 +234,7 @@ object CompactHandoffRenderer {
                 hasDuplicateReference = context.dupRefMarker != null,
             ),
         )
+        appendRuntimeEvidenceBlock(item, context.runtimeEvidenceById)
         if (context.isInstanceLeader && context.groupSize >= 2 && !context.isOverlap) {
             appendLine(
                 "  note: ${context.groupSize} markers map to same call site — " +
@@ -282,6 +289,23 @@ object CompactHandoffRenderer {
     }
 
     private fun AgentVerificationMode.token(): String = name.lowercase().replace("_", "-")
+
+    private fun StringBuilder.appendRuntimeEvidenceBlock(
+        item: AnnotationDto,
+        runtimeEvidenceById: Map<String, RuntimeEvidenceAttachment>,
+    ) {
+        val evidence = item.runtimeEvidenceIds.mapNotNull(runtimeEvidenceById::get).take(3)
+        if (evidence.isEmpty()) return
+
+        appendLine("  runtimeEvidence:")
+        evidence.forEach { attachment ->
+            val path = attachment.artifactPath ?: "no-artifact"
+            appendLine("    - ${attachment.type.token()} -> ${path.inlineSafe()}")
+            appendLine("      summary: ${attachment.summary.take(MAX_RUNTIME_EVIDENCE_SUMMARY_CHARS).inlineSafe()}")
+        }
+    }
+
+    private fun RuntimeEvidenceType.token(): String = name.lowercase()
 
     private fun TargetReliability.compactActionToken(): String = when (confidence) {
         io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.HIGH -> "inspect-source-first"

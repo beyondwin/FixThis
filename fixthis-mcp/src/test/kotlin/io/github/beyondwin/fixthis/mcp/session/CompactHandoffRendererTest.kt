@@ -21,6 +21,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.CompactHandoffRenderer
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -2575,6 +2577,49 @@ class CompactHandoffRendererTest {
         assertTrue(markdown.contains("sensitive-redaction"), markdown)
         assertTrue(markdown.contains("  verifyBeforeEdit: claim-feedback,verify-manually"), markdown)
         assertTrue(!markdown.contains("  verify: source-first"), markdown)
+    }
+
+    @Test
+    fun compactHandoffRendersRuntimeEvidenceSummariesOnly() {
+        val session = oneItemSession(
+            AnnotationDto(
+                itemId = "item-runtime",
+                screenId = "screen-1",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+                target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 30f, 40f)),
+                comment = "The screen janks when this opens",
+                sequenceNumber = 1,
+                runtimeEvidenceIds = listOf("e-logcat", "e-frame"),
+            ),
+        ).copy(
+            runtimeEvidence = listOf(
+                RuntimeEvidenceAttachment(
+                    evidenceId = "e-logcat",
+                    type = RuntimeEvidenceType.LOGCAT_WINDOW,
+                    capturedAtEpochMillis = 10L,
+                    packageName = "io.github.beyondwin.fixthis.sample",
+                    summary = "2 RuntimeException lines from MainActivity",
+                    artifactPath = ".fixthis/runtime-evidence/e-logcat/logcat.txt",
+                ),
+                RuntimeEvidenceAttachment(
+                    evidenceId = "e-frame",
+                    type = RuntimeEvidenceType.FRAME_SUMMARY,
+                    capturedAtEpochMillis = 11L,
+                    packageName = "io.github.beyondwin.fixthis.sample",
+                    summary = "6 slow frames, 1 frozen frame candidate",
+                    artifactPath = ".fixthis/runtime-evidence/e-frame/gfxinfo.json",
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("  runtimeEvidence:"), markdown)
+        assertTrue(markdown.contains("    - logcat_window -> .fixthis/runtime-evidence/e-logcat/logcat.txt"), markdown)
+        assertTrue(markdown.contains("      summary: 2 RuntimeException lines from MainActivity"), markdown)
+        assertTrue(markdown.contains("    - frame_summary -> .fixthis/runtime-evidence/e-frame/gfxinfo.json"), markdown)
+        assertTrue(!markdown.contains("full raw log line"), markdown)
     }
 
     private fun verificationGuidanceItem(
