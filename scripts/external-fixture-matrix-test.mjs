@@ -145,11 +145,13 @@ test('planFixtureCommands uses install-agent doctor and source-index commands', 
   const commands = planFixtureCommands(fixture, '/tmp/fixthis-matrix/single-kotlin-dsl');
 
   assert.deepEqual(commands.map((entry) => entry.name), [
-    'install-agent',
+    'install-agent-verify-json',
     'doctor-json',
     'source-index',
   ]);
-  assert.equal(commands[0].command, "JAVA_OPTS='-Duser.home=/tmp/fixthis-matrix/single-kotlin-dsl/.home' '/repo/fixthis-cli/build/install/fixthis/bin/fixthis' install-agent --project-dir '/tmp/fixthis-matrix/single-kotlin-dsl' --target all --package 'io.github.beyondwin.fixthis.matrix.single'");
+  const install = commands.find((entry) => entry.name === 'install-agent-verify-json');
+  assert.ok(install, 'expected install-agent-verify-json command');
+  assert.match(install.command, /install-agent --project-dir .* --target all .* --verify --json/);
   assert.equal(commands[1].command, "JAVA_OPTS='-Duser.home=/tmp/fixthis-matrix/single-kotlin-dsl/.home' '/repo/fixthis-cli/build/install/fixthis/bin/fixthis' doctor --project-dir '/tmp/fixthis-matrix/single-kotlin-dsl' --package 'io.github.beyondwin.fixthis.matrix.single' --json");
   assert.equal(commands[2].command, './gradlew :app:generateDebugFixThisSourceIndex --no-daemon');
 });
@@ -430,6 +432,49 @@ test('normalizeFixtureCommandResult accepts doctor reaching app launch readiness
           { name: 'device_connected', status: 'ok' },
           { name: 'sidekick_session_found', status: 'fail' },
         ],
+      }),
+    },
+  );
+
+  assert.equal(result.status, 'pass');
+  assert.equal(result.acceptedExitCode, 1);
+  assert.equal(result.acceptedReadinessState, 'NEEDS_APP_LAUNCH');
+});
+
+test('normalizeFixtureCommandResult accepts install-agent verify reaching app launch readiness', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures[0];
+  const result = normalizeFixtureCommandResult(
+    { name: 'install-agent-verify-json' },
+    fixture,
+    {
+      status: 'fail',
+      durationMs: 1,
+      exitCode: 1,
+      stderr: 'install-agent verification requires follow-up\n',
+      stdout: JSON.stringify({
+        schemaVersion: '1.1',
+        ok: false,
+        nextAction: 'Open app',
+        readiness: { state: 'NEEDS_APP_LAUNCH' },
+        actions: [
+          {
+            id: 'recover-setup',
+            actor: 'agent',
+            kind: 'command',
+            command: 'Open app',
+            reason: 'The debug app is not connected to the FixThis bridge.',
+            blocksProgress: true,
+          },
+        ],
+        verification: {
+          checks: [
+            { name: 'android_project_found', status: 'ok' },
+            { name: 'fixthis_project_metadata_found', status: 'ok' },
+            { name: 'adb_found', status: 'ok' },
+            { name: 'device_connected', status: 'ok' },
+            { name: 'sidekick_session_found', status: 'fail' },
+          ],
+        },
       }),
     },
   );

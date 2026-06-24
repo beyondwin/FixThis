@@ -111,8 +111,8 @@ export function planFixtureCommands(fixture, projectDir, root = '/repo') {
   const project = shellQuote(projectDir);
   return [
     {
-      name: 'install-agent',
-      command: `JAVA_OPTS=${userHomeOpt} ${cli} install-agent --project-dir ${project} --target all --package ${shellQuote(fixture.applicationId)}`,
+      name: 'install-agent-verify-json',
+      command: `JAVA_OPTS=${userHomeOpt} ${cli} install-agent --project-dir ${project} --target all --package ${shellQuote(fixture.applicationId)} --verify --json`,
     },
     {
       name: 'doctor-json',
@@ -432,13 +432,19 @@ function parseJsonObject(text) {
 }
 
 function hasOkCheck(report, name) {
-  return Array.isArray(report?.checks) && report.checks.some((check) => check.name === name && check.status === 'ok');
+  const checks = Array.isArray(report?.checks)
+    ? report.checks
+    : Array.isArray(report?.verification?.checks)
+      ? report.verification.checks
+      : [];
+  return checks.some((check) => check.name === name && check.status === 'ok');
 }
 
 export function normalizeFixtureCommandResult(entry, fixture, result) {
-  if (entry.name !== 'doctor-json' || result.status !== 'fail') return result;
+  if (!['install-agent-verify-json', 'doctor-json'].includes(entry.name) || result.status !== 'fail') return result;
   const report = parseJsonObject(result.stdout);
-  const reachesExpectedNextAction = report?.schemaVersion === '1.0' &&
+  const expectedSchema = entry.name === 'doctor-json' ? '1.0' : '1.1';
+  const reachesExpectedNextAction = report?.schemaVersion === expectedSchema &&
     report?.readiness?.state === 'NEEDS_APP_LAUNCH' &&
     report?.nextAction === 'Open app' &&
     hasOkCheck(report, 'android_project_found') &&

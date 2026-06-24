@@ -5,6 +5,8 @@ import {
   assertCopiedPromptProtocol,
   assertLifecycleSessionState,
   assertReadFeedbackQueueContains,
+  assertVerifyReportAutopilotContract,
+  autopilotEvidenceForVerifyReport,
   buildReport,
   categorizeFeedbackLifecycleFailure,
   categorizeFirstHandoffFailure,
@@ -173,6 +175,92 @@ test("environment status distinguishes strict failure and non-strict deferral", 
   });
 });
 
+test("verify report autopilot contract allows MCP only when ready", () => {
+  const report = {
+    schemaVersion: "1.1",
+    readiness: { state: "READY" },
+    requiresUserAction: false,
+    readyForMcpTooling: true,
+    actions: [
+      {
+        id: "open-feedback-console",
+        actor: "agent",
+        kind: "mcp_tool",
+        tool: "fixthis_open_feedback_console",
+        reason: "Open FixThis Studio after setup verification succeeds.",
+        blocksProgress: false,
+      },
+    ],
+  };
+
+  assert.deepEqual(assertVerifyReportAutopilotContract(report), {
+    readyForMcpTooling: true,
+    blockedByUser: false,
+    openConsoleActor: "agent",
+    runnableCommandCount: 0,
+  });
+  assert.deepEqual(autopilotEvidenceForVerifyReport(report), {
+    status: "pass",
+    readyForMcpTooling: true,
+    requiresUserAction: false,
+    openConsoleActor: "agent",
+    actionCount: 1,
+  });
+});
+
+test("verify report autopilot contract blocks current MCP call after restart-required setup", () => {
+  const report = {
+    schemaVersion: "1.1",
+    readiness: { state: "READY" },
+    requiresUserAction: true,
+    readyForMcpTooling: false,
+    actions: [
+      {
+        id: "restart-agent",
+        actor: "user",
+        kind: "manual",
+        reason: "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
+        blocksProgress: true,
+      },
+      {
+        id: "open-feedback-console",
+        actor: "agent_after_restart",
+        kind: "mcp_tool",
+        tool: "fixthis_open_feedback_console",
+        reason: "Open FixThis Studio after setup verification succeeds.",
+        blocksProgress: false,
+      },
+    ],
+  };
+
+  const summary = assertVerifyReportAutopilotContract(report);
+  assert.equal(summary.readyForMcpTooling, false);
+  assert.equal(summary.blockedByUser, true);
+  assert.equal(summary.openConsoleActor, "agent_after_restart");
+});
+
+test("verify report autopilot contract rejects unsafe console action", () => {
+  assert.throws(
+    () => assertVerifyReportAutopilotContract({
+      schemaVersion: "1.1",
+      readiness: { state: "READY" },
+      requiresUserAction: false,
+      readyForMcpTooling: false,
+      actions: [
+        {
+          id: "open-feedback-console",
+          actor: "agent",
+          kind: "mcp_tool",
+          tool: "fixthis_open_feedback_console",
+          reason: "Open FixThis Studio.",
+          blocksProgress: false,
+        },
+      ],
+    }),
+    /readyForMcpTooling=false.*agent console action/,
+  );
+});
+
 test("first handoff maps Android environment deferral to readiness", () => {
   const handoff = firstHandoffForEnvironment({
     strict: false,
@@ -219,11 +307,25 @@ test("first handoff success carries saved and readable item counts", () => {
     savedItemCount: 3,
     readFeedbackItemCount: 4,
     readFeedbackSentCount: 3,
+    autopilot: {
+      status: "pass",
+      readyForMcpTooling: true,
+      requiresUserAction: false,
+      openConsoleActor: "agent",
+      actionCount: 1,
+    },
   }), {
     status: "pass",
     savedItemCount: 3,
     readFeedbackItemCount: 4,
     readFeedbackSentCount: 3,
+    autopilot: {
+      status: "pass",
+      readyForMcpTooling: true,
+      requiresUserAction: false,
+      openConsoleActor: "agent",
+      actionCount: 1,
+    },
   });
 });
 
@@ -291,6 +393,13 @@ test("buildReport and markdown summarize first handoff and lifecycle counts", ()
       savedItemCount: 3,
       readFeedbackItemCount: 3,
       readFeedbackSentCount: 3,
+      autopilot: {
+        status: "pass",
+        readyForMcpTooling: true,
+        requiresUserAction: false,
+        openConsoleActor: "agent",
+        actionCount: 1,
+      },
     }),
     fixture: {
       fixtureId: "reply",
@@ -311,6 +420,8 @@ test("buildReport and markdown summarize first handoff and lifecycle counts", ()
   const markdown = renderMarkdownReport(report);
   assert.match(markdown, /## First Handoff/);
   assert.match(markdown, /- Status: pass/);
+  assert.match(markdown, /- Autopilot: pass/);
+  assert.match(markdown, /- Autopilot readyForMcpTooling: true/);
   assert.match(markdown, /\| reply \| com\.example\.reply \| pass \| 3 \| 3 \| 3 \| 1 \| 1 \| 1 \|/);
 });
 

@@ -175,6 +175,53 @@ export function statusForEnvironment({ strict, androidReady, reason }) {
   };
 }
 
+const allowedAutopilotActors = new Set(["agent", "user", "agent_after_restart"]);
+const allowedAutopilotKinds = new Set(["command", "mcp_tool", "manual"]);
+
+function assertAutopilotAction(action, index) {
+  if (!action || typeof action !== "object") throw new Error(`actions[${index}] must be an object`);
+  if (!allowedAutopilotActors.has(action.actor)) throw new Error(`actions[${index}] unsupported actor: ${action.actor}`);
+  if (!allowedAutopilotKinds.has(action.kind)) throw new Error(`actions[${index}] unsupported kind: ${action.kind}`);
+  if (action.kind === "command" && typeof action.command !== "string") throw new Error(`actions[${index}] command action requires command`);
+  if (action.kind === "mcp_tool" && typeof action.tool !== "string") throw new Error(`actions[${index}] mcp_tool action requires tool`);
+  if (action.kind === "manual" && typeof action.reason !== "string") throw new Error(`actions[${index}] manual action requires reason`);
+}
+
+export function assertVerifyReportAutopilotContract(report) {
+  if (!report || typeof report !== "object") throw new Error("verify report must be an object");
+  if (report.schemaVersion !== "1.1") throw new Error(`verify report schemaVersion must be 1.1, got ${report.schemaVersion}`);
+  if (!report.readiness || typeof report.readiness.state !== "string") throw new Error("verify report readiness.state is required");
+  if (!Array.isArray(report.actions) || report.actions.length === 0) throw new Error("verify report actions[] is required");
+  report.actions.forEach(assertAutopilotAction);
+
+  const openConsoleActions = report.actions.filter((action) => action.tool === "fixthis_open_feedback_console");
+  const unsafeCurrentConsole = openConsoleActions.find((action) => action.actor === "agent" && report.readyForMcpTooling !== true);
+  if (unsafeCurrentConsole) {
+    throw new Error("readyForMcpTooling=false cannot include current-agent console action");
+  }
+  const blockedByUser = report.actions.some((action) => action.actor === "user" && action.blocksProgress === true);
+  if (report.requiresUserAction === true && !blockedByUser) {
+    throw new Error("requiresUserAction=true requires a blocking user action");
+  }
+  return {
+    readyForMcpTooling: report.readyForMcpTooling === true,
+    blockedByUser,
+    openConsoleActor: openConsoleActions[0]?.actor || null,
+    runnableCommandCount: report.actions.filter((action) => action.actor === "agent" && action.kind === "command").length,
+  };
+}
+
+export function autopilotEvidenceForVerifyReport(report) {
+  const summary = assertVerifyReportAutopilotContract(report);
+  return {
+    status: summary.readyForMcpTooling || summary.openConsoleActor === "agent_after_restart" || summary.runnableCommandCount > 0 ? "pass" : "deferred",
+    readyForMcpTooling: summary.readyForMcpTooling,
+    requiresUserAction: report.requiresUserAction === true,
+    openConsoleActor: summary.openConsoleActor,
+    actionCount: report.actions.length,
+  };
+}
+
 const FirstHandoffFailureCatalog = Object.freeze({
   android_environment_unavailable: {
     state: "ENV_BLOCKER",
@@ -281,12 +328,14 @@ export function firstHandoffSuccess({
   savedItemCount = 0,
   readFeedbackItemCount = 0,
   readFeedbackSentCount = 0,
+  autopilot = null,
 } = {}) {
   return {
     status: "pass",
     savedItemCount,
     readFeedbackItemCount,
     readFeedbackSentCount,
+    ...(autopilot ? { autopilot } : {}),
   };
 }
 
@@ -347,6 +396,11 @@ export function renderMarkdownReport(report) {
   if (Number.isFinite(firstHandoff.savedItemCount)) lines.push(`- Saved items: ${firstHandoff.savedItemCount}`);
   if (Number.isFinite(firstHandoff.readFeedbackItemCount)) lines.push(`- Read feedback items: ${firstHandoff.readFeedbackItemCount}`);
   if (Number.isFinite(firstHandoff.readFeedbackSentCount)) lines.push(`- Sent items read: ${firstHandoff.readFeedbackSentCount}`);
+  if (firstHandoff.autopilot) {
+    lines.push(`- Autopilot: ${firstHandoff.autopilot.status}`);
+    lines.push(`- Autopilot readyForMcpTooling: ${firstHandoff.autopilot.readyForMcpTooling}`);
+    lines.push(`- Autopilot open console actor: ${firstHandoff.autopilot.openConsoleActor || "none"}`);
+  }
   lines.push(
     "",
     "| Fixture | Package | Status | Saved | Read | Sent | Resolved | Needs clarification | Won't fix |",
