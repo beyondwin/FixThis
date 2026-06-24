@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.fixture
 
 import io.github.beyondwin.fixthis.cli.BridgeClient
+import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.console.FeedbackTargetType
@@ -82,6 +83,16 @@ class RuntimeTrustFixtureRunner(
         val store: FeedbackSessionStore,
     )
 
+    private data class RuntimeTargetResolution(
+        val screen: SnapshotDto,
+        val node: FixThisNode,
+    )
+
+    private data class RuntimeFeedbackItemResult(
+        val screen: SnapshotDto,
+        val item: io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto,
+    )
+
     fun run(input: RuntimeTrustFixtureInput): RuntimeTrustFixtureOutput = runBlocking {
         val projectRoot = File(input.projectDir).canonicalFile
         val hostSourceIndex = input.hostSourceIndexOrNull()
@@ -99,14 +110,15 @@ class RuntimeTrustFixtureRunner(
         val cases = input.cases.map { testCase ->
             try {
                 testCase.navigateBefore?.let { target ->
-                    screen = navigateToTarget(runtime.service, session.sessionId, screen, target)
+                    screen = navigateToTarget(runtime, session.sessionId, screen, target, hostSourceIndex)
                         .withHostSourceIndexFallback(hostSourceIndex)
                     runtime.store.storeSourceIndexedScreen(session.sessionId, screen)
                 }
-                val item = addRuntimeFeedbackItem(runtime.service, session.sessionId, screen, testCase)
+                val result = addRuntimeFeedbackItem(runtime, session.sessionId, screen, testCase, hostSourceIndex)
+                screen = result.screen
                 RuntimeTrustCaseOutput(
                     caseId = testCase.caseId,
-                    observed = RuntimeTrustObservationMapper.fromAnnotation(item),
+                    observed = RuntimeTrustObservationMapper.fromAnnotation(result.item),
                 )
             } catch (error: RuntimeTargetResolutionException) {
                 RuntimeTrustCaseOutput(caseId = testCase.caseId, failures = listOf(error.code))
@@ -144,27 +156,61 @@ class RuntimeTrustFixtureRunner(
     }
 
     private suspend fun addRuntimeFeedbackItem(
-        service: FeedbackSessionService,
+        runtime: RuntimeFixtureRuntime,
         sessionId: String,
         screen: SnapshotDto,
         testCase: RuntimeTrustCaseInput,
-    ): io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto = if (testCase.runtimeTarget.visualArea != null) {
-        service.addAreaFeedback(
-            sessionId = sessionId,
-            screenId = screen.screenId,
-            bounds = testCase.runtimeTarget.visualArea.rect(),
-            comment = "Runtime trust fixture ${testCase.caseId}",
+        hostSourceIndex: SourceIndex?,
+    ): RuntimeFeedbackItemResult = if (testCase.runtimeTarget.visualArea != null) {
+        RuntimeFeedbackItemResult(
+            screen = screen,
+            item = runtime.service.addAreaFeedback(
+                sessionId = sessionId,
+                screenId = screen.screenId,
+                bounds = testCase.runtimeTarget.visualArea.rect(),
+                comment = "Runtime trust fixture ${testCase.caseId}",
+            ),
         )
     } else {
-        val node = RuntimeTargetResolver.resolve(screen, testCase.runtimeTarget)
-        service.addFeedbackItem(
-            sessionId = sessionId,
-            screenId = screen.screenId,
-            targetType = FeedbackTargetType.NODE,
-            bounds = node.boundsInWindow,
-            nodeUid = node.uid,
-            comment = "Runtime trust fixture ${testCase.caseId}",
+        val resolved = resolveTargetWithCaptureRetry(runtime, sessionId, screen, testCase.runtimeTarget, hostSourceIndex)
+        RuntimeFeedbackItemResult(
+            screen = resolved.screen,
+            item = runtime.service.addFeedbackItem(
+                sessionId = sessionId,
+                screenId = resolved.screen.screenId,
+                targetType = FeedbackTargetType.NODE,
+                bounds = resolved.node.boundsInWindow,
+                nodeUid = resolved.node.uid,
+                comment = "Runtime trust fixture ${testCase.caseId}",
+            ),
         )
+    }
+
+    private suspend fun resolveTargetWithCaptureRetry(
+        runtime: RuntimeFixtureRuntime,
+        sessionId: String,
+        initialScreen: SnapshotDto,
+        target: RuntimeTargetSelector,
+        hostSourceIndex: SourceIndex?,
+    ): RuntimeTargetResolution {
+        var screen = initialScreen
+        var lastTargetNotFound: RuntimeTargetResolutionException? = null
+        repeat(captureRetryPolicy.maxAttempts) { attempt ->
+            try {
+                return RuntimeTargetResolution(screen, RuntimeTargetResolver.resolve(screen, target))
+            } catch (error: RuntimeTargetResolutionException) {
+                if (error.code != "target_not_found") throw error
+                lastTargetNotFound = error
+            }
+            if (attempt < captureRetryPolicy.maxAttempts - 1) {
+                delay(captureRetryPolicy.retryDelayMillis)
+                screen = captureScreenWithRetry(runtime.service, sessionId)
+                    .getOrElse { throw lastTargetNotFound ?: RuntimeTargetResolutionException("target_not_found", "No runtime target matched selector $target") }
+                    .withHostSourceIndexFallback(hostSourceIndex)
+                runtime.store.storeSourceIndexedScreen(sessionId, screen)
+            }
+        }
+        throw lastTargetNotFound ?: RuntimeTargetResolutionException("target_not_found", "No runtime target matched selector $target")
     }
 
     private suspend fun captureScreenWithRetry(
@@ -189,14 +235,15 @@ class RuntimeTrustFixtureRunner(
     }
 
     private suspend fun navigateToTarget(
-        service: FeedbackSessionService,
+        runtime: RuntimeFixtureRuntime,
         sessionId: String,
         screen: SnapshotDto,
         target: RuntimeTargetSelector,
+        hostSourceIndex: SourceIndex?,
     ): SnapshotDto {
-        val node = RuntimeTargetResolver.resolve(screen, target)
-        val bounds = node.boundsInWindow
-        val result = service.navigate(
+        val resolved = resolveTargetWithCaptureRetry(runtime, sessionId, screen, target, hostSourceIndex)
+        val bounds = resolved.node.boundsInWindow
+        val result = runtime.service.navigate(
             sessionId,
             FeedbackNavigationRequest(
                 action = FeedbackNavigationAction.TAP,
@@ -205,7 +252,7 @@ class RuntimeTrustFixtureRunner(
                 captureAfter = true,
             ),
         )
-        return result.screen ?: screen
+        return result.screen ?: resolved.screen
     }
 
     private fun RuntimeTrustFixtureInput.hostSourceIndexOrNull(): SourceIndex? {

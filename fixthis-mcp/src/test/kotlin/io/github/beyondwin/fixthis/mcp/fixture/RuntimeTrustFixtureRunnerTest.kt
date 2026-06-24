@@ -4,6 +4,11 @@ import io.github.beyondwin.fixthis.compose.core.source.SourceIndex
 import io.github.beyondwin.fixthis.compose.core.source.SourceIndexEntry
 import io.github.beyondwin.fixthis.mcp.McpProtocol
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -59,6 +64,39 @@ class RuntimeTrustFixtureRunnerTest {
         assertEquals("evaluated", output.status)
         assertEquals(3, bridge.captureCount)
         assertEquals(listOf(25L, 25L), delays)
+    }
+
+    @Test
+    fun recapturesWhenFirstScreenDoesNotContainRuntimeTargetYet() {
+        val bridge = FakeFixThisBridge(
+            snapshotMutator = { callIndex, payload ->
+                if (callIndex == 1) payload.withEmptyInspectionRoots() else payload
+            },
+        )
+        val runner = RuntimeTrustFixtureRunner(
+            bridgeFactory = { bridge },
+            captureRetryPolicy = RuntimeCaptureRetryPolicy(maxAttempts = 3, retryDelayMillis = 25),
+            delay = {},
+        )
+
+        val output = runner.run(
+            RuntimeTrustFixtureInput(
+                projectDir = "/repo",
+                packageName = "io.github.beyondwin.fixthis.sample",
+                cases = listOf(
+                    RuntimeTrustCaseInput(
+                        caseId = "email-label",
+                        runtimeTarget = RuntimeTargetSelector(text = "Email address"),
+                    ),
+                ),
+                strict = true,
+            ),
+        )
+
+        assertEquals("evaluated", output.status)
+        assertEquals(2, bridge.captureCount)
+        assertEquals("email-label", output.cases.single().caseId)
+        assertTrue(output.cases.single().observed?.candidates.orEmpty().isNotEmpty())
     }
 
     @Test
@@ -137,5 +175,26 @@ class RuntimeTrustFixtureRunnerTest {
         assertEquals("evaluated", output.status)
         assertTrue(output.cases.single().observed?.sourceConfidence in setOf("medium", "high"))
         assertTrue(output.cases.single().observed?.candidates.orEmpty().isNotEmpty())
+    }
+
+    private fun JsonObject.withEmptyInspectionRoots(): JsonObject = buildJsonObject {
+        forEach { (key, value) ->
+            if (key == "inspection") {
+                put(
+                    key,
+                    buildJsonObject {
+                        value.jsonObject.forEach { (inspectionKey, inspectionValue) ->
+                            if (inspectionKey == "roots") {
+                                put("roots", JsonArray(emptyList()))
+                            } else {
+                                put(inspectionKey, inspectionValue)
+                            }
+                        }
+                    },
+                )
+            } else {
+                put(key, value)
+            }
+        }
     }
 }
