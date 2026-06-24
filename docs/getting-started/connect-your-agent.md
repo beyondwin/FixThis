@@ -63,17 +63,16 @@ detection is ambiguous, add `--package <applicationId>`.
 For a new Android app integration, prefer the single agent command:
 
 ```bash
-fixthis install-agent --project-dir . --target all
-fixthis doctor --project-dir . --json
+fixthis install-agent --project-dir . --target all --verify --json
 ```
 
 ## Codex Plugin
 
 The Codex plugin packages the install, feedback-loop, Android evidence, and
 release-smoke workflows as skills. It does not replace setup: canonical
-bootstrap still starts with `fixthis install-agent --project-dir . --target all`
-and uses `fixthis doctor --project-dir . --json` as the readiness source of
-truth.
+bootstrap still starts with
+`fixthis install-agent --project-dir . --target all --verify --json` and uses
+the unified JSON report as the readiness source of truth.
 
 Restart Claude Code or Codex after MCP config is written. Then open the
 console with `fixthis_open_feedback_console`.
@@ -85,7 +84,8 @@ readiness result is the source of truth.
 
 If doctor reports `NEEDS_INSTALL` or generated metadata is missing, run
 `./gradlew fixthisSetup` as a recovery step and rerun
-`fixthis doctor --project-dir . --json`. `fixthisSetup` writes
+`fixthis install-agent --project-dir . --target all --verify --json`.
+`fixthisSetup` writes
 `.fixthis/project.json`, so `init`, `doctor`, `mcp`, and `console` can omit
 `--package` unless the Android project has multiple app ids. For pasteable
 `AGENTS.md` / `CLAUDE.md` instructions, use

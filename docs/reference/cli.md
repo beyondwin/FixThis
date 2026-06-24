@@ -169,7 +169,7 @@ FixThis Gradle plugin to the detected app module, writes Claude Code / Codex MCP
 config, and leaves project-scoped handoff files under `.fixthis/`.
 
 ```bash
-fixthis install-agent --project-dir . --target all
+fixthis install-agent --project-dir . --target all --verify --json
 fixthis install-agent --project-dir . --target all --dry-run
 ```
 
@@ -184,6 +184,7 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--plugin-version` | `1.3.0` | FixThis Gradle plugin version to apply. |
 | `--allow-global` | off | Permit writes to global config files (e.g. `~/.codex/config.toml`) when run outside an Android project. Default: refuse the global write and exit with PARTIAL. |
 | `--json` | off | Emit JSON (`schemaVersion`, `ok`, `applied[]`, `skipped[]`, `errors[]`, `next[]`, optional `readiness`, `nextAction`, and `restartRequired`). |
+| `--verify` | off | After setup, run doctor checks and emit one unified agent setup report in `--json` mode. With `--dry-run`, verification is skipped and reported as `verification.skippedReason=dry_run_no_side_effects`. |
 | `--verbose`, `-v` | off | Print the full Java stack trace on failure. |
 
 Target selection is shared with `fixthis setup`: `claude` plans only the
@@ -206,7 +207,7 @@ Exit codes follow [`docs/reference/cli-exit-codes.md`](cli-exit-codes.md):
 
 `install-agent` writes `.fixthis/project.json`, `.fixthis/agent-setup.md`,
 `.fixthis/agent-setup.json`, and `.fixthis/mcp.json.template` as part of the
-agent setup. The primary next step is:
+agent setup. When `--verify` is omitted, the primary next step is:
 
 ```bash
 fixthis doctor --project-dir . --json
@@ -215,6 +216,15 @@ fixthis doctor --project-dir . --json
 In JSON mode, `nextAction` prefers `readiness.nextAction` when present. This
 keeps restart guidance and the runnable doctor verification step from
 contradicting each other after MCP config files are written.
+
+With `--verify --json`, the report uses `schemaVersion: "1.1"` and keeps the
+existing setup arrays under `setup.applied`, `setup.skipped`, and
+`setup.errors`. It also includes `verification`, `actions[]`,
+`readinessSource`, `requiresUserAction`, and `readyForMcpTooling`. Agents
+should treat `readiness.state` as the app readiness source of truth and
+`actions[]` as the execution queue. Do not call `fixthis_open_feedback_console`
+until `readyForMcpTooling` is true, or until the report's
+`agent_after_restart` action is reached after restarting the MCP client.
 
 Run `./gradlew fixthisSetup` only as a recovery or manual refresh command when
 doctor reports `NEEDS_INSTALL` or missing generated metadata.

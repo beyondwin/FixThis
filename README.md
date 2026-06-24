@@ -45,10 +45,10 @@ Code or Codex from the root of a Jetpack Compose Android app:
 Install FixThis in this project and configure it for this agent.
 
 Use this order:
-1. Run `fixthis install-agent --project-dir . --target all`.
-2. Run `fixthis doctor --project-dir . --json`.
-3. Use the doctor JSON readiness result as the source of truth.
-4. If MCP config was written, tell me to restart Claude Code or Codex before calling `fixthis_open_feedback_console`.
+1. Run `fixthis install-agent --project-dir . --target all --verify --json`.
+2. Use the JSON `readiness.state` and `actions[]` as the source of truth.
+3. If `requiresUserAction` is true, tell me the exact blocking action.
+4. Do not call `fixthis_open_feedback_console` until `readyForMcpTooling` is true, or until the report's `agent_after_restart` action is reached after restart.
 
 Do not configure release builds. Do not commit `.fixthis/`.
 ```
@@ -66,8 +66,7 @@ npm install -g @beyondwin/fixthis
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
   | bash -s -- --version v1.3.0
 
-fixthis install-agent --project-dir . --target all
-fixthis doctor --project-dir . --json
+fixthis install-agent --project-dir . --target all --verify --json
 ```
 
 If Homebrew already has FixThis installed, run
@@ -79,8 +78,9 @@ published Gradle plugin, writes MCP config for Claude Code / Codex, writes
 `.fixthis/project.json`, and writes `.fixthis/agent-setup.*` handoff files.
 If doctor reports `NEEDS_INSTALL` or generated metadata is missing, run
 `./gradlew fixthisSetup` as a recovery step and rerun
-`fixthis doctor --project-dir . --json`. Restart Claude Code or Codex after
-MCP config is written, then call `fixthis_open_feedback_console`.
+`fixthis install-agent --project-dir . --target all --verify --json`. Restart
+Claude Code or Codex when the report asks for it, then call
+`fixthis_open_feedback_console`.
 
 The published Gradle plugin coordinates:
 

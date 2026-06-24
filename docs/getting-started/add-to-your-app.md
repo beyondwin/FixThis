@@ -22,7 +22,7 @@ npm install -g @beyondwin/fixthis
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
   | bash -s -- --version v1.3.0
 
-fixthis install-agent --project-dir . --target all
+fixthis install-agent --project-dir . --target all --verify --json
 ```
 
 If Homebrew already has an older FixThis, run
@@ -57,11 +57,9 @@ design.
 
 ## 2. Configure your AI agent
 
-After `fixthis install-agent` completes, verify the setup:
-
-```bash
-fixthis doctor --project-dir . --json
-```
+Use the `--verify --json` report as the setup contract. `readiness.state`
+describes app readiness, `actions[]` is the follow-up queue, and
+`readyForMcpTooling` must be true before the current agent opens the console.
 
 Use `fixthis install-agent --dry-run` to preview the Gradle patch and config
 writes, or `--skip-gradle-plugin` if the plugin is already applied.
