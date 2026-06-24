@@ -15,6 +15,29 @@ import org.junit.Test
 
 class DoctorCommandTest {
     @Test
+    fun doctorServiceReturnsSameReportShapeAsDoctorJsonRenderer() {
+        val service = DoctorService(
+            environment = object : DoctorEnvironment {
+                override fun requireAndroidProject(root: java.io.File) = Unit
+                override fun resolvePackageName(root: java.io.File, packageName: String?) = "com.example.agent"
+                override fun listDevices(root: java.io.File) = listOf(AdbDevice("emulator-5554", "device"))
+                override fun requestStatus(root: java.io.File, packageName: String) = Unit
+            },
+        )
+
+        val report = service.run(
+            packageName = null,
+            projectRoot = java.nio.file.Files.createTempDirectory("fixthis-doctor-service").toFile(),
+        )
+        val json = Json.parseToJsonElement(renderDoctorJsonReport(report)).jsonObject
+
+        assertEquals("true", json.getValue("ok").jsonPrimitive.content)
+        assertEquals("com.example.agent", json.getValue("packageName").jsonPrimitive.content)
+        assertEquals("READY", json.getValue("readiness").jsonObject.getValue("state").jsonPrimitive.content)
+        assertEquals(5, json.getValue("checks").jsonArray.size)
+    }
+
+    @Test
     fun connectedDeviceCheckRequiresReadyDevice() {
         assertFalse(
             hasConnectedAndroidDevice(
