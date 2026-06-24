@@ -370,6 +370,7 @@ test("restart-required verify gate preserves first-handoff readiness classificat
   assert.equal(failureCode, "mcp_tooling_not_ready");
   assert.equal(report.firstHandoff.failureCode, "mcp_tooling_not_ready");
   assert.equal(report.firstHandoff.readiness.state, "RESTART_REQUIRED");
+  assert.equal(report.firstHandoff.readiness.verify, "fixthis install-agent --project-dir . --target all --verify --json");
   assert.equal(report.firstHandoff.nextAction, "Restart agent");
   assert.deepEqual(report.firstHandoff.autopilot, autopilotEvidenceForVerifyReport(restartRequiredReport));
   assert.match(renderMarkdownReport(report), /- Autopilot readyForMcpTooling: false/);

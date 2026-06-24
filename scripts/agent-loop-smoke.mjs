@@ -307,7 +307,7 @@ const FirstHandoffFailureCatalog = Object.freeze({
   mcp_tooling_not_ready: {
     state: "RESTART_REQUIRED",
     cause: "Verify report says the current agent cannot call FixThis MCP tools yet.",
-    verify: "fixthis install-agent-verify-json --project-dir .",
+    verify: "fixthis install-agent --project-dir . --target all --verify --json",
     fix: "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
     nextAction: "Restart agent",
   },
