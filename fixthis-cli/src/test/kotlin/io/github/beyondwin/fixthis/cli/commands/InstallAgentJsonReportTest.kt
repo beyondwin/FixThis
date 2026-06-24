@@ -205,6 +205,80 @@ class InstallAgentJsonReportTest {
     }
 
     @Test
+    fun verifyReportRendersCommandToolAndManualActions() {
+        val rendered = AgentSetupVerificationJsonReport.render(
+            AgentSetupVerificationReport(
+                ok = false,
+                readiness = FirstRunReadinessCatalog.configRecoverable(
+                    cause = "FixThis setup needs another command.",
+                ).copy(
+                    nextAction = "fixthis install-agent --project-dir /repo --target all --verify --json",
+                ),
+                readinessSource = "setup",
+                next = listOf(
+                    "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
+                    "fixthis install-agent --project-dir /repo --target all --verify --json",
+                    "fixthis_open_feedback_console",
+                ),
+                restartRequired = true,
+                requiresUserAction = true,
+                userActionReason = "restart_mcp_client",
+                readyForMcpTooling = false,
+                actions = listOf(
+                    AgentSetupAction(
+                        id = "restart-agent",
+                        actor = AgentSetupActionContract.USER,
+                        kind = AgentSetupActionContract.MANUAL,
+                        reason = "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
+                        blocksProgress = true,
+                    ),
+                    AgentSetupAction(
+                        id = "rerun-verify",
+                        actor = AgentSetupActionContract.AGENT,
+                        kind = AgentSetupActionContract.COMMAND,
+                        command = "fixthis install-agent --project-dir /repo --target all --verify --json",
+                        reason = "Verify setup after restart.",
+                        blocksProgress = false,
+                    ),
+                    AgentSetupAction(
+                        id = "open-feedback-console",
+                        actor = AgentSetupActionContract.AGENT_AFTER_RESTART,
+                        kind = AgentSetupActionContract.MCP_TOOL,
+                        tool = "fixthis_open_feedback_console",
+                        reason = "Open FixThis Studio after setup verification succeeds.",
+                        blocksProgress = false,
+                    ),
+                ),
+                setup = AgentSetupSnapshot(
+                    applied = emptyList(),
+                    skipped = emptyList(),
+                    errors = emptyList(),
+                    mcpConfigChanged = true,
+                ),
+                verification = AgentVerificationSnapshot(
+                    ok = false,
+                    packageName = null,
+                    checks = emptyList(),
+                ),
+            ),
+        )
+
+        val obj = Json.parseToJsonElement(rendered).jsonObject
+        val actions = obj.getValue("actions").jsonArray.map { it.jsonObject }
+        assertEquals("manual", actions[0].getValue("kind").jsonPrimitive.content)
+        assertEquals("command", actions[1].getValue("kind").jsonPrimitive.content)
+        assertEquals("mcp_tool", actions[2].getValue("kind").jsonPrimitive.content)
+        assertEquals(
+            "fixthis install-agent --project-dir /repo --target all --verify --json",
+            actions[1].getValue("command").jsonPrimitive.content,
+        )
+        assertEquals(
+            "fixthis_open_feedback_console",
+            actions[2].getValue("tool").jsonPrimitive.content,
+        )
+    }
+
+    @Test
     fun emptyReportIsOk() {
         val rendered = InstallAgentJsonReport.render(
             applied = listOf(

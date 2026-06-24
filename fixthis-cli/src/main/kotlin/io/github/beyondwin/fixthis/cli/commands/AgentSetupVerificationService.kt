@@ -22,7 +22,7 @@ internal class AgentSetupVerificationService {
         val restartRequired = request.setup.mcpConfigChanged
         val readyForMcpTooling = readiness.state == FirstRunReadinessState.READY && !restartRequired
         val actions = actionsFor(request, readiness, restartRequired, readyForMcpTooling, root)
-        val requiresUserAction = actions.any { it.actor == "user" && it.blocksProgress }
+        val requiresUserAction = actions.any { it.actor == AgentSetupActionContract.USER && it.blocksProgress }
         val ok = readiness.state == FirstRunReadinessState.READY &&
             readyForMcpTooling &&
             request.setup.skipped.isEmpty() &&
@@ -35,7 +35,9 @@ internal class AgentSetupVerificationService {
             next = actions.mapNotNull { it.command ?: it.tool ?: it.reason },
             restartRequired = restartRequired,
             requiresUserAction = requiresUserAction,
-            userActionReason = actions.firstOrNull { it.actor == "user" && it.blocksProgress }?.let { action ->
+            userActionReason = actions.firstOrNull {
+                it.actor == AgentSetupActionContract.USER && it.blocksProgress
+            }?.let { action ->
                 if (action.id == "restart-agent") "restart_mcp_client" else readiness.state.name
             },
             readyForMcpTooling = readyForMcpTooling,
@@ -111,8 +113,8 @@ internal class AgentSetupVerificationService {
             add(
                 AgentSetupAction(
                     id = "restart-agent",
-                    actor = "user",
-                    kind = "manual",
+                    actor = AgentSetupActionContract.USER,
+                    kind = AgentSetupActionContract.MANUAL,
                     reason = "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
                     blocksProgress = true,
                 ),
@@ -123,8 +125,12 @@ internal class AgentSetupVerificationService {
                 add(
                     AgentSetupAction(
                         id = "open-feedback-console",
-                        actor = if (readyForMcpTooling) "agent" else "agent_after_restart",
-                        kind = "mcp_tool",
+                        actor = if (readyForMcpTooling) {
+                            AgentSetupActionContract.AGENT
+                        } else {
+                            AgentSetupActionContract.AGENT_AFTER_RESTART
+                        },
+                        kind = AgentSetupActionContract.MCP_TOOL,
                         tool = "fixthis_open_feedback_console",
                         reason = "Open FixThis Studio after setup verification succeeds.",
                         blocksProgress = false,
@@ -135,8 +141,8 @@ internal class AgentSetupVerificationService {
                 add(
                     AgentSetupAction(
                         id = "start-device",
-                        actor = "user",
-                        kind = "manual",
+                        actor = AgentSetupActionContract.USER,
+                        kind = AgentSetupActionContract.MANUAL,
                         reason = readiness.fix,
                         blocksProgress = true,
                     ),
@@ -155,8 +161,8 @@ internal class AgentSetupVerificationService {
                 add(
                     AgentSetupAction(
                         id = "recover-setup",
-                        actor = "agent",
-                        kind = "command",
+                        actor = AgentSetupActionContract.AGENT,
+                        kind = AgentSetupActionContract.COMMAND,
                         command = readiness.nextAction,
                         reason = readiness.cause,
                         blocksProgress = true,
@@ -168,8 +174,8 @@ internal class AgentSetupVerificationService {
 
     private fun rerunVerify(root: File, target: String) = AgentSetupAction(
         id = "rerun-verify",
-        actor = "agent",
-        kind = "command",
+        actor = AgentSetupActionContract.AGENT,
+        kind = AgentSetupActionContract.COMMAND,
         command = "fixthis install-agent --project-dir ${root.absolutePath} --target $target --verify --json",
         reason = "Verify setup after the blocking condition is resolved.",
         blocksProgress = false,

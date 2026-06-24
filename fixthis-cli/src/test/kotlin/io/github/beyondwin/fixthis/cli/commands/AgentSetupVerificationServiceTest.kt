@@ -11,6 +11,27 @@ import java.io.File
 class AgentSetupVerificationServiceTest {
     private val root = File("/repo").absoluteFile
 
+    private fun assertActionContract(report: AgentSetupVerificationReport) {
+        assertTrue("report should contain at least one action", report.actions.isNotEmpty())
+        report.actions.forEach { action ->
+            assertTrue(
+                "invalid action $action",
+                AgentSetupActionContract.validate(action).isEmpty(),
+            )
+        }
+        val firstBlocked = report.actions.indexOfFirst { it.blocksProgress }
+        if (firstBlocked >= 0) {
+            val blockedAction = report.actions[firstBlocked]
+            assertTrue(
+                "blocking action must be user/manual or agent command: $blockedAction",
+                (blockedAction.actor == AgentSetupActionContract.USER &&
+                    blockedAction.kind == AgentSetupActionContract.MANUAL) ||
+                    (blockedAction.actor == AgentSetupActionContract.AGENT &&
+                        blockedAction.kind == AgentSetupActionContract.COMMAND),
+            )
+        }
+    }
+
     @Test
     fun readyDoctorWithNoRestartIsReadyForMcpTooling() {
         val report = AgentSetupVerificationService().buildReport(
@@ -115,5 +136,93 @@ class AgentSetupVerificationServiceTest {
         assertEquals("CONFIG_RECOVERABLE", report.readiness.state.name)
         assertEquals("dry_run_no_side_effects", report.verification.skippedReason)
         assertFalse(report.readyForMcpTooling)
+    }
+
+    @Test
+    fun allServiceReportsUseClosedActionContract() {
+        val ready = AgentSetupVerificationService().buildReport(
+            AgentSetupVerificationRequest(
+                projectRoot = root,
+                target = "all",
+                setup = AgentSetupSnapshot(emptyList(), emptyList(), emptyList(), mcpConfigChanged = false),
+                doctorReport = DoctorReport(packageName = "com.example", checks = emptyList()),
+                dryRun = false,
+            ),
+        )
+        assertActionContract(ready)
+
+        val restart = AgentSetupVerificationService().buildReport(
+            AgentSetupVerificationRequest(
+                projectRoot = root,
+                target = "all",
+                setup = AgentSetupSnapshot(
+                    applied = listOf(
+                        InstallAgentJsonReport.Applied(
+                            "codex",
+                            "/Users/test/.codex/config.toml",
+                            "user-global",
+                        ),
+                    ),
+                    skipped = emptyList(),
+                    errors = emptyList(),
+                    mcpConfigChanged = true,
+                ),
+                doctorReport = DoctorReport(packageName = "com.example", checks = emptyList()),
+                dryRun = false,
+            ),
+        )
+        assertActionContract(restart)
+        assertEquals("restart-agent", restart.actions.first().id)
+        assertEquals(AgentSetupActionContract.USER, restart.actions.first().actor)
+        assertEquals(AgentSetupActionContract.MANUAL, restart.actions.first().kind)
+        assertEquals(AgentSetupActionContract.AGENT_AFTER_RESTART, restart.actions.last().actor)
+
+        val dryRun = AgentSetupVerificationService().buildReport(
+            AgentSetupVerificationRequest(
+                projectRoot = root,
+                target = "all",
+                setup = AgentSetupSnapshot(emptyList(), emptyList(), emptyList(), mcpConfigChanged = false),
+                doctorReport = null,
+                dryRun = true,
+            ),
+        )
+        assertActionContract(dryRun)
+        assertEquals("recover-setup", dryRun.actions.single().id)
+        assertEquals(AgentSetupActionContract.AGENT, dryRun.actions.single().actor)
+        assertEquals(AgentSetupActionContract.COMMAND, dryRun.actions.single().kind)
+    }
+
+    @Test
+    fun unsupportedBuildDoesNotOpenConsole() {
+        val readiness = FirstRunReadinessCatalog.unsupportedBuild(
+            cause = "Release builds cannot expose the FixThis sidekick.",
+        )
+        val report = AgentSetupVerificationService().buildReport(
+            AgentSetupVerificationRequest(
+                projectRoot = root,
+                target = "all",
+                setup = AgentSetupSnapshot(emptyList(), emptyList(), emptyList(), mcpConfigChanged = false),
+                doctorReport = DoctorReport(
+                    packageName = "com.example",
+                    checks = listOf(
+                        DoctorCheckResult(
+                            name = "sidekick_session_found",
+                            label = "sidekick session found",
+                            ok = false,
+                            message = "Release builds cannot expose the FixThis sidekick.",
+                            fix = "Install a debuggable app with FixThis enabled.",
+                            readiness = readiness,
+                        ),
+                    ),
+                ),
+                dryRun = false,
+            ),
+        )
+
+        assertActionContract(report)
+        assertFalse(report.readyForMcpTooling)
+        assertTrue(report.actions.none { it.tool == "fixthis_open_feedback_console" })
+        assertEquals("recover-setup", report.actions.single().id)
+        assertEquals(AgentSetupActionContract.COMMAND, report.actions.single().kind)
     }
 }

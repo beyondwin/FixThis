@@ -25,6 +25,34 @@ internal data class AgentSetupAction(
     val tool: String? = null,
 )
 
+internal object AgentSetupActionContract {
+    const val AGENT = "agent"
+    const val USER = "user"
+    const val AGENT_AFTER_RESTART = "agent_after_restart"
+
+    const val COMMAND = "command"
+    const val MCP_TOOL = "mcp_tool"
+    const val MANUAL = "manual"
+
+    private val allowedActors = setOf(AGENT, USER, AGENT_AFTER_RESTART)
+    private val allowedKinds = setOf(COMMAND, MCP_TOOL, MANUAL)
+
+    fun validate(action: AgentSetupAction): List<String> = buildList {
+        if (action.actor !in allowedActors) add("Unsupported action actor: ${action.actor}")
+        if (action.kind !in allowedKinds) add("Unsupported action kind: ${action.kind}")
+        if (action.kind == COMMAND && action.command.isNullOrBlank()) add("Command action requires command")
+        if (action.kind == MCP_TOOL && action.tool.isNullOrBlank()) add("MCP tool action requires tool")
+        if (action.kind == MANUAL && action.reason.isBlank()) add("Manual action requires reason")
+        if (action.kind == COMMAND && !action.tool.isNullOrBlank()) add("Command action must not include tool")
+        if (action.kind == MCP_TOOL && !action.command.isNullOrBlank()) add("MCP tool action must not include command")
+    }
+
+    fun requireValid(action: AgentSetupAction) {
+        val errors = validate(action)
+        require(errors.isEmpty()) { errors.joinToString("; ") }
+    }
+}
+
 internal data class AgentSetupSnapshot(
     val applied: List<InstallAgentJsonReport.Applied>,
     val skipped: List<InstallAgentJsonReport.Skipped>,
@@ -55,6 +83,7 @@ internal data class AgentSetupVerificationReport(
 
 internal object AgentSetupVerificationJsonReport {
     fun render(report: AgentSetupVerificationReport): String {
+        report.actions.forEach(AgentSetupActionContract::requireValid)
         val preferredNextAction = report.readiness.nextAction.ifBlank { report.next.firstOrNull().orEmpty() }
         return agentSetupJson.encodeToString(
             buildJsonObject {
