@@ -75,3 +75,21 @@ test('agent setup schema separates handoff file and verify stdout report', () =>
   assert.match(text, /readyForMcpTooling/);
   assert.match(text, /actions\[\]/);
 });
+
+test('release-readiness checker requires first-handoff autopilot unit evidence', () => {
+  const text = read('scripts/check-release-readiness.mjs');
+  const blockStart = text.indexOf("'R52.first-handoff-autopilot-contract'");
+  const blockEnd = text.indexOf("'R46.required-checks-observation-policy-link'", blockStart);
+  assert.notEqual(blockStart, -1, 'checker must include R52.first-handoff-autopilot-contract');
+  assert.notEqual(blockEnd, -1, 'checker must keep R52 scoped before the next release-readiness rule');
+
+  const block = text.slice(blockStart, blockEnd).replaceAll('\\', '');
+  const unitEvidence = './gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon';
+  const smokeTest = 'npm run agent-loop:smoke:test';
+  const strictSmoke = 'npm run agent-loop:smoke -- --strict';
+  assert.ok(block.includes('First Handoff Autopilot Evidence'));
+  assert.ok(block.includes(unitEvidence), `R52 must require ${unitEvidence}`);
+  assert.ok(block.includes(smokeTest), `R52 must require ${smokeTest}`);
+  assert.ok(block.includes(strictSmoke), `R52 must require ${strictSmoke}`);
+  assert.ok(block.indexOf(unitEvidence) < block.indexOf(smokeTest), 'R52 must require unit evidence before smoke evidence');
+});
