@@ -10,6 +10,61 @@ import org.junit.Test
 
 class InstallAgentJsonReportTest {
     @Test
+    fun verifyReportCarriesSetupVerificationActionsAndMcpReadiness() {
+        val readiness = FirstRunReadinessCatalog.deviceBlocked(
+            cause = "No connected Android device or emulator found",
+            fix = "Start an emulator or connect a device, then run `adb devices`.",
+        )
+        val rendered = AgentSetupVerificationJsonReport.render(
+            AgentSetupVerificationReport(
+                ok = false,
+                readiness = readiness,
+                readinessSource = "verification",
+                next = listOf("Start an emulator or connect a device, then run `adb devices`."),
+                restartRequired = true,
+                requiresUserAction = true,
+                userActionReason = "DEVICE_BLOCKED",
+                readyForMcpTooling = false,
+                actions = listOf(
+                    AgentSetupAction(
+                        id = "start-device",
+                        actor = "user",
+                        kind = "manual",
+                        reason = "A connected unlocked Android device or emulator is required.",
+                        blocksProgress = true,
+                    ),
+                ),
+                setup = AgentSetupSnapshot(
+                    applied = listOf(
+                        InstallAgentJsonReport.Applied(
+                            "claude",
+                            "/repo/.claude/settings.json",
+                            "project-local",
+                        ),
+                    ),
+                    skipped = emptyList(),
+                    errors = emptyList(),
+                    mcpConfigChanged = true,
+                ),
+                verification = AgentVerificationSnapshot(
+                    ok = false,
+                    packageName = "com.example.app",
+                    checks = emptyList(),
+                ),
+            ),
+        )
+
+        val obj = Json.parseToJsonElement(rendered).jsonObject
+        assertEquals("1.1", obj.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals("false", obj.getValue("ok").jsonPrimitive.content)
+        assertEquals("verification", obj.getValue("readinessSource").jsonPrimitive.content)
+        assertEquals("false", obj.getValue("readyForMcpTooling").jsonPrimitive.content)
+        assertEquals("true", obj.getValue("setup").jsonObject.getValue("mcpConfigChanged").jsonPrimitive.content)
+        assertEquals("start-device", obj.getValue("actions").jsonArray[0].jsonObject.getValue("id").jsonPrimitive.content)
+        assertEquals("com.example.app", obj.getValue("verification").jsonObject.getValue("packageName").jsonPrimitive.content)
+    }
+
+    @Test
     fun jsonReportHasSchemaAndFields() {
         val rendered = InstallAgentJsonReport.render(
             applied = listOf(
