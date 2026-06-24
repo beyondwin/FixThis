@@ -425,6 +425,44 @@ test("buildReport and markdown summarize first handoff and lifecycle counts", ()
   assert.match(markdown, /\| reply \| com\.example\.reply \| pass \| 3 \| 3 \| 3 \| 1 \| 1 \| 1 \|/);
 });
 
+test("buildReport attaches autopilot evidence from runtime verify report", () => {
+  const verifyReport = {
+    schemaVersion: "1.1",
+    readiness: { state: "READY" },
+    requiresUserAction: false,
+    readyForMcpTooling: true,
+    actions: [
+      {
+        id: "open-feedback-console",
+        actor: "agent",
+        kind: "mcp_tool",
+        tool: "fixthis_open_feedback_console",
+        reason: "Open FixThis Studio after setup verification succeeds.",
+        blocksProgress: false,
+      },
+    ],
+  };
+
+  const report = buildReport({
+    strict: true,
+    device: "emulator-5554",
+    startedAt: "2026-06-09T00:00:00.000Z",
+    finishedAt: "2026-06-09T00:01:00.000Z",
+    fixture: {
+      fixtureId: "reply",
+      packageName: "com.example.reply",
+      status: "pass",
+      savedItemCount: 3,
+      readFeedbackItemCount: 3,
+      readFeedbackSentCount: 3,
+      verifyReport,
+    },
+  });
+
+  assert.deepEqual(report.firstHandoff.autopilot, autopilotEvidenceForVerifyReport(verifyReport));
+  assert.match(renderMarkdownReport(report), /- Autopilot open console actor: agent/);
+});
+
 test("buildReport fails when lifecycle assertions fail", () => {
   const report = buildReport({
     strict: true,

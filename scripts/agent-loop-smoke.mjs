@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
@@ -354,6 +355,7 @@ export function firstHandoffForEnvironment({ strict, androidReady, reason }) {
 
 export function buildReport({ strict, device = null, startedAt, finishedAt, fixture, firstHandoff = null }) {
   const status = fixture.status === "pass" ? "pass" : fixture.status === "deferred" ? "deferred" : "fail";
+  const autopilot = fixture.verifyReport ? autopilotEvidenceForVerifyReport(fixture.verifyReport) : null;
   return {
     status,
     strict,
@@ -366,6 +368,7 @@ export function buildReport({ strict, device = null, startedAt, finishedAt, fixt
             savedItemCount: fixture.savedItemCount || 0,
             readFeedbackItemCount: fixture.readFeedbackItemCount || 0,
             readFeedbackSentCount: fixture.readFeedbackSentCount || 0,
+            autopilot,
           })
         : firstHandoffFailure({
             failureCode: "mcp_transport_failure",
@@ -434,6 +437,68 @@ function withAndroidEnvironment(options = {}, environment = {}) {
 function ensureMcpDistribution() {
   runCommand("./gradlew", [":fixthis-mcp:installDist", "--no-daemon"], { cwd: repoRoot, stdio: "inherit" });
   return join(repoRoot, "fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp");
+}
+
+function ensureCliDistribution() {
+  runCommand("./gradlew", [":fixthis-cli:installDist", "--no-daemon"], { cwd: repoRoot, stdio: "inherit" });
+  return join(repoRoot, "fixthis-cli/build/install/fixthis/bin/fixthis");
+}
+
+function parseJsonObject(text, label) {
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("expected a JSON object");
+    }
+    return parsed;
+  } catch (error) {
+    throw new Error(`${label} did not emit valid JSON: ${error.message}`);
+  }
+}
+
+function runCommandAllowingJsonFailure(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd || repoRoot,
+    encoding: "utf8",
+    stdio: "pipe",
+    env: { ...process.env, ...(options.env || {}) },
+  });
+  if (result.error) {
+    throw new Error(`${command} ${args.join(" ")} failed to spawn: ${result.error.message}`);
+  }
+  const stdout = typeof result.stdout === "string" ? result.stdout.trim() : "";
+  if (!stdout) {
+    const stderr = typeof result.stderr === "string" ? result.stderr.trim() : "";
+    throw new Error(`${command} ${args.join(" ")} emitted no JSON${stderr ? `\n${stderr}` : ""}`);
+  }
+  return stdout;
+}
+
+function verifyReportForRuntimeFixture({ fixture, projectWorkDir, environment }) {
+  const cli = ensureCliDistribution();
+  const home = join(projectWorkDir, ".fixthis-agent-loop-home");
+  const stdout = runCommandAllowingJsonFailure(
+    cli,
+    [
+      "install-agent",
+      "--project-dir",
+      projectWorkDir,
+      "--target",
+      "all",
+      "--package",
+      fixture.applicationId,
+      "--verify",
+      "--json",
+    ],
+    {
+      cwd: repoRoot,
+      env: {
+        ...environment.envPatch,
+        JAVA_OPTS: `-Duser.home=${home}`,
+      },
+    },
+  );
+  return parseJsonObject(stdout, "install-agent verify report");
 }
 
 async function waitForReadyConsole(page) {
@@ -743,12 +808,18 @@ export async function runSmoke(options) {
     stdio: "inherit",
     run: runWithAndroidEnvironment,
   });
+  const verifyReport = verifyReportForRuntimeFixture({
+    fixture,
+    projectWorkDir: paths.projectWorkDir,
+    environment,
+  });
   let mcp = null;
   let browserFlow = null;
   const fixtureResult = {
     fixtureId: fixture.id,
     packageName: fixture.applicationId,
     status: "fail",
+    verifyReport,
     failures: [],
   };
   try {
@@ -804,6 +875,7 @@ export async function runSmoke(options) {
       savedItemCount: protocol.itemIds.length,
       readFeedbackItemCount: queueStats.itemCount,
       readFeedbackSentCount: queueStats.sentCount,
+      autopilot: autopilotEvidenceForVerifyReport(verifyReport),
     });
     if (!reflected.bodyText.includes("Resolved") || !reflected.bodyText.includes("Needs Clarification") || !reflected.bodyText.includes("Won't Fix")) {
       throw new Error(`Console did not render all terminal statuses: ${reflected.bodyText}`);
