@@ -5,6 +5,7 @@ import {
   assertCopiedPromptProtocol,
   assertLifecycleSessionState,
   assertReadFeedbackQueueContains,
+  assertVerifyReportReadyForMcpTooling,
   assertVerifyReportAutopilotContract,
   autopilotEvidenceForVerifyReport,
   buildReport,
@@ -261,6 +262,59 @@ test("verify report autopilot contract rejects unsafe console action", () => {
   );
 });
 
+test("verify report console gate requires MCP tooling readiness", () => {
+  const readyReport = {
+    schemaVersion: "1.1",
+    readiness: { state: "READY" },
+    requiresUserAction: false,
+    readyForMcpTooling: true,
+    actions: [
+      {
+        id: "open-feedback-console",
+        actor: "agent",
+        kind: "mcp_tool",
+        tool: "fixthis_open_feedback_console",
+        reason: "Open FixThis Studio.",
+        blocksProgress: false,
+      },
+    ],
+  };
+  const restartRequiredReport = {
+    schemaVersion: "1.1",
+    readiness: { state: "READY" },
+    requiresUserAction: true,
+    readyForMcpTooling: false,
+    actions: [
+      {
+        id: "restart-agent",
+        actor: "user",
+        kind: "manual",
+        reason: "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
+        blocksProgress: true,
+      },
+      {
+        id: "open-feedback-console",
+        actor: "agent_after_restart",
+        kind: "mcp_tool",
+        tool: "fixthis_open_feedback_console",
+        reason: "Open FixThis Studio after setup verification succeeds.",
+        blocksProgress: false,
+      },
+    ],
+  };
+
+  assert.deepEqual(assertVerifyReportReadyForMcpTooling(readyReport), {
+    readyForMcpTooling: true,
+    blockedByUser: false,
+    openConsoleActor: "agent",
+    runnableCommandCount: 0,
+  });
+  assert.throws(
+    () => assertVerifyReportReadyForMcpTooling(restartRequiredReport),
+    /readyForMcpTooling=false.*fixthis_open_feedback_console/,
+  );
+});
+
 test("first handoff maps Android environment deferral to readiness", () => {
   const handoff = firstHandoffForEnvironment({
     strict: false,
@@ -459,6 +513,49 @@ test("buildReport attaches autopilot evidence from runtime verify report", () =>
     },
   });
 
+  assert.deepEqual(report.firstHandoff.autopilot, autopilotEvidenceForVerifyReport(verifyReport));
+  assert.match(renderMarkdownReport(report), /- Autopilot open console actor: agent/);
+});
+
+test("buildReport keeps autopilot evidence when explicit first handoff is a failure", () => {
+  const verifyReport = {
+    schemaVersion: "1.1",
+    readiness: { state: "READY" },
+    requiresUserAction: false,
+    readyForMcpTooling: true,
+    actions: [
+      {
+        id: "open-feedback-console",
+        actor: "agent",
+        kind: "mcp_tool",
+        tool: "fixthis_open_feedback_console",
+        reason: "Open FixThis Studio after setup verification succeeds.",
+        blocksProgress: false,
+      },
+    ],
+  };
+
+  const report = buildReport({
+    strict: true,
+    device: "emulator-5554",
+    startedAt: "2026-06-09T00:00:00.000Z",
+    finishedAt: "2026-06-09T00:01:00.000Z",
+    firstHandoff: firstHandoffFailure({
+      failureCode: "preview_capture_unavailable",
+      message: "Snapshot image is not visible",
+      details: { fixtureId: "reply" },
+    }),
+    fixture: {
+      fixtureId: "reply",
+      packageName: "com.example.reply",
+      status: "fail",
+      failures: ["Snapshot image is not visible"],
+      verifyReport,
+    },
+  });
+
+  assert.equal(report.firstHandoff.status, "fail");
+  assert.equal(report.firstHandoff.failureCode, "preview_capture_unavailable");
   assert.deepEqual(report.firstHandoff.autopilot, autopilotEvidenceForVerifyReport(verifyReport));
   assert.match(renderMarkdownReport(report), /- Autopilot open console actor: agent/);
 });

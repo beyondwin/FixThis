@@ -223,6 +223,15 @@ export function autopilotEvidenceForVerifyReport(report) {
   };
 }
 
+export function assertVerifyReportReadyForMcpTooling(report) {
+  const summary = assertVerifyReportAutopilotContract(report);
+  const opensFeedbackConsole = report.actions.some((action) => action.tool === "fixthis_open_feedback_console");
+  if (opensFeedbackConsole && summary.readyForMcpTooling !== true) {
+    throw new Error("readyForMcpTooling=false blocks fixthis_open_feedback_console for the current agent");
+  }
+  return summary;
+}
+
 const FirstHandoffFailureCatalog = Object.freeze({
   android_environment_unavailable: {
     state: "ENV_BLOCKER",
@@ -356,13 +365,16 @@ export function firstHandoffForEnvironment({ strict, androidReady, reason }) {
 export function buildReport({ strict, device = null, startedAt, finishedAt, fixture, firstHandoff = null }) {
   const status = fixture.status === "pass" ? "pass" : fixture.status === "deferred" ? "deferred" : "fail";
   const autopilot = fixture.verifyReport ? autopilotEvidenceForVerifyReport(fixture.verifyReport) : null;
+  const explicitFirstHandoff = firstHandoff && autopilot && !firstHandoff.autopilot
+    ? { ...firstHandoff, autopilot }
+    : firstHandoff;
   return {
     status,
     strict,
     device,
     startedAt,
     finishedAt,
-    firstHandoff: firstHandoff || (
+    firstHandoff: explicitFirstHandoff || (
       status === "pass"
         ? firstHandoffSuccess({
             savedItemCount: fixture.savedItemCount || 0,
@@ -823,6 +835,7 @@ export async function runSmoke(options) {
     failures: [],
   };
   try {
+    assertVerifyReportReadyForMcpTooling(verifyReport);
     mcp = await createMcpJsonRpcClient({
       command: mcpBin,
       args: ["--project-dir", paths.projectWorkDir, "--package", fixture.applicationId],
