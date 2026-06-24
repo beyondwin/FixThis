@@ -45,6 +45,8 @@ internal object AgentSetupActionContract {
         if (action.kind == MANUAL && action.reason.isBlank()) add("Manual action requires reason")
         if (action.kind == COMMAND && !action.tool.isNullOrBlank()) add("Command action must not include tool")
         if (action.kind == MCP_TOOL && !action.command.isNullOrBlank()) add("MCP tool action must not include command")
+        if (action.kind == MANUAL && !action.command.isNullOrBlank()) add("Manual action must not include command")
+        if (action.kind == MANUAL && !action.tool.isNullOrBlank()) add("Manual action must not include tool")
     }
 
     fun requireValid(action: AgentSetupAction) {

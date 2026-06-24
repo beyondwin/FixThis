@@ -6,6 +6,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InstallAgentJsonReportTest {
@@ -276,6 +278,51 @@ class InstallAgentJsonReportTest {
             "fixthis_open_feedback_console",
             actions[2].getValue("tool").jsonPrimitive.content,
         )
+    }
+
+    @Test
+    fun verifyReportRejectsManualActionsWithExecutablePayloads() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            AgentSetupVerificationJsonReport.render(
+                AgentSetupVerificationReport(
+                    ok = false,
+                    readiness = FirstRunReadinessCatalog.configRecoverable(
+                        cause = "FixThis setup needs a manual step.",
+                    ),
+                    readinessSource = "setup",
+                    next = listOf("Restart Claude Code or Codex."),
+                    restartRequired = true,
+                    requiresUserAction = true,
+                    userActionReason = "restart_mcp_client",
+                    readyForMcpTooling = false,
+                    actions = listOf(
+                        AgentSetupAction(
+                            id = "restart-agent",
+                            actor = AgentSetupActionContract.USER,
+                            kind = AgentSetupActionContract.MANUAL,
+                            command = "fixthis install-agent --project-dir /repo --target all --verify --json",
+                            tool = "fixthis_open_feedback_console",
+                            reason = "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
+                            blocksProgress = true,
+                        ),
+                    ),
+                    setup = AgentSetupSnapshot(
+                        applied = emptyList(),
+                        skipped = emptyList(),
+                        errors = emptyList(),
+                        mcpConfigChanged = true,
+                    ),
+                    verification = AgentVerificationSnapshot(
+                        ok = false,
+                        packageName = null,
+                        checks = emptyList(),
+                    ),
+                ),
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("Manual action must not include command"))
+        assertTrue(error.message.orEmpty().contains("Manual action must not include tool"))
     }
 
     @Test
