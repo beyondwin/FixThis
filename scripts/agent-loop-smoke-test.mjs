@@ -315,6 +315,66 @@ test("verify report console gate requires MCP tooling readiness", () => {
   );
 });
 
+test("restart-required verify gate preserves first-handoff readiness classification", () => {
+  const restartRequiredReport = {
+    schemaVersion: "1.1",
+    readiness: { state: "READY" },
+    requiresUserAction: true,
+    readyForMcpTooling: false,
+    actions: [
+      {
+        id: "restart-agent",
+        actor: "user",
+        kind: "manual",
+        reason: "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
+        blocksProgress: true,
+      },
+      {
+        id: "open-feedback-console",
+        actor: "agent_after_restart",
+        kind: "mcp_tool",
+        tool: "fixthis_open_feedback_console",
+        reason: "Open FixThis Studio after setup verification succeeds.",
+        blocksProgress: false,
+      },
+    ],
+  };
+
+  let gateError = null;
+  try {
+    assertVerifyReportReadyForMcpTooling(restartRequiredReport);
+  } catch (error) {
+    gateError = error;
+  }
+
+  const failureCode = categorizeFirstHandoffFailure(gateError);
+  const report = buildReport({
+    strict: true,
+    device: "emulator-5554",
+    startedAt: "2026-06-09T00:00:00.000Z",
+    finishedAt: "2026-06-09T00:01:00.000Z",
+    firstHandoff: firstHandoffFailure({
+      failureCode,
+      message: gateError.message,
+      details: { fixtureId: "reply" },
+    }),
+    fixture: {
+      fixtureId: "reply",
+      packageName: "com.example.reply",
+      status: "fail",
+      failures: [gateError.message],
+      verifyReport: restartRequiredReport,
+    },
+  });
+
+  assert.equal(failureCode, "mcp_tooling_not_ready");
+  assert.equal(report.firstHandoff.failureCode, "mcp_tooling_not_ready");
+  assert.equal(report.firstHandoff.readiness.state, "RESTART_REQUIRED");
+  assert.equal(report.firstHandoff.nextAction, "Restart agent");
+  assert.deepEqual(report.firstHandoff.autopilot, autopilotEvidenceForVerifyReport(restartRequiredReport));
+  assert.match(renderMarkdownReport(report), /- Autopilot readyForMcpTooling: false/);
+});
+
 test("first handoff maps Android environment deferral to readiness", () => {
   const handoff = firstHandoffForEnvironment({
     strict: false,

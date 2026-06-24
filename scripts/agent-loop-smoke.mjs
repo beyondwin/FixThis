@@ -146,6 +146,7 @@ export function categorizeFirstHandoffFailure(error) {
   if (message.includes("snapshot image") || message.includes("preview") || message.includes("capture")) return "preview_capture_unavailable";
   if (message.includes("save to mcp") || message.includes("agent-handoffs")) return "save_to_mcp_failed";
   if (message.includes("read_feedback_missing_items")) return "read_feedback_missing_items";
+  if (message.includes("readyformcptooling=false") && message.includes("fixthis_open_feedback_console")) return "mcp_tooling_not_ready";
   if (message.includes("mcp process") || message.includes("econnrefused") || message.includes("socket")) return "mcp_transport_failure";
   return "mcp_transport_failure";
 }
@@ -302,6 +303,13 @@ const FirstHandoffFailureCatalog = Object.freeze({
     verify: "Compare the response sessionId with the active feedback session.",
     fix: "Refresh the active session or inspect the saved handoff batch.",
     nextAction: "Refresh session",
+  },
+  mcp_tooling_not_ready: {
+    state: "RESTART_REQUIRED",
+    cause: "Verify report says the current agent cannot call FixThis MCP tools yet.",
+    verify: "fixthis install-agent-verify-json --project-dir .",
+    fix: "Restart Claude Code or Codex so the new FixThis MCP config is loaded.",
+    nextAction: "Restart agent",
   },
   mcp_transport_failure: {
     state: "UNKNOWN_ERROR",
