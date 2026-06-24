@@ -347,6 +347,12 @@ requireIncludes(
   'docs/contributing/release-readiness.md',
   'Non-strict missing-runtime runs must be recorded as deferred with a recovery-oriented readiness object.',
 );
+requireRegex(
+  'R52.first-handoff-autopilot-contract',
+  'docs/contributing/release-readiness.md',
+  /## First Handoff Autopilot Evidence[\s\S]*install-agent --project-dir \. --target all --verify --json[\s\S]*actions\[\][\s\S]*readyForMcpTooling[\s\S]*npm run agent-loop:smoke:test[\s\S]*npm run agent-loop:smoke -- --strict/,
+  'first handoff autopilot evidence section',
+);
 requireIncludes(
   'R46.required-checks-observation-policy-link',
   'docs/contributing/required-checks-observation.md',

@@ -170,6 +170,22 @@ Non-strict missing-runtime runs must be recorded as deferred with a recovery-ori
 Strict connected smoke must fail when Android SDK, ADB, a ready
 emulator/device, or the launched debug app is unavailable.
 
+## First Handoff Autopilot Evidence
+
+The first-handoff autopilot line may be claimed only when the release commit
+has evidence that the agent can use `fixthis install-agent --project-dir . --target all --verify --json`
+as the source of truth from setup verification through opening the feedback
+console.
+
+| Claim | Required evidence |
+| --- | --- |
+| Verify stdout report actions are a closed agent contract with `actions[]`, `requiresUserAction`, and `readyForMcpTooling`. | `./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon` |
+| First handoff evidence checks the verify-report action semantics and reaches one MCP-readable sent feedback item. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict` |
+
+The current agent must not call `fixthis_open_feedback_console` while
+`readyForMcpTooling=false`. When the report emits `agent_after_restart`, the
+user must restart the MCP client before the console-opening tool call.
+
 ## Release Gate, Interop Evidence, And SSE Closure
 
 This umbrella may be claimed only when the release gate report includes each

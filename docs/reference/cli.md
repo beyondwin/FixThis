@@ -225,6 +225,8 @@ should treat `readiness.state` as the app readiness source of truth and
 `actions[]` as the execution queue. Do not call `fixthis_open_feedback_console`
 until `readyForMcpTooling` is true, or until the report's
 `agent_after_restart` action is reached after restarting the MCP client.
+The handoff-file and verify-stdout contracts are split in
+[`agent-setup-schema.md`](agent-setup-schema.md).
 
 Run `./gradlew fixthisSetup` only as a recovery or manual refresh command when
 doctor reports `NEEDS_INSTALL` or missing generated metadata.

@@ -53,8 +53,18 @@ When asked to add FixThis to this Android app:
    curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
      | bash -s -- --version v1.3.0
    ```
-3. Run `fixthis install-agent --project-dir . --target all --verify --json`.
-   This patches the detected app module with Gradle plugin
+
+Use this order:
+1. Run `fixthis install-agent --project-dir . --target all --verify --json`.
+2. Use the JSON `readiness.state` and `actions[]` as the source of truth.
+3. If `requiresUserAction` is true, tell me the exact blocking action.
+4. Do not call `fixthis_open_feedback_console` until `readyForMcpTooling` is true, or until the report's `agent_after_restart` action is reached after restart.
+
+Restart Claude Code or Codex if the report asks for it.
+
+After the install-agent command returns, remember:
+
+1. The command patches the detected app module with Gradle plugin
    `io.github.beyondwin.fixthis.compose`, writes MCP config for Claude Code /
    Codex / Cursor, writes `.fixthis/project.json`, writes
    `.fixthis/agent-setup.*` handoff files, and runs doctor checks when setup
@@ -62,13 +72,9 @@ When asked to add FixThis to this Android app:
    ambiguous. Pass `--dry-run` before writing if the repo has unusual Gradle
    wiring; dry-run verification reports
    `verification.skippedReason=dry_run_no_side_effects`.
-4. Treat the JSON `readiness.state` as the app-readiness source of truth and
-   `actions[]` as the execution queue.
-5. If `requiresUserAction` is true, stop and ask the user to complete that
-   action. Do not open the console until `readyForMcpTooling` is true, or until
-   the report's `agent_after_restart` action is reached after restarting the
-   MCP client.
-6. Open the console with MCP tool `fixthis_open_feedback_console`.
+2. For manual diagnostics, run `fixthis doctor --project-dir . --json`.
+3. Open the console with MCP tool `fixthis_open_feedback_console` only after
+   the verify report allows it.
 
 If doctor reports `NEEDS_INSTALL` or `.fixthis/project.json` is missing
 generated metadata, fall back to the manual Gradle plugin path. Apply the

@@ -50,6 +50,7 @@ Use this order:
 3. If `requiresUserAction` is true, tell me the exact blocking action.
 4. Do not call `fixthis_open_feedback_console` until `readyForMcpTooling` is true, or until the report's `agent_after_restart` action is reached after restart.
 
+Restart Claude Code or Codex if the report asks for it.
 Do not configure release builds. Do not commit `.fixthis/`.
 ```
 
@@ -81,6 +82,8 @@ If doctor reports `NEEDS_INSTALL` or generated metadata is missing, run
 `fixthis install-agent --project-dir . --target all --verify --json`. Restart
 Claude Code or Codex when the report asks for it, then call
 `fixthis_open_feedback_console`.
+For manual diagnostics, the same setup can be checked with
+`fixthis doctor --project-dir . --json`.
 
 The published Gradle plugin coordinates:
 
