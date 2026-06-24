@@ -183,6 +183,10 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
         "--json",
         help = "Emit a structured JSON report on stdout",
     ).flag(default = false)
+    private val verify by option(
+        "--verify",
+        help = "After setup, run doctor checks and emit a unified agent setup report in --json mode",
+    ).flag(default = false)
 
     override fun run() {
         if (verbose) {
@@ -267,26 +271,65 @@ class InstallAgentCommand : CoreCliktCommand(name = "install-agent") {
             ),
         )
 
-        if (json) {
-            val skippedAll = report.skipped
-            val applied = report.applied
-            val errors = report.errors
-            val reportReadiness = installAgentTopLevelReadiness(root, skippedAll, errors)
-            val restartRequired = applied.any { it.target == "claude" || it.target == "codex" }
-            echo(
-                InstallAgentJsonReport.render(
-                    applied = applied,
-                    skipped = skippedAll,
-                    errors = errors,
-                    next = listOf(
-                        "fixthis doctor --project-dir ${root.absolutePath} --json",
-                        "# Restart Claude Code / Codex to reload MCP config",
-                        "fixthis_open_feedback_console",
-                    ),
-                    readiness = reportReadiness,
-                    restartRequired = restartRequired,
+        val setupSnapshot = AgentSetupSnapshot(
+            applied = report.applied,
+            skipped = report.skipped,
+            errors = report.errors,
+            mcpConfigChanged = report.applied.any {
+                it.target == "claude" || it.target == "codex" || it.target == "cursor"
+            },
+        )
+        val doctorReport = if (verify && !dryRun && report.errors.isEmpty()) {
+            DoctorService().run(packageName = packageName, projectRoot = root)
+        } else {
+            null
+        }
+        val verifyReport = if (verify) {
+            AgentSetupVerificationService().buildReport(
+                AgentSetupVerificationRequest(
+                    projectRoot = root,
+                    target = effectiveTarget,
+                    setup = setupSnapshot,
+                    doctorReport = doctorReport,
+                    dryRun = dryRun,
                 ),
             )
+        } else {
+            null
+        }
+
+        if (json) {
+            if (verifyReport != null) {
+                echo(AgentSetupVerificationJsonReport.render(verifyReport))
+            } else {
+                val skippedAll = report.skipped
+                val applied = report.applied
+                val errors = report.errors
+                val reportReadiness = installAgentTopLevelReadiness(root, skippedAll, errors)
+                val restartRequired = applied.any { it.target == "claude" || it.target == "codex" }
+                echo(
+                    InstallAgentJsonReport.render(
+                        applied = applied,
+                        skipped = skippedAll,
+                        errors = errors,
+                        next = listOf(
+                            "fixthis doctor --project-dir ${root.absolutePath} --json",
+                            "# Restart Claude Code / Codex to reload MCP config",
+                            "fixthis_open_feedback_console",
+                        ),
+                        readiness = reportReadiness,
+                        restartRequired = restartRequired,
+                    ),
+                )
+            }
+        }
+
+        verifyReport?.let { unified ->
+            val exitCode = AgentSetupVerificationService().exitCodeFor(unified)
+            if (exitCode != ExitCode.OK) {
+                throw CliktError("install-agent verification requires follow-up", statusCode = exitCode.value)
+            }
+            return
         }
 
         val hasSkipped = report.skipped.isNotEmpty()

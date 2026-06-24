@@ -24,6 +24,44 @@ class InitAgentCommandTest {
     val temporaryFolder = TemporaryFolder()
 
     @Test
+    fun installAgentDryRunVerifyJsonPrintsUnifiedReportOnly() {
+        val tempProject = androidProject("com.example.verify.dryrun")
+        val out = ByteArrayOutputStream()
+        val oldOut = System.out
+        System.setOut(PrintStream(out))
+        try {
+            withUserHome(temporaryFolder.newFolder("home")) {
+                InstallAgentCommand().parse(
+                    arrayOf(
+                        "--project-dir",
+                        tempProject.absolutePath,
+                        "--package",
+                        "com.example.verify.dryrun",
+                        "--target",
+                        "claude",
+                        "--json",
+                        "--dry-run",
+                        "--verify",
+                    ),
+                )
+            }
+        } catch (error: CliktError) {
+            assertEquals(ExitCode.PARTIAL.value, error.statusCode)
+        } finally {
+            System.setOut(oldOut)
+        }
+
+        val text = out.toString()
+        val obj = Json.parseToJsonElement(text.trim()).jsonObject
+        assertEquals("1.1", obj.getValue("schemaVersion").jsonPrimitive.content)
+        assertEquals(
+            "dry_run_no_side_effects",
+            obj.getValue("verification").jsonObject.getValue("skippedReason").jsonPrimitive.content,
+        )
+        assertFalse("human dry-run output must not be mixed into JSON stdout:\n$text", text.contains("Target:"))
+    }
+
+    @Test
     fun initAgentWritesProjectScopedAgentFiles() {
         val projectRoot = androidProject("com.example.agent")
 

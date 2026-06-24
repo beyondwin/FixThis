@@ -34,6 +34,21 @@ class MainCommandTest {
             assertEquals("", stderr)
             assertTrue(stdout, stdout.contains("Usage: fixthis"))
             assertTrue(stdout, stdout.contains("init"))
+
+            val installHelp = ProcessBuilder(
+                javaExecutable,
+                "-cp",
+                System.getProperty("java.class.path"),
+                "io.github.beyondwin.fixthis.cli.MainKt",
+                "install-agent",
+                "--help",
+            )
+                .redirectErrorStream(false)
+                .start()
+            installHelp.waitFor(10, TimeUnit.SECONDS)
+            val installStdout = installHelp.inputStream.bufferedReader().readText()
+            assertEquals(0, installHelp.exitValue())
+            assertTrue(installStdout, installStdout.contains("--verify"))
         } finally {
             if (process.isAlive) {
                 process.destroyForcibly()
