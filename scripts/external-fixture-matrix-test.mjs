@@ -390,8 +390,9 @@ test('prepareCliDistribution builds the local CLI when installDist output is mis
   }
 });
 
-test('prepareCliDistribution skips the build when installDist output already exists', () => {
+test('prepareCliDistribution rebuilds the local CLI when installDist output already exists', () => {
   const root = mkdtempSync(join(tmpdir(), 'fixthis-matrix-cli-'));
+  const calls = [];
   try {
     const executable = cliExecutablePath(root);
     assert.equal(existsSync(executable), false);
@@ -399,12 +400,18 @@ test('prepareCliDistribution skips the build when installDist output already exi
     mkdirSync(binDir, { recursive: true });
     writeFileSync(join(binDir, 'fixthis'), '#!/usr/bin/env bash\n');
 
-    const result = prepareCliDistribution(root, {}, () => {
-      throw new Error('runner should not be called');
+    const result = prepareCliDistribution(root, {}, (command, cwd, envPatch) => {
+      calls.push({ command, cwd, envPatch });
+      return { status: 'pass', durationMs: 4, stdout: '', stderr: '', exitCode: 0 };
     });
 
     assert.equal(result.status, 'pass');
-    assert.equal(result.skipped, true);
+    assert.equal(result.skipped, undefined);
+    assert.deepEqual(calls, [{
+      command: './gradlew :fixthis-cli:installDist --no-daemon',
+      cwd: root,
+      envPatch: {},
+    }]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

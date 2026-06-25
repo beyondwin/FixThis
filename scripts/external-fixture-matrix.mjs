@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, normalize, resolve, sep } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -500,9 +500,6 @@ function normalizeRestartRequiredInstallAgentResult(fixture, result) {
 
 export function prepareCliDistribution(root = repoRoot, envPatch = {}, runCommandFn = (command, cwd, patch) => runCommand(command, cwd, patch)) {
   const entry = { name: 'prepare-cli', command: defaultCliInstallTask };
-  if (existsSync(cliExecutablePath(root))) {
-    return { ...entry, status: 'pass', durationMs: 0, stdout: '', stderr: '', exitCode: 0, skipped: true };
-  }
   return { ...entry, ...runCommandFn(defaultCliInstallTask, root, envPatch) };
 }
 
