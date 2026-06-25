@@ -20,7 +20,7 @@ test('releaseGateSteps include Trust Loop source agent release drift and console
   assert.ok(commands.includes('./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon'));
   assert.ok(commands.includes('npm run source-matching:fixtures:test'));
   assert.ok(commands.includes('npm run source-matching:fixtures:runtime -- --strict'));
-  assert.ok(commands.includes('./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon'));
+  assert.ok(commands.includes('./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --tests "*TwoPhaseConfigCommitTest" --no-daemon'));
   assert.ok(commands.includes('npm run agent-loop:smoke:test'));
   assert.ok(commands.includes('npm run agent-loop:smoke -- --strict'));
   assert.ok(commands.includes('npm run real-copy-prompt:smoke -- --strict'));
@@ -278,7 +278,7 @@ test('release gate maps first handoff autopilot claim', () => {
     steps: [
       {
         name: 'First handoff autopilot CLI contract',
-        command: './gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon',
+        command: './gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --tests "*TwoPhaseConfigCommitTest" --no-daemon',
         status: 'pass',
       },
       { name: 'Agent loop smoke contracts', command: 'npm run agent-loop:smoke:test', status: 'pass' },

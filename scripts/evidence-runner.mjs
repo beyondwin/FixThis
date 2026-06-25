@@ -76,7 +76,7 @@ const profileDefinitions = {
     }),
     step(
       "First handoff autopilot CLI contract",
-      "./gradlew :fixthis-cli:test --tests \"*AgentSetupVerificationServiceTest\" --tests \"*InstallAgentJsonReportTest\" --no-daemon",
+      "./gradlew :fixthis-cli:test --tests \"*AgentSetupVerificationServiceTest\" --tests \"*InstallAgentJsonReportTest\" --tests \"*TwoPhaseConfigCommitTest\" --no-daemon",
     ),
     step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
     step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),

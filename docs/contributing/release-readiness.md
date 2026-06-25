@@ -179,7 +179,7 @@ console.
 
 | Claim | Required evidence |
 | --- | --- |
-| Verify stdout report actions are a closed agent contract with `actions[]`, `requiresUserAction`, and `readyForMcpTooling`. | `./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon` |
+| Verify stdout report actions are a closed agent contract with `actions[]`, `requiresUserAction`, and `readyForMcpTooling`. | `./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --tests "*TwoPhaseConfigCommitTest" --no-daemon` |
 | First handoff evidence checks the verify-report action semantics and reaches one MCP-readable sent feedback item. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict` |
 
 The current agent must not call `fixthis_open_feedback_console` while

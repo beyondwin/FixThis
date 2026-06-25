@@ -84,7 +84,7 @@ test('release-readiness checker requires first-handoff autopilot unit evidence',
   assert.notEqual(blockEnd, -1, 'checker must keep R52 scoped before the next release-readiness rule');
 
   const block = text.slice(blockStart, blockEnd).replaceAll('\\', '');
-  const unitEvidence = './gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon';
+  const unitEvidence = './gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --tests "*TwoPhaseConfigCommitTest" --no-daemon';
   const smokeTest = 'npm run agent-loop:smoke:test';
   const strictSmoke = 'npm run agent-loop:smoke -- --strict';
   assert.ok(block.includes('First Handoff Autopilot Evidence'));
