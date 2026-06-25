@@ -624,6 +624,68 @@ test('runExternalMatrix continues after accepted doctor next action', () => {
   assert.equal(report.fixtures[0].commands.find((command) => command.name === 'doctor-json').acceptedReadinessState, 'NEEDS_APP_LAUNCH');
 });
 
+test('runExternalMatrix retries install-agent verify after restart-required setup writes', () => {
+  const calls = [];
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff');
+  const report = runExternalMatrix({
+    manifest: { schemaVersion: 2, fixtures: [fixture] },
+    strict: true,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: {} },
+    root: '/repo',
+    runCommandFn: (command) => {
+      calls.push(command);
+      if (command.includes(' install-agent ')) {
+        const installAttempt = calls.filter((entry) => entry.includes(' install-agent ')).length;
+        if (installAttempt === 1) {
+          return {
+            status: 'fail',
+            durationMs: 1,
+            stdout: JSON.stringify({
+              schemaVersion: '1.1',
+              ok: false,
+              readiness: { state: 'READY' },
+              nextAction: 'Capture screen',
+              restartRequired: true,
+              readyForMcpTooling: false,
+              requiresUserAction: true,
+              userActionReason: 'restart_mcp_client',
+              actions: [{ id: 'restart-agent', actor: 'user', kind: 'manual', blocksProgress: true }],
+              verification: {
+                ok: true,
+                checks: [
+                  { name: 'android_project_found', status: 'ok' },
+                  { name: 'fixthis_project_metadata_found', status: 'ok' },
+                  { name: 'adb_found', status: 'ok' },
+                  { name: 'device_connected', status: 'ok' },
+                  { name: 'sidekick_session_found', status: 'ok' },
+                ],
+              },
+            }),
+            stderr: 'install-agent verification requires follow-up\n',
+            exitCode: 1,
+          };
+        }
+      }
+      return { status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 };
+    },
+    prepareCliDistributionFn: () => ({ name: 'prepare-cli', command: './gradlew :fixthis-cli:installDist --no-daemon', status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+    trustObservationFn: () => ({
+      targetReliability: { confidence: 'medium', warnings: ['VISUAL_AREA_ONLY', 'POSSIBLE_VIEW_INTEROP'] },
+      sourceCandidates: [{ confidence: 'medium', riskFlags: ['SHARED_COMPONENT'] }],
+      exactOwnershipClaimed: false,
+    }),
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(report.fixtures[0].status, 'pass');
+  assert.equal(calls.filter((entry) => entry.includes(' install-agent ')).length, 2);
+  assert.equal(report.fixtures[0].commands.find((command) => command.name === 'install-agent-verify-json').acceptedRestartRequired, true);
+  assert.ok(report.fixtures[0].commands.some((command) => command.name === 'install-agent-verify-json-after-restart'));
+});
+
 test('runExternalMatrix keeps deferred fixtures out of command execution when Android is missing', () => {
   const calls = [];
   const manifest = {

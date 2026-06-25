@@ -440,9 +440,33 @@ function hasOkCheck(report, name) {
   return checks.some((check) => check.name === name && check.status === 'ok');
 }
 
+function parseFixtureCommandReport(result) {
+  return parseJsonObject(result.stdout);
+}
+
+function isInstallAgentVerifyCommand(name) {
+  return name === 'install-agent-verify-json' || name === 'install-agent-verify-json-after-restart';
+}
+
+function isRestartRequiredReadyReport(report) {
+  return report?.schemaVersion === '1.1' &&
+    report?.readiness?.state === 'READY' &&
+    report?.restartRequired === true &&
+    report?.readyForMcpTooling === false &&
+    report?.requiresUserAction === true &&
+    report?.userActionReason === 'restart_mcp_client' &&
+    hasOkCheck(report, 'android_project_found') &&
+    hasOkCheck(report, 'fixthis_project_metadata_found') &&
+    hasOkCheck(report, 'adb_found') &&
+    hasOkCheck(report, 'device_connected') &&
+    hasOkCheck(report, 'sidekick_session_found') &&
+    Array.isArray(report.actions) &&
+    report.actions.some((action) => action.actor === 'user' && action.kind === 'manual' && action.blocksProgress === true);
+}
+
 export function normalizeFixtureCommandResult(entry, fixture, result) {
-  if (!['install-agent-verify-json', 'doctor-json'].includes(entry.name) || result.status !== 'fail') return result;
-  const report = parseJsonObject(result.stdout);
+  if (!(isInstallAgentVerifyCommand(entry.name) || entry.name === 'doctor-json') || result.status !== 'fail') return result;
+  const report = parseFixtureCommandReport(result);
   const expectedSchema = entry.name === 'doctor-json' ? '1.0' : '1.1';
   const reachesExpectedNextAction = report?.schemaVersion === expectedSchema &&
     report?.readiness?.state === 'NEEDS_APP_LAUNCH' &&
@@ -458,6 +482,19 @@ export function normalizeFixtureCommandResult(entry, fixture, result) {
     acceptedExitCode: result.exitCode,
     acceptedReadinessState: report.readiness.state,
     acceptedExpectedSetup: fixture.expectedSetup,
+  };
+}
+
+function normalizeRestartRequiredInstallAgentResult(fixture, result) {
+  const report = parseFixtureCommandReport(result);
+  if (result.status !== 'fail' || !isRestartRequiredReadyReport(report)) return null;
+  return {
+    ...result,
+    status: 'pass',
+    acceptedExitCode: result.exitCode,
+    acceptedReadinessState: report.readiness.state,
+    acceptedExpectedSetup: fixture.expectedSetup,
+    acceptedRestartRequired: true,
   };
 }
 
@@ -624,8 +661,20 @@ export function runExternalMatrix({
     let status = 'pass';
     let reason = null;
     for (const entry of planFixtureCommands(fixture, projectDir, root)) {
-      const result = normalizeFixtureCommandResult(entry, fixture, runCommandFn(entry.command, projectDir, androidEnvironment.envPatch));
-      commands.push({ ...entry, ...result });
+      let result = normalizeFixtureCommandResult(entry, fixture, runCommandFn(entry.command, projectDir, androidEnvironment.envPatch));
+      if (entry.name === 'install-agent-verify-json') {
+        const restartRequiredResult = normalizeRestartRequiredInstallAgentResult(fixture, result);
+        if (restartRequiredResult) {
+          commands.push({ ...entry, ...restartRequiredResult });
+          const retryEntry = { ...entry, name: 'install-agent-verify-json-after-restart' };
+          result = normalizeFixtureCommandResult(retryEntry, fixture, runCommandFn(retryEntry.command, projectDir, androidEnvironment.envPatch));
+          commands.push({ ...retryEntry, ...result });
+        } else {
+          commands.push({ ...entry, ...result });
+        }
+      } else {
+        commands.push({ ...entry, ...result });
+      }
       if (result.status === 'fail') {
         status = 'fail';
         reason = result.stderr?.split('\n').find(Boolean) || result.stdout?.split('\n').find(Boolean) || `${entry.name} failed`;
