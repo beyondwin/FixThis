@@ -27,7 +27,9 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
-No unreleased user-visible changes yet.
+### Added
+
+- Added the First Handoff Autopilot contract: agent setup verification reports now have a stricter `actions[]` contract, docs distinguish setup handoff files from verify stdout reports, and release evidence checks that the setup report semantics lead to one MCP-readable sent feedback item.
 
 ## v1.3.0 — 2026-06-21
 
