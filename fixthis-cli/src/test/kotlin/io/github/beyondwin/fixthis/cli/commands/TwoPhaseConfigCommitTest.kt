@@ -63,6 +63,19 @@ class TwoPhaseConfigCommitTest {
     }
 
     @Test
+    fun commitSkipsPlansWhoseContentIsUnchanged() {
+        val target = temporaryFolder.newFile("cfg.json").apply { writeText("same") }
+        val emitted = mutableListOf<String>()
+
+        val committed = TwoPhaseConfigCommit(emit = { emitted += it })
+            .commit(listOf(plan("test", "scope", target, "same")))
+
+        assertTrue("unchanged config must not be reported as committed", committed.isEmpty())
+        assertTrue("unchanged config must not emit a write message", emitted.isEmpty())
+        assertEquals("same", target.readText())
+    }
+
+    @Test
     fun commitFallsBackToCopyDeleteWhenAtomicMoveUnsupported() {
         val target = temporaryFolder.newFile("cfg.json").apply { writeText("original") }
         var sawAtomicAttempt = false

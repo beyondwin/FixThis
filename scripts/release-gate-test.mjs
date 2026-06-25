@@ -20,6 +20,7 @@ test('releaseGateSteps include Trust Loop source agent release drift and console
   assert.ok(commands.includes('./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon'));
   assert.ok(commands.includes('npm run source-matching:fixtures:test'));
   assert.ok(commands.includes('npm run source-matching:fixtures:runtime -- --strict'));
+  assert.ok(commands.includes('./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon'));
   assert.ok(commands.includes('npm run agent-loop:smoke:test'));
   assert.ok(commands.includes('npm run agent-loop:smoke -- --strict'));
   assert.ok(commands.includes('npm run real-copy-prompt:smoke -- --strict'));
@@ -147,6 +148,12 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       reason: 'missing evidence command: Agent loop smoke contracts',
     },
     {
+      id: 'first-handoff-autopilot',
+      status: 'fail',
+      evidence: ['Agent loop smoke'],
+      reason: 'missing evidence commands: First handoff autopilot CLI contract, Agent loop smoke contracts',
+    },
+    {
       id: 'external-fixture-matrix',
       status: 'fail',
       evidence: [],
@@ -261,6 +268,47 @@ test('release gate maps external first handoff recovery claim', () => {
     status: 'deferred',
     evidence: ['Agent loop smoke contracts', 'Agent loop smoke'],
     reason: 'Android SDK unavailable',
+  });
+});
+
+test('release gate maps first handoff autopilot claim', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-06-25T00:00:00.000Z',
+    steps: [
+      {
+        name: 'First handoff autopilot CLI contract',
+        command: './gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --no-daemon',
+        status: 'pass',
+      },
+      { name: 'Agent loop smoke contracts', command: 'npm run agent-loop:smoke:test', status: 'pass' },
+      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+    ],
+  });
+
+  assert.deepEqual(report.claims.find((claim) => claim.id === 'first-handoff-autopilot'), {
+    id: 'first-handoff-autopilot',
+    status: 'deferred',
+    evidence: ['First handoff autopilot CLI contract', 'Agent loop smoke contracts', 'Agent loop smoke'],
+    reason: 'Android SDK unavailable',
+  });
+});
+
+test('release gate fails first handoff autopilot when CLI unit evidence is missing', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-06-25T00:00:00.000Z',
+    steps: [
+      { name: 'Agent loop smoke contracts', command: 'npm run agent-loop:smoke:test', status: 'pass' },
+      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+    ],
+  });
+
+  assert.deepEqual(report.claims.find((claim) => claim.id === 'first-handoff-autopilot'), {
+    id: 'first-handoff-autopilot',
+    status: 'fail',
+    evidence: ['Agent loop smoke contracts', 'Agent loop smoke'],
+    reason: 'missing evidence command: First handoff autopilot CLI contract',
   });
 });
 

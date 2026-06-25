@@ -74,6 +74,10 @@ const profileDefinitions = {
       deferrable: true,
       requiresAndroid: true,
     }),
+    step(
+      "First handoff autopilot CLI contract",
+      "./gradlew :fixthis-cli:test --tests \"*AgentSetupVerificationServiceTest\" --tests \"*InstallAgentJsonReportTest\" --no-daemon",
+    ),
     step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
     step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),
     step("External trust matrix v2 strict", "npm run external-fixture:matrix -- --strict", {

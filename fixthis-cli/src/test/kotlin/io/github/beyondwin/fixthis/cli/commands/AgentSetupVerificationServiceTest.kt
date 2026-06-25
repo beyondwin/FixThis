@@ -223,6 +223,46 @@ class AgentSetupVerificationServiceTest {
         assertFalse(report.readyForMcpTooling)
         assertTrue(report.actions.none { it.tool == "fixthis_open_feedback_console" })
         assertEquals("recover-setup", report.actions.single().id)
-        assertEquals(AgentSetupActionContract.COMMAND, report.actions.single().kind)
+        assertEquals(AgentSetupActionContract.USER, report.actions.single().actor)
+        assertEquals(AgentSetupActionContract.MANUAL, report.actions.single().kind)
+        assertEquals(null, report.actions.single().command)
+    }
+
+    @Test
+    fun needsAppLaunchDoesNotExposeProseAsCommand() {
+        val report = AgentSetupVerificationService().buildReport(
+            AgentSetupVerificationRequest(
+                projectRoot = root,
+                target = "all",
+                setup = AgentSetupSnapshot(emptyList(), emptyList(), emptyList(), mcpConfigChanged = false),
+                doctorReport = DoctorReport(
+                    packageName = "com.example",
+                    checks = listOf(
+                        DoctorCheckResult(
+                            name = "sidekick_session_found",
+                            label = "sidekick session found",
+                            ok = false,
+                            message = "The debug app is not connected.",
+                            fix = "Launch the debug app.",
+                            readiness = FirstRunReadinessCatalog.needsAppLaunch(
+                                cause = "The debug app is not connected to the FixThis bridge.",
+                            ),
+                        ),
+                    ),
+                ),
+                dryRun = false,
+            ),
+        )
+
+        assertActionContract(report)
+        assertEquals("NEEDS_APP_LAUNCH", report.readiness.state.name)
+        assertEquals(listOf("recover-setup", "rerun-verify"), report.actions.map { it.id })
+        assertEquals(AgentSetupActionContract.USER, report.actions.first().actor)
+        assertEquals(AgentSetupActionContract.MANUAL, report.actions.first().kind)
+        assertEquals(null, report.actions.first().command)
+        assertEquals(
+            "fixthis install-agent --project-dir /repo --target all --verify --json",
+            report.actions.last().command,
+        )
     }
 }

@@ -27,10 +27,15 @@ internal class TwoPhaseConfigCommit(
 ) {
     @Suppress("LongMethod", "CyclomaticComplexMethod", "ThrowsCount", "TooGenericExceptionCaught", "SpreadOperator")
     fun commit(plans: List<SetupWritePlan>): List<SetupWritePlan> {
+        val changedPlans = plans.filter { plan ->
+            !plan.configFile.exists() || runCatching { plan.configFile.readText() != plan.content }.getOrDefault(true)
+        }
+        if (changedPlans.isEmpty()) return emptyList()
+
         // Phase 1: stage all writes to <configFile>.fixthis-staging.
         val staged = mutableListOf<Pair<SetupWritePlan, File>>()
         try {
-            plans.forEach { plan ->
+            changedPlans.forEach { plan ->
                 val stagingFile = File(plan.configFile.absolutePath + ".fixthis-staging")
                 stagingFile.parentFile?.mkdirs()
                 stagingFile.writeText(plan.content)

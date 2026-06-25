@@ -150,25 +150,65 @@ internal class AgentSetupVerificationService {
                 add(rerunVerify(root, request.target))
             }
             FirstRunReadinessState.CONFIG_RECOVERABLE,
-            FirstRunReadinessState.NEEDS_INSTALL,
-            FirstRunReadinessState.NEEDS_APP_LAUNCH,
-            FirstRunReadinessState.UNSUPPORTED_BUILD,
-            FirstRunReadinessState.ENV_BLOCKER,
             FirstRunReadinessState.STALE_PREVIEW,
             FirstRunReadinessState.SESSION_MISMATCH,
             FirstRunReadinessState.CAPTURE_UNAVAILABLE,
             FirstRunReadinessState.UNKNOWN_ERROR -> {
+                val command = readiness.nextAction.asRunnableShellCommand()
+                if (command == null) {
+                    add(manualRecoveryAction(readiness))
+                } else {
+                    add(
+                        AgentSetupAction(
+                            id = "recover-setup",
+                            actor = AgentSetupActionContract.AGENT,
+                            kind = AgentSetupActionContract.COMMAND,
+                            command = command,
+                            reason = readiness.cause,
+                            blocksProgress = true,
+                        ),
+                    )
+                }
+            }
+            FirstRunReadinessState.NEEDS_INSTALL -> {
                 add(
                     AgentSetupAction(
                         id = "recover-setup",
                         actor = AgentSetupActionContract.AGENT,
                         kind = AgentSetupActionContract.COMMAND,
-                        command = readiness.nextAction,
+                        command = "fixthis install-agent --project-dir ${root.absolutePath} --target ${request.target} --verify --json",
                         reason = readiness.cause,
                         blocksProgress = true,
                     ),
                 )
             }
+            FirstRunReadinessState.NEEDS_APP_LAUNCH -> {
+                add(manualRecoveryAction(readiness))
+                add(rerunVerify(root, request.target))
+            }
+            FirstRunReadinessState.UNSUPPORTED_BUILD,
+            FirstRunReadinessState.ENV_BLOCKER -> {
+                add(manualRecoveryAction(readiness))
+            }
+        }
+    }
+
+    private fun manualRecoveryAction(readiness: FirstRunReadiness) = AgentSetupAction(
+        id = "recover-setup",
+        actor = AgentSetupActionContract.USER,
+        kind = AgentSetupActionContract.MANUAL,
+        reason = readiness.fix,
+        blocksProgress = true,
+    )
+
+    private fun String.asRunnableShellCommand(): String? {
+        val trimmed = trim()
+        val runBacktick = Regex("""^Run `([^`]+)`\.?$""").matchEntire(trimmed)
+        val command = runBacktick?.groupValues?.get(1) ?: trimmed
+        return command.takeIf {
+            it.startsWith("fixthis ") ||
+                it.startsWith("./") ||
+                it.startsWith("adb ")
         }
     }
 

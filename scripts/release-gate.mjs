@@ -14,6 +14,11 @@ export const releaseClaimDefinitions = Object.freeze([
   { id: 'release-source-drift', evidenceNames: ['Release drift strict'] },
   { id: 'external-agent-loop', evidenceNames: ['Agent loop smoke'] },
   { id: 'external-first-handoff-recovery', evidenceNames: ['Agent loop smoke contracts', 'Agent loop smoke'], requireAllEvidence: true },
+  {
+    id: 'first-handoff-autopilot',
+    evidenceNames: ['First handoff autopilot CLI contract', 'Agent loop smoke contracts', 'Agent loop smoke'],
+    requireAllEvidence: true,
+  },
   { id: 'external-fixture-matrix', evidenceNames: ['External trust matrix v2 strict'] },
   { id: 'external-trust-matrix-v2', evidenceNames: ['External trust matrix v2 strict'] },
   { id: 'handoff-correctness-v2', evidenceNames: ['Handoff evaluation'] },
