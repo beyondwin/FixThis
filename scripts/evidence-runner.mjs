@@ -72,30 +72,15 @@ const profileDefinitions = {
     step("Connected Android proof", "npm run android:proof -- --strict --continue", {
       deferrable: true,
       requiresAndroid: true,
+      reportPath: "build/reports/fixthis-android-proof/report.json",
     }),
     step("Runtime trust boundary observations", "npm run source-matching:fixtures:test"),
-    step("Runtime trust strict", "npm run source-matching:fixtures:runtime -- --strict", {
-      deferrable: true,
-      requiresAndroid: true,
-    }),
     step(
       "First handoff autopilot CLI contract",
       "./gradlew :fixthis-cli:test --tests \"*AgentSetupVerificationServiceTest\" --tests \"*InstallAgentJsonReportTest\" --tests \"*TwoPhaseConfigCommitTest\" --no-daemon",
     ),
     step("Agent loop smoke contracts", "npm run agent-loop:smoke:test"),
     step("External fixture matrix contracts", "npm run external-fixture:matrix:test"),
-    step("External trust matrix v2 strict", "npm run external-fixture:matrix -- --strict", {
-      deferrable: true,
-      requiresAndroid: true,
-    }),
-    step("Agent loop smoke", "npm run agent-loop:smoke -- --strict", {
-      deferrable: true,
-      requiresAndroid: true,
-    }),
-    step("Real copy prompt smoke", "npm run real-copy-prompt:smoke -- --strict", {
-      deferrable: true,
-      requiresAndroid: true,
-    }),
     step("Console reliability contracts", "node --test scripts/console-reliability-report-test.mjs scripts/studioReliabilityContract-test.mjs"),
     step("Console browser reliability", "npm run console:browser:reliability"),
     step("Release readiness", "node scripts/check-release-readiness.mjs"),
@@ -120,6 +105,7 @@ function step(name, command, options = {}) {
     command,
     deferrable: options.deferrable === true,
     requiresAndroid: options.requiresAndroid === true,
+    ...(options.reportPath ? { reportPath: options.reportPath } : {}),
   });
 }
 

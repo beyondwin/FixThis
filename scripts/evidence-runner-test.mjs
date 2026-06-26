@@ -41,12 +41,10 @@ test("trust profile includes source matching and runtime strict as deferrable", 
   assert.equal(agentLoop.requiresAndroid, true);
 });
 
-test('trust and gate profiles include external trust matrix v2 strict evidence', () => {
+test("trust profile keeps focused external trust matrix v2 strict evidence", () => {
   const trustCommands = expandProfile('trust').map((step) => step.command);
-  const gateCommands = expandProfile('gate').map((step) => step.command);
 
   assert.ok(trustCommands.includes('npm run external-fixture:matrix -- --strict'));
-  assert.ok(gateCommands.includes('npm run external-fixture:matrix -- --strict'));
 
   const trustStep = expandProfile('trust').find((step) => step.command === 'npm run external-fixture:matrix -- --strict');
   assert.equal(trustStep.name, 'External trust matrix v2 strict');
@@ -172,23 +170,26 @@ test("release and gate profiles include release drift guard", () => {
   assert.ok(gateCommands.includes("npm run release:drift -- --strict"));
 });
 
-test("trust and gate profiles include external fixture matrix", () => {
+test("trust profile includes focused external fixture matrix commands", () => {
   const trustCommands = expandProfile("trust").map((step) => step.command);
-  const gateCommands = expandProfile("gate").map((step) => step.command);
 
   assert.ok(trustCommands.includes("npm run external-fixture:matrix:test"));
-  assert.ok(gateCommands.includes("npm run external-fixture:matrix -- --strict"));
+  assert.ok(trustCommands.includes("npm run external-fixture:matrix -- --strict"));
 });
 
-test("gate profile includes Trust Loop runtime agent copy prompt docs and whitespace evidence", () => {
+test("gate profile uses connected Android proof instead of duplicate connected smokes", () => {
   const commands = expandProfile("gate").map((step) => step.command);
+
   assert.ok(commands.includes("npm run release:reality"));
   assert.ok(commands.some((command) => command.includes("TargetBoundaryContextFormatterTest")));
   assert.ok(commands.includes("npm run source-matching:fixtures:test"));
-  assert.ok(commands.includes("npm run source-matching:fixtures:runtime -- --strict"));
   assert.ok(commands.includes("npm run agent-loop:smoke:test"));
-  assert.ok(commands.includes("npm run agent-loop:smoke -- --strict"));
-  assert.ok(commands.includes("npm run real-copy-prompt:smoke -- --strict"));
+  assert.ok(commands.includes("npm run android:proof -- --strict --continue"));
+  assert.equal(commands.filter((command) => command === "npm run android:proof -- --strict --continue").length, 1);
+  assert.ok(!commands.includes("npm run source-matching:fixtures:runtime -- --strict"));
+  assert.ok(!commands.includes("npm run agent-loop:smoke -- --strict"));
+  assert.ok(!commands.includes("npm run real-copy-prompt:smoke -- --strict"));
+  assert.ok(!commands.includes("npm run external-fixture:matrix -- --strict"));
   assert.ok(commands.includes("npm run handoff:eval:test"));
   assert.ok(commands.includes("npm run console:browser:reliability"));
   assert.ok(commands.includes("node scripts/check-doc-consistency.mjs"));
@@ -200,6 +201,7 @@ test("gate profile includes connected Android proof runner", () => {
   assert.equal(proof.command, "npm run android:proof -- --strict --continue");
   assert.equal(proof.deferrable, true);
   assert.equal(proof.requiresAndroid, true);
+  assert.equal(proof.reportPath, "build/reports/fixthis-android-proof/report.json");
 });
 
 test("package exposes connected Android proof commands", () => {
