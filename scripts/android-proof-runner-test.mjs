@@ -6,9 +6,12 @@ import {
   buildReport,
   classifyAndroidEnvironment,
   failureForCode,
+  normalizeStepResult,
   parseAdbDevices,
   parseArgs,
   renderMarkdownReport,
+  resolveAndroidPreflight,
+  runAndroidProof,
   selectDevice,
 } from "./android-proof-runner.mjs";
 
@@ -242,4 +245,165 @@ test("package exposes android proof commands", () => {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   assert.equal(pkg.scripts["android:proof"], "node scripts/android-proof-runner.mjs");
   assert.equal(pkg.scripts["android:proof:test"], "node --test scripts/android-proof-runner-test.mjs");
+});
+
+test("resolveAndroidPreflight records devices and boot state through injected spawn", () => {
+  const calls = [];
+  const environment = resolveAndroidPreflight({
+    strict: true,
+    device: "emulator-5554",
+  }, {
+    resolveAndroidEnvironment: () => ({
+      ready: true,
+      envPatch: {
+        ANDROID_HOME: "/sdk",
+        ANDROID_SDK_ROOT: "/sdk",
+        PATH: "/sdk/platform-tools:/usr/bin",
+      },
+      sdk: "/sdk",
+      adb: "/sdk/platform-tools/adb",
+      device: "emulator-5554",
+    }),
+    spawnSync: (command, args) => {
+      calls.push([command, ...args]);
+      if (args.includes("devices")) {
+        return {
+          status: 0,
+          stdout: "List of devices attached\nemulator-5554\tdevice model:Pixel_8\n",
+          stderr: "",
+        };
+      }
+      return { status: 0, stdout: "1\n", stderr: "" };
+    },
+  });
+
+  assert.equal(environment.status, "pass");
+  assert.equal(environment.sdk, "/sdk");
+  assert.equal(environment.adb, "/sdk/platform-tools/adb");
+  assert.equal(environment.deviceSerial, "emulator-5554");
+  assert.equal(environment.bootCompleted, true);
+  assert.deepEqual(calls, [
+    ["/sdk/platform-tools/adb", "devices", "-l"],
+    ["/sdk/platform-tools/adb", "-s", "emulator-5554", "shell", "getprop", "sys.boot_completed"],
+  ]);
+});
+
+test("normalizeStepResult maps command failures to stable failure codes", () => {
+  assert.deepEqual(normalizeStepResult({
+    name: "Agent loop smoke",
+    command: "npm run agent-loop:smoke -- --strict",
+    failureCode: "agent_loop_failed",
+    reportPath: "build/reports/fixthis-agent-loop/report.json",
+  }, {
+    status: 1,
+    stdout: "out",
+    stderr: "bad",
+    durationMs: 42,
+  }), {
+    name: "Agent loop smoke",
+    command: "npm run agent-loop:smoke -- --strict",
+    status: "fail",
+    exitCode: 1,
+    durationMs: 42,
+    failureCode: "agent_loop_failed",
+    reason: "bad",
+    reportPath: "build/reports/fixthis-agent-loop/report.json",
+  });
+});
+
+test("runAndroidProof stops on first failed step by default", () => {
+  const commands = [];
+  const { report } = runAndroidProof({
+    strict: true,
+    continueOnFailure: false,
+    reportDir: "build/reports/fixthis-android-proof-test",
+    device: null,
+    skipBuild: false,
+    headed: false,
+  }, {
+    resolveAndroidPreflight: () => ({
+      status: "pass",
+      sdk: "/sdk",
+      adb: "/sdk/platform-tools/adb",
+      deviceSerial: "emulator-5554",
+      bootCompleted: true,
+      failureCode: null,
+      nextAction: null,
+    }),
+    runCommand: (command) => {
+      commands.push(command);
+      return { status: command.includes("real-copy-prompt") ? 1 : 0, stdout: "", stderr: "copy failed", durationMs: 5 };
+    },
+    writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+  });
+
+  assert.deepEqual(commands, [
+    "scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --device emulator-5554",
+    "npm run real-copy-prompt:smoke -- --strict",
+  ]);
+  assert.equal(report.status, "fail");
+  assert.equal(report.steps[1].failureCode, "copy_prompt_failed");
+});
+
+test("runAndroidProof continues after failed steps when requested", () => {
+  const commands = [];
+  const { report } = runAndroidProof({
+    strict: true,
+    continueOnFailure: true,
+    reportDir: "build/reports/fixthis-android-proof-test",
+    device: null,
+    skipBuild: false,
+    headed: false,
+  }, {
+    resolveAndroidPreflight: () => ({
+      status: "pass",
+      sdk: "/sdk",
+      adb: "/sdk/platform-tools/adb",
+      deviceSerial: "emulator-5554",
+      bootCompleted: true,
+      failureCode: null,
+      nextAction: null,
+    }),
+    runCommand: (command) => {
+      commands.push(command);
+      return { status: command.includes("agent-loop") ? 1 : 0, stdout: "", stderr: "agent failed", durationMs: 5 };
+    },
+    writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+  });
+
+  assert.equal(commands.length, 4);
+  assert.equal(report.status, "fail");
+  assert.equal(report.steps.find((step) => step.name === "Agent loop smoke").failureCode, "agent_loop_failed");
+});
+
+test("runAndroidProof writes deferred environment report without running smokes", () => {
+  const commands = [];
+  const { report } = runAndroidProof({
+    strict: false,
+    continueOnFailure: false,
+    reportDir: "build/reports/fixthis-android-proof-test",
+    device: null,
+    skipBuild: false,
+    headed: false,
+  }, {
+    resolveAndroidPreflight: () => ({
+      status: "deferred",
+      sdk: null,
+      adb: null,
+      deviceSerial: null,
+      bootCompleted: false,
+      failureCode: "android_sdk_missing",
+      reason: "Android SDK platform-tools could not be resolved.",
+      nextAction: "Install Android SDK platform-tools or fix ANDROID_HOME.",
+    }),
+    runCommand: (command) => {
+      commands.push(command);
+      return { status: 0, stdout: "", stderr: "", durationMs: 1 };
+    },
+    writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+  });
+
+  assert.deepEqual(commands, []);
+  assert.equal(report.status, "deferred");
+  assert.equal(report.failures[0].failureCode, "android_sdk_missing");
 });

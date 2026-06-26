@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
 
 export const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 export const defaultReportDir = join(repoRoot, "build/reports/fixthis-android-proof");
@@ -273,6 +275,116 @@ export function buildProofSteps(options = {}, environment = {}) {
   ];
 }
 
+function sdkFromEnvironment(environment) {
+  return environment.sdk || environment.envPatch?.ANDROID_HOME || environment.envPatch?.ANDROID_SDK_ROOT || null;
+}
+
+function adbFromEnvironment(environment) {
+  const sdk = sdkFromEnvironment(environment);
+  return environment.adb || (sdk ? join(sdk, "platform-tools", process.platform === "win32" ? "adb.exe" : "adb") : null);
+}
+
+export function resolveAndroidPreflight(options = {}, deps = {}) {
+  const resolveEnvironment = deps.resolveAndroidEnvironment || resolveAndroidEnvironment;
+  const spawn = deps.spawnSync || spawnSync;
+  const base = resolveEnvironment();
+  const sdk = sdkFromEnvironment(base);
+  const adb = adbFromEnvironment(base);
+  if (!sdk || !adb) {
+    return classifyAndroidEnvironment({
+      strict: options.strict,
+      sdk,
+      adb,
+      adbDevicesStdout: "",
+      device: options.device,
+      envSerial: process.env.ANDROID_SERIAL || null,
+    });
+  }
+  const env = { ...process.env, ...(base.envPatch || {}) };
+  const devices = spawn(adb, ["devices", "-l"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env,
+  });
+  const deviceRows = parseAdbDevices(devices.stdout || "");
+  const selection = selectDevice(deviceRows, {
+    device: options.device || null,
+    envSerial: process.env.ANDROID_SERIAL || null,
+  });
+  let bootCompletedStdout = "";
+  if (selection.status === "pass" && selection.serial) {
+    const boot = spawn(adb, ["-s", selection.serial, "shell", "getprop", "sys.boot_completed"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env,
+    });
+    bootCompletedStdout = boot.stdout || "";
+  }
+  return classifyAndroidEnvironment({
+    strict: options.strict,
+    sdk,
+    adb,
+    adbDevicesStdout: devices.stdout || "",
+    bootCompletedStdout,
+    device: options.device,
+    envSerial: process.env.ANDROID_SERIAL || null,
+  });
+}
+
+export function normalizeStepResult(step, result) {
+  const exitCode = result.status ?? result.exitCode ?? 1;
+  const passed = exitCode === 0 || result.status === "passed" || result.status === "pass";
+  const stderrLine = String(result.stderr || "").split(/\r?\n/).find(Boolean);
+  const stdoutLine = String(result.stdout || "").split(/\r?\n/).find(Boolean);
+  return {
+    name: step.name,
+    command: step.command,
+    status: passed ? "pass" : "fail",
+    exitCode: passed ? 0 : exitCode,
+    durationMs: result.durationMs ?? 0,
+    failureCode: passed ? null : step.failureCode || "unknown_failure",
+    reason: passed ? null : stderrLine || stdoutLine || failureForCode(step.failureCode).reason,
+    reportPath: step.reportPath || null,
+  };
+}
+
+function runShellCommand(command) {
+  const started = Date.now();
+  const result = spawnSync("bash", ["-lc", command], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: "pipe",
+    env: process.env,
+  });
+  return {
+    status: result.status ?? 1,
+    stdout: result.stdout || "",
+    stderr: result.stderr || "",
+    durationMs: Date.now() - started,
+  };
+}
+
+export function runAndroidProof(options = {}, deps = {}) {
+  const preflight = (deps.resolveAndroidPreflight || resolveAndroidPreflight)(options, deps);
+  const steps = [];
+  if (preflight.status === "pass") {
+    const run = deps.runCommand || runShellCommand;
+    for (const step of buildProofSteps(options, preflight)) {
+      const normalized = normalizeStepResult(step, run(step.command));
+      steps.push(normalized);
+      if (normalized.status === "fail" && !options.continueOnFailure) break;
+    }
+  }
+  const report = buildReport({
+    strict: options.strict,
+    environment: preflight,
+    steps,
+  });
+  const write = deps.writeReports || writeReports;
+  const paths = write(report, resolve(repoRoot, options.reportDir || "build/reports/fixthis-android-proof"));
+  return { report, paths };
+}
+
 export function buildReport({ strict = false, environment = {}, steps = [], generatedAt = new Date().toISOString() } = {}) {
   const failures = [];
   if (environment.status === "fail" || environment.status === "deferred") {
@@ -365,17 +477,7 @@ export async function main(argv = process.argv.slice(2)) {
     process.stdout.write("Usage: node scripts/android-proof-runner.mjs [--strict] [--continue] [--report-dir <path>] [--device <serial>] [--skip-build] [--headed]\n");
     return 0;
   }
-  const report = buildReport({
-    strict: options.strict,
-    environment: classifyAndroidEnvironment({
-      strict: options.strict,
-      sdk: null,
-      adb: null,
-      adbDevicesStdout: "",
-    }),
-  });
-  const reportDir = resolve(repoRoot, options.reportDir);
-  const paths = writeReports(report, reportDir);
+  const { report, paths } = runAndroidProof(options);
   console.log(`Android proof: ${report.status}`);
   console.log(`JSON: ${paths.json}`);
   console.log(`Markdown: ${paths.markdown}`);
