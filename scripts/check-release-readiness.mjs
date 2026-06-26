@@ -393,6 +393,26 @@ requireIncludes(
   'scripts/release-gate.mjs',
   'android-agent-evidence-umbrella',
 );
+requireIncludes(
+  'R56.connected-android-proof-contributing-command',
+  'CONTRIBUTING.md',
+  'npm run android:proof -- --strict',
+);
+requireIncludes(
+  'R57.connected-android-proof-readiness-section',
+  'docs/contributing/release-readiness.md',
+  '## Connected Android Proof Runner Evidence',
+);
+requireIncludes(
+  'R58.connected-android-proof-strict-command',
+  'docs/contributing/release-readiness.md',
+  '`npm run android:proof -- --strict`',
+);
+requireIncludes(
+  'R59.connected-android-proof-gate-claim',
+  'scripts/release-gate.mjs',
+  'connected-android-proof',
+);
 
 if (failures.length > 0) {
   for (const failure of failures) {

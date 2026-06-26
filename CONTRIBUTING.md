@@ -375,30 +375,31 @@ status messages, activity-drift warnings, or agent-state rendering.
 
 ## Connected Device Checks
 
-Connected-device verification is manual until the project has a reliable device or emulator runner. Run the smoke harness when validating device behavior:
+Use the connected Android proof runner when validating release-decision device
+behavior:
+
+```bash
+npm run android:proof -- --strict
+```
+
+The runner checks Android SDK/ADB readiness, device selection, boot completion,
+the bundled sample smoke, real Copy Prompt, the external agent lifecycle, and
+the external fixture matrix. It writes JSON and Markdown reports under
+`build/reports/fixthis-android-proof/`; these reports are ignored build
+artifacts and should not be committed.
+
+For a broader failure picture in one run, use:
+
+```bash
+npm run android:proof -- --strict --continue
+```
+
+When debugging a specific layer, the focused commands remain available:
 
 ```bash
 scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
-```
-
-Run the real Copy Prompt browser smoke when validating feedback-console
-annotation handoff behavior on installed debug apps:
-
-```bash
 npm run real-copy-prompt:smoke -- --strict
-```
-
-Run the external agent lifecycle smoke when validating MCP queue lifecycle
-behavior after feedback handoff:
-
-```bash
 npm run agent-loop:smoke -- --strict
-```
-
-Run the external fixture matrix strict command when validating release evidence
-against generated external Android project shapes:
-
-```bash
 npm run external-fixture:matrix -- --strict
 ```
 

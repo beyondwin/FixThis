@@ -186,6 +186,21 @@ The current agent must not call `fixthis_open_feedback_console` while
 `readyForMcpTooling=false`. When the report emits `agent_after_restart`, the
 user must restart the MCP client before the console-opening tool call.
 
+## Connected Android Proof Runner Evidence
+
+The connected Android proof runner line may be claimed only when the release
+commit has evidence that one command classifies Android readiness and runs the
+sample, real Copy Prompt, agent-loop, and external fixture strict smokes.
+
+| Claim | Required evidence |
+| --- | --- |
+| Connected Android readiness is classified before expensive smokes run, and the proof runner reports exact next actions for SDK, ADB, device, boot, and smoke failures. | `npm run android:proof:test` and `npm run android:proof -- --strict` |
+| Release-gate reports expose connected Android proof as a first-class claim. | `npm run release:gate:test` and `npm run release:gate -- --strict` |
+
+Connected Android proof remains local-only. If Android SDK or a ready unlocked
+device is unavailable, non-strict reports must record the exact deferred reason
+and strict reports must fail.
+
 ## Release Gate, Interop Evidence, And SSE Closure
 
 This umbrella may be claimed only when the release gate report includes each
