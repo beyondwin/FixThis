@@ -27,6 +27,7 @@ export const releaseClaimDefinitions = Object.freeze([
     evidenceNames: ['Handoff evaluation', 'Runtime evidence attachment', 'Plugin contract'],
     requireAllEvidence: true,
   },
+  { id: 'connected-android-proof', evidenceNames: ['Connected Android proof'] },
   { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
   { id: 'console-sse-reliability', evidenceNames: ['Console browser reliability'] },
   { id: 'adb-discovery', evidenceNames: ['ADB discovery tests'] },

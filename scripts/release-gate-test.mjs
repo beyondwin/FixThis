@@ -177,6 +177,12 @@ test('release gate report maps evidence steps to unlocked claims', () => {
       reason: 'missing evidence commands: Runtime evidence attachment, Plugin contract',
     },
     {
+      id: 'connected-android-proof',
+      status: 'fail',
+      evidence: [],
+      reason: 'missing evidence command',
+    },
+    {
       id: 'runtime-source-trust',
       status: 'deferred',
       evidence: ['Runtime trust strict'],
@@ -251,6 +257,35 @@ test('release gate maps external trust matrix v2 claim', () => {
     evidence: ['External trust matrix v2 strict'],
     reason: 'Android SDK unavailable',
   });
+});
+
+test('release gate maps connected Android proof claim', () => {
+  const report = buildReleaseGateReport({
+    strict: false,
+    generatedAt: '2026-06-26T00:00:00.000Z',
+    steps: [
+      {
+        name: 'Connected Android proof',
+        command: 'npm run android:proof -- --strict --continue',
+        status: 'deferred',
+        reason: 'Android SDK platform-tools could not be resolved.',
+      },
+    ],
+  });
+
+  assert.deepEqual(report.claims.find((claim) => claim.id === 'connected-android-proof'), {
+    id: 'connected-android-proof',
+    status: 'deferred',
+    evidence: ['Connected Android proof'],
+    reason: 'Android SDK platform-tools could not be resolved.',
+  });
+});
+
+test('release gate profile produces connected Android proof input', () => {
+  const proof = releaseGateSteps().find((step) => step.name === 'Connected Android proof');
+  assert.equal(proof.command, 'npm run android:proof -- --strict --continue');
+  assert.equal(proof.deferrable, true);
+  assert.equal(proof.requiresAndroid, true);
 });
 
 test('release gate maps external first handoff recovery claim', () => {

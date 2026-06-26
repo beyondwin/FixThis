@@ -195,6 +195,19 @@ test("gate profile includes Trust Loop runtime agent copy prompt docs and whites
   assert.ok(commands.includes("node scripts/check-whitespace.mjs diff --check"));
 });
 
+test("gate profile includes connected Android proof runner", () => {
+  const proof = expandProfile("gate").find((step) => step.name === "Connected Android proof");
+  assert.equal(proof.command, "npm run android:proof -- --strict --continue");
+  assert.equal(proof.deferrable, true);
+  assert.equal(proof.requiresAndroid, true);
+});
+
+test("package exposes connected Android proof commands", () => {
+  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  assert.equal(pkg.scripts["android:proof"], "node scripts/android-proof-runner.mjs");
+  assert.equal(pkg.scripts["android:proof:test"], "node --test scripts/android-proof-runner-test.mjs");
+});
+
 test("package exposes release gate commands", () => {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   assert.equal(pkg.scripts["release:gate"], "node scripts/release-gate.mjs");
