@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -12,18 +12,20 @@ import {
   writeReleaseGateReports,
 } from './release-gate.mjs';
 
-test('releaseGateSteps include Trust Loop source agent release drift and console evidence', () => {
+test('releaseGateSteps include release drift host contracts connected proof and console evidence', () => {
   const commands = releaseGateSteps().map((step) => step.command);
   assert.ok(commands.includes('npm run release:reality'));
   assert.ok(commands.includes('npm run release:drift -- --strict'));
   assert.ok(commands.includes('./gradlew :fixthis-cli:test --tests "*AdbTest" --no-daemon'));
   assert.ok(commands.includes('./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon'));
   assert.ok(commands.includes('npm run source-matching:fixtures:test'));
-  assert.ok(commands.includes('npm run source-matching:fixtures:runtime -- --strict'));
   assert.ok(commands.includes('./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --tests "*TwoPhaseConfigCommitTest" --no-daemon'));
   assert.ok(commands.includes('npm run agent-loop:smoke:test'));
-  assert.ok(commands.includes('npm run agent-loop:smoke -- --strict'));
-  assert.ok(commands.includes('npm run real-copy-prompt:smoke -- --strict'));
+  assert.ok(commands.includes('npm run android:proof -- --strict --continue'));
+  assert.ok(!commands.includes('npm run source-matching:fixtures:runtime -- --strict'));
+  assert.ok(!commands.includes('npm run agent-loop:smoke -- --strict'));
+  assert.ok(!commands.includes('npm run real-copy-prompt:smoke -- --strict'));
+  assert.ok(!commands.includes('npm run external-fixture:matrix -- --strict'));
   assert.ok(commands.includes('npm run handoff:eval:test'));
   assert.ok(commands.includes('npm run console:browser:reliability'));
   assert.ok(commands.includes('node scripts/check-doc-consistency.mjs'));
@@ -117,9 +119,9 @@ test('release gate report maps evidence steps to unlocked claims', () => {
     steps: [
       { name: 'Release reality', command: 'npm run release:reality', status: 'pass' },
       { name: 'Release drift strict', command: 'npm run release:drift -- --strict', status: 'pass' },
-      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Connected Android proof', command: 'npm run android:proof -- --strict --continue', status: 'deferred', reason: 'Android SDK unavailable' },
       { name: 'Handoff evaluation', command: 'npm run handoff:eval:test', status: 'pass' },
-      { name: 'Runtime trust strict', command: 'npm run source-matching:fixtures:runtime -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Runtime trust boundary observations', command: 'npm run source-matching:fixtures:test', status: 'pass' },
       { name: 'Console browser reliability', command: 'npm run console:browser:reliability', status: 'pass' },
     ],
   });
@@ -137,33 +139,33 @@ test('release gate report maps evidence steps to unlocked claims', () => {
     },
     {
       id: 'external-agent-loop',
-      status: 'deferred',
-      evidence: ['Agent loop smoke'],
-      reason: 'Android SDK unavailable',
+      status: 'fail',
+      evidence: ['Connected Android proof'],
+      reason: 'missing evidence command: Agent loop smoke contracts',
     },
     {
       id: 'external-first-handoff-recovery',
       status: 'fail',
-      evidence: ['Agent loop smoke'],
+      evidence: ['Connected Android proof'],
       reason: 'missing evidence command: Agent loop smoke contracts',
     },
     {
       id: 'first-handoff-autopilot',
       status: 'fail',
-      evidence: ['Agent loop smoke'],
+      evidence: ['Connected Android proof'],
       reason: 'missing evidence commands: First handoff autopilot CLI contract, Agent loop smoke contracts',
     },
     {
       id: 'external-fixture-matrix',
       status: 'fail',
-      evidence: [],
-      reason: 'missing evidence command',
+      evidence: ['Connected Android proof'],
+      reason: 'missing evidence command: External fixture matrix contracts',
     },
     {
       id: 'external-trust-matrix-v2',
       status: 'fail',
-      evidence: [],
-      reason: 'missing evidence command',
+      evidence: ['Connected Android proof'],
+      reason: 'missing evidence command: External fixture matrix contracts',
     },
     {
       id: 'handoff-correctness-v2',
@@ -178,14 +180,14 @@ test('release gate report maps evidence steps to unlocked claims', () => {
     },
     {
       id: 'connected-android-proof',
-      status: 'fail',
-      evidence: [],
-      reason: 'missing evidence command',
+      status: 'deferred',
+      evidence: ['Connected Android proof'],
+      reason: 'Android SDK unavailable',
     },
     {
       id: 'runtime-source-trust',
       status: 'deferred',
-      evidence: ['Runtime trust strict'],
+      evidence: ['Runtime trust boundary observations', 'Connected Android proof'],
       reason: 'Android SDK unavailable',
     },
     {
@@ -201,9 +203,8 @@ test('release gate report maps evidence steps to unlocked claims', () => {
     },
     {
       id: 'source-evidence-depth',
-      status: 'fail',
-      evidence: [],
-      reason: 'missing evidence command',
+      status: 'pass',
+      evidence: ['Runtime trust boundary observations'],
     },
     {
       id: 'interop-boundary-context',
@@ -225,19 +226,20 @@ test('release gate report maps evidence steps to unlocked claims', () => {
   ]);
 });
 
-test('release gate maps external fixture matrix claim', () => {
+test('release gate maps external fixture matrix claim through connected proof plus contracts', () => {
   const report = buildReleaseGateReport({
     strict: false,
     generatedAt: '2026-06-01T00:00:00.000Z',
     steps: [
-      { name: 'External trust matrix v2 strict', command: 'npm run external-fixture:matrix -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'External fixture matrix contracts', command: 'npm run external-fixture:matrix:test', status: 'pass' },
+      { name: 'Connected Android proof', command: 'npm run android:proof -- --strict --continue', status: 'deferred', reason: 'Android SDK unavailable' },
     ],
   });
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'external-fixture-matrix'), {
     id: 'external-fixture-matrix',
     status: 'deferred',
-    evidence: ['External trust matrix v2 strict'],
+    evidence: ['External fixture matrix contracts', 'Connected Android proof'],
     reason: 'Android SDK unavailable',
   });
 });
@@ -247,14 +249,15 @@ test('release gate maps external trust matrix v2 claim', () => {
     strict: false,
     generatedAt: '2026-06-20T00:00:00.000Z',
     steps: [
-      { name: 'External trust matrix v2 strict', command: 'npm run external-fixture:matrix -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'External fixture matrix contracts', command: 'npm run external-fixture:matrix:test', status: 'pass' },
+      { name: 'Connected Android proof', command: 'npm run android:proof -- --strict --continue', status: 'deferred', reason: 'Android SDK unavailable' },
     ],
   });
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'external-trust-matrix-v2'), {
     id: 'external-trust-matrix-v2',
     status: 'deferred',
-    evidence: ['External trust matrix v2 strict'],
+    evidence: ['External fixture matrix contracts', 'Connected Android proof'],
     reason: 'Android SDK unavailable',
   });
 });
@@ -294,14 +297,14 @@ test('release gate maps external first handoff recovery claim', () => {
     generatedAt: '2026-06-09T00:00:00.000Z',
     steps: [
       { name: 'Agent loop smoke contracts', command: 'npm run agent-loop:smoke:test', status: 'pass' },
-      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Connected Android proof', command: 'npm run android:proof -- --strict --continue', status: 'deferred', reason: 'Android SDK unavailable' },
     ],
   });
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'external-first-handoff-recovery'), {
     id: 'external-first-handoff-recovery',
     status: 'deferred',
-    evidence: ['Agent loop smoke contracts', 'Agent loop smoke'],
+    evidence: ['Agent loop smoke contracts', 'Connected Android proof'],
     reason: 'Android SDK unavailable',
   });
 });
@@ -317,14 +320,14 @@ test('release gate maps first handoff autopilot claim', () => {
         status: 'pass',
       },
       { name: 'Agent loop smoke contracts', command: 'npm run agent-loop:smoke:test', status: 'pass' },
-      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Connected Android proof', command: 'npm run android:proof -- --strict --continue', status: 'deferred', reason: 'Android SDK unavailable' },
     ],
   });
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'first-handoff-autopilot'), {
     id: 'first-handoff-autopilot',
     status: 'deferred',
-    evidence: ['First handoff autopilot CLI contract', 'Agent loop smoke contracts', 'Agent loop smoke'],
+    evidence: ['First handoff autopilot CLI contract', 'Agent loop smoke contracts', 'Connected Android proof'],
     reason: 'Android SDK unavailable',
   });
 });
@@ -335,14 +338,14 @@ test('release gate fails first handoff autopilot when CLI unit evidence is missi
     generatedAt: '2026-06-25T00:00:00.000Z',
     steps: [
       { name: 'Agent loop smoke contracts', command: 'npm run agent-loop:smoke:test', status: 'pass' },
-      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Connected Android proof', command: 'npm run android:proof -- --strict --continue', status: 'deferred', reason: 'Android SDK unavailable' },
     ],
   });
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'first-handoff-autopilot'), {
     id: 'first-handoff-autopilot',
     status: 'fail',
-    evidence: ['Agent loop smoke contracts', 'Agent loop smoke'],
+    evidence: ['Agent loop smoke contracts', 'Connected Android proof'],
     reason: 'missing evidence command: First handoff autopilot CLI contract',
   });
 });
@@ -376,14 +379,14 @@ test('release gate fails external first handoff recovery when contract evidence 
     strict: false,
     generatedAt: '2026-06-09T00:00:00.000Z',
     steps: [
-      { name: 'Agent loop smoke', command: 'npm run agent-loop:smoke -- --strict', status: 'deferred', reason: 'Android SDK unavailable' },
+      { name: 'Connected Android proof', command: 'npm run android:proof -- --strict --continue', status: 'deferred', reason: 'Android SDK unavailable' },
     ],
   });
 
   assert.deepEqual(report.claims.find((claim) => claim.id === 'external-first-handoff-recovery'), {
     id: 'external-first-handoff-recovery',
     status: 'fail',
-    evidence: ['Agent loop smoke'],
+    evidence: ['Connected Android proof'],
     reason: 'missing evidence command: Agent loop smoke contracts',
   });
 });
@@ -397,14 +400,80 @@ test('release gate markdown renders claim statuses', () => {
     claims: [{
       id: 'external-agent-loop',
       status: 'deferred',
-      evidence: ['Agent loop smoke'],
+      evidence: ['Connected Android proof'],
       reason: 'Android SDK unavailable',
     }],
     steps: [],
   });
 
   assert.match(text, /## Release Claims/);
-  assert.match(text, /\| external-agent-loop \| deferred \| Agent loop smoke \| Android SDK unavailable \|/);
+  assert.match(text, /\| external-agent-loop \| deferred \| Connected Android proof \| Android SDK unavailable \|/);
+});
+
+test('release gate enriches connected Android proof with child failures', () => {
+  const root = mkdtempSync(join(tmpdir(), 'fixthis-proof-report-'));
+  try {
+    const reportDir = join(root, 'build/reports/fixthis-android-proof');
+    mkdirSync(reportDir, { recursive: true });
+    writeFileSync(join(reportDir, 'report.json'), `${JSON.stringify({
+      schemaVersion: '1.0',
+      status: 'fail',
+      strict: true,
+      failures: [{
+        scope: 'step',
+        step: 'Agent loop smoke',
+        failureCode: 'agent_loop_failed',
+        reason: 'Save to MCP through MCP failed.',
+        nextAction: 'Inspect the agent-loop smoke report and rerun `npm run agent-loop:smoke -- --strict`.',
+      }],
+    }, null, 2)}\n`);
+
+    const normalized = normalizeEvidenceStep({
+      name: 'Connected Android proof',
+      command: 'npm run android:proof -- --strict --continue',
+      status: 'failed',
+      reportPath: 'build/reports/fixthis-android-proof/report.json',
+    }, { root });
+
+    assert.equal(normalized.detailReportPath, 'build/reports/fixthis-android-proof/report.json');
+    assert.deepEqual(normalized.childFailures, [{
+      scope: 'step',
+      step: 'Agent loop smoke',
+      failureCode: 'agent_loop_failed',
+      reason: 'Save to MCP through MCP failed.',
+      nextAction: 'Inspect the agent-loop smoke report and rerun `npm run agent-loop:smoke -- --strict`.',
+    }]);
+    assert.equal(normalized.reason, 'agent_loop_failed: Inspect the agent-loop smoke report and rerun `npm run agent-loop:smoke -- --strict`.');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('release gate markdown renders connected proof child failures', () => {
+  const text = renderReleaseGateMarkdown({
+    schemaVersion: '1.0',
+    status: 'fail',
+    strict: true,
+    generatedAt: '2026-06-27T00:00:00.000Z',
+    claims: [],
+    steps: [{
+      name: 'Connected Android proof',
+      command: 'npm run android:proof -- --strict --continue',
+      status: 'fail',
+      durationMs: 10,
+      reason: 'agent_loop_failed: Inspect the agent-loop smoke report and rerun `npm run agent-loop:smoke -- --strict`.',
+      childFailures: [{
+        scope: 'step',
+        step: 'Agent loop smoke',
+        failureCode: 'agent_loop_failed',
+        reason: 'Save to MCP through MCP failed.',
+        nextAction: 'Inspect the agent-loop smoke report and rerun `npm run agent-loop:smoke -- --strict`.',
+      }],
+    }],
+  });
+
+  assert.match(text, /## Connected Android Proof Details/);
+  assert.match(text, /\| Connected Android proof \| Agent loop smoke \| agent_loop_failed \| Inspect the agent-loop smoke report/);
 });
 
 test('release gate maps residual risk closure claims', () => {

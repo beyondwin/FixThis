@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -12,15 +12,15 @@ export const defaultReleaseGateReportDir = join(repoRoot, 'build/reports/fixthis
 export const releaseClaimDefinitions = Object.freeze([
   { id: 'release-reality', evidenceNames: ['Release reality'] },
   { id: 'release-source-drift', evidenceNames: ['Release drift strict'] },
-  { id: 'external-agent-loop', evidenceNames: ['Agent loop smoke'] },
-  { id: 'external-first-handoff-recovery', evidenceNames: ['Agent loop smoke contracts', 'Agent loop smoke'], requireAllEvidence: true },
+  { id: 'external-agent-loop', evidenceNames: ['Agent loop smoke contracts', 'Connected Android proof'], requireAllEvidence: true },
+  { id: 'external-first-handoff-recovery', evidenceNames: ['Agent loop smoke contracts', 'Connected Android proof'], requireAllEvidence: true },
   {
     id: 'first-handoff-autopilot',
-    evidenceNames: ['First handoff autopilot CLI contract', 'Agent loop smoke contracts', 'Agent loop smoke'],
+    evidenceNames: ['First handoff autopilot CLI contract', 'Agent loop smoke contracts', 'Connected Android proof'],
     requireAllEvidence: true,
   },
-  { id: 'external-fixture-matrix', evidenceNames: ['External trust matrix v2 strict'] },
-  { id: 'external-trust-matrix-v2', evidenceNames: ['External trust matrix v2 strict'] },
+  { id: 'external-fixture-matrix', evidenceNames: ['External fixture matrix contracts', 'Connected Android proof'], requireAllEvidence: true },
+  { id: 'external-trust-matrix-v2', evidenceNames: ['External fixture matrix contracts', 'Connected Android proof'], requireAllEvidence: true },
   { id: 'handoff-correctness-v2', evidenceNames: ['Handoff evaluation'] },
   {
     id: 'android-agent-evidence-umbrella',
@@ -28,7 +28,7 @@ export const releaseClaimDefinitions = Object.freeze([
     requireAllEvidence: true,
   },
   { id: 'connected-android-proof', evidenceNames: ['Connected Android proof'] },
-  { id: 'runtime-source-trust', evidenceNames: ['Runtime trust strict'] },
+  { id: 'runtime-source-trust', evidenceNames: ['Runtime trust boundary observations', 'Connected Android proof'], requireAllEvidence: true },
   { id: 'console-sse-reliability', evidenceNames: ['Console browser reliability'] },
   { id: 'adb-discovery', evidenceNames: ['ADB discovery tests'] },
   { id: 'source-evidence-depth', evidenceNames: ['Compose core source trust', 'Runtime trust boundary observations'] },
@@ -41,20 +41,60 @@ export function releaseGateSteps() {
   return expandProfile('gate').map((step) => ({ ...step }));
 }
 
-export function normalizeEvidenceStep(step) {
+function resolveReportPath(reportPath, root = repoRoot) {
+  if (!reportPath) return null;
+  return resolve(root, reportPath);
+}
+
+export function childFailureReason(step) {
+  const failure = step?.childFailures?.[0];
+  if (!failure) return null;
+  const detail = failure.nextAction || failure.reason || null;
+  return [failure.failureCode, detail].filter(Boolean).join(': ') || null;
+}
+
+export function readConnectedAndroidProofDetails(step, { root = repoRoot } = {}) {
+  if (step.name !== 'Connected Android proof') return null;
+  const detailReportPath = step.reportPath || 'build/reports/fixthis-android-proof/report.json';
+  const absolutePath = resolveReportPath(detailReportPath, root);
+  if (!absolutePath || !existsSync(absolutePath)) return null;
+  try {
+    const report = JSON.parse(readFileSync(absolutePath, 'utf8'));
+    const childFailures = Array.isArray(report.failures) ? report.failures : [];
+    return {
+      detailReportPath,
+      childFailures,
+    };
+  } catch (_err) {
+    return null;
+  }
+}
+
+export function normalizeEvidenceStep(step, options = {}) {
   const rawStatus = step.status;
   const status = rawStatus === 'passed' || rawStatus === 'pass'
     ? 'pass'
     : rawStatus === 'deferred'
       ? 'deferred'
       : 'fail';
-  return {
+  const normalized = {
     name: step.name,
     command: step.command,
     status,
     durationMs: step.durationMs ?? 0,
     reason: step.reason || step.stderr?.split('\n').find(Boolean) || null,
     reportPath: step.reportPath || null,
+  };
+  const details = readConnectedAndroidProofDetails(normalized, options);
+  if (!details) return normalized;
+  const enriched = {
+    ...normalized,
+    detailReportPath: details.detailReportPath,
+    childFailures: details.childFailures,
+  };
+  return {
+    ...enriched,
+    reason: childFailureReason(enriched) || enriched.reason,
   };
 }
 
@@ -72,6 +112,10 @@ function statusRank(status) {
   return 0;
 }
 
+function evidenceReason(step) {
+  return childFailureReason(step) || step.reason || null;
+}
+
 export function buildReleaseClaims(steps) {
   const byName = new Map((steps || []).map((step) => [step.name, step]));
   return releaseClaimDefinitions.map((definition) => {
@@ -86,7 +130,7 @@ export function buildReleaseClaims(steps) {
       ? evidence.length === 0
         ? 'missing evidence command'
         : `missing evidence command${missingEvidenceNames.length === 1 ? `: ${missingEvidenceNames[0]}` : `s: ${missingEvidenceNames.join(', ')}`}`
-      : evidence.find((step) => step.reason)?.reason || null;
+      : evidence.map(evidenceReason).find(Boolean) || null;
     return {
       id: definition.id,
       status,
@@ -100,8 +144,9 @@ export function buildReleaseGateReport({
   strict = false,
   steps,
   generatedAt = new Date().toISOString(),
+  normalizeOptions = {},
 } = {}) {
-  const normalizedSteps = (steps || []).map(normalizeEvidenceStep);
+  const normalizedSteps = (steps || []).map((step) => normalizeEvidenceStep(step, normalizeOptions));
   return {
     schemaVersion: '1.0',
     status: gateStatus(normalizedSteps, strict),
@@ -140,6 +185,17 @@ export function renderReleaseGateMarkdown(report) {
   lines.push('| --- | --- | --- | --- | --- |');
   for (const step of report.steps || []) {
     lines.push(`| ${cell(step.name)} | ${cell(step.status)} | \`${cell(step.command)}\` | ${cell(step.durationMs ?? 0)}ms | ${cell(step.reason)} |`);
+  }
+  const proofDetails = (report.steps || []).filter((step) => (step.childFailures || []).length > 0);
+  if (proofDetails.length > 0) {
+    lines.push('', '## Connected Android Proof Details', '');
+    lines.push('| Evidence | Child step | Failure | Next action |');
+    lines.push('| --- | --- | --- | --- |');
+    for (const step of proofDetails) {
+      for (const failure of step.childFailures || []) {
+        lines.push(`| ${cell(step.name)} | ${cell(failure.step || failure.scope)} | ${cell(failure.failureCode)} | ${cell(failure.nextAction || failure.reason)} |`);
+      }
+    }
   }
   return `${lines.join('\n')}\n`;
 }
