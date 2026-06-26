@@ -128,8 +128,8 @@ publish by itself.
 
 | Claim | Required evidence |
 | --- | --- |
-| Runtime source-trust fixtures prevent shared-component, interop-risk, visual-area, and weak-candidate evidence from overclaiming exact edit ownership. | `npm run source-matching:fixtures:test`, `npm run source-matching:fixtures:runtime -- --strict`, and `npm run handoff:eval:test`. |
-| External Android agent lifecycle completes from handoff through queue read, claim, resolution, persistence, and console reflection. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict`. |
+| Runtime source-trust fixtures prevent shared-component, interop-risk, visual-area, and weak-candidate evidence from overclaiming exact edit ownership. | `npm run source-matching:fixtures:test`, `npm run handoff:eval:test`, and `npm run android:proof -- --strict`. |
+| External Android agent lifecycle completes from handoff through queue read, claim, resolution, persistence, and console reflection. | `npm run agent-loop:smoke:test` and `npm run android:proof -- --strict`. |
 | Maintainers can classify release evidence and public claims as pass, deferred, or fail in one report. | `npm run release:gate`, `npm run release:gate:test`, and `node scripts/check-release-readiness.mjs`. |
 
 When Android SDK or an unlocked emulator is unavailable, non-strict reports must
@@ -144,8 +144,8 @@ publish by itself.
 | Claim | Required evidence |
 | --- | --- |
 | Release/install claims match observable package, tag, and registry state or are explicitly deferred with a reason. | `npm run release:reality`, `npm run evidence:release`, and `node scripts/check-release-readiness.mjs`. |
-| External Android agent lifecycle completes from handoff through claim, resolution, persistence, and console reflection. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict`. |
-| Runtime source trust keeps shared-component, interop-risk, and visual-area guidance caveated instead of overclaiming exact ownership. | `npm run source-matching:fixtures:test`, `npm run source-matching:fixtures:runtime -- --strict`, and `npm run handoff:eval:test`. |
+| External Android agent lifecycle completes from handoff through claim, resolution, persistence, and console reflection. | `npm run agent-loop:smoke:test` and `npm run android:proof -- --strict`. |
+| Runtime source trust keeps shared-component, interop-risk, and visual-area guidance caveated instead of overclaiming exact ownership. | `npm run source-matching:fixtures:test`, `npm run handoff:eval:test`, and `npm run android:proof -- --strict`. |
 
 The release reality check must use observable public surfaces. For MCP Registry,
 it reads only the local `server.json` server name, then verifies the public
@@ -163,7 +163,7 @@ the exact recovery action when runtime prerequisites are missing.
 
 | Claim | Required evidence |
 | --- | --- |
-| External app first handoff reaches one MCP-readable sent item, and failure reports carry `failureCode`, `readiness`, `nextAction`, `verify`, and `fix`. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict`. |
+| External app first handoff reaches one MCP-readable sent item, and failure reports carry `failureCode`, `readiness`, `nextAction`, `verify`, and `fix`. | `npm run agent-loop:smoke:test` and `npm run android:proof -- --strict`. |
 | Install and doctor JSON do not contradict the first handoff recovery path. | `./gradlew :fixthis-cli:test --tests "*DoctorCommandTest" --tests "*InstallAgentJsonReportTest" --tests "*AgentSetupFilesTest" --no-daemon`. |
 
 Non-strict missing-runtime runs must be recorded as deferred with a recovery-oriented readiness object.
@@ -180,7 +180,7 @@ console.
 | Claim | Required evidence |
 | --- | --- |
 | Verify stdout report actions are a closed agent contract with `actions[]`, `requiresUserAction`, and `readyForMcpTooling`. | `./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --tests "*TwoPhaseConfigCommitTest" --no-daemon` |
-| First handoff evidence checks the verify-report action semantics and reaches one MCP-readable sent feedback item. | `npm run agent-loop:smoke:test` and `npm run agent-loop:smoke -- --strict` |
+| First handoff evidence checks the verify-report action semantics and reaches one MCP-readable sent feedback item. | `npm run agent-loop:smoke:test` and `npm run android:proof -- --strict` |
 
 The current agent must not call `fixthis_open_feedback_console` while
 `readyForMcpTooling=false`. When the report emits `agent_after_restart`, the
@@ -213,12 +213,11 @@ publish by itself.
 | Healthy SSE sessions avoid redundant session/history/preview polling, with fallback paths explicitly reported. | `node --test scripts/console-reliability-report-test.mjs scripts/studioReliabilityContract-test.mjs` and `npm run console:browser:reliability`. |
 | Maintainers can use one release-gate report to classify evidence as pass, deferred, or fail. | `npm run release:gate`, `npm run release:gate:test`, and `node scripts/check-release-readiness.mjs`. |
 
-Connected Android evidence remains local-only. If Android SDK or an unlocked
+Connected Android evidence remains local-only and is represented in the release
+gate by `npm run android:proof -- --strict`. If Android SDK or an unlocked
 emulator is unavailable, non-strict reports must record the exact deferred
-reason and strict reports must fail. When Android is ready,
-`npm run runtime-evidence:smoke -- --strict` must create a bounded logcat
-evidence row with the raw artifact stored only under ignored `.fixthis/`
-storage.
+reason and strict reports must fail. When Android is ready, the integrated proof
+must identify the failing child smoke and point to its local report path.
 
 ## v1 Residual Risk Closure Gate
 

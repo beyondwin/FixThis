@@ -406,12 +406,18 @@ npm run external-fixture:matrix -- --strict
 For release-decision evidence, run:
 
 ```bash
+npm run android:proof -- --strict
 npm run release:drift
 npm run release:drift:test
 npm run external-fixture:matrix:test
 npm run release:gate
 npm run release:gate:test
 ```
+
+`release:gate` consumes the integrated connected Android proof report. It should
+not be treated as a request to run every connected smoke independently; use the
+focused smoke commands above only when debugging the failing child row named in
+`build/reports/fixthis-android-proof/report.json`.
 
 The release gate writes JSON and Markdown reports under
 `build/reports/fixthis-release-gate/`. These reports are ignored build

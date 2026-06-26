@@ -49,6 +49,7 @@ fresh passing command result. If the Handoff Intelligence, Studio Reliability,
 or Release Grade evidence is missing, remove or narrow the corresponding claim
 before tagging.
 
-Connected Android evidence remains local-only. If Android SDK or an unlocked
-emulator is unavailable, attach the non-strict release-gate report and record
-the connected evidence as deferred with the report reason.
+Connected Android evidence remains local-only and is recorded through
+`npm run android:proof -- --strict` plus the release-gate report. If Android SDK
+or an unlocked emulator is unavailable, attach the non-strict release-gate report
+and record the connected evidence as deferred with the proof report reason.

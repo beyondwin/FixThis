@@ -283,7 +283,7 @@ requireIncludes(
 requireIncludes(
   'R35.v11-agent-loop-command',
   'docs/contributing/release-readiness.md',
-  '`npm run agent-loop:smoke -- --strict`',
+  '`npm run android:proof -- --strict`',
 );
 requireIncludes(
   'R36.release-gate-interop-sse-section',
@@ -340,7 +340,7 @@ requireIncludes(
 requireIncludes(
   'R44.external-first-handoff-strict-command',
   'docs/contributing/release-readiness.md',
-  '`npm run agent-loop:smoke -- --strict`',
+  '`npm run android:proof -- --strict`',
 );
 requireIncludes(
   'R45.external-first-handoff-deferral-rule',
@@ -350,7 +350,7 @@ requireIncludes(
 requireRegex(
   'R52.first-handoff-autopilot-contract',
   'docs/contributing/release-readiness.md',
-  /## First Handoff Autopilot Evidence[\s\S]*install-agent --project-dir \. --target all --verify --json[\s\S]*actions\[\][\s\S]*readyForMcpTooling[\s\S]*\.\/gradlew :fixthis-cli:test --tests "\*AgentSetupVerificationServiceTest" --tests "\*InstallAgentJsonReportTest" --tests "\*TwoPhaseConfigCommitTest" --no-daemon[\s\S]*npm run agent-loop:smoke:test[\s\S]*npm run agent-loop:smoke -- --strict/,
+  /## First Handoff Autopilot Evidence[\s\S]*install-agent --project-dir \. --target all --verify --json[\s\S]*actions\[\][\s\S]*readyForMcpTooling[\s\S]*\.\/gradlew :fixthis-cli:test --tests "\*AgentSetupVerificationServiceTest" --tests "\*InstallAgentJsonReportTest" --tests "\*TwoPhaseConfigCommitTest" --no-daemon[\s\S]*npm run agent-loop:smoke:test[\s\S]*npm run android:proof -- --strict/,
   'first handoff autopilot evidence section',
 );
 requireIncludes(
