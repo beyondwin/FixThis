@@ -266,8 +266,9 @@ target_line   = "  " [ "role=" role "  " ] [ "tag=" tag "  " ] "box=(" x1 "," y1
                  [ "; targetRisk=overlap" ]
                  [ "; targetRisk=duplicate-of-marker-" M ]
 crop_line     = "crop: " path
-edit_surface_block = edit_surface_line{0,2}
-edit_surface_line  = "  editSurface: " kind [ "  role=" role ] " -> " file [ ":" line ] "  conf=" lvl "  why=[" terms "]"
+edit_surface_block = (edit_surface_line edit_surface_action_line?){0,2}
+edit_surface_line  = "  editSurface: " kind [ "  role=" role ] " -> " file [ ":" line ] "  conf=" lvl "  why=[" terms "]" [ "  basis=" text ]
+edit_surface_action_line = "  action: " text
 role               = "call-site" | "component-definition" | "copy-or-data" | "layout-or-style" | "visual-area" | "interop-risk"
 source_block  = candidate_line{1,3} caution_line?
 candidate_line= "  " file ":" line "  conf=" lvl [ "  owner=" composable ] "  margin=" margin "  matched=[" terms "]"
@@ -329,6 +330,7 @@ When no source candidates are available for the item, the source block consists 
 - `editSurface role=` — optional role for the edit-surface hint:
   `call-site`, `component-definition`, `copy-or-data`, `layout-or-style`,
   `visual-area`, or `interop-risk`.
+- `action:` after an `editSurface:` line is role-specific agent guidance. It is rendered from the optional edit-surface candidate `note` field and does not add a persisted JSON field.
 - `sourceCandidates` identify where selected or nearby strings came from.
   `editSurface` identifies where a style/layout change is likely rendered.
 - candidate lines — up to 3 in score order. Rank 1 includes optional `owner=<Composable>` when the source index knows the enclosing `@Composable fun`, `margin=` (score gap to rank 2, formatted to 2 decimal places), and `matched=[...]` (up to 4 reason tokens). Runner-up lines include only `conf=`.

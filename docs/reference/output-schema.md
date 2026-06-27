@@ -266,7 +266,8 @@ Each entry can include:
   `CALL_SITE`, `COMPONENT_DEFINITION`, `COPY_OR_DATA`, `LAYOUT_OR_STYLE`,
   `VISUAL_AREA`, or `INTEROP_RISK`. Absent on older persisted sessions and
   on candidates the classifier could not score.
-- `note`: optional human-readable caveat for compact handoffs.
+- `confidenceBasis`: optional human-readable basis for the role-specific confidence.
+- `note`: optional role-specific action guidance or caveat for compact handoffs. In compact Markdown, edit-surface notes render as `action:` lines; source-candidate cautions still render as `note:` lines.
 
 Agents should treat these as inspection hints. They do not rename or replace
 `sourceCandidates`, and they are absent from older persisted sessions.

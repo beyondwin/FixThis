@@ -292,10 +292,12 @@ evidence for what the user meant.
 Compact Markdown may also include up to two `editSurface:` lines before source
 candidate lines. These lines can include `role=<role>` tokens such as
 `call-site`, `component-definition`, `copy-or-data`, `layout-or-style`,
-`visual-area`, or `interop-risk`. For style/layout requests, agents should
-inspect `editSurface` before editing a source-origin data candidate. Source
-candidates remain useful for identifying which repeated item or data value the
-user selected.
+`visual-area`, or `interop-risk`, plus `basis=` text when the scorer has an
+explainable confidence basis. A following `action:` line is role-specific
+guidance rendered from the optional edit-surface candidate `note` field. For
+style/layout requests, agents should inspect `editSurface` before editing a
+source-origin data candidate. Source candidates remain useful for identifying
+which repeated item or data value the user selected.
 
 The compact Markdown handoff also emits a per-item `id:` token (the feedback item id) and ends with an `agent_protocol:` footer that documents the claim/resolve contract inline. The same compact text is what the `Copy Prompt` button puts on the clipboard, so an agent that only sees the pasted prompt can still reference items by id and call `fixthis_claim_feedback` / `fixthis_resolve_feedback` over MCP.
 

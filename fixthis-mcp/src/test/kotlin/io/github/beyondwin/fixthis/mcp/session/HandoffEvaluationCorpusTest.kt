@@ -100,10 +100,35 @@ class HandoffEvaluationCorpusTest {
         for (case in corpus.cases) {
             assertTrue(markdown.contains("role=${case.expectedRole.renderToken()}"), "Missing role for ${case.id}")
         }
-        val compactPostureBudget = 9600 // baseline measured 2026-06-21 after compact verification posture: 9257 chars
+        val compactPostureBudget = 10600 // baseline measured 2026-06-28 after role action guidance: 10336 chars
         assertTrue(
             markdown.length <= compactPostureBudget,
             "v0.6 corpus handoff is ${markdown.length} chars; budget is $compactPostureBudget",
+        )
+    }
+
+    @Test
+    fun corpusItemsWithEditSurfaceRolesRenderActionGuidance() {
+        val corpus = HandoffEvaluationFixtures.loadCorpus()
+        val items = corpus.cases.map { HandoffEvaluationFixtures.annotationFor(it) }
+        val session = SessionDto(
+            sessionId = "handoff-action-eval",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = corpus.cases.map { HandoffEvaluationFixtures.screenFor(it) },
+            items = items.mapIndexed { index, item -> item.copy(sequenceNumber = index + 1) },
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+        val roleLines = markdown.lines().filter { it.trimStart().startsWith("editSurface:") && it.contains("role=") }
+        val actionLines = markdown.lines().filter { it == "  action: " || it.startsWith("  action: ") }
+
+        assertTrue(roleLines.isNotEmpty(), markdown)
+        assertTrue(
+            actionLines.size >= roleLines.size,
+            "Expected at least one action line per role-bearing editSurface. roles=${roleLines.size}, actions=${actionLines.size}\n$markdown",
         )
     }
 

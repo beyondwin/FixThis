@@ -2429,6 +2429,88 @@ class CompactHandoffRendererTest {
         assertTrue(!markdown.contains("exact ownership"), markdown)
     }
 
+    @Test
+    fun compactHandoffRendersEditSurfaceActionGuidance() {
+        val session = SessionDto(
+            sessionId = "action-session",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 1L, displayName = "Home")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-1",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 10f, 10f)),
+                    comment = "Tighten this gap",
+                    sequenceNumber = 1,
+                    editSurfaceCandidates = listOf(
+                        EditSurfaceCandidateDto(
+                            kind = EditSurfaceKindDto.SPACING,
+                            role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
+                            file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/HomeScreen.kt",
+                            line = 12,
+                            confidence = SelectionConfidence.LOW,
+                            reasons = listOf(EditSurfaceReasonDto.LAYOUT_INTENT),
+                            confidenceBasis = "layout/style edit applies at the call site",
+                            note = "treat layout renderer context as an edit hint and verify before editing",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("editSurface: spacing"), markdown)
+        assertTrue(markdown.contains("basis=layout/style edit applies at the call site"), markdown)
+        assertTrue(markdown.contains("  action: treat layout renderer context as an edit hint and verify before editing"), markdown)
+    }
+
+    @Test
+    fun compactHandoffKeepsInteropActionVerificationFirst() {
+        val session = SessionDto(
+            sessionId = "interop-action-session",
+            packageName = "io.github.beyondwin.fixthis.sample",
+            projectRoot = "/repo",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            screens = listOf(SnapshotDto(screenId = "screen-1", capturedAtEpochMillis = 1L, displayName = "Diagnostics")),
+            items = listOf(
+                AnnotationDto(
+                    itemId = "item-interop",
+                    screenId = "screen-1",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                    target = AnnotationTargetDto.Area(FixThisRect(10f, 20f, 200f, 120f)),
+                    comment = "Fix native chart spacing",
+                    sequenceNumber = 1,
+                    editSurfaceCandidates = listOf(
+                        EditSurfaceCandidateDto(
+                            kind = EditSurfaceKindDto.UNKNOWN,
+                            role = EditSurfaceRoleDto.INTEROP_RISK,
+                            file = "(visual area)",
+                            confidence = SelectionConfidence.LOW,
+                            confidenceBasis = "interop boundary: verify runtime target before editing",
+                            note = "verify runtime target and boundary context before editing",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val markdown = CompactHandoffRenderer.render(session)
+
+        assertTrue(markdown.contains("role=interop-risk"), markdown)
+        assertTrue(markdown.contains("conf=low"), markdown)
+        assertTrue(markdown.contains("  action: verify runtime target and boundary context before editing"), markdown)
+        assertTrue(!markdown.contains("exact View"), markdown)
+        assertTrue(!markdown.contains("exact WebView"), markdown)
+    }
+
     private fun oneItemSession(item: AnnotationDto): SessionDto = SessionDto(
         sessionId = "session-one-item",
         packageName = "io.github.beyondwin.fixthis.sample",

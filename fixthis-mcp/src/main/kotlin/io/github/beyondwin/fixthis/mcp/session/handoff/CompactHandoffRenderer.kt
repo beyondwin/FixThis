@@ -247,8 +247,8 @@ object CompactHandoffRenderer {
     private fun StringBuilder.appendEditSurfaceBlock(item: AnnotationDto) {
         item.editSurfaceCandidates.take(2).forEach { candidate ->
             appendLine("  ${candidate.formatEditSurfaceLine()}")
-            candidate.note?.takeIf { it.isNotBlank() }?.let { note ->
-                appendLine("  note: ${note.inlineSafe()}")
+            candidate.note?.takeIf { it.isNotBlank() }?.let { action ->
+                appendLine("  action: ${action.inlineSafe()}")
             }
         }
     }
