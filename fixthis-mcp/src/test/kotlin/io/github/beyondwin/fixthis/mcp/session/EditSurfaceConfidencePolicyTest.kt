@@ -4,6 +4,7 @@ import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 import io.github.beyondwin.fixthis.mcp.session.editsurface.EditSurfaceConfidencePolicy
+import io.github.beyondwin.fixthis.mcp.session.editsurface.EditSurfaceRoleContracts
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -171,6 +172,83 @@ class EditSurfaceConfidencePolicyTest {
             sourceCandidate = candidate(SelectionConfidence.MEDIUM, ownerComposable = "QueueScreen"),
         )
         assertEquals(SelectionConfidence.LOW, result.confidence)
+    }
+
+    @Test
+    fun `every edit surface role exposes action guidance`() {
+        val missing = EditSurfaceRoleDto.entries
+            .map { role -> role to EditSurfaceRoleContracts.forRole(role).actionGuidance }
+            .filter { (_, action) -> action.isBlank() }
+
+        assertTrue(missing.isEmpty(), "Missing action guidance for: $missing")
+    }
+
+    @Test
+    fun `visual area stays low and tells agent to treat source paths as hints`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.VISUAL_AREA,
+            sourceCandidate = candidate(SelectionConfidence.HIGH),
+        )
+
+        assertEquals(SelectionConfidence.LOW, result.confidence)
+        assertTrue(result.basis.contains("visual-area", ignoreCase = true))
+        assertTrue(result.action.contains("source paths as hints", ignoreCase = true))
+    }
+
+    @Test
+    fun `layout renderer context never promotes layout or style to high`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.LAYOUT_OR_STYLE,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                reasons = listOf("layout renderer context"),
+                ownerComposable = "AdaptiveGrid",
+            ),
+        )
+
+        assertEquals(SelectionConfidence.MEDIUM, result.confidence)
+        assertTrue(result.action.contains("layout renderer", ignoreCase = true))
+        assertTrue(result.action.contains("verify", ignoreCase = true))
+    }
+
+    @Test
+    fun `shared component definition action warns about call site impact`() {
+        val result = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COMPONENT_DEFINITION,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                evidenceStrength = io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG,
+                riskFlags = listOf(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.SHARED_COMPONENT),
+            ),
+        )
+
+        assertEquals(SelectionConfidence.MEDIUM, result.confidence)
+        assertTrue(result.action.contains("call site", ignoreCase = true))
+        assertTrue(result.action.contains("definition", ignoreCase = true))
+    }
+
+    @Test
+    fun `copy or data high confidence requires exact source evidence`() {
+        val high = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COPY_OR_DATA,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                reasons = listOf("selected resolved stringResource"),
+                evidenceStrength = io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength.STRONG,
+            ),
+        )
+        val weak = EditSurfaceConfidencePolicy.score(
+            role = EditSurfaceRoleDto.COPY_OR_DATA,
+            sourceCandidate = candidate(
+                SelectionConfidence.HIGH,
+                reasons = listOf("nearby text"),
+                riskFlags = listOf(io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk.NEARBY_ONLY),
+            ),
+        )
+
+        assertEquals(SelectionConfidence.HIGH, high.confidence)
+        assertTrue(high.action.contains("copy", ignoreCase = true))
+        assertEquals(SelectionConfidence.LOW, weak.confidence)
     }
 
     @Test

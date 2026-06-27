@@ -7,6 +7,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceRoleDto
 internal data class EditSurfaceConfidenceResult(
     val confidence: SelectionConfidence,
     val basis: String,
+    val action: String,
 )
 
 internal object EditSurfaceConfidencePolicy {
@@ -18,25 +19,39 @@ internal object EditSurfaceConfidencePolicy {
         val reasons = sourceCandidate?.matchReasons.orEmpty()
         val evidence = EditSurfaceEvidence.from(sourceCandidate)
         return when (role) {
-            EditSurfaceRoleDto.INTEROP_RISK -> EditSurfaceConfidenceResult(
+            EditSurfaceRoleDto.INTEROP_RISK -> withAction(
+                role,
                 SelectionConfidence.LOW,
                 "interop boundary: verify runtime target before editing",
             )
-            EditSurfaceRoleDto.VISUAL_AREA -> EditSurfaceConfidenceResult(
+            EditSurfaceRoleDto.VISUAL_AREA -> withAction(
+                role,
                 SelectionConfidence.LOW,
                 "visual-area selection: no precise semantics node",
             )
-            EditSurfaceRoleDto.COMPONENT_DEFINITION -> componentDefinition(source, evidence)
-            EditSurfaceRoleDto.COPY_OR_DATA -> copyOrData(source, evidence, reasons)
-            EditSurfaceRoleDto.LAYOUT_OR_STYLE -> layoutOrStyle(source, evidence)
-            EditSurfaceRoleDto.CALL_SITE -> EditSurfaceConfidenceResult(
+            EditSurfaceRoleDto.COMPONENT_DEFINITION -> componentDefinition(role, source, evidence)
+            EditSurfaceRoleDto.COPY_OR_DATA -> copyOrData(role, source, evidence, reasons)
+            EditSurfaceRoleDto.LAYOUT_OR_STYLE -> layoutOrStyle(role, source, evidence)
+            EditSurfaceRoleDto.CALL_SITE -> withAction(
+                role,
                 cap(source, SelectionConfidence.HIGH),
                 "call site matched${reasonSuffix(reasons)}",
             )
         }
     }
 
+    private fun withAction(
+        role: EditSurfaceRoleDto,
+        confidence: SelectionConfidence,
+        basis: String,
+    ): EditSurfaceConfidenceResult = EditSurfaceConfidenceResult(
+        confidence = confidence,
+        basis = basis,
+        action = EditSurfaceRoleContracts.forRole(role).actionGuidance,
+    )
+
     private fun componentDefinition(
+        role: EditSurfaceRoleDto,
         source: SelectionConfidence,
         evidence: EditSurfaceEvidence,
     ): EditSurfaceConfidenceResult {
@@ -45,18 +60,20 @@ internal object EditSurfaceConfidencePolicy {
             !evidence.shared && evidence.strong -> SelectionConfidence.HIGH to "single-owner definition"
             else -> SelectionConfidence.MEDIUM to "editing it changes every call site"
         }
-        return EditSurfaceConfidenceResult(cap(source, ceiling), "shared component definition: $label")
+        return withAction(role, cap(source, ceiling), "shared component definition: $label")
     }
 
     private fun layoutOrStyle(
+        role: EditSurfaceRoleDto,
         source: SelectionConfidence,
         evidence: EditSurfaceEvidence,
     ): EditSurfaceConfidenceResult {
         val ceiling = if (evidence.confidentCallSite) SelectionConfidence.MEDIUM else SelectionConfidence.LOW
-        return EditSurfaceConfidenceResult(cap(source, ceiling), "layout/style edit applies at the call site")
+        return withAction(role, cap(source, ceiling), "layout/style edit applies at the call site")
     }
 
     private fun copyOrData(
+        role: EditSurfaceRoleDto,
         source: SelectionConfidence,
         evidence: EditSurfaceEvidence,
         reasons: List<String>,
@@ -66,7 +83,7 @@ internal object EditSurfaceConfidencePolicy {
             evidence.strong && evidence.exactCopyMatch -> SelectionConfidence.HIGH to "exact literal"
             else -> SelectionConfidence.MEDIUM to "matched copy/data"
         }
-        return EditSurfaceConfidenceResult(cap(source, ceiling), "$label${reasonSuffix(reasons)}")
+        return withAction(role, cap(source, ceiling), "$label${reasonSuffix(reasons)}")
     }
 
     private val order = listOf(
