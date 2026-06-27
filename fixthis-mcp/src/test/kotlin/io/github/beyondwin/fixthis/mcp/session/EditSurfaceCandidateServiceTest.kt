@@ -6,6 +6,9 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
+import io.github.beyondwin.fixthis.compose.core.model.SourceCandidateRisk
+import io.github.beyondwin.fixthis.compose.core.model.SourceEvidenceStrength
+import io.github.beyondwin.fixthis.compose.core.model.SourceLocationRef
 import io.github.beyondwin.fixthis.compose.core.model.TreeKind
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
@@ -192,6 +195,83 @@ class EditSurfaceCandidateServiceTest {
         assertEquals(EditSurfaceRoleDto.LAYOUT_OR_STYLE, candidates.single().role)
         assertEquals(EditSurfaceKindDto.SPACING, candidates.single().kind)
         assertEquals(SelectionConfidence.LOW, candidates.single().confidence)
+    }
+
+    @Test
+    fun sharedComponentDefinitionCarriesCallSiteActionGuidance() {
+        val chip = node("shared-header", text = listOf("Diagnostics"), testTag = "comp:StudioHeader:root")
+        val item = item(
+            comment = "Make this header purple",
+            selectedNode = chip,
+            candidates = listOf(
+                sourceCandidate(
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StudioHeader.kt",
+                    matchedTerms = listOf("StudioHeader"),
+                    ownerComposable = "StudioHeader",
+                ).copy(
+                    confidence = SelectionConfidence.HIGH,
+                    evidenceStrength = SourceEvidenceStrength.STRONG,
+                    riskFlags = listOf(SourceCandidateRisk.SHARED_COMPONENT),
+                    callSites = listOf(
+                        SourceLocationRef(
+                            file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt",
+                            line = 49,
+                            mostLikely = true,
+                            recommendedEditSite = true,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val candidate = EditSurfaceCandidateService.build(item, screenWith(chip)).single()
+
+        assertEquals(EditSurfaceRoleDto.COMPONENT_DEFINITION, candidate.role)
+        assertEquals(SelectionConfidence.MEDIUM, candidate.confidence)
+        assertTrue(candidate.confidenceBasis!!.contains("shared component definition"))
+        assertTrue(candidate.note!!.contains("call-site impact", ignoreCase = true))
+        assertTrue(candidate.note!!.contains("definition", ignoreCase = true))
+    }
+
+    @Test
+    fun visualAreaFallbackCarriesHintActionGuidance() {
+        val item = AnnotationDto(
+            itemId = "area-action",
+            screenId = "screen-1",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 1L,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 80f, 80f)),
+            sourceCandidates = emptyList(),
+            comment = "Tighten this empty gap",
+        )
+
+        val candidate = EditSurfaceCandidateService.build(item, screenWith()).single()
+
+        assertEquals(EditSurfaceRoleDto.VISUAL_AREA, candidate.role)
+        assertEquals(SelectionConfidence.LOW, candidate.confidence)
+        assertTrue(candidate.note!!.contains("source paths as hints", ignoreCase = true))
+    }
+
+    @Test
+    fun typographyTextCandidateCombinesRendererCaveatAndRoleAction() {
+        val label = node("status-label", text = listOf("Ready"), testTag = "comp:StatusLine:label")
+        val item = item(
+            comment = "Make this bigger",
+            selectedNode = label,
+            candidates = listOf(
+                sourceCandidate(
+                    file = "sample/src/main/java/io/github/beyondwin/fixthis/sample/components/StatusLine.kt",
+                    matchedTerms = listOf("StatusLine"),
+                    ownerComposable = "StatusLine",
+                ),
+            ),
+        )
+
+        val candidate = EditSurfaceCandidateService.build(item, screenWith(label)).single()
+
+        assertEquals(EditSurfaceKindDto.TYPOGRAPHY, candidate.kind)
+        assertTrue(candidate.note!!.contains("source candidate identifies data text"))
+        assertTrue(candidate.note!!.contains("call site", ignoreCase = true))
     }
 
     private fun item(

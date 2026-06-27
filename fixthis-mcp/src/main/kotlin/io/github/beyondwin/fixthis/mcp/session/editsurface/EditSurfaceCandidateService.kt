@@ -25,7 +25,8 @@ internal object EditSurfaceCandidateService {
             item.sourceCandidates.isEmpty() -> listOf(emptySourceCandidate(intent, roleDecision))
             intent.primaryKind == EditSurfaceKindDto.UNKNOWN &&
                 roleDecision.role != EditSurfaceRoleDto.COPY_OR_DATA &&
-                roleDecision.role != EditSurfaceRoleDto.LAYOUT_OR_STYLE -> emptyList()
+                roleDecision.role != EditSurfaceRoleDto.LAYOUT_OR_STYLE &&
+                roleDecision.role != EditSurfaceRoleDto.COMPONENT_DEFINITION -> emptyList()
             else -> sourceCandidates(item, screen, intent, roleDecision, conventions)
         }
         return candidates.distinctBy { it.file to it.line }.take(2)
@@ -66,7 +67,7 @@ internal object EditSurfaceCandidateService {
             confidence = scored.confidence,
             confidenceBasis = scored.basis,
             reasons = intent.reasons,
-            note = roleDecision.note,
+            note = noteFor(kind, roleDecision, scored),
         )
     }
 
@@ -155,9 +156,23 @@ internal object EditSurfaceCandidateService {
             confidence = scored.confidence,
             confidenceBasis = scored.basis,
             reasons = reasons.distinct(),
-            note = roleDecision.note ?: TEXT_SOURCE_NOTE.takeIf {
-                kind == EditSurfaceKindDto.TEXT_COLOR || kind == EditSurfaceKindDto.TYPOGRAPHY
-            },
+            note = noteFor(kind, roleDecision, scored),
         )
+    }
+
+    private fun noteFor(
+        kind: EditSurfaceKindDto,
+        roleDecision: EditSurfaceRoleDecision,
+        scored: EditSurfaceConfidenceResult,
+    ): String? {
+        val rendererCaveat = TEXT_SOURCE_NOTE.takeIf {
+            kind == EditSurfaceKindDto.TEXT_COLOR || kind == EditSurfaceKindDto.TYPOGRAPHY
+        }
+        return listOfNotNull(roleDecision.note, rendererCaveat, scored.action)
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .joinToString("; ")
+            .takeIf { it.isNotBlank() }
     }
 }
