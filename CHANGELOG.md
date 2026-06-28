@@ -27,9 +27,51 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+- No unreleased changes yet.
+
+## v1.4.0 — 2026-06-29
+
 ### Added
 
 - Added the First Handoff Autopilot contract: agent setup verification reports now have a stricter `actions[]` contract, docs distinguish setup handoff files from verify stdout reports, and release evidence checks that the setup report semantics lead to one MCP-readable sent feedback item.
+- Added agent setup verification reports for `fixthis install-agent --verify --json`,
+  including readiness, next action, `readyForMcpTooling`, restart requirements,
+  and ordered agent/user actions that tell the current agent whether it may open
+  MCP tooling.
+- Added the connected Android proof runner. `npm run android:proof -- --strict`
+  classifies SDK, ADB, device boot, app launch, Copy Prompt, agent-loop, and
+  external fixture readiness in one local report.
+- Added release-gate aggregation for connected Android proof, first-handoff
+  autopilot, Android agent evidence umbrella, runtime source trust, and external
+  fixture matrix claims so maintainers can see pass, deferred, and fail states
+  in one release-decision report.
+- Added runtime evidence attachments for feedback items. Local logcat windows,
+  frame summaries, memory summaries, and trace artifact references can now be
+  attached to a session item and rendered in compact handoffs.
+- Added packaged Codex workflows under `.codex-plugin` for install-agent,
+  feedback-loop, Android evidence, and release-smoke guidance.
+- Added role-specific edit-surface guidance in compact handoffs, including
+  action text for call-site, copy/data, component definition, layout/style, and
+  interop-boundary candidates.
+
+### Changed
+
+- `fixthis install-agent` now treats setup verification as the source of truth
+  for agent handoff readiness instead of relying on prose-only follow-up
+  instructions.
+- Release evidence profiles now consolidate Android-backed claims through the
+  connected proof runner, reducing duplicated smoke orchestration.
+- Runtime source-trust fixtures can use a host source-index path when bridge
+  snapshots report the index as unavailable, keeping external fixture evidence
+  honest about runtime availability.
+
+### Fixed
+
+- Rebuilt the CLI distribution before external fixture gate execution so fixture
+  tests exercise the current release candidate instead of a stale install.
+- Tightened setup recovery behavior so executable manual setup actions are
+  rejected and restart-required handoffs are retried only after the correct MCP
+  restart path.
 
 ## v1.3.0 — 2026-06-21
 

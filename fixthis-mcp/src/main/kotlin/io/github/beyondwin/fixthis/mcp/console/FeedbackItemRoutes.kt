@@ -19,6 +19,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 
+private const val UNPROCESSABLE_ENTITY = 422
+
 internal class FeedbackItemRoutes(
     private val service: FeedbackSessionService,
     private val eventBus: ConsoleEventBus,
@@ -131,7 +133,10 @@ internal class FeedbackItemRoutes(
                         val request = exchange.decodeRuntimeEvidenceBody()
                         val sessionId = requestSessionId(request.sessionId)
                         val summary = request.summary?.takeIf { it.isNotBlank() }
-                            ?: throw FeedbackConsoleHttpException(422, "runtime evidence summary is required")
+                            ?: throw FeedbackConsoleHttpException(
+                                UNPROCESSABLE_ENTITY,
+                                "runtime evidence summary is required",
+                            )
                         val session = service.captureRuntimeEvidence(
                             sessionId = sessionId,
                             itemId = itemId,

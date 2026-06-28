@@ -8,13 +8,12 @@ evidence. It is not a tagged release.
 
 ## Highlights
 
-- Android agent evidence umbrella: compact handoffs now include explicit verification posture, runtime evidence summaries can be attached locally, and Codex workflow skills package install, feedback, evidence, and release-smoke guidance.
+- No unreleased changes yet.
 
 ## Compatibility Notes
 
-- External Android apps should use Gradle plugin
-  `io.github.beyondwin.fixthis.compose` version `1.3.0` until the next release
-  candidate updates this page.
+- External Android apps should use the latest tagged Gradle plugin release until
+  the next release candidate updates this page.
 - The plugin resolves the debug-only sidekick from Maven Central.
 - The current source tree builds the sidekick and sample with Android
   `compileSdk` 34, `targetSdk` 34, and `minSdk` 23 from

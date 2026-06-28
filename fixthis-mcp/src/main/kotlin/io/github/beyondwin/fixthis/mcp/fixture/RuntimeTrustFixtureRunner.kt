@@ -199,18 +199,18 @@ class RuntimeTrustFixtureRunner(
             try {
                 return RuntimeTargetResolution(screen, RuntimeTargetResolver.resolve(screen, target))
             } catch (error: RuntimeTargetResolutionException) {
-                if (error.code != "target_not_found") throw error
+                requireRetryableTarget(error)
                 lastTargetNotFound = error
             }
             if (attempt < captureRetryPolicy.maxAttempts - 1) {
                 delay(captureRetryPolicy.retryDelayMillis)
                 screen = captureScreenWithRetry(runtime.service, sessionId)
-                    .getOrElse { throw lastTargetNotFound ?: RuntimeTargetResolutionException("target_not_found", "No runtime target matched selector $target") }
+                    .getOrElse { missingRuntimeTarget(lastTargetNotFound, target) }
                     .withHostSourceIndexFallback(hostSourceIndex)
                 runtime.store.storeSourceIndexedScreen(sessionId, screen)
             }
         }
-        throw lastTargetNotFound ?: RuntimeTargetResolutionException("target_not_found", "No runtime target matched selector $target")
+        missingRuntimeTarget(lastTargetNotFound, target)
     }
 
     private suspend fun captureScreenWithRetry(
@@ -277,3 +277,15 @@ class RuntimeTrustFixtureRunner(
         },
     )
 }
+
+private fun requireRetryableTarget(error: RuntimeTargetResolutionException) {
+    if (error.code != "target_not_found") throw error
+}
+
+private fun missingRuntimeTarget(
+    lastTargetNotFound: RuntimeTargetResolutionException?,
+    target: RuntimeTargetSelector,
+): Nothing = throw lastTargetNotFound ?: RuntimeTargetResolutionException(
+    "target_not_found",
+    "No runtime target matched selector $target",
+)

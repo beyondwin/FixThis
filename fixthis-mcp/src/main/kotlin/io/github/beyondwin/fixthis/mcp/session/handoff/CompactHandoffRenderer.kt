@@ -19,6 +19,8 @@ import io.github.beyondwin.fixthis.mcp.session.target.TargetSummaryFormatter
 object CompactHandoffRenderer {
     private const val MAX_CANDIDATES_RENDERED = 3
     private const val MAX_RUNTIME_EVIDENCE_SUMMARY_CHARS = 180
+    private const val MAX_EDIT_SURFACES_RENDERED = 2
+    private const val MAX_RUNTIME_EVIDENCE_RENDERED = 3
     fun render(session: SessionDto, itemIds: List<String>? = null): String = buildString {
         val effectiveSession = if (itemIds == null) {
             session
@@ -245,37 +247,19 @@ object CompactHandoffRenderer {
     }
 
     private fun StringBuilder.appendEditSurfaceBlock(item: AnnotationDto) {
-        item.editSurfaceCandidates.take(2).forEach { candidate ->
-            appendLine("  ${candidate.formatEditSurfaceLine()}")
+        item.editSurfaceCandidates.take(MAX_EDIT_SURFACES_RENDERED).forEach { candidate ->
+            appendLine("  ${CompactHandoffFormatting.editSurfaceLine(candidate)}")
             candidate.note?.takeIf { it.isNotBlank() }?.let { action ->
                 appendLine("  action: ${action.inlineSafe()}")
             }
         }
     }
 
-    private fun EditSurfaceCandidateDto.formatEditSurfaceLine(): String {
-        val kindToken = when (kind) {
-            EditSurfaceKindDto.CONTAINER_COLOR -> "containerColor"
-            EditSurfaceKindDto.TEXT_COLOR -> "textColor"
-            EditSurfaceKindDto.TYPOGRAPHY -> "typography"
-            EditSurfaceKindDto.SPACING -> "spacing"
-            EditSurfaceKindDto.CHIP_COLOR -> "chipColor"
-            EditSurfaceKindDto.COMPONENT_RENDERER -> "componentRenderer"
-            EditSurfaceKindDto.UNKNOWN -> "unknown"
-        }
-        val fileLine = if (line != null) "$file:$line" else file
-        val reasonTokens = reasons.joinToString(",") { it.name.lowercase().replace("_", "-") }
-        val roleToken = role?.let { "  role=${it.name.lowercase().replace("_", "-")}" }.orEmpty()
-        val basisToken = confidenceBasis?.takeIf { it.isNotBlank() }?.let { "  basis=${it.inlineSafe()}" }.orEmpty()
-        return "editSurface: $kindToken$roleToken -> ${fileLine.inlineSafe()}  " +
-            "conf=${confidence.name.lowercase()}  why=[$reasonTokens]$basisToken"
-    }
-
     private fun StringBuilder.appendReliabilityBlock(reliability: TargetReliability?) {
         if (reliability == null) return
         val confidence = reliability.confidence.name.lowercase()
         appendLine("  targetConfidence=$confidence")
-        appendLine("  targetAction=${reliability.compactActionToken()}")
+        appendLine("  targetAction=${CompactHandoffFormatting.actionToken(reliability)}")
         reliability.warnings.forEach { warning ->
             appendLine("  warning: ${warning.handoffMessage().inlineSafe()}")
         }
@@ -283,34 +267,24 @@ object CompactHandoffRenderer {
 
     private fun StringBuilder.appendVerificationGuidanceBlock(guidance: AgentVerificationGuidance) {
         appendLine(
-            "  verify: ${guidance.mode.token()}  because=${guidance.reasons.joinToString(",")}",
+            "  verify: ${CompactHandoffFormatting.verificationModeToken(guidance.mode)}  " +
+                "because=${guidance.reasons.joinToString(",")}",
         )
     }
-
-    private fun AgentVerificationMode.token(): String = name.lowercase().replace("_", "-")
 
     private fun StringBuilder.appendRuntimeEvidenceBlock(
         item: AnnotationDto,
         runtimeEvidenceById: Map<String, RuntimeEvidenceAttachment>,
     ) {
-        val evidence = item.runtimeEvidenceIds.mapNotNull(runtimeEvidenceById::get).take(3)
+        val evidence = item.runtimeEvidenceIds.mapNotNull(runtimeEvidenceById::get).take(MAX_RUNTIME_EVIDENCE_RENDERED)
         if (evidence.isEmpty()) return
 
         appendLine("  runtimeEvidence:")
         evidence.forEach { attachment ->
             val path = attachment.artifactPath ?: "no-artifact"
-            appendLine("    - ${attachment.type.token()} -> ${path.inlineSafe()}")
+            appendLine("    - ${CompactHandoffFormatting.evidenceTypeToken(attachment.type)} -> ${path.inlineSafe()}")
             appendLine("      summary: ${attachment.summary.take(MAX_RUNTIME_EVIDENCE_SUMMARY_CHARS).inlineSafe()}")
         }
-    }
-
-    private fun RuntimeEvidenceType.token(): String = name.lowercase()
-
-    private fun TargetReliability.compactActionToken(): String = when (confidence) {
-        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.HIGH -> "inspect-source-first"
-        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.MEDIUM -> "inspect-and-corroborate"
-        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.LOW -> "treat-source-paths-as-hints"
-        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.UNKNOWN -> "verify-manually"
     }
 
     private fun StringBuilder.appendCandidatesBlock(item: AnnotationDto, sourceRoot: String?) {
@@ -326,7 +300,7 @@ object CompactHandoffRenderer {
             null
         }
         item.sourceCandidates.take(MAX_CANDIDATES_RENDERED).forEachIndexed { idx, candidate ->
-            appendLine("  ${formatCandidateLine(candidate, idx + 1, computedMargin, sourceRoot)}")
+            appendLine("  ${CompactHandoffFormatting.candidateLine(candidate, idx + 1, computedMargin, sourceRoot)}")
         }
         val rank1Caution = item.sourceCandidates.firstOrNull()?.caution
         if (!rank1Caution.isNullOrBlank()) {
@@ -334,7 +308,50 @@ object CompactHandoffRenderer {
         }
     }
 
-    private fun formatCandidateLine(
+    private fun compactUiLine(
+        item: AnnotationDto,
+        isOverlap: Boolean,
+        instanceLabel: InstanceLabel? = null,
+        dupRefMarker: Int? = null,
+    ): String = CompactHandoffFormatting.uiLine(item, isOverlap, instanceLabel, dupRefMarker)
+}
+
+private object CompactHandoffFormatting {
+    private const val MAX_REASON_TOKENS = 4
+
+    fun editSurfaceLine(candidate: EditSurfaceCandidateDto): String {
+        val kindToken = when (candidate.kind) {
+            EditSurfaceKindDto.CONTAINER_COLOR -> "containerColor"
+            EditSurfaceKindDto.TEXT_COLOR -> "textColor"
+            EditSurfaceKindDto.TYPOGRAPHY -> "typography"
+            EditSurfaceKindDto.SPACING -> "spacing"
+            EditSurfaceKindDto.CHIP_COLOR -> "chipColor"
+            EditSurfaceKindDto.COMPONENT_RENDERER -> "componentRenderer"
+            EditSurfaceKindDto.UNKNOWN -> "unknown"
+        }
+        val fileLine = if (candidate.line != null) "${candidate.file}:${candidate.line}" else candidate.file
+        val reasonTokens = candidate.reasons.joinToString(",") { it.name.lowercase().replace("_", "-") }
+        val roleToken = candidate.role?.let { "  role=${it.name.lowercase().replace("_", "-")}" }.orEmpty()
+        val basisToken = candidate.confidenceBasis
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "  basis=${it.inlineSafe()}" }
+            .orEmpty()
+        return "editSurface: $kindToken$roleToken -> ${fileLine.inlineSafe()}  " +
+            "conf=${candidate.confidence.name.lowercase()}  why=[$reasonTokens]$basisToken"
+    }
+
+    fun actionToken(reliability: TargetReliability): String = when (reliability.confidence) {
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.HIGH -> "inspect-source-first"
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.MEDIUM -> "inspect-and-corroborate"
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.LOW -> "treat-source-paths-as-hints"
+        io.github.beyondwin.fixthis.compose.core.model.TargetConfidence.UNKNOWN -> "verify-manually"
+    }
+
+    fun verificationModeToken(mode: AgentVerificationMode): String = mode.name.lowercase().replace("_", "-")
+
+    fun evidenceTypeToken(type: RuntimeEvidenceType): String = type.name.lowercase()
+
+    fun candidateLine(
         candidate: io.github.beyondwin.fixthis.compose.core.model.SourceCandidate,
         rank: Int,
         computedMargin: Double? = null,
@@ -342,21 +359,44 @@ object CompactHandoffRenderer {
     ): String {
         val sb = StringBuilder()
         sb.append("${candidate.relativeFileWithLine(sourceRoot)}  conf=${candidate.confidence.name.lowercase()}")
-        if (rank == 1) {
-            candidate.ownerComposable?.takeIf { it.isNotBlank() }?.let { owner ->
-                sb.append("  owner=$owner")
-            }
-            val effectiveMargin = candidate.scoreMargin ?: computedMargin
-            effectiveMargin?.let { margin ->
-                sb.append("  margin=${"%.2f".format(margin)}")
-            }
-            val tokens = candidate.matchReasons.mapNotNull(REASON_TOKENS::get).distinct().take(4)
-            if (tokens.isNotEmpty()) {
-                sb.append("  matched=[${tokens.joinToString(", ")}]")
-            }
-        }
+        if (rank == 1) appendTopCandidateDetails(sb, candidate, computedMargin)
         sb.append(candidate.staleMarkerSuffix())
         return sb.toString()
+    }
+
+    fun uiLine(
+        item: AnnotationDto,
+        isOverlap: Boolean,
+        instanceLabel: InstanceLabel? = null,
+        dupRefMarker: Int? = null,
+    ): String {
+        val sb = StringBuilder("  ")
+        item.selectedNode?.role?.takeIf { it.isNotBlank() }?.let { sb.append("role=$it  ") }
+        item.selectedNode?.testTag?.takeIf { it.isNotBlank() }?.let { sb.append("tag=$it  ") }
+        sb.append("box=${item.target.boundsInWindow().formatBox()}")
+        if (instanceLabel != null) sb.append("  instance ${instanceLabel.index}/${instanceLabel.total}")
+        return when {
+            dupRefMarker != null -> "$sb; targetRisk=duplicate-of-marker-$dupRefMarker"
+            isOverlap -> "$sb; targetRisk=overlap"
+            else -> sb.toString()
+        }
+    }
+
+    private fun appendTopCandidateDetails(
+        sb: StringBuilder,
+        candidate: io.github.beyondwin.fixthis.compose.core.model.SourceCandidate,
+        computedMargin: Double?,
+    ) {
+        candidate.ownerComposable?.takeIf { it.isNotBlank() }?.let { owner -> sb.append("  owner=$owner") }
+        val effectiveMargin = candidate.scoreMargin ?: computedMargin
+        effectiveMargin?.let { margin -> sb.append("  margin=${"%.2f".format(margin)}") }
+        val tokens = candidate.matchReasons.mapNotNull(REASON_TOKENS::get).distinct().take(MAX_REASON_TOKENS)
+        if (tokens.isNotEmpty()) sb.append("  matched=[${tokens.joinToString(", ")}]")
+    }
+
+    private fun AnnotationTargetDto.boundsInWindow() = when (this) {
+        is AnnotationTargetDto.Area -> boundsInWindow
+        is AnnotationTargetDto.Node -> boundsInWindow
     }
 
     private val REASON_TOKENS: Map<String, String> = mapOf(
@@ -375,31 +415,4 @@ object CompactHandoffRenderer {
         "arbitrary literal" to "literal",
         "legacy fallback" to "legacy",
     )
-
-    private fun compactUiLine(
-        item: AnnotationDto,
-        isOverlap: Boolean,
-        instanceLabel: InstanceLabel? = null,
-        dupRefMarker: Int? = null,
-    ): String {
-        val node = item.selectedNode
-        val explicitRole = node?.role?.takeIf { it.isNotBlank() }
-        val explicitTag = node?.testTag?.takeIf { it.isNotBlank() }
-        val rect = when (val target = item.target) {
-            is AnnotationTargetDto.Area -> target.boundsInWindow
-            is AnnotationTargetDto.Node -> target.boundsInWindow
-        }
-        val sb = StringBuilder("  ")
-        if (explicitRole != null) sb.append("role=$explicitRole  ")
-        if (explicitTag != null) sb.append("tag=$explicitTag  ")
-        sb.append("box=${rect.formatBox()}")
-        if (instanceLabel != null) {
-            sb.append("  instance ${instanceLabel.index}/${instanceLabel.total}")
-        }
-        return when {
-            dupRefMarker != null -> "$sb; targetRisk=duplicate-of-marker-$dupRefMarker"
-            isOverlap -> "$sb; targetRisk=overlap"
-            else -> sb.toString()
-        }
-    }
 }

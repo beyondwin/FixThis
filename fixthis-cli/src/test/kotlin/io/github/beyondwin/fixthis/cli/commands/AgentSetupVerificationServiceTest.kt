@@ -24,10 +24,14 @@ class AgentSetupVerificationServiceTest {
             val blockedAction = report.actions[firstBlocked]
             assertTrue(
                 "blocking action must be user/manual or agent command: $blockedAction",
-                (blockedAction.actor == AgentSetupActionContract.USER &&
-                    blockedAction.kind == AgentSetupActionContract.MANUAL) ||
-                    (blockedAction.actor == AgentSetupActionContract.AGENT &&
-                        blockedAction.kind == AgentSetupActionContract.COMMAND),
+                (
+                    blockedAction.actor == AgentSetupActionContract.USER &&
+                        blockedAction.kind == AgentSetupActionContract.MANUAL
+                    ) ||
+                    (
+                        blockedAction.actor == AgentSetupActionContract.AGENT &&
+                            blockedAction.kind == AgentSetupActionContract.COMMAND
+                        ),
             )
         }
     }

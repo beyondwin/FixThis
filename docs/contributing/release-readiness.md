@@ -32,7 +32,7 @@ discovery.
 - Install the CLI/MCP package with npm:
   `npm install -g @beyondwin/fixthis`.
 - Install the CLI/MCP package from GitHub Releases:
-  `scripts/install-fixthis.sh --version v1.3.0`.
+  `scripts/install-fixthis.sh --version v1.4.0`.
 - Use `fixthis install-agent --project-dir . --target all` in an external
   debug Compose app.
 - Use **Copy Prompt** for chat-style agents without MCP.
@@ -180,7 +180,7 @@ console.
 | Claim | Required evidence |
 | --- | --- |
 | Verify stdout report actions are a closed agent contract with `actions[]`, `requiresUserAction`, and `readyForMcpTooling`. | `./gradlew :fixthis-cli:test --tests "*AgentSetupVerificationServiceTest" --tests "*InstallAgentJsonReportTest" --tests "*TwoPhaseConfigCommitTest" --no-daemon` |
-| First handoff evidence checks the verify-report action semantics and reaches one MCP-readable sent feedback item. | `npm run agent-loop:smoke:test` and `npm run android:proof -- --strict` |
+| First handoff evidence checks the verify-report action semantics and reaches one MCP-readable sent feedback item. | `npm run agent-loop:smoke:test`, `npm run agent-loop:smoke -- --strict`, and `npm run android:proof -- --strict` |
 
 The current agent must not call `fixthis_open_feedback_console` while
 `readyForMcpTooling=false`. When the report emits `agent_after_restart`, the

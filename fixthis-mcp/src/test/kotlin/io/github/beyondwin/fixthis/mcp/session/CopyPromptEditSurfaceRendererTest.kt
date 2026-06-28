@@ -81,8 +81,8 @@ class CopyPromptEditSurfaceRendererTest {
         val sourceIndex = markdown.indexOf("FixThisDemoData.kt:59")
 
         assertTrue(editIndex >= 0)
-        assertTrue(sourceIndex > editIndex)
-        assertTrue(markdown.contains("note: source candidate identifies data text; editSurface identifies likely rendering code"))
+        assertTrue(sourceIndex > editIndex, "editIndex=$editIndex sourceIndex=$sourceIndex\n$markdown")
+        assertTrue(markdown.contains("action: source candidate identifies data text; editSurface identifies likely rendering code"))
     }
 
     @Test

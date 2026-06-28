@@ -15,7 +15,7 @@ elif command -v npm >/dev/null 2>&1; then
     npm install -g @beyondwin/fixthis
 else
     curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-      | bash -s -- --version v1.3.0
+      | bash -s -- --version v1.4.0
 fi
 ```
 
@@ -51,7 +51,7 @@ When asked to add FixThis to this Android app:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-     | bash -s -- --version v1.3.0
+     | bash -s -- --version v1.4.0
    ```
 
 Use this order:
@@ -82,7 +82,7 @@ plugin to the app module:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "1.3.0"
+    id("io.github.beyondwin.fixthis.compose") version "1.4.0"
 }
 ```
 

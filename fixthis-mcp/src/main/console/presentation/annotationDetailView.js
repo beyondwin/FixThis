@@ -94,7 +94,7 @@
               if (!isInteropRiskItem(item)) return [];
               const nodes = (item?.nearbyNodes || [])
                 .map(node => ({
-                  node: node,
+                  node,
                   summary: boundaryContextNodeSummary(node),
                   kind: boundaryContextKind(item, node),
                 }))
@@ -116,7 +116,7 @@
                 const boundsLabel = bounds ? ' · ' + formatBounds(bounds) : '';
                 return [boundaryContextLabel(entry.kind, index), entry.summary + boundsLabel];
               });
-              rows.push(['Boundary context note', 'locates host; not Compose ownership.']);
+              rows.push(['Boundary context note', 'does not prove Compose owns the selected pixels']);
               return rows;
             }
 
@@ -172,7 +172,7 @@
                 ['Source', sourceCandidateLine(sourceCandidates[0])],
                 ['Identity', targetEvidence.identityHint?.stableLabel || targetEvidence.identityHint?.composableNameHint || '-'],
                 ['Occurrence', targetEvidence.occurrence ? targetEvidence.occurrence.selectedOrdinal + ' of ' + targetEvidence.occurrence.count : '-'],
-                ['Screenshots', compactValue(targetEvidence.screenshotKinds)],
+                ['Image', compactValue(targetEvidence.screenshotKinds)],
               ];
               const candidates = sourceCandidates.slice(1, 3).map((candidate, index) => ['Source ' + (index + 2), sourceCandidateLine(candidate)]);
               const callSites = sourceCandidateCallSites(sourceCandidates[0]);

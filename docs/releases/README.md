@@ -11,6 +11,9 @@ Maven Central, and the Gradle Plugin Portal.
 ## Releases
 
 - [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [v1.4.0](v1.4.0.md) — setup verification actions, connected Android proof,
+  runtime evidence attachments, Codex workflow packaging, and role-specific
+  edit-surface guidance.
 - [v1.3.0](v1.3.0.md) — external app trust matrix v2, first-handoff recovery
   evidence, release-gate aggregation, and the maintainer handover guide.
 - [v1.2.0](v1.2.0.md) — configurable test-tag conventions, sharper

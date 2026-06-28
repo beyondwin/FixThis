@@ -37,16 +37,30 @@ internal object AgentSetupActionContract {
     private val allowedActors = setOf(AGENT, USER, AGENT_AFTER_RESTART)
     private val allowedKinds = setOf(COMMAND, MCP_TOOL, MANUAL)
 
-    fun validate(action: AgentSetupAction): List<String> = buildList {
+    fun validate(action: AgentSetupAction): List<String> = validateIdentity(action) + validateRequiredPayload(action) + validateForbiddenPayload(action)
+
+    private fun validateIdentity(action: AgentSetupAction): List<String> = buildList {
         if (action.actor !in allowedActors) add("Unsupported action actor: ${action.actor}")
         if (action.kind !in allowedKinds) add("Unsupported action kind: ${action.kind}")
-        if (action.kind == COMMAND && action.command.isNullOrBlank()) add("Command action requires command")
-        if (action.kind == MCP_TOOL && action.tool.isNullOrBlank()) add("MCP tool action requires tool")
-        if (action.kind == MANUAL && action.reason.isBlank()) add("Manual action requires reason")
-        if (action.kind == COMMAND && !action.tool.isNullOrBlank()) add("Command action must not include tool")
-        if (action.kind == MCP_TOOL && !action.command.isNullOrBlank()) add("MCP tool action must not include command")
-        if (action.kind == MANUAL && !action.command.isNullOrBlank()) add("Manual action must not include command")
-        if (action.kind == MANUAL && !action.tool.isNullOrBlank()) add("Manual action must not include tool")
+    }
+
+    private fun validateRequiredPayload(action: AgentSetupAction): List<String> = when (action.kind) {
+        COMMAND -> listOfNotNull("Command action requires command".takeIf { action.command.isNullOrBlank() })
+        MCP_TOOL -> listOfNotNull("MCP tool action requires tool".takeIf { action.tool.isNullOrBlank() })
+        MANUAL -> listOfNotNull("Manual action requires reason".takeIf { action.reason.isBlank() })
+        else -> emptyList()
+    }
+
+    private fun validateForbiddenPayload(action: AgentSetupAction): List<String> = when (action.kind) {
+        COMMAND -> listOfNotNull("Command action must not include tool".takeIf { !action.tool.isNullOrBlank() })
+        MCP_TOOL -> listOfNotNull(
+            "MCP tool action must not include command".takeIf { !action.command.isNullOrBlank() },
+        )
+        MANUAL -> listOfNotNull(
+            "Manual action must not include command".takeIf { !action.command.isNullOrBlank() },
+            "Manual action must not include tool".takeIf { !action.tool.isNullOrBlank() },
+        )
+        else -> emptyList()
     }
 
     fun requireValid(action: AgentSetupAction) {

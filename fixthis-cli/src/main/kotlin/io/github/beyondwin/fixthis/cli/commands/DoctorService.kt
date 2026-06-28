@@ -20,8 +20,7 @@ internal class RealDoctorEnvironment : DoctorEnvironment {
         }
     }
 
-    override fun resolvePackageName(root: File, packageName: String?): String =
-        BridgeClient(adb = Adb.forProject(root), projectRoot = root).resolvePackageName(packageName)
+    override fun resolvePackageName(root: File, packageName: String?): String = BridgeClient(adb = Adb.forProject(root), projectRoot = root).resolvePackageName(packageName)
 
     override fun listDevices(root: File): List<AdbDevice> = Adb.forProject(root).devices()
 
@@ -43,19 +42,21 @@ internal class DoctorService(
         val checks = mutableListOf<DoctorCheckResult>()
 
         fun check(name: String, label: String, fix: String, block: () -> Unit) {
-            try {
-                block()
-                checks += DoctorCheckResult(name = name, label = label, ok = true)
-            } catch (error: Throwable) {
-                checks += DoctorCheckResult(
-                    name = name,
-                    label = label,
-                    ok = false,
-                    message = error.message,
-                    fix = fix,
-                    readiness = readinessForDoctorCheck(name, error.message, fix),
-                )
-            }
+            runCatching(block).fold(
+                onSuccess = {
+                    checks += DoctorCheckResult(name = name, label = label, ok = true)
+                },
+                onFailure = { error ->
+                    checks += DoctorCheckResult(
+                        name = name,
+                        label = label,
+                        ok = false,
+                        message = error.message,
+                        fix = fix,
+                        readiness = readinessForDoctorCheck(name, error.message, fix),
+                    )
+                },
+            )
         }
 
         check(
