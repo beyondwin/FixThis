@@ -10,20 +10,16 @@ pitch, scope, and sample-to-agent Quick Start.
 
 ## Start Here
 
-| I want to... | Read |
-| --- | --- |
-| Try FixThis without changing my app | [Quick Start — sample app](getting-started/try-the-sample.md) |
-| Add FixThis to my Compose debug build | [Add FixThis to your app](getting-started/add-to-your-app.md) |
-| Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) |
-| Take over FixThis as a new fullstack/tooling maintainer | [Fullstack/tooling handover guide](guides/fullstack-tooling-handover.md) |
-| Navigate this repo with Graphify as an agent | [Agent Graphify workflow](guides/agent-graphify.md) |
-| Learn the browser annotation workflow | [Feedback console tour](guides/feedback-console-tour.md) |
-| Evaluate FixThis source matching on external Compose samples — including device-backed runtime trust evaluation (local-only) | [Source matching fixture lab](guides/source-matching-fixture-lab.md) |
-| Understand the product and prompt rationale in one place | [Concept and handoff rationale](product/concept-and-handoff-rationale.md) |
-| Understand what FixThis is and is not | [Product concept](product/README.md) |
-| Understand why key product/technical choices were made | [Decision rationale](product/decision-rationale.md) |
-| See current scope and planned work | [Roadmap](product/roadmap.md) |
-| Fix setup or device problems | [Troubleshooting](guides/troubleshooting.md) |
+| Reader or task | Read first | Then read |
+| --- | --- | --- |
+| Try FixThis without changing your app | [Quick Start - sample app](getting-started/try-the-sample.md) | [Feedback console tour](guides/feedback-console-tour.md) |
+| Add FixThis to an external Compose app | [Add FixThis to your app](getting-started/add-to-your-app.md) | [CLI reference](reference/cli.md), [Agent setup schema](reference/agent-setup-schema.md) |
+| Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) | [Working with AI agents](guides/agents.md), [MCP tools reference](reference/mcp-tools.md) |
+| Work inside this repository as an agent | [Project map](guides/project-map.md) | [AGENTS.md](../AGENTS.md), task-specific reference docs |
+| Maintain FixThis architecture or tooling | [Project map](guides/project-map.md) | [Architecture overview](architecture/overview.md), [Fullstack/tooling handover](guides/fullstack-tooling-handover.md) |
+| Change a compatibility contract | [Reference contracts](#reference-contracts) | The implementation files named by [Project map](guides/project-map.md) |
+| Prepare or audit a release | [Release readiness checklist](contributing/release-readiness.md) | [Release process](contributing/release-process.md), [Contributing guide](../CONTRIBUTING.md) |
+| Understand historical design context | [Historical planning](#historical-planning) | Current reference docs before changing behavior |
 
 ## Product and Design
 
@@ -60,6 +56,7 @@ pitch, scope, and sample-to-agent Quick Start.
 
 ## Architecture and Design
 
+- [Project map](guides/project-map.md) - compact repository map for humans and agents: module responsibilities, first files, task routes, validation commands, and artifact boundaries
 - [Architecture overview](architecture/overview.md) — module map, runtime
   flow, source-matching pipeline
 - [Architecture Decision Records](architecture/adr/README.md) — durable
@@ -81,6 +78,12 @@ pitch, scope, and sample-to-agent Quick Start.
   windows before advisory checks become branch-protection requirements
 - [Connected test triage](contributing/connected-tests.md) — nightly
   instrumented-test policy and flake handling
+
+## Historical Planning
+
+- `docs/superpowers/specs/` and `docs/superpowers/plans/` contain approved design and implementation-plan artifacts from previous agentic work.
+- `docs/specs/` and `docs/plans/` contain older project planning records that may still explain why a feature exists.
+- These files are historical context. They are not the current source of truth for CLI flags, MCP tool shapes, bridge protocol fields, persisted JSON contracts, or release readiness unless a maintained guide, reference page, or source file explicitly points to them.
 
 ---
 

@@ -89,6 +89,60 @@ for (const [src, content] of docFiles) {
   }
 }
 
+// Rule 7: the shared project map is linked from the main navigation entry points.
+const docsIndex = read("docs/index.md");
+const projectMap = read("docs/guides/project-map.md");
+check(
+  "R7.readme-project-map",
+  readme.includes("docs/guides/project-map.md"),
+  "README.md must link to docs/guides/project-map.md.",
+);
+check(
+  "R7.agents-project-map",
+  agents.includes("docs/guides/project-map.md"),
+  "AGENTS.md must link to docs/guides/project-map.md.",
+);
+check(
+  "R7.docs-index-project-map",
+  docsIndex.includes("guides/project-map.md"),
+  "docs/index.md must link to guides/project-map.md.",
+);
+
+// Rule 8: historical planning docs are labeled as context, not current contracts.
+check(
+  "R8.historical-planning-label",
+  /docs\/superpowers[\s\S]{0,240}historical|historical[\s\S]{0,240}docs\/superpowers/i.test(`${agents}\n${docsIndex}`),
+  "AGENTS.md or docs/index.md must describe docs/superpowers as historical planning context.",
+);
+
+// Rule 9: docs/index.md keeps the contract and history navigation sections.
+check(
+  "R9.reference-contracts-section",
+  /^## Reference Contracts$/m.test(docsIndex),
+  "docs/index.md must keep a 'Reference Contracts' section.",
+);
+check(
+  "R9.historical-planning-section",
+  /^## Historical Planning$/m.test(docsIndex),
+  "docs/index.md must keep a 'Historical Planning' section.",
+);
+
+// Rule 10: project-map.md names every primary module.
+for (const moduleName of [
+  ":app",
+  ":fixthis-compose-core",
+  ":fixthis-compose-sidekick",
+  "fixthis-gradle-plugin",
+  ":fixthis-cli",
+  ":fixthis-mcp",
+]) {
+  check(
+    `R10.project-map-module-${moduleName.replace(/[^a-z0-9]+/gi, "-")}`,
+    projectMap.includes(moduleName),
+    `docs/guides/project-map.md must mention ${moduleName}.`,
+  );
+}
+
 if (failures.length > 0) {
   console.error("\n" + failures.join("\n"));
   process.exit(1);

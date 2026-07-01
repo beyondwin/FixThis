@@ -141,6 +141,16 @@ npm run real-copy-prompt:smoke -- --strict
 | Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |
 | Contribute | [Contributing guide](CONTRIBUTING.md) |
 
+## How to Read the Docs
+
+| Reader | Start Here | Why |
+| --- | --- | --- |
+| First-time user | [Quick Start with the sample](docs/getting-started/try-the-sample.md) | Creates one real handoff before touching your app. |
+| External app developer | [Add FixThis to your app](docs/getting-started/add-to-your-app.md) | Covers Gradle wiring, agent setup, and done-state checks. |
+| Coding agent in this repo | [AGENTS.md](AGENTS.md) and [Project map](docs/guides/project-map.md) | Gives read order, source-of-truth priority, module boundaries, and artifact rules. |
+| Maintainer | [Documentation index](docs/index.md) and [Project map](docs/guides/project-map.md) | Routes architecture, reference contracts, validation, and release docs. |
+| Contract or CLI change | [Reference docs](docs/index.md#reference-contracts) | Stable CLI, MCP, bridge, output schema, and compatibility surfaces live there. |
+
 ## Why FixThis vs. just sending a screenshot?
 
 Modern coding agents already accept screenshots and accessibility trees.

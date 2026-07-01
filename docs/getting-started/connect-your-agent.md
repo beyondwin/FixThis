@@ -8,6 +8,8 @@ FixThis supports two handoff modes:
 | Codex | **Save to MCP** | `./scripts/bootstrap-mcp.sh --sample --target codex` for the sample, or `--package <applicationId>` for your app |
 | Cursor, ChatGPT, or another chat-style agent | **Copy Prompt** | No MCP setup; paste the copied Markdown |
 
+This page explains how users connect an agent to FixThis. Agents working inside the FixThis repository should also read [AGENTS.md](../../AGENTS.md) and the [Project map](../guides/project-map.md) before changing files.
+
 Both modes use the same evidence. **Copy Prompt** puts compact Markdown on your
 clipboard. **Save to MCP** writes the same handoff locally so an MCP-aware
 agent can read, claim, and resolve feedback items.

@@ -1,5 +1,7 @@
 # Add FixThis to Your Own App
 
+This page is the how-to for wiring FixThis into an external Compose debug app. For a compact repository map, see [Project map](../guides/project-map.md). For every CLI flag and exit behavior, see [CLI reference](../reference/cli.md).
+
 ## Requirements
 
 Same as the sample: JDK 21 toolchain, AGP 9.1.1, Kotlin 2.2.21, Compose BOM
@@ -116,8 +118,8 @@ fixthis-cli/build/install/fixthis/bin/fixthis setup \
   --target all
 ```
 
-See the [CLI reference](../reference/cli.md) for the full set of `fixthis setup`
-options.
+See the [CLI reference](../reference/cli.md) for the full command surface,
+setup variants, and exit behavior.
 
 ## 3. Open the console
 

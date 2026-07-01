@@ -12,6 +12,16 @@ desktop browser console.
 This file is the entry point for Codex / Claude Code / similar agents. It
 points to canonical docs rather than restating them — update those, not this.
 
+## Read Order For Agents
+
+1. Read this `AGENTS.md` for repository constraints and tool workflow.
+2. Read [`docs/index.md`](docs/index.md) to choose the maintained docs path for the task.
+3. Read [`docs/guides/project-map.md`](docs/guides/project-map.md) for module responsibilities, first files, validation commands, and artifact boundaries.
+4. Read the task-specific guide or reference contract before changing behavior.
+5. Use `docs/superpowers/*`, `docs/specs/*`, and `docs/plans/*` only as historical planning context unless a maintained guide, reference page, or source file explicitly points to them.
+
+When documents disagree, prefer the current implementation and `docs/reference/*` over historical planning docs. Graphify is useful navigation context, but behavior changes still need source and reference-doc verification.
+
 ## Prerequisites
 
 - JDK 21+

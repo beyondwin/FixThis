@@ -1,7 +1,10 @@
 # FixThis MCP Bootstrap
 
-This repository includes a local MCP server for Claude Code and Codex. For the
-bundled sample app, run:
+This repository includes a local MCP server for Claude Code and Codex.
+
+For full command flags and recovery cases, prefer the [CLI reference](docs/reference/cli.md). For choosing between sample setup, external-app setup, and chat-style Copy Prompt, start from the [documentation index](docs/index.md) or [project map](docs/guides/project-map.md).
+
+For the bundled sample app, run:
 
 ```bash
 ./scripts/bootstrap-mcp.sh --sample
