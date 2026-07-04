@@ -77,12 +77,12 @@ test('SSE connection state is explicit and controls preview fallback polling', (
   const preview = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/preview.js'), 'utf8');
   const events = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/events.js'), 'utf8');
 
-  assert.match(sse, /function setConsoleEventsConnected\(connected\)/);
+  assert.match(sse, /function setConsoleEventsConnected\(connected,\s*options = \{\}\)/);
   assert.match(sse, /function shouldUsePreviewFallbackPolling\(\)/);
   assert.match(preview, /if \(!shouldUsePreviewFallbackPolling\(\)\) return;/);
   assert.match(events, /source\.onopen = \(\) => \{/);
   assert.match(events, /setConsoleEventsConnected\(true\)/);
-  assert.match(events, /setConsoleEventsConnected\(false\)/);
+  assert.match(events, /setConsoleEventsConnected\(false/);
   assert.match(events, /startLivePreviewPolling\(\)/);
 });
 

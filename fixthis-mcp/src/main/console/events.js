@@ -52,7 +52,7 @@
               on('session-updated', (data) => {
                 if (!data.session) return;
                 if (activeSessionId() && !matchesActiveSession(data)) {
-                  refreshSessions().catch(showError);
+                  refreshSessionsWhenEventsDisconnected().catch(showError);
                   return;
                 }
                 if (isClosedSession(data.session) && displayedSessionId() === data.sessionId) {
@@ -86,9 +86,12 @@
               on('devices-updated', (data) => renderDeviceList(data.devices || data));
               on('connection-updated', (data) => data.connection && applyConnectionStatus(data.connection));
               on('console-assets-changed', (data) => handleConsoleAssetsChanged(data));
-              source.addEventListener('replay-overflow', () => refresh().catch(showError));
+              source.addEventListener('replay-overflow', () => {
+                recordConsoleEventsOverflow();
+                refresh().catch(showError);
+              });
               source.onerror = () => {
-                setConsoleEventsConnected(false);
+                setConsoleEventsConnected(false, { reason: 'eventsource_error' });
                 if (state.connection && !state.connection.sessionsPollingPaused) setSessionsPollingPaused(true);
                 startLivePreviewPolling();
                 startSessionsPolling();

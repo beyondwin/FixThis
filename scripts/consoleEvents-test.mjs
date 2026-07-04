@@ -80,3 +80,18 @@ test('preview-ready event delegates stale-session ownership to shared preview pa
   assert.match(previewReady, /applyLivePreview\(data\.preview/);
   assert.doesNotMatch(previewReady, /dropStaleSse\(/);
 });
+
+test('events subscriber records diagnostics for open error and replay overflow', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  assert.match(start, /setConsoleEventsConnected\(true\)/);
+  assert.match(start, /setConsoleEventsConnected\(false,\s*\{\s*reason:\s*['"]eventsource_error['"]/);
+  assert.match(start, /recordConsoleEventsOverflow\(\)/);
+  assert.match(start, /source\.addEventListener\(['"]replay-overflow['"],\s*\(\)\s*=>\s*\{/);
+});
+
+test('mismatched session update uses disconnected fallback refresh instead of healthy pull', () => {
+  const start = body(source, 'function startConsoleEvents()');
+  const sessionUpdated = start.slice(start.indexOf("on('session-updated'"));
+  assert.match(sessionUpdated, /refreshSessionsWhenEventsDisconnected\(\)\.catch\(showError\)/);
+  assert.doesNotMatch(sessionUpdated, /refreshSessions\(\)\.catch\(showError\)/);
+});
