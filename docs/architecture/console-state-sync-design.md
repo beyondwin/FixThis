@@ -271,14 +271,22 @@ surface remains the visible fallback indicator.
 - Manual refresh and explicit recovery paths still call `/api/preview` directly.
 - Acceptance: connected consoles receive preview updates through SSE without waiting for the polling interval, while disconnected consoles still recover through fallback polling.
 
-**Phase 3 — retire pull paths (remaining)**
-- Remove `refreshSessions()` calls from happy-path mutation handlers, leaving only the manual refresh button and the SSE-failure fallback.
-- `refreshSessions()` itself stays as the fallback implementation but becomes called rarely.
-- Acceptance: server load drops (fewer `/api/sessions` + `/api/session` GETs per user action); UX feel unchanged.
+**Phase 3 — retire happy-path pull calls (current hardening line)**
+- Keep `refreshSessions()` for manual refresh, initial load, explicit session
+  navigation, and replay-overflow recovery.
+- Route healthy mutation aftermath through response data,
+  `sessions-updated` events, or `refreshSessionsWhenEventsDisconnected()`.
+- Acceptance: under healthy EventSource, Save to MCP, preview push, and
+  session-summary updates perform zero steady-state `/api/session`,
+  `/api/sessions`, and `/api/preview` pull fetches.
 
-**Phase 4 — observability (remaining)**
-- Log per-connection event count and reconnect rate.
-- Surface `events_dropped` if ring buffer overflows during reconnect (would indicate a bug or extreme client lag).
+**Phase 4 — observability (current hardening line)**
+- Track browser-local connect, disconnect, reconnect, replay-overflow, and last
+  fallback reason diagnostics.
+- Expose diagnostics through the debug object for tests and local reports only.
+- Acceptance: browser reliability proof observes reconnect diagnostics after an
+  EventSource drop and replay-overflow diagnostics before the documented
+  recovery refresh.
 
 ### Risks and mitigations
 

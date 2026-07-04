@@ -118,18 +118,19 @@
   "Reconnecting feedback updates…" reconnect affordance only on the SSE-disconnected
   fallback path, and is intentionally kept to let that path recover. It is never
   set or rendered while EventSource is healthy.
-- **SSE-cleanup gate outcome (v1.0):** the evidence-gated removal of redundant
-  manual-recovery code is a **NO-OP** — no recovery symbol was deleted because
-  none is provably dead. The two fallback-recovery entry points,
-  `startSessionsPolling()` (`fixthis-mcp/src/main/console/sessions-polling.js:40`)
-  and `startLivePreviewPolling()` (`fixthis-mcp/src/main/console/preview.js:77`),
-  are still read and re-invoked on the retained disconnected-fallback path: the
-  EventSource `onerror` handler clears the connected flag and re-arms both
-  (`fixthis-mcp/src/main/console/events.js:90`-`94`), at which point their gates
-  (`shouldUseSessionFallbackPolling()` / `shouldUsePreviewFallbackPolling()` in
-  `fixthis-mcp/src/main/console/sse.js:22`-`28`) permit arming. A repo-wide search
-  for `manualRecover` / `retryPoll` / `reconnectPoll` finds no such symbols; the
-  only `recover*` matches are draft-workspace recovery, an unrelated live feature.
+- **SSE reliability boundary:** `/api/events` is the primary session, summary,
+  device, connection, and preview sync path. Healthy EventSource sessions must
+  not arm session or preview fallback polling and must not issue steady-state
+  `/api/session`, `/api/sessions`, or `/api/preview` pull fetches after local
+  mutations. The disconnected fallback remains live: EventSource errors record
+  `eventsource_error`, clear the connected flag, and re-arm
+  `startSessionsPolling()` plus `startLivePreviewPolling()`. Replay overflow is
+  an explicit recovery path: the browser records `replay_overflow` and performs
+  a full `refresh()` from authoritative HTTP endpoints.
+- Browser-local SSE diagnostics are exposed only for local tests and debugging
+  through `window.FixThisConsoleDebug.consoleEventsDiagnostics()`. They are not
+  persisted in `.fixthis/`, MCP output, compact prompts, or feedback-session
+  JSON.
   Both healthy-path no-poll guarantees (session **and** preview) are pinned by the
   zero-poll assertions in `scripts/console-browser-reliability.mjs`
   (`assertNoSessionPollingUnderHealthySse`), and the SSE-drop reconnect behaviour
