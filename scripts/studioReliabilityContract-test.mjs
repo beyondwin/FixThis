@@ -154,3 +154,23 @@ test('session polling is fallback-only while SSE is healthy', () => {
   assert.match(events, /source\.onopen = \(\) => \{[\s\S]*stopSessionsPolling\(\);/);
   assert.match(events, /source\.onerror = \(\) => \{[\s\S]*startSessionsPolling\(\);/);
 });
+
+test('direct refreshSessions calls stay limited to explicit session lifecycle paths', () => {
+  const history = readFileSync(resolve(root, 'fixthis-mcp/src/main/console/history.js'), 'utf8');
+  const directCallCount = [...history.matchAll(/refreshSessions\(\)/g)].length;
+  const allowedSignatures = [
+    'async function refreshSessions()',
+    'async function refreshSessionsWhenEventsDisconnected()',
+    'async function refresh()',
+    'async function ensureSessionForAnnotating()',
+    'async function openSession(sessionId)',
+    'async function newSession()',
+    'async function closeSession()',
+    'async function deleteHistorySession(sessionId',
+  ];
+  const allowedCallCount = allowedSignatures
+    .map((signature) => `${signature}${body(history, signature)}`)
+    .reduce((count, sourceText) => count + [...sourceText.matchAll(/refreshSessions\(\)/g)].length, 0);
+
+  assert.equal(allowedCallCount, directCallCount);
+});
