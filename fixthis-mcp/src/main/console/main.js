@@ -425,6 +425,7 @@
             }
 
             window.FixThisConsoleDebug = Object.freeze({
+              consoleEventsDiagnostics: () => consoleEventsDiagnostics(),
               getDraftWorkspace: () => currentDraftWorkspace(),
               getState: () => state,
               isConsoleEventsConnected: () => isConsoleEventsConnected(),

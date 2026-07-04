@@ -4,11 +4,58 @@
             // (shouldUsePreviewFallbackPolling / shouldUseSessionFallbackPolling).
             let consoleEventsConnected = false;
             let consoleEventsLastConnectedAt = 0;
+            const consoleEventsDiagnosticState = {
+              connectCount: 0,
+              disconnectCount: 0,
+              reconnectCount: 0,
+              replayOverflowCount: 0,
+              lastConnectedAt: null,
+              lastDisconnectedAt: null,
+              lastFallbackReason: null,
+            };
 
-            function setConsoleEventsConnected(connected) {
-              consoleEventsConnected = connected === true;
-              if (consoleEventsConnected) consoleEventsLastConnectedAt = Date.now();
+            function nowMs(options) {
+              return typeof options?.nowMs === 'number' ? options.nowMs : Date.now();
+            }
+
+            function setConsoleEventsConnected(connected, options = {}) {
+              const nextConnected = connected === true;
+              if (nextConnected) {
+                const wasConnectedBefore = consoleEventsDiagnosticState.connectCount > 0;
+                consoleEventsDiagnosticState.connectCount += 1;
+                if (wasConnectedBefore && !consoleEventsConnected) {
+                  consoleEventsDiagnosticState.reconnectCount += 1;
+                }
+                consoleEventsLastConnectedAt = nowMs(options);
+                consoleEventsDiagnosticState.lastConnectedAt = consoleEventsLastConnectedAt;
+              } else if (consoleEventsConnected) {
+                consoleEventsDiagnosticState.disconnectCount += 1;
+                consoleEventsDiagnosticState.lastDisconnectedAt = nowMs(options);
+                consoleEventsDiagnosticState.lastFallbackReason = options.reason || 'eventsource_disconnected';
+              } else if (options.reason) {
+                consoleEventsDiagnosticState.lastFallbackReason = options.reason;
+              }
+              consoleEventsConnected = nextConnected;
               return consoleEventsConnected;
+            }
+
+            function recordConsoleEventsOverflow(options = {}) {
+              consoleEventsDiagnosticState.replayOverflowCount += 1;
+              consoleEventsDiagnosticState.lastFallbackReason = 'replay_overflow';
+              return consoleEventsDiagnostics();
+            }
+
+            function consoleEventsDiagnostics() {
+              return {
+                connected: consoleEventsConnected,
+                connectCount: consoleEventsDiagnosticState.connectCount,
+                disconnectCount: consoleEventsDiagnosticState.disconnectCount,
+                reconnectCount: consoleEventsDiagnosticState.reconnectCount,
+                replayOverflowCount: consoleEventsDiagnosticState.replayOverflowCount,
+                lastConnectedAt: consoleEventsDiagnosticState.lastConnectedAt,
+                lastDisconnectedAt: consoleEventsDiagnosticState.lastDisconnectedAt,
+                lastFallbackReason: consoleEventsDiagnosticState.lastFallbackReason,
+              };
             }
 
             function isConsoleEventsConnected() {
