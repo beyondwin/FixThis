@@ -2,9 +2,9 @@
             // sse.js — late-SSE-message session-equality gate and connection
             // state that gates both preview AND session fallback polling
             // (shouldUsePreviewFallbackPolling / shouldUseSessionFallbackPolling).
-            let consoleEventsConnected = false;
             let consoleEventsLastConnectedAt = 0;
             const consoleEventsDiagnosticState = {
+              connected: false,
               connectCount: 0,
               disconnectCount: 0,
               reconnectCount: 0,
@@ -23,20 +23,20 @@
               if (nextConnected) {
                 const wasConnectedBefore = consoleEventsDiagnosticState.connectCount > 0;
                 consoleEventsDiagnosticState.connectCount += 1;
-                if (wasConnectedBefore && !consoleEventsConnected) {
+                if (wasConnectedBefore && !consoleEventsDiagnosticState.connected) {
                   consoleEventsDiagnosticState.reconnectCount += 1;
                 }
                 consoleEventsLastConnectedAt = nowMs(options);
                 consoleEventsDiagnosticState.lastConnectedAt = consoleEventsLastConnectedAt;
-              } else if (consoleEventsConnected) {
+              } else if (consoleEventsDiagnosticState.connected) {
                 consoleEventsDiagnosticState.disconnectCount += 1;
                 consoleEventsDiagnosticState.lastDisconnectedAt = nowMs(options);
                 consoleEventsDiagnosticState.lastFallbackReason = options.reason || 'eventsource_disconnected';
               } else if (options.reason) {
                 consoleEventsDiagnosticState.lastFallbackReason = options.reason;
               }
-              consoleEventsConnected = nextConnected;
-              return consoleEventsConnected;
+              consoleEventsDiagnosticState.connected = nextConnected;
+              return consoleEventsDiagnosticState.connected;
             }
 
             function recordConsoleEventsOverflow(options = {}) {
@@ -46,20 +46,11 @@
             }
 
             function consoleEventsDiagnostics() {
-              return {
-                connected: consoleEventsConnected,
-                connectCount: consoleEventsDiagnosticState.connectCount,
-                disconnectCount: consoleEventsDiagnosticState.disconnectCount,
-                reconnectCount: consoleEventsDiagnosticState.reconnectCount,
-                replayOverflowCount: consoleEventsDiagnosticState.replayOverflowCount,
-                lastConnectedAt: consoleEventsDiagnosticState.lastConnectedAt,
-                lastDisconnectedAt: consoleEventsDiagnosticState.lastDisconnectedAt,
-                lastFallbackReason: consoleEventsDiagnosticState.lastFallbackReason,
-              };
+              return { ...consoleEventsDiagnosticState };
             }
 
             function isConsoleEventsConnected() {
-              return consoleEventsConnected;
+              return consoleEventsDiagnosticState.connected;
             }
 
             function wasConsoleEventsRecentlyConnected(maxAgeMs = 1000) {
@@ -67,11 +58,11 @@
             }
 
             function shouldUsePreviewFallbackPolling() {
-              return !consoleEventsConnected;
+              return !consoleEventsDiagnosticState.connected;
             }
 
             function shouldUseSessionFallbackPolling() {
-              return !consoleEventsConnected;
+              return !consoleEventsDiagnosticState.connected;
             }
 
             // Returns true (and emits a diagnostic warn) when msg.sessionId no

@@ -467,6 +467,9 @@ export async function startFakeBridge(options = {}) {
       emitEvent('preview-ready', { sessionId, preview });
       return preview;
     },
+    emitReplayOverflow: () => {
+      emitEvent('replay-overflow', { reason: 'test overflow' });
+    },
     rejectNextBatchForFingerprintMismatch: (conflict = {}) => {
       nextFingerprintMismatch = {
         frozenFingerprint: conflict.frozenFingerprint || 'frozen-fingerprint',

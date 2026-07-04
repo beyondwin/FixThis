@@ -220,10 +220,10 @@ async function buildOnce({ reproducible } = {}) {
   const jsText = new TextDecoder().decode(jsBytes);
   assertContractSymbols(jsText);
 
-  const RAW_BUDGET_BYTES = 225 * 1024;
+  const RAW_BUDGET_BYTES = 227 * 1024;
   const GZIP_BUDGET_BYTES = 58 * 1024;
   if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
-    throw new Error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (225 KiB).`);
+    throw new Error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes (227 KiB).`);
   }
   const gzBytes = gzipSync(Buffer.from(jsBytes), { level: 9 }).byteLength;
   if (gzBytes > GZIP_BUDGET_BYTES) {

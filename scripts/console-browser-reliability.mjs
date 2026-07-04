@@ -227,6 +227,14 @@ async function testEventSourceReconnectRecovery() {
     await waitUntil(() => fixture.eventClientCount() >= 1);
     fixture.closeEventClients();
     await waitUntil(() => fixture.eventClientCount() >= 1);
+    await page.waitForFunction(
+      () => window.FixThisConsoleDebug.consoleEventsDiagnostics().reconnectCount >= 1,
+      null,
+      { timeout: 8000 },
+    );
+    const reconnectDiagnostics = await page.evaluate(() => window.FixThisConsoleDebug.consoleEventsDiagnostics());
+    assert.equal(reconnectDiagnostics.connected, true);
+    assert.equal(reconnectDiagnostics.lastFallbackReason, 'eventsource_error');
 
     const item = fixture.seedAnnotation({ itemId: 'item-after-reconnect', comment: 'Reconnect sync' });
     fixture.emitSessionUpdated();
@@ -372,12 +380,44 @@ async function testRepeatedSaveToMcpIdempotency() {
   });
 }
 
+async function testReplayOverflowDiagnostics() {
+  await withBrowser(async ({ fixture, context }) => {
+    const page = await openConsolePage(context, fixture.url);
+    await waitUntil(() => fixture.eventClientCount() >= 1);
+    const pullsBefore = countSessionPulls(fixture);
+    fixture.emitReplayOverflow();
+    await page.waitForFunction(
+      () => window.FixThisConsoleDebug.consoleEventsDiagnostics().replayOverflowCount >= 1,
+      null,
+      { timeout: 8000 },
+    );
+    await page.waitForFunction(
+      () => window.FixThisConsoleDebug.getState().session?.sessionId === 'session-1',
+      null,
+      { timeout: 8000 },
+    );
+    const diagnostics = await page.evaluate(() => window.FixThisConsoleDebug.consoleEventsDiagnostics());
+    assert.equal(diagnostics.lastFallbackReason, 'replay_overflow');
+    assert.ok(
+      countSessionPulls(fixture) > pullsBefore,
+      'replay overflow should trigger the documented recovery refresh',
+    );
+    recordReliabilityObservation({
+      name: 'replay-overflow-diagnostics',
+      eventSourceConnected: diagnostics.connected,
+      requestSummary: summarizeRequests(fixture.getRequestLog()),
+      fallbackReasons: ['replay_overflow'],
+    });
+  });
+}
+
 async function run() {
   await testTwoTabSseSync();
   await testLatePreviewIsolation();
   await testSsePreviewPushDoesNotPollPreview();
   await testSaveToMcpDoesNotPullSessionsWhenSseIsConnected();
   await testEventSourceReconnectRecovery();
+  await testReplayOverflowDiagnostics();
   await testStalePreviewSaveRequiresConfirmation();
   await testNoSessionPollingUnderHealthySse();
   await testRepeatedSaveToMcpIdempotency();
