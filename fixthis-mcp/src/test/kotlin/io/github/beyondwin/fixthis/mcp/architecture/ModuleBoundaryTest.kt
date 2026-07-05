@@ -16,7 +16,9 @@ class ModuleBoundaryTest {
             paths = listOf("fixthis-compose-core/src/main"),
             forbidden = Regex("""^import (android|androidx|io\.github\.beyondwin\.fixthis\.(mcp|cli|gradle|compose\.sidekick))"""),
             boundaryName = "compose-core purity",
-            guidance = "compose-core owns pure domain/source/target/format policies and must not depend on Android, MCP, CLI, Gradle plugin, sidekick runtime, browser DTOs, or .fixthis paths. Move adapter code outward or add a lower pure model instead.",
+            guidance = "compose-core owns pure domain/source/target/format policies and must not depend on " +
+                "Android, MCP, CLI, Gradle plugin, sidekick runtime, browser DTOs, or .fixthis paths. " +
+                "Move adapter code outward or add a lower pure model instead.",
         )
     }
 

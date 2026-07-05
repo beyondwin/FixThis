@@ -79,8 +79,8 @@ val generateBuildInfo by tasks.registering {
             """
             package io.github.beyondwin.fixthis.mcp
             object BuildInfo {
-                const val BUILD_EPOCH_MS: Long = ${epoch}L
-                const val GIT_SHA: String = "$sha"
+                val BUILD_EPOCH_MS: Long = ${epoch}L
+                val GIT_SHA: String = "$sha"
             }
             """.trimIndent(),
         )
