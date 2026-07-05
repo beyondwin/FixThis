@@ -232,6 +232,13 @@ evidence from the release commit.
 | Healthy SSE sessions do not use fallback session or preview polling. | `node --test scripts/console-reliability-report-test.mjs` and `npm run console:browser:reliability`. |
 | Release and required-check readiness evidence is refreshable and documented. | `node scripts/check-release-readiness.mjs` and `npm run checks:observation -- --json`. |
 
+The source-matching fixture lab is the maintained local evidence entry point
+for the source-trust row above. Start with
+[Source matching fixture lab](../guides/source-matching-fixture-lab.md) when
+refreshing shared-component, visual-area, interop-risk, recommended-edit-site,
+or confidence-cap evidence. The lab writes local reports under
+`build/reports/fixthis-source-matching/`; do not commit those reports.
+
 ## Trust Sync Release Hardening Evidence
 
 The trust-sync hardening line may be claimed only when each claim below has
@@ -262,6 +269,12 @@ matching local evidence from the release commit. This evidence pack does not add
 | Source trust avoids overconfident layout, copy/data, visual-area, and interop guidance. | `./gradlew :fixthis-compose-core:test --tests "*SourceMatcherTest" --no-daemon`, `npm run handoff:eval:test`, and `npm run source-matching:fixtures:test`. |
 | Agent-first setup reports a recoverable next action from install through doctor. | `./gradlew :fixthis-cli:test --tests "*InstallAgentJsonReportTest" --tests "*DoctorCommandTest" --tests "*AgentSetupFilesTest" --no-daemon` and `npm run docs:agent-bootstrap:test`. |
 | Local evidence profiles are available without hiding canonical commands. | `npm run evidence:fast -- --dry-run`, `npm run evidence:test`, and `node scripts/check-release-readiness.mjs`. |
+
+For the source-trust row, use the
+[source matching fixture lab](../guides/source-matching-fixture-lab.md) to
+interpret fixture classifications. A caveated pass is acceptable only when the
+handoff preserves the expected caution signal and avoids a high-confidence
+exact-ownership claim for risky evidence.
 
 Runtime trust remains local-only. If Android SDK or an unlocked emulator is
 unavailable, record `npm run source-matching:fixtures:runtime -- --strict` as

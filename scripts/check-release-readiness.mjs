@@ -374,6 +374,11 @@ requireIncludes(
   '`npm run console:browser:reliability`',
 );
 requireIncludes(
+  'R60.source-matching-fixture-lab-link',
+  'docs/contributing/release-readiness.md',
+  '../guides/source-matching-fixture-lab.md',
+);
+requireIncludes(
   'R52.android-agent-evidence-umbrella-section',
   'docs/contributing/release-readiness.md',
   'Android Agent Evidence Umbrella',
