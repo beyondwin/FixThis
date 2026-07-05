@@ -78,11 +78,27 @@ class ArchitectureHotspotBudgetTest {
         val offenders = budgets.mapNotNull { (path, maxLines) ->
             val file = File(root, path)
             val lines = file.readLines().size
-            if (lines > maxLines) "$path has $lines lines, budget is $maxLines" else null
+            if (lines > maxLines) HotspotOverflow(path = path, lines = lines, budget = maxLines) else null
         }
 
-        assertTrue(offenders.isEmpty(), offenders.joinToString(separator = "\n"))
+        assertTrue(
+            offenders.isEmpty(),
+            buildString {
+                appendLine("Architecture hotspot budget exceeded.")
+                appendLine("These budgets are ratchets. If a file shrinks, lower the matching budget in the same commit.")
+                appendLine("If a file grows, prefer splitting responsibilities or recording a justified architecture decision instead of silently raising the budget.")
+                appendLine("For task routing, read docs/architecture/agent-code-compass.md.")
+                appendLine()
+                append(offenders.joinToString(separator = "\n") { "${it.path} has ${it.lines} lines, budget is ${it.budget}" })
+            },
+        )
     }
+
+    private data class HotspotOverflow(
+        val path: String,
+        val lines: Int,
+        val budget: Int,
+    )
 
     private fun remediationBudgetEnabled(path: String): Boolean = File(root, path).isFile && System.getenv("FIXTHIS_STRICT_ARCH_BUDGETS") == "true"
 }
