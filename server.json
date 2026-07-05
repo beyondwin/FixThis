@@ -7,12 +7,12 @@
     "url": "https://github.com/beyondwin/FixThis",
     "source": "github"
   },
-  "version": "1.4.0",
+  "version": "1.4.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@beyondwin/fixthis",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "transport": {
         "type": "stdio"
       }

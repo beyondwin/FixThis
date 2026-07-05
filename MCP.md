@@ -62,7 +62,7 @@ On macOS/Linux without a package manager, use the GitHub Release installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v1.4.0 --init --target codex --project-dir .
+  | bash -s -- --version v1.4.1 --init --target codex --project-dir .
 ```
 
 Use `--target claude` or `--target all` for other MCP clients. For a new

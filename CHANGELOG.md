@@ -29,6 +29,33 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 - No unreleased changes yet.
 
+## v1.4.1 — 2026-07-05
+
+### Added
+
+- Added the source matching fixture lab to the maintained documentation index
+  and release-readiness evidence paths, giving maintainers one discoverable
+  place to refresh shared-component, visual-area, interop-risk, recommended-edit,
+  and confidence-cap evidence before tagging.
+- Added the v1 trust evidence / required-checks umbrella plan artifacts as
+  historical planning context for future release-evidence and branch-protection
+  follow-through.
+
+### Changed
+
+- Required-check readiness now separates observed workflow streaks, readiness to
+  require, and actual branch-protection enforcement, so maintainers do not treat
+  workflow-level evidence as proof that every command-level status is safe to
+  require.
+- Release-readiness validation now checks that the source matching fixture lab is
+  linked from the release evidence dashboard.
+
+### Fixed
+
+- Restored source matching fixture lab navigation from the docs index and added
+  tracker tests that keep required-check observation wording from collapsing
+  observation readiness into enforcement status.
+
 ## v1.4.0 — 2026-06-29
 
 ### Added
