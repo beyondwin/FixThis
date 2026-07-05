@@ -2,10 +2,17 @@
 
 The source matching fixture lab is a local-only developer tool for checking
 whether FixThis source-index and source-hint changes remain trustworthy on
-external Compose apps.
+external Compose apps and on the bundled sample app.
 
-It is not a release gate, not a CI requirement, and not part of the public
-install path.
+Use this guide when a change touches source matching, target reliability,
+edit-surface confidence, shared-component call-site guidance, visual-area
+caveats, AndroidView/WebView boundary context, or release evidence that cites
+those behaviors.
+
+It is not a release gate, not a CI requirement, not a branch-protection setting,
+and not part of the public install path. Release-readiness docs can cite its
+commands as local evidence, but the lab itself does not publish artifacts or
+change any public package channel.
 
 ## What It Uses
 
@@ -177,6 +184,29 @@ If a multi-module case produces `missing_top3`, the cause is either:
 When in doubt, inspect the fixture working copy under
 `.fixthis/eval-fixtures/work/<fixture>/` and confirm the consumer module
 still depends on the target feature module.
+
+## Classification Rules
+
+Treat fixture outcomes as evidence classifications, not as a single pass/fail
+bucket:
+
+- Product failure: a committed source-index or runtime-trust expectation fails
+  in a prepared fixture environment.
+- Documentation drift: a guide, docs index, or release-readiness reference no
+  longer points to the supported fixture-lab entry point.
+- Environment downgrade: non-strict runtime evidence cannot run because Android
+  SDK, ADB, a ready device, or app runtime prerequisites are unavailable.
+- Strict runtime failure: strict runtime evidence is requested and those runtime
+  prerequisites are unavailable.
+- Fixture drift: a pinned external repository no longer contains the expected
+  path, module graph, launch state, or semantics target.
+- Caveated pass: FixThis cannot prove exact edit ownership but preserves the
+  required caveat, such as `SHARED_COMPONENT`, `VISUAL_AREA_ONLY`,
+  `POSSIBLE_VIEW_INTEROP`, boundary context, or a low/medium confidence cap.
+
+Do not weaken a case to make a report green. A high-confidence result is a
+failure when the case exists to prove caution, even if the source path looks
+plausible.
 
 ## Re-Pinning
 

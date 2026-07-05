@@ -59,6 +59,9 @@ pitch, scope, and sample-to-agent Quick Start.
 - [Project map](guides/project-map.md) - compact repository map for humans and agents: module responsibilities, first files, task routes, validation commands, and artifact boundaries
 - [Architecture overview](architecture/overview.md) — module map, runtime
   flow, source-matching pipeline
+- [Source matching fixture lab](guides/source-matching-fixture-lab.md) —
+  local-only source-index and runtime-trust evidence for shared-component,
+  visual-area, interop-risk, and confidence-cap regressions
 - [Architecture Decision Records](architecture/adr/README.md) — durable
   decisions and their rationale
 - [Console state sync](architecture/console-state-sync-design.md) — shipped
