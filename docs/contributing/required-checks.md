@@ -1,19 +1,34 @@
 # Required PR checks — readiness tracker
 
-This document tracks the observation windows for the workflows listed in the "Required PR checks" table in [`CONTRIBUTING.md`](../../CONTRIBUTING.md). The actual GitHub branch-protection enable is a maintainer admin action; flipping a row from advisory to required is gated on the corresponding observation window completing green.
+This document tracks the observation windows for the workflows listed in the
+"Required PR checks" table in [`CONTRIBUTING.md`](../../CONTRIBUTING.md). The
+actual GitHub branch-protection enable is a maintainer admin action.
 
-Maintainers update this doc as observation windows complete. Once a row's "Ready to flip branch protection?" column is `yes`, the next maintainer with admin rights enables the corresponding required-status-check in the GitHub repository settings and records the flip date here.
+This tracker separates three states:
 
-| Workflow | First green run (date) | 7 consecutive green runs achieved? (yes/no + date) | Ready to flip branch protection? (yes/no) |
-|---|---|---|---|
-| `.github/workflows/ci.yml` — Build + unit tests (baseline) | pre-existing | yes (pre-existing) | already enforced |
-| `./gradlew spotlessCheck` in ci.yml (CI-1) | — | pending | no |
-| `./gradlew detekt` in ci.yml (CI-2) | — | pending | no |
-| `node scripts/build-console-assets.mjs --check` in ci.yml | — | pending | no |
-| `npm run console:test:all` in ci.yml | — | pending | no |
-| `.github/workflows/codeql.yml` (CI-3) | — | pending | no |
-| `.github/workflows/connected-tests.yml` (CI-4, nightly) | — | pending (14 consecutive green required) | no |
-| `.github/workflows/nightly-compat.yml` (BR-4, weekly scheduled) | — | pending (1 week stable required) | no |
+- **Observation evidence:** `npm run checks:observation -- --json` has enough
+  consecutive green workflow runs.
+- **Ready to require:** the observed evidence is enough for a maintainer to add
+  the check to branch protection.
+- **Enforcement status:** the GitHub repository setting has actually been
+  changed. `admin action pending` means repo evidence is ready but the setting
+  has not been recorded here as flipped.
+
+The observation script currently reports workflow-level observation. Rows for
+individual commands inside `.github/workflows/ci.yml` must not be promoted
+solely from aggregate workflow-level observation unless the maintainer also
+confirms the exact GitHub status-check names to require.
+
+| Check | Workflow or status source | Observation evidence | Ready to require? | Enforcement status |
+|---|---|---|---|---|
+| Build + unit tests | `.github/workflows/ci.yml` baseline job | pre-existing | yes | required |
+| Kotlin formatting | `./gradlew spotlessCheck` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
+| Static analysis | `./gradlew detekt` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
+| Console asset bundle | `node scripts/build-console-assets.mjs --check` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
+| Console JS harnesses | `npm run console:test:all` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
+| CodeQL | `.github/workflows/codeql.yml` | workflow observation ready: 17/7 green | yes, after maintainer confirms the latest analysis is present in GitHub Security | admin action pending |
+| Nightly connected tests | `.github/workflows/connected-tests.yml` | workflow observation ready: 20/14 green | no - scheduled device workflow still requires separate maintainer discussion before branch protection | informational only |
+| Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | workflow observation ready: 8/1 green | no - scheduled compatibility workflow still requires separate maintainer discussion before branch protection | informational only |
 
 ## How to Update This Table
 
@@ -24,18 +39,29 @@ npm run checks:observation -- --json
 npm run checks:observation -- --require-ready connected-tests,nightly-compat
 ```
 
-The first command prints the evidence table as JSON. The second command exits
-nonzero until the connected-test and lower-bound compatibility observation
-windows are satisfied.
+Copy the JSON output into
+[`required-checks-observation.md`](required-checks-observation.md). Then update
+this tracker as follows:
+
+1. Put the workflow streak in **Observation evidence**.
+2. Set **Ready to require?** to `yes` only when workflow-level evidence is
+   sufficient for the exact branch-protection check being proposed.
+3. Leave **Enforcement status** as `admin action pending` until a maintainer
+   changes GitHub branch protection and records the flip here.
 
 ## Notes
 
-- "First green run" should record the first observed all-green run of the workflow on `main` after the workflow was merged.
-- "7 consecutive green runs" is the default observation window for PR-time checks
-  (CI-1, CI-2, console asset check, console JS harnesses, CI-3). Replace the
-  value with the date the streak was confirmed.
-- Scheduled device and compatibility workflows (CI-4, BR-4) have longer windows reflecting their lower cadence; do not promote them to PR-required checks without a separate discussion (they currently run on `schedule:` only).
-- The CodeQL row is also gated on the first analysis successfully landing in the GitHub Security tab.
+- "Observation evidence" is generated by `scripts/required-checks-observation.mjs`
+  from recent completed GitHub Actions workflow runs on `main`.
+- The default observation window for PR-time workflows is 7 consecutive green
+  completed runs.
+- Scheduled device and compatibility workflows have longer or lower-cadence
+  windows, but observation readiness does not automatically mean they should be
+  branch-protection requirements.
+- The CodeQL row is also gated on a maintainer confirming that the latest
+  analysis is visible in the GitHub Security tab.
+- For command-level rows inside `ci.yml`, confirm the exact GitHub status-check
+  name before moving **Ready to require?** to `yes`.
 - Gradle 9.3.1 reports a Gradle 10 deprecation from Detekt 1.23.7 during
   `./gradlew :fixthis-mcp:detekt --warning-mode all --stacktrace --no-daemon`:
   `io.gitlab.arturbosch.detekt.DetektPlugin.apply` calls the deprecated

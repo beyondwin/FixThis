@@ -52,3 +52,13 @@ test("required-check observation snapshot records refresh command and policy lin
   assert.match(snapshot, /npm run checks:observation -- --json/);
   assert.match(snapshot, /docs\/contributing\/required-checks\.md/);
 });
+
+test("required-checks tracker separates observation readiness from enforcement", () => {
+  const tracker = readFileSync("docs/contributing/required-checks.md", "utf8");
+
+  assert.match(tracker, /Observation evidence/);
+  assert.match(tracker, /Ready to require/);
+  assert.match(tracker, /Enforcement status/);
+  assert.match(tracker, /admin action pending/i);
+  assert.match(tracker, /workflow-level observation/i);
+});
