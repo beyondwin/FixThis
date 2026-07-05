@@ -2,7 +2,12 @@
 
 FixThis attaches a debug-only sidekick runtime to a Jetpack Compose app, mirrors UI context into a local desktop console, and turns UI annotations into source-aware handoffs for coding agents.
 
-Use this page when you need to understand where to start. For the long-form maintainer explanation, read [Fullstack/tooling handover](fullstack-tooling-handover.md). For stable API, CLI, MCP, bridge, and persisted JSON behavior, prefer the reference docs under [`docs/reference/`](../reference/).
+Use this page when you need to understand where to start. For the long-form
+maintainer explanation, read [Fullstack/tooling handover](fullstack-tooling-handover.md).
+For task-by-task agent navigation before editing, read
+[Agent code compass](../architecture/agent-code-compass.md). For stable API,
+CLI, MCP, bridge, and persisted JSON behavior, prefer the reference docs under
+[`docs/reference/`](../reference/).
 
 ## Source-Of-Truth Priority
 
@@ -54,6 +59,7 @@ The Android app does not host MCP or HTTP. The desktop `fixthis-mcp` process own
 | Bridge protocol and Android runtime | `docs/reference/bridge-protocol.md`, `docs/architecture/overview.md` | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`, `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt` | `./gradlew :fixthis-compose-sidekick:testDebugUnitTest :fixthis-cli:test --no-daemon` |
 | Console UI and session lifecycle | `docs/reference/feedback-console-contract.md`, `docs/architecture/console-state-sync-design.md` | `fixthis-mcp/src/main/console/app.js`, `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` | `npm run console:test:fast`, `./gradlew :fixthis-mcp:test --no-daemon` |
 | Release readiness | `docs/contributing/release-readiness.md`, `docs/contributing/release-process.md`, `CONTRIBUTING.md` | `scripts/check-release-readiness.mjs`, `scripts/run-release-evidence.mjs`, `package.json` | `npm run release:check` |
+| Architecture and guardrails | `docs/architecture/agent-code-compass.md`, `docs/architecture/adr/README.md`, `docs/architecture/adr/0008-session-package-decomposition.md` | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` | `./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon`, `git diff --check` |
 
 ## Artifact Boundaries
 
@@ -67,6 +73,7 @@ The Android app does not host MCP or HTTP. The desktop `fixthis-mcp` process own
 
 - [Documentation index](../index.md) for all maintained docs.
 - [Architecture overview](../architecture/overview.md) for module and runtime detail.
+- [Agent code compass](../architecture/agent-code-compass.md) for task-by-task source, boundary, and check routing before code edits.
 - [Fullstack/tooling handover](fullstack-tooling-handover.md) for deep maintainer onboarding.
 - [MCP tools reference](../reference/mcp-tools.md) for agent tool contracts.
 - [Output schema](../reference/output-schema.md) for persisted JSON and handoff fields.
