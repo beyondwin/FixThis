@@ -44,35 +44,33 @@ depends on MCP DTOs from `SessionDtoModels.kt`.
 `SessionPackageBoundaryTest` enforces the intra-`session` dependency direction.
 The following pre-existing dependencies surfaced when the boundary test was first
 run against the completed decomposition. Each is a genuine, justified coupling
-that cannot be removed without further refactoring beyond the scope of this move,
-so the corresponding rule was relaxed to permit exactly the named import (and
-nothing else):
+that cannot be removed without further refactoring beyond the scope of this move.
 
-- **E1 — `preview` → `lifecycle.store` and `preview` → `target`.**
-  `PreviewCaptureService` is constructor-injected with `FeedbackSessionStore` and
-  `TargetEvidenceService` and throws `FeedbackSessionException`
-  (`PreviewSaveReservationTracker` / `ScreenshotArtifactPromoter` also reference
-  the store). Preview capture is an application service that orchestrates session
-  persistence and target evidence; the dependency on those two services is
-  inherent to its role. `handoff` remains forbidden for `preview`.
-- **E2 — `target` → `handoff`.** `TargetBoundaryContextFormatter` and
-  `TargetSummaryFormatter` reuse the `internal` string/rect formatting extensions
-  (`compactQuotedValue`, `formatBounds`, `formatBox`, `inlineSafe`) defined in
-  `handoff/FormatterExtensions.kt`. These are shared rendering helpers; only the
-  `handoff` token was removed for `target` (store/preview/connection stay
-  forbidden).
-- **E3 — `lifecycle/event` → `handoff`.** Session event/mutation payloads
-  (`SessionMutation`, `SessionReducer`, `SessionEventPayloads`,
-  `FeedbackSessionHandoffMutation`, etc.) carry the `FeedbackDelivery` enum and
-  `FeedbackHandoffBatch` model from `handoff/FeedbackHandoffModels.kt` as
-  event-sourced state. These are domain models, not handoff behavior; only the
-  `handoff` token was removed for `lifecycle/event`.
-- **E4 — `lifecycle/store` → `handoff`.** `FeedbackSessionSummary`,
-  `FeedbackSessionStoreDraftDeduplication`, and `FeedbackSessionStoreDelegate`
-  read the `FeedbackDelivery` enum to classify/count persisted items. This is the
-  same `handoff` domain model as E3; only the `handoff` token was removed for
-  `lifecycle/store`.
+These exceptions are an allow-list, not a pattern to copy. A new cross-package
+dependency requires both an ADR update and a matching `SessionPackageBoundaryTest`
+rule change in the same commit.
+
+| Exception | Currently allowed direction | Why it is tolerated | Retirement path |
+| --- | --- | --- | --- |
+| E1 | `preview` -> `lifecycle.store`; `preview` -> `target` | `PreviewCaptureService` orchestrates preview capture, session persistence, screenshot promotion, and target evidence through `FeedbackSessionStore` and `TargetEvidenceService`. `PreviewSaveReservationTracker` and `ScreenshotArtifactPromoter` also reference store types. | Extract a preview workflow port or lower application-service boundary so preview capture can depend on interfaces rather than concrete store/target services. `preview` -> `handoff` remains forbidden. |
+| E2 | `target` -> selected `handoff` formatting helpers | `TargetBoundaryContextFormatter` and `TargetSummaryFormatter` reuse `compactQuotedValue`, `formatBounds`, `formatBox`, and `inlineSafe` from `handoff/FormatterExtensions.kt`. The coupling is rendering-helper reuse, not target policy depending on handoff workflow. | Move shared formatting helpers to a lower `session/dto`, `session/domain`, or dedicated formatting package and forbid `target` -> `handoff` again. |
+| E3 | `lifecycle/event` -> selected `handoff` models | Session event and mutation payloads carry `FeedbackDelivery` and `FeedbackHandoffBatch` from `handoff/FeedbackHandoffModels.kt` as event-sourced state. These are shared state models, not handoff rendering behavior. | Move shared delivery and batch state models to a lower `session/dto` or `session/domain` package and forbid `lifecycle/event` -> `handoff` again. |
+| E4 | `lifecycle/store` -> selected `handoff` models | `FeedbackSessionSummary`, `FeedbackSessionStoreDraftDeduplication`, and `FeedbackSessionStoreDelegate` read `FeedbackDelivery` to classify and count persisted items. This is the same shared state-model coupling as E3. | Move shared delivery state to a lower `session/dto` or `session/domain` package and forbid `lifecycle/store` -> `handoff` again. |
+
+Current forbidden directions after the exception register:
+
+- `editsurface` must not import `lifecycle.store`, `handoff`, `preview`, or
+  `connection`.
+- `handoff` must not import `lifecycle.store`, `preview`, or `connection`.
+- `preview` must not import `handoff`.
+- `target` must not import `lifecycle.store`, `preview`, or `connection`.
+- `source` must not import `lifecycle.store`, `handoff`, `preview`, or `target`.
+- `lifecycle/event` must not import `preview` or `connection`.
+- `lifecycle/store` must not import `connection` or `target`.
+- `draft` must not import `connection`.
+- `connection` must not import `handoff`, `preview`, or `target`.
 
 A future ADR may lift the shared `handoff` domain models (`FeedbackDelivery`,
-`FeedbackHandoffBatch`) and `FormatterExtensions` into a lower `dto`/`domain`
-package to retire E2–E4.
+`FeedbackHandoffBatch`) and `FormatterExtensions` into a lower package to retire
+E2-E4. When that happens, tighten `SessionPackageBoundaryTest` in the same
+commit as the model/helper move.
