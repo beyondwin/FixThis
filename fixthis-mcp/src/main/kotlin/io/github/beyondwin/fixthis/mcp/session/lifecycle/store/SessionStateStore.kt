@@ -78,9 +78,9 @@ internal class SessionStateStore(
     }
 
     /** Mirrors the delegate's `save(x); sessions[x] = x` pattern at a single call site. */
-    fun saveAndPut(session: SessionDto) {
-        save(session)
-        put(session)
+    fun saveAndPut(session: SessionDto): SessionDto = session.also {
+        save(it)
+        put(it)
     }
 
     /** Cached sessions in insertion order. Was `sessions.values.toList()`. */

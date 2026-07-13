@@ -23,6 +23,7 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLog
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionCompactionCoordinator
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 
@@ -328,11 +329,11 @@ internal class FeedbackSessionStoreDelegate(
     }
 
     fun markReadyForAgent(sessionId: String): SessionDto = synchronized(lock) {
-        val session = getSessionLocked(sessionId)
-        val now = clock()
-        val updated = SessionReducer.reduce(session, SessionMutation.MarkReadyForAgent(now))
-        store.saveAndPut(updated)
-        updated
+        store.saveAndPut(SessionMetadataMutations.markReadyForAgent(getSessionLocked(sessionId), clock()))
+    }
+
+    fun updateRuntimeEvidencePolicy(sessionId: String, policy: RuntimeEvidencePolicy): SessionDto = synchronized(lock) {
+        store.saveAndPut(SessionMetadataMutations.updateRuntimeEvidencePolicy(getSessionLocked(sessionId), policy, clock()))
     }
 
     fun updateItemStatus(

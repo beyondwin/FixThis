@@ -276,14 +276,27 @@ object CompactHandoffRenderer {
         item: AnnotationDto,
         runtimeEvidenceById: Map<String, RuntimeEvidenceAttachment>,
     ) {
-        val evidence = item.runtimeEvidenceIds.mapNotNull(runtimeEvidenceById::get).take(MAX_RUNTIME_EVIDENCE_RENDERED)
+        val evidence = item.runtimeEvidenceIds
+            .mapNotNull(runtimeEvidenceById::get)
+            .sortedByDescending { it.capturedAtEpochMillis }
+            .take(MAX_RUNTIME_EVIDENCE_RENDERED)
         if (evidence.isEmpty()) return
 
         appendLine("  runtimeEvidence:")
         evidence.forEach { attachment ->
             val path = attachment.artifactPath ?: "no-artifact"
-            appendLine("    - ${CompactHandoffFormatting.evidenceTypeToken(attachment.type)} -> ${path.inlineSafe()}")
+            val proximity = attachment.proximity
+                ?.let { " proximity=${it.name.lowercase()}" }
+                .orEmpty()
+            appendLine(
+                "    - ${CompactHandoffFormatting.evidenceTypeToken(attachment.type)} " +
+                    "status=${attachment.status.name.lowercase()}$proximity",
+            )
             appendLine("      summary: ${attachment.summary.take(MAX_RUNTIME_EVIDENCE_SUMMARY_CHARS).inlineSafe()}")
+            appendLine("      artifact: ${path.inlineSafe()}")
+            attachment.warnings.forEach { warning ->
+                appendLine("      warning: ${warning.name.lowercase()}")
+            }
         }
     }
 

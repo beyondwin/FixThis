@@ -10,6 +10,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactionTask
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 
@@ -79,6 +80,11 @@ class FeedbackSessionStore(
     fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = delegate.markItemsHandedOff(sessionId, itemIds)
 
     fun markReadyForAgent(sessionId: String): SessionDto = delegate.markReadyForAgent(sessionId)
+
+    fun updateRuntimeEvidencePolicy(
+        sessionId: String,
+        policy: RuntimeEvidencePolicy,
+    ): SessionDto = delegate.updateRuntimeEvidencePolicy(sessionId, policy)
 
     fun updateItemStatus(
         sessionId: String,

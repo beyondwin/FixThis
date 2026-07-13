@@ -15,7 +15,12 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.CompactHandoffRenderer
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceFailureReason
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceProximity
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceTrigger
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceWarning
 import org.junit.Test
 import kotlin.test.assertTrue
 
@@ -188,7 +193,9 @@ class CompactHandoffEvidenceExtensionsTest {
     }
 
     @Test
-    fun compactHandoffRendersRuntimeEvidenceSummariesOnly() {
+    fun compactHandoffRendersNewestRuntimeEvidenceMetadataAndBoundedSummariesOnly() {
+        val boundedSummary = "x".repeat(180)
+        val rawSecret = "RAW_SECRET_MUST_NOT_RENDER"
         val session = oneItemSession(
             AnnotationDto(
                 itemId = "item-runtime",
@@ -198,17 +205,29 @@ class CompactHandoffEvidenceExtensionsTest {
                 target = AnnotationTargetDto.Area(FixThisRect(1f, 2f, 30f, 40f)),
                 comment = "The screen janks when this opens",
                 sequenceNumber = 1,
-                runtimeEvidenceIds = listOf("e-logcat", "e-frame"),
+                runtimeEvidenceIds = listOf("e-old", "e-logcat", "e-frame", "e-memory"),
             ),
         ).copy(
             runtimeEvidence = listOf(
+                RuntimeEvidenceAttachment(
+                    evidenceId = "e-old",
+                    type = RuntimeEvidenceType.TRACE_ARTIFACT,
+                    capturedAtEpochMillis = 9L,
+                    packageName = "io.github.beyondwin.fixthis.sample",
+                    summary = "old evidence outside cap",
+                    artifactPath = ".fixthis/runtime-evidence/e-old/trace.perfetto",
+                ),
                 RuntimeEvidenceAttachment(
                     evidenceId = "e-logcat",
                     type = RuntimeEvidenceType.LOGCAT_WINDOW,
                     capturedAtEpochMillis = 10L,
                     packageName = "io.github.beyondwin.fixthis.sample",
-                    summary = "2 RuntimeException lines from MainActivity",
+                    summary = "$boundedSummary $rawSecret",
                     artifactPath = ".fixthis/runtime-evidence/e-logcat/logcat.txt",
+                    status = RuntimeEvidenceStatus.COMPLETE,
+                    trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO,
+                    proximity = RuntimeEvidenceProximity.NEAR,
+                    warnings = listOf(RuntimeEvidenceWarning.REDACTION_APPLIED),
                 ),
                 RuntimeEvidenceAttachment(
                     evidenceId = "e-frame",
@@ -217,6 +236,20 @@ class CompactHandoffEvidenceExtensionsTest {
                     packageName = "io.github.beyondwin.fixthis.sample",
                     summary = "6 slow frames, 1 frozen frame candidate",
                     artifactPath = ".fixthis/runtime-evidence/e-frame/gfxinfo.json",
+                    status = RuntimeEvidenceStatus.PARTIAL,
+                    trigger = RuntimeEvidenceTrigger.CONSOLE_MANUAL,
+                    proximity = RuntimeEvidenceProximity.DELAYED,
+                ),
+                RuntimeEvidenceAttachment(
+                    evidenceId = "e-memory",
+                    type = RuntimeEvidenceType.MEMORY_SUMMARY,
+                    capturedAtEpochMillis = 12L,
+                    packageName = "io.github.beyondwin.fixthis.sample",
+                    summary = "capture failed before memory summary",
+                    status = RuntimeEvidenceStatus.FAILED,
+                    trigger = RuntimeEvidenceTrigger.MCP_MANUAL,
+                    proximity = RuntimeEvidenceProximity.STALE,
+                    failureReason = RuntimeEvidenceFailureReason.PROCESS_NOT_RUNNING,
                 ),
             ),
         )
@@ -224,10 +257,14 @@ class CompactHandoffEvidenceExtensionsTest {
         val markdown = CompactHandoffRenderer.render(session)
 
         assertTrue(markdown.contains("  runtimeEvidence:"), markdown)
-        assertTrue(markdown.contains("    - logcat_window -> .fixthis/runtime-evidence/e-logcat/logcat.txt"), markdown)
-        assertTrue(markdown.contains("      summary: 2 RuntimeException lines from MainActivity"), markdown)
-        assertTrue(markdown.contains("    - frame_summary -> .fixthis/runtime-evidence/e-frame/gfxinfo.json"), markdown)
-        assertTrue(!markdown.contains("full raw log line"), markdown)
+        assertTrue(markdown.contains("    - logcat_window status=complete proximity=near"), markdown)
+        assertTrue(markdown.contains("      summary: $boundedSummary"), markdown)
+        assertTrue(markdown.contains("      artifact: .fixthis/runtime-evidence/e-logcat/logcat.txt"), markdown)
+        assertTrue(markdown.contains("      warning: redaction_applied"), markdown)
+        assertTrue(markdown.indexOf("memory_summary") < markdown.indexOf("frame_summary"), markdown)
+        assertTrue(markdown.indexOf("frame_summary") < markdown.indexOf("logcat_window"), markdown)
+        assertTrue(!markdown.contains("trace_artifact"), markdown)
+        assertTrue(!markdown.contains(rawSecret), markdown)
     }
 
     private fun verificationGuidanceItem(
