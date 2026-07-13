@@ -321,6 +321,9 @@ unavailable, non-strict reports must record the exact deferred reason and
 strict connected evidence must fail. A caveated pass is acceptable only when
 the handoff preserves the required warning or risk signal, such as
 `VISUAL_AREA_ONLY`, `POSSIBLE_VIEW_INTEROP`, or `SHARED_COMPONENT`.
+The matrix derives those findings from the structured runtime fixture report;
+missing, stale, failed, or unparseable observation output fails closed instead
+of reconstructing a pass from manifest expectations.
 
 ## Android Agent Evidence Umbrella
 

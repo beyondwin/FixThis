@@ -43,13 +43,22 @@
               return new ConsoleRequestError({ status: response.status, bodyText });
             }
 
+            function consoleRequestHeaders(initialHeaders = {}) {
+              const headers = new Headers(initialHeaders);
+              const token = window.FixThisConsoleConfig?.consoleToken;
+              if (token) headers.set('X-FixThis-Console-Token', token);
+              return headers;
+            }
+
+            function consoleCapabilityUrl(path) {
+              const token = window.FixThisConsoleConfig?.consoleToken;
+              if (!token || /[?&]consoleToken=/.test(path)) return path;
+              const separator = path.includes('?') ? '&' : '?';
+              return path + separator + 'consoleToken=' + encodeURIComponent(token);
+            }
+
             async function requestJson(path, options = {}) {
-              const method = (options.method || 'GET').toUpperCase();
-              const headers = new Headers(options.headers || {});
-              if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-                const token = window.FixThisConsoleConfig?.consoleToken;
-                if (token) headers.set('X-FixThis-Console-Token', token);
-              }
+              const headers = consoleRequestHeaders(options.headers || {});
               const response = await fetch(path, { ...options, headers });
               if (!response.ok) {
                 const err = await readStructuredError(response);

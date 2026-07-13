@@ -12,11 +12,13 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.runtimeEvidencePo
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 internal const val RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX = "RUNTIME_EVIDENCE_CONTEXT_CHANGED:"
 
 internal class RuntimeEvidenceStoreMutations(
-    private val lock: Any,
+    private val lock: ReentrantLock,
     private val clock: () -> Long,
     private val stateStore: SessionStateStore,
     private val journal: SessionEventJournal,
@@ -31,7 +33,7 @@ internal class RuntimeEvidenceStoreMutations(
     ): SessionDto {
         require(itemIds.isNotEmpty()) { "itemIds must not be empty" }
         require(attachments.isNotEmpty()) { "attachments must not be empty" }
-        val updated = synchronized(lock) {
+        val updated = lock.withInterruptibleLock {
             val session = try {
                 stateStore.get(sessionId)
             } catch (error: FeedbackSessionException) {
@@ -66,7 +68,7 @@ internal class RuntimeEvidenceStoreMutations(
     }
 
     fun updatePolicy(sessionId: String, policy: RuntimeEvidencePolicy): SessionDto {
-        val updated = synchronized(lock) {
+        val updated = lock.withLock {
             val session = stateStore.get(sessionId)
             if (session.status == SessionStatusDto.CLOSED) {
                 throw FeedbackSessionException(
@@ -104,4 +106,13 @@ internal class RuntimeEvidenceStoreMutations(
     private fun contextChanged(): FeedbackSessionException = FeedbackSessionException(
         "$RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX Session, screen, or feedback items changed before evidence linkage.",
     )
+}
+
+private inline fun <T> ReentrantLock.withInterruptibleLock(block: () -> T): T {
+    lockInterruptibly()
+    return try {
+        block()
+    } finally {
+        unlock()
+    }
 }

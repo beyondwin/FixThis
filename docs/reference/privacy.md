@@ -58,7 +58,8 @@ artifact files are committed. The internal redactor validates optional
 injected patterns, but console and MCP callers cannot supply patterns. A redacted,
 240-character maximum summary is persisted in session JSON. Redaction is
 best-effort: application-specific sensitive values that do not match these
-rules can remain in local artifacts, so review them before sharing.
+rules can remain in local artifacts, so every logcat attachment carries
+`sensitive_logs_possible` and should be reviewed before sharing.
 
 ## Screenshot Limitations
 
@@ -86,6 +87,10 @@ CLI/MCP flows may copy screenshot artifacts into the project:
 ```
 
 These files are local artifacts and are ignored by git. Treat them like screenshots from a debug device and delete them when no longer needed.
+Runtime-evidence directories are created or tightened to owner-only access
+(`0700`) and their artifacts, manifests, and quota locks to `0600` on POSIX
+filesystems. Other filesystems use the platform's owner-only file controls and
+fail closed when those controls cannot be applied.
 
 Automatically collected runtime evidence is bounded to 512 KiB for logcat,
 128 KiB each for memory and frame summaries, 2 MiB per committed bundle, and

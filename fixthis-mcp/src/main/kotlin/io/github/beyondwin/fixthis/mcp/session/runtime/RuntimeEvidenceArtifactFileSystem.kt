@@ -8,6 +8,104 @@ import java.nio.file.LinkOption
 import java.nio.file.OpenOption
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
+
+internal object RuntimeEvidencePrivatePermissions {
+    private val directoryPermissions = setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OWNER_EXECUTE,
+    )
+    private val filePermissions = setOf(
+        PosixFilePermission.OWNER_READ,
+        PosixFilePermission.OWNER_WRITE,
+    )
+    private val directoryAttribute = PosixFilePermissions.asFileAttribute(directoryPermissions)
+    private val fileAttribute = PosixFilePermissions.asFileAttribute(filePermissions)
+
+    fun createDirectory(path: Path) {
+        if (supportsPosix(path.parent)) {
+            Files.createDirectory(path, directoryAttribute)
+        } else {
+            Files.createDirectory(path)
+            restrictWithFileApi(path.toFile(), directory = true)
+        }
+        tightenDirectory(path)
+    }
+
+    fun openFile(path: Path, options: Set<OpenOption>): FileChannel {
+        val channel = if (supportsPosix(path.parent)) {
+            FileChannel.open(path, options, fileAttribute)
+        } else {
+            FileChannel.open(path, options)
+        }
+        runCatching { tightenFile(path) }
+            .onFailure { channel.close() }
+            .getOrThrow()
+        return channel
+    }
+
+    fun tightenDirectory(path: Path) {
+        require(Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(path)) {
+            "Runtime-evidence private path must be a real directory"
+        }
+        if (supportsPosix(path)) {
+            Files.getFileAttributeView(
+                path,
+                PosixFileAttributeView::class.java,
+                LinkOption.NOFOLLOW_LINKS,
+            ).setPermissions(directoryPermissions)
+        } else {
+            restrictWithFileApi(path.toFile(), directory = true)
+        }
+    }
+
+    fun tightenFile(path: Path) {
+        require(Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(path)) {
+            "Runtime-evidence private path must be a real file"
+        }
+        if (supportsPosix(path)) {
+            Files.getFileAttributeView(
+                path,
+                PosixFileAttributeView::class.java,
+                LinkOption.NOFOLLOW_LINKS,
+            ).setPermissions(filePermissions)
+        } else {
+            restrictWithFileApi(path.toFile(), directory = false)
+        }
+    }
+
+    fun tightenTreeNoFollow(root: Path) {
+        Files.walk(root).use { paths ->
+            paths.forEach { path ->
+                when {
+                    Files.isSymbolicLink(path) -> Unit
+                    Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) -> tightenDirectory(path)
+                    Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) -> tightenFile(path)
+                }
+            }
+        }
+    }
+
+    private fun supportsPosix(path: Path): Boolean = Files.getFileAttributeView(
+        path,
+        PosixFileAttributeView::class.java,
+        LinkOption.NOFOLLOW_LINKS,
+    ) != null
+
+    private fun restrictWithFileApi(file: File, directory: Boolean) {
+        require(file.setReadable(false, false)) { "Unable to remove inherited runtime-evidence read permissions" }
+        require(file.setWritable(false, false)) { "Unable to remove inherited runtime-evidence write permissions" }
+        require(file.setExecutable(false, false)) { "Unable to remove inherited runtime-evidence execute permissions" }
+        require(file.setReadable(true, true)) { "Unable to grant owner runtime-evidence read permission" }
+        require(file.setWritable(true, true)) { "Unable to grant owner runtime-evidence write permission" }
+        if (directory) {
+            require(file.setExecutable(true, true)) { "Unable to grant owner runtime-evidence directory access" }
+        }
+    }
+}
 
 internal class RuntimeEvidenceArtifactPathGuard(
     projectRoot: File,
@@ -56,12 +154,17 @@ internal class RuntimeEvidenceArtifactFileSystem(
         if (!directory.exists()) {
             val parent = directory.parentFile
             if (parent != projectRoot) ensureDirectory(parent)
-            require(directory.mkdir()) { "Unable to create runtime-evidence directory" }
+            RuntimeEvidencePrivatePermissions.createDirectory(directory.toPath())
         }
         require(directory.isDirectory && !Files.isSymbolicLink(directory.toPath())) {
             "Runtime-evidence storage must be a real directory"
         }
         pathGuard.ensureWithinProject(directory)
+        if (directory == evidenceRoot) {
+            RuntimeEvidencePrivatePermissions.tightenTreeNoFollow(directory.toPath())
+        } else {
+            RuntimeEvidencePrivatePermissions.tightenDirectory(directory.toPath())
+        }
         return directory
     }
 
@@ -70,12 +173,13 @@ internal class RuntimeEvidenceArtifactFileSystem(
         val child = File(parent, name)
         pathGuard.ensureWithinProject(child)
         require(!Files.isSymbolicLink(child.toPath())) { "Runtime-evidence paths must not be symlinks" }
-        if (create && !child.exists()) require(child.mkdir()) { "Unable to create runtime-evidence directory" }
+        if (create && !child.exists()) RuntimeEvidencePrivatePermissions.createDirectory(child.toPath())
         if (child.exists()) {
             require(child.isDirectory && !Files.isSymbolicLink(child.toPath())) {
                 "Runtime-evidence paths must be real directories"
             }
             pathGuard.ensureWithinProject(child)
+            RuntimeEvidencePrivatePermissions.tightenDirectory(child.toPath())
         }
         return child
     }
@@ -85,6 +189,7 @@ internal class RuntimeEvidenceArtifactFileSystem(
         require(!Files.isSymbolicLink(evidenceRoot.toPath())) { "Runtime-evidence storage must not be a symlink" }
         require(evidenceRoot.isDirectory) { "Runtime-evidence storage must be a directory" }
         pathGuard.ensureWithinProject(evidenceRoot)
+        RuntimeEvidencePrivatePermissions.tightenTreeNoFollow(evidenceRoot.toPath())
         return evidenceRoot
     }
 
@@ -127,7 +232,7 @@ internal class RuntimeEvidenceArtifactFileSystem(
             StandardOpenOption.WRITE,
             LinkOption.NOFOLLOW_LINKS,
         )
-        FileChannel.open(file.toPath(), options).use { channel ->
+        RuntimeEvidencePrivatePermissions.openFile(file.toPath(), options).use { channel ->
             val buffer = ByteBuffer.wrap(bytes)
             while (buffer.hasRemaining()) channel.write(buffer)
             channel.force(true)

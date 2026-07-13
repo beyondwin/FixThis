@@ -33,11 +33,12 @@ internal class RuntimeEvidenceRedactor(
         const val MAX_PATTERN_LENGTH = 256
 
         const val SENSITIVE_KEYS =
-            "password|passwd|pwd|api[_-]?key|client[_-]?secret|secret|access[_-]?token|" +
+            "authorization|cookie|set-cookie|token|password|passwd|pwd|api[_-]?key|" +
+                "client[_-]?secret|secret|access[_-]?token|" +
                 "refresh[_-]?token|session[_-]?token|auth[_-]?token|" +
                 "fixthis[_-](?:bridge[_-]|console[_-]|session[_-])?token"
         val sensitiveKeyValue = Regex(
-            "(?i)(\\b(?:$SENSITIVE_KEYS)\\s*[:=]\\s*)" +
+            "(?i)(\\b(?:$SENSITIVE_KEYS)(?:[ \\t]*[:=][ \\t]*|[ \\t]+))" +
                 "(?:\"[^\"]*\"|'[^']*'|[^\\s&,;]+)",
         )
         val sensitiveJsonKeyValue = Regex(
@@ -46,11 +47,9 @@ internal class RuntimeEvidenceRedactor(
 
         val defaultRules = listOf(
             RedactionRule(
-                Regex("""(?im)(\bauthorization\s*:\s*)[^\r\n]*"""),
-                "$1$REDACTED",
-            ),
-            RedactionRule(
-                Regex("""(?im)(\b(?:cookie|set-cookie)\s*:\s*)[^\r\n]*"""),
+                Regex(
+                    """(?im)((?<!["'])\b(?:authorization|cookie|set-cookie)(?:[ \t]*[:=][ \t]*|[ \t]+))[^\r\n]*""",
+                ),
                 "$1$REDACTED",
             ),
             RedactionRule(

@@ -37,6 +37,7 @@ class RuntimeEvidenceSummarizerTest {
 
         assertTrue(actual.summary.contains("no matching error pattern in the selected window"))
         assertFalse(actual.summary.contains("no error", ignoreCase = true))
+        assertTrue(RuntimeEvidenceWarning.SENSITIVE_LOGS_POSSIBLE in actual.warnings)
     }
 
     @Test

@@ -8,6 +8,8 @@ import java.nio.file.LinkOption
 import java.nio.file.OpenOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFilePermission
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -28,6 +30,28 @@ class RuntimeEvidenceQuotaFileLockTest {
     @Test
     fun recoveryRepairsPrimaryOnlyWhileHoldingRecoveryOsLock() = withRoot { root ->
         QuotaRecoveryOsLockProof(root).verify()
+    }
+
+    @Test
+    fun quotaLockFilesAreOwnerOnlyAndExistingPermissionsAreTightened() = withRoot { root ->
+        val evidenceRoot = File(root, ".fixthis/runtime-evidence").apply { mkdirs() }
+        if (Files.getFileAttributeView(evidenceRoot.toPath(), PosixFileAttributeView::class.java) == null) return@withRoot
+        Files.setPosixFilePermissions(evidenceRoot.toPath(), PosixFilePermission.entries.toSet())
+        val primary = File(evidenceRoot, RuntimeEvidenceArtifactQuotaGuard.LOCK_FILE_NAME).apply { writeText("") }
+        val recovery = File(evidenceRoot, RuntimeEvidenceQuotaFileLock.RECOVERY_LOCK_FILE_NAME).apply { writeText("") }
+        Files.setPosixFilePermissions(primary.toPath(), PosixFilePermission.entries.toSet())
+        Files.setPosixFilePermissions(recovery.toPath(), PosixFilePermission.entries.toSet())
+
+        RuntimeEvidenceQuotaFileLock(evidenceRoot).withLock {}
+
+        assertEquals(
+            setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+            Files.getPosixFilePermissions(primary.toPath()),
+        )
+        assertEquals(
+            setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+            Files.getPosixFilePermissions(recovery.toPath()),
+        )
     }
 
     private inline fun withRoot(block: (File) -> Unit) {

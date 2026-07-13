@@ -2,7 +2,6 @@ package io.github.beyondwin.fixthis.mcp.console
 
 import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
 import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleSourceFixtures
-import io.github.beyondwin.fixthis.mcp.fixtures.consoleTokenFrom
 import io.github.beyondwin.fixthis.mcp.fixtures.javascriptFunctionBody
 import io.github.beyondwin.fixthis.mcp.fixtures.writeConsoleAssets
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
@@ -17,7 +16,7 @@ import kotlin.test.assertTrue
 
 class ConsoleAssetRoutesTest {
     @Test
-    fun configuredConsoleAssetsReceiveConsoleToken() {
+    fun configuredConsoleAssetsDoNotEmbedConsoleToken() {
         val assetsDir = Files.createTempDirectory("fixthis-console-assets-token").toFile()
         val service = FeedbackSessionService(
             bridge = FakeFixThisBridge(),
@@ -32,7 +31,8 @@ class ConsoleAssetRoutesTest {
             val index = ConsoleHttpTestClient(server.url).get()
 
             assertTrue(index.contains("token-marker"))
-            assertTrue(consoleTokenFrom(index).isNotBlank())
+            assertFalse(index.contains(server.consoleTokenForTests()))
+            assertTrue(index.contains("window.location.hash"))
         } finally {
             server.stop()
             assetsDir.deleteRecursively()
@@ -40,15 +40,19 @@ class ConsoleAssetRoutesTest {
     }
 
     @Test
-    fun consoleRequestJsonSendsTokenForMutatingRequestsAndPreservesHeaders() {
+    fun consoleRequestJsonSendsTokenForAllApiRequestsAndPreservesHeaders() {
         val html = ConsoleSourceFixtures.readAll()
         val requestJsonBody = javascriptFunctionBody(html, "requestJson")
+        val requestHeadersBody = javascriptFunctionBody(html, "consoleRequestHeaders")
 
         assertTrue(html.contains("window.FixThisConsoleConfig"))
-        assertTrue(requestJsonBody.contains("X-FixThis-Console-Token"))
-        assertTrue(requestJsonBody.contains("new Headers(options.headers || {})"))
-        assertTrue(requestJsonBody.contains("headers.set('X-FixThis-Console-Token'"))
+        assertTrue(requestJsonBody.contains("consoleRequestHeaders(options.headers || {})"))
+        assertTrue(requestHeadersBody.contains("headers.set('X-FixThis-Console-Token'"))
         assertTrue(requestJsonBody.contains("fetch(path, { ...options, headers })"))
+        assertFalse(requestJsonBody.contains("['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)"))
+        assertTrue(html.contains("new EventSource(consoleCapabilityUrl('/api/events'))"))
+        assertTrue(html.contains("consoleRequestHeaders(sessionsEtag"))
+        assertTrue(html.contains("const authenticatedSrc = typeof consoleCapabilityUrl === 'function'"))
     }
 
     @Test

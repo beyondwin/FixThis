@@ -175,8 +175,9 @@
               renderPreviewFrameStatus(screen, hasScreenshot);
               const image = document.getElementById('snapshotImage');
               const src = screenImageUrl(screen);
-              if (image.getAttribute('src') !== src) {
-                image.setAttribute('src', src);
+              const authenticatedSrc = typeof consoleCapabilityUrl === 'function' ? consoleCapabilityUrl(src) : src;
+              if (image.getAttribute('src') !== authenticatedSrc) {
+                image.setAttribute('src', authenticatedSrc);
               }
               const hintSlot = document.getElementById('annotateHintSlot');
               let hint = document.getElementById('annotateHint');

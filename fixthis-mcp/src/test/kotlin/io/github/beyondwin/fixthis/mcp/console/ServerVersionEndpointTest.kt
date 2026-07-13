@@ -23,7 +23,7 @@ class ServerVersionEndpointTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val connection = java.net.URI(server.url + "/api/server-version").toURL()
+            val connection = java.net.URI(server.originUrl + "/api/server-version").toURL()
                 .openConnection() as java.net.HttpURLConnection
             connection.requestMethod = "GET"
 
@@ -54,7 +54,7 @@ class ServerVersionEndpointTest {
         try {
             // HEAD is a safe non-GET method that bypasses the mutation guard (not in ConsoleMutatingMethods),
             // so the request reaches routing and the requireMethod("GET") check returns 405.
-            val connection = java.net.URI(server.url + "/api/server-version").toURL()
+            val connection = java.net.URI(server.originUrl + "/api/server-version").toURL()
                 .openConnection() as java.net.HttpURLConnection
             connection.requestMethod = "HEAD"
 

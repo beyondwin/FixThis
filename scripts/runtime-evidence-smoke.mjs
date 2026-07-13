@@ -12,6 +12,7 @@ const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(scriptPath), "..");
 const defaultReportDir = "build/reports/fixthis-runtime-evidence";
 const packageName = "io.github.beyondwin.fixthis.sample";
+const baselineEvidenceTypes = ["frame_summary", "logcat_window", "memory_summary"];
 const secretValue = "fixthis-runtime-secret-7f3a";
 const handoffLimit = 20_000;
 
@@ -35,8 +36,8 @@ export function validateRuntimeEvidenceProductPath(productPath) {
   if (!productPath || productPath.tool !== "fixthis_collect_runtime_evidence") throw new Error("missing collection tool proof");
   if (!productPath.sessionId) throw new Error("missing product-path session");
   if (!Array.isArray(productPath.itemIds) || productPath.itemIds.length === 0) throw new Error("missing linked feedback item");
-  if (!["complete", "partial"].includes(productPath.captureStatus)) throw new Error("runtime evidence capture did not produce a usable terminal status");
-  if (!(productPath.attachmentCount > 0)) throw new Error("missing runtime evidence attachment");
+  if (productPath.captureStatus !== "complete") throw new Error("runtime evidence proof requires a complete baseline capture");
+  if (productPath.attachmentCount !== 3) throw new Error("runtime evidence proof requires exactly three baseline attachments");
   if (productPath.artifactVerified !== true) throw new Error("runtime evidence artifact is missing or outside the project root");
   if (productPath.compactHandoffBounded !== true) throw new Error("compact handoff is missing, unbounded, or contains raw secret data");
   if (productPath.replayVerified !== true) throw new Error("runtime evidence replay mismatch");
@@ -95,11 +96,12 @@ function ensureMcpDistribution(environment) {
 
 async function consoleClient(consoleUrl) {
   const base = new URL(consoleUrl);
+  const token = new URLSearchParams(base.hash.slice(1)).get("consoleToken");
+  if (!token) throw new Error("Console capability token was not present in the open-console URL");
+  base.hash = "";
   const response = await fetch(base);
   if (!response.ok) throw new Error(`Console bootstrap failed (${response.status})`);
-  const html = await response.text();
-  const token = html.match(/consoleToken:\s*"([^"]+)"/)?.[1];
-  if (!token) throw new Error("Console token was not present in bootstrap HTML");
+  await response.text();
   const origin = base.origin;
   return async (path, body) => {
     const next = await fetch(new URL(path, origin), {
@@ -125,12 +127,20 @@ function sameIds(actual, expected) {
   return JSON.stringify(sortedUnique(actual)) === JSON.stringify(sortedUnique(expected));
 }
 
-function evidenceProjection(session, itemId, result, projectDir, expectedTrigger, requireRedaction = false) {
+function evidenceProjection(session, itemId, result, projectDir, expectedTrigger, expectedDeviceSerial, requireRedaction = false) {
   requireProof(result?.attempted === true, `${expectedTrigger} collection was not attempted`);
-  requireProof(["complete", "partial"].includes(result.status), `${expectedTrigger} collection did not produce a usable terminal status`);
+  requireProof(
+    result.status === "complete",
+    `${expectedTrigger} collection did not produce a complete baseline capture: ${JSON.stringify({
+      status: result.status,
+      failureReason: result.failureReason,
+      warnings: result.warnings,
+      attachmentCount: result.attachmentIds?.length,
+    })}`,
+  );
   requireProof(Boolean(result.captureId), `${expectedTrigger} collection is missing capture id`);
   const ids = sortedUnique(result.attachmentIds);
-  requireProof(ids.length > 0, `${expectedTrigger} collection is missing attachments`);
+  requireProof(ids.length === baselineEvidenceTypes.length, `${expectedTrigger} collection is missing baseline attachments`);
   requireProof(sameIds(result.linkedItemIds, [itemId]), `${expectedTrigger} linked item mismatch`);
   const targetItem = session.items?.find((entry) => entry.itemId === itemId);
   requireProof(targetItem, "target feedback item missing from session");
@@ -142,6 +152,18 @@ function evidenceProjection(session, itemId, result, projectDir, expectedTrigger
     requireProof(targetItem.runtimeEvidenceIds?.includes(id), `${expectedTrigger} attachment is not linked to target item: ${id}`);
     requireProof(attachment.trigger === expectedTrigger, `${expectedTrigger} attachment has wrong trigger: ${id}`);
     requireProof(attachment.captureId === result.captureId, `${expectedTrigger} attachment has wrong capture id: ${id}`);
+    requireProof(attachment.status === "complete", `${expectedTrigger} attachment is not complete: ${id}`);
+    requireProof(attachment.deviceSerial === expectedDeviceSerial, `${expectedTrigger} attachment has wrong device serial: ${id}`);
+    requireProof(attachment.packageName === packageName, `${expectedTrigger} attachment has wrong package name: ${id}`);
+    requireProof(Number.isFinite(attachment.screenCapturedAtEpochMillis), `${expectedTrigger} attachment is missing screen timestamp: ${id}`);
+    requireProof(Number.isFinite(attachment.captureStartedAtEpochMillis), `${expectedTrigger} attachment is missing start timestamp: ${id}`);
+    requireProof(Number.isFinite(attachment.captureCompletedAtEpochMillis), `${expectedTrigger} attachment is missing completion timestamp: ${id}`);
+    requireProof(
+      attachment.screenCapturedAtEpochMillis <= attachment.captureStartedAtEpochMillis &&
+        attachment.captureStartedAtEpochMillis <= attachment.captureCompletedAtEpochMillis,
+      `${expectedTrigger} attachment timestamps are inconsistent: ${id}`,
+    );
+    requireProof(["near", "delayed"].includes(attachment.proximity), `${expectedTrigger} attachment has invalid proximity: ${id}`);
     requireProof(Boolean(attachment.artifactPath), `${expectedTrigger} attachment is missing artifact path: ${id}`);
     const candidate = isAbsolute(attachment.artifactPath) ? attachment.artifactPath : resolve(projectDir, attachment.artifactPath);
     requireProof(existsSync(candidate), `${expectedTrigger} artifact missing or outside evidence root: ${id}`);
@@ -154,9 +176,14 @@ function evidenceProjection(session, itemId, result, projectDir, expectedTrigger
       evidenceId: attachment.evidenceId,
       trigger: attachment.trigger,
       captureId: attachment.captureId,
+      type: attachment.type,
       artifactPath: attachment.artifactPath,
     };
   });
+  requireProof(
+    JSON.stringify(attachments.map((entry) => entry.type).sort()) === JSON.stringify(baselineEvidenceTypes),
+    `${expectedTrigger} attachment type set does not match baseline`,
+  );
   if (requireRedaction) requireProof(redactionMarkerFound, `${expectedTrigger} redaction marker was not observed`);
   return attachments.sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
 }
@@ -175,6 +202,7 @@ export function proveRuntimeEvidenceProductPath({
   handoff,
   session,
   replayed,
+  expectedDeviceSerial,
 }) {
   requireProof(toolName === "fixthis_collect_runtime_evidence", "missing collection tool proof");
   requireProof(policy?.runtimeEvidencePolicy === "auto_on_handoff", "runtime evidence policy did not persist as Auto");
@@ -183,12 +211,12 @@ export function proveRuntimeEvidenceProductPath({
   requireProof(noSecret(session), "raw secret entered session JSON");
   requireProof(noSecret(replayed), "raw secret entered replayed session JSON");
 
-  const manualProjection = evidenceProjection(session, itemId, collected, projectDir, "mcp_manual");
+  const manualProjection = evidenceProjection(session, itemId, collected, projectDir, "mcp_manual", expectedDeviceSerial);
   const auto = handoff.runtimeEvidence;
   requireProof(auto?.attempted === true, "Auto handoff did not attempt runtime evidence collection");
   requireProof(!auto.skippedReason, "Auto handoff runtime evidence was skipped");
-  const autoProjection = evidenceProjection(session, itemId, auto, projectDir, "handoff_auto", true);
-  const handoffProjection = evidenceProjection(handoff.session, itemId, auto, projectDir, "handoff_auto", true);
+  const autoProjection = evidenceProjection(session, itemId, auto, projectDir, "handoff_auto", expectedDeviceSerial, true);
+  const handoffProjection = evidenceProjection(handoff.session, itemId, auto, projectDir, "handoff_auto", expectedDeviceSerial, true);
   requireProof(JSON.stringify(autoProjection) === JSON.stringify(handoffProjection), "handoff response attachment mismatch");
 
   const compactHandoffBounded = handoff.prompt.length <= handoffLimit &&
@@ -205,6 +233,7 @@ export function proveRuntimeEvidenceProductPath({
       evidenceId: attachment.evidenceId,
       trigger: attachment.trigger,
       captureId: attachment.captureId,
+      type: attachment.type,
       artifactPath: attachment.artifactPath,
     };
   }).sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
@@ -285,6 +314,7 @@ export async function runRuntimeEvidenceProductPath({ environment, projectDir, m
       handoff,
       session,
       replayed,
+      expectedDeviceSerial: environment.device,
     });
   } finally {
     await mcp?.close?.();

@@ -32,6 +32,9 @@ internal class RuntimeEvidenceSummarizer(
         if (result.kind == CliRuntimeEvidenceKind.FRAME_SUMMARY) {
             warnings += RuntimeEvidenceWarning.CUMULATIVE_NOT_WINDOWED
         }
+        if (result.kind == CliRuntimeEvidenceKind.LOGCAT_WINDOW) {
+            warnings += RuntimeEvidenceWarning.SENSITIVE_LOGS_POSSIBLE
+        }
         if (sourceRedacted || redacted.redacted) warnings += RuntimeEvidenceWarning.REDACTION_APPLIED
         return RuntimeEvidenceSummary(
             type = result.kind.toEvidenceType(),

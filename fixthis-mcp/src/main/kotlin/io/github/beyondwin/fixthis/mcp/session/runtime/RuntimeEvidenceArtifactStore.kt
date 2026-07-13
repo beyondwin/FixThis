@@ -8,6 +8,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.UUID
+import java.util.concurrent.locks.ReentrantLock
 
 data class RuntimeEvidenceArtifactInput(
     val type: RuntimeEvidenceType,
@@ -52,6 +53,7 @@ internal data class RuntimeEvidenceArtifactStoreHooks(
     val fileSizeReader: ((Path) -> Long)? = null,
 )
 
+@Suppress("TooManyFunctions")
 internal class FileRuntimeEvidenceArtifactStore(
     projectRoot: File,
     private val redactor: RuntimeEvidenceRedactor,
@@ -61,13 +63,13 @@ internal class FileRuntimeEvidenceArtifactStore(
     private val evidenceRoot = File(this.projectRoot, RuntimeEvidenceArtifactNaming.EVIDENCE_ROOT_RELATIVE)
     private val fileSystem = RuntimeEvidenceArtifactFileSystem(this.projectRoot, evidenceRoot, hooks.fileSizeReader)
     private val cleaner = RuntimeEvidenceArtifactCleaner(fileSystem)
+    private val storeLock = ReentrantLock()
 
-    @Synchronized
     override fun commit(
         sessionId: String,
         captureId: String,
         inputs: List<RuntimeEvidenceArtifactInput>,
-    ): CommittedRuntimeEvidenceBundle {
+    ): CommittedRuntimeEvidenceBundle = withStoreLock {
         RuntimeEvidenceArtifactNaming.validateId(sessionId, "sessionId")
         RuntimeEvidenceArtifactNaming.validateId(captureId, "captureId")
         val prepared = prepareInputs(inputs)
@@ -85,7 +87,7 @@ internal class FileRuntimeEvidenceArtifactStore(
             byteCounter = hooks.quotaByteCounter ?: fileSystem::directorySizeNoFollow,
             beforeQuotaCheck = hooks.beforeQuotaCheck,
         )
-        return quotaGuard.withReservation(bundleBytes) {
+        quotaGuard.withReservation(bundleBytes) {
             commitReservedBundle(root, sessionId, captureId, prepared, manifest)
         }
     }
@@ -146,8 +148,7 @@ internal class FileRuntimeEvidenceArtifactStore(
         )
     }
 
-    @Synchronized
-    override fun deleteBundle(sessionId: String, captureId: String) {
+    override fun deleteBundle(sessionId: String, captureId: String): Unit = withStoreLock {
         RuntimeEvidenceArtifactNaming.validateId(sessionId, "sessionId")
         RuntimeEvidenceArtifactNaming.validateId(captureId, "captureId")
         fileSystem.existingEvidenceRoot()?.let { root ->
@@ -155,30 +156,37 @@ internal class FileRuntimeEvidenceArtifactStore(
                 cleaner.deleteBundle(root, sessionId, captureId)
             }
         }
+        Unit
     }
 
-    @Synchronized
-    override fun cleanupIncomplete(): Int {
-        val root = fileSystem.existingEvidenceRoot() ?: return 0
-        return quotaGuard(root).withExclusive { cleaner.cleanupIncomplete(root) }
+    override fun cleanupIncomplete(): Int = withStoreLock {
+        val root = fileSystem.existingEvidenceRoot() ?: return@withStoreLock 0
+        quotaGuard(root).withExclusive { cleaner.cleanupIncomplete(root) }
     }
 
-    @Synchronized
-    override fun cleanupOrphans(referencedCaptureIdsBySession: Map<String, Set<String>>): Int {
+    override fun cleanupOrphans(referencedCaptureIdsBySession: Map<String, Set<String>>): Int = withStoreLock {
         referencedCaptureIdsBySession.forEach { (sessionId, captures) ->
             RuntimeEvidenceArtifactNaming.validateId(sessionId, "sessionId")
             captures.forEach { RuntimeEvidenceArtifactNaming.validateId(it, "captureId") }
         }
-        val root = fileSystem.existingEvidenceRoot() ?: return 0
-        return quotaGuard(root).withExclusive { cleaner.cleanupOrphans(root, referencedCaptureIdsBySession) }
+        val root = fileSystem.existingEvidenceRoot() ?: return@withStoreLock 0
+        quotaGuard(root).withExclusive { cleaner.cleanupOrphans(root, referencedCaptureIdsBySession) }
     }
 
-    @Synchronized
-    override fun deleteSession(sessionId: String) {
+    override fun deleteSession(sessionId: String) = withStoreLock {
         RuntimeEvidenceArtifactNaming.validateId(sessionId, "sessionId")
-        val root = fileSystem.existingEvidenceRoot() ?: return
+        val root = fileSystem.existingEvidenceRoot() ?: return@withStoreLock
         quotaGuard(root).withExclusive {
             cleaner.deleteSession(root, sessionId)
+        }
+    }
+
+    private inline fun <T> withStoreLock(block: () -> T): T {
+        storeLock.lockInterruptibly()
+        return try {
+            block()
+        } finally {
+            storeLock.unlock()
         }
     }
 

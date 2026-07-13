@@ -5,6 +5,9 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.tools.RuntimeEvidenceBridge
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.io.File
@@ -68,6 +71,7 @@ internal data class RuntimeEvidenceCaptureDependencies(
     val linker: RuntimeEvidenceLinker? = null,
 )
 
+@Suppress("TooManyFunctions")
 internal class RuntimeEvidenceCaptureCoordinator(
     private val bridge: RuntimeEvidenceBridge,
     private val store: FeedbackSessionStore,
@@ -110,6 +114,7 @@ internal class RuntimeEvidenceCaptureCoordinator(
         }
     }
 
+    @Suppress("ReturnCount")
     private suspend fun deduplicatedCollect(
         request: RuntimeEvidenceCaptureRequest,
         session: SessionDto,
@@ -121,18 +126,23 @@ internal class RuntimeEvidenceCaptureCoordinator(
             sessionId = request.sessionId,
             screenId = request.screenId,
             preset = request.preset,
+            deviceSerial = startContext.deviceSerial,
             installEpochMillis = startContext.installEpochMillis,
         )
         val lease = RuntimeEvidenceCaptureRuntime.acquire(key) {
             prepareCapture(request, session, startContext, budget)
         }
         var prepared: RuntimeEvidencePreparedCapture? = null
-        var disposition = RuntimeEvidenceLinkDisposition.PRESERVE
+        var disposition = RuntimeEvidenceLinkDisposition.NONE
         return try {
-            prepared = lease.await()
-            val completion = completePrepared(request, prepared, deleteExactRejection = false)
+            prepared = withTimeoutOrNull(budget.remainingMillis().coerceAtLeast(1L)) { lease.await() }
+                ?: return artifactFailure("capture-timeout", RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT)
+            val completion = completePrepared(request, prepared, deleteExactRejection = false, budget = budget)
             disposition = completion.disposition
             completion.result
+        } catch (cancelled: CancellationException) {
+            disposition = RuntimeEvidenceLinkDisposition.PRESERVE
+            throw cancelled
         } finally {
             val committed = prepared as? RuntimeEvidencePreparedCapture.Committed
             lease.release(disposition) {
@@ -148,7 +158,7 @@ internal class RuntimeEvidenceCaptureCoordinator(
         budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidenceCaptureResult {
         val prepared = prepareCapture(request, session, startContext, budget)
-        return completePrepared(request, prepared, deleteExactRejection = true).result
+        return completePrepared(request, prepared, deleteExactRejection = true, budget = budget).result
     }
 
     private suspend fun prepareCapture(
@@ -170,7 +180,13 @@ internal class RuntimeEvidenceCaptureCoordinator(
             summarizer = summarizer,
             redactor = redactor,
         )
-        return when (val endContext = collector.endContextWithinReserve(session.packageName, budget)) {
+        return when (
+            val endContext = collector.endContextWithinReserve(
+                session.packageName,
+                startContext.deviceSerial,
+                budget,
+            )
+        ) {
             RuntimeEvidenceEndContextOutcome.TimedOut -> RuntimeEvidencePreparedCapture.Terminal(
                 artifactFailure(captured.captureId, RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT),
             )
@@ -183,16 +199,19 @@ internal class RuntimeEvidenceCaptureCoordinator(
                 startContext,
                 captured,
                 endContext.context,
+                budget,
             )
         }
     }
 
-    private fun finishCapture(
+    @Suppress("LongParameterList")
+    private suspend fun finishCapture(
         request: RuntimeEvidenceCaptureRequest,
         session: SessionDto,
         startContext: CliRuntimeEvidenceContext,
         captured: RuntimeEvidencePayload,
         endContext: CliRuntimeEvidenceContext,
+        budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidencePreparedCapture {
         val drift = classifyRuntimeEvidenceDrift(store, startContext, endContext, session, request)
         return when {
@@ -200,19 +219,34 @@ internal class RuntimeEvidenceCaptureCoordinator(
             captured.artifacts.isEmpty() -> RuntimeEvidencePreparedCapture.Terminal(
                 runtimeEvidenceResultWithoutArtifacts(captured),
             )
-            else -> commitPrepared(request, session, startContext, captured, drift)
+            else -> commitPrepared(request, session, startContext, captured, drift, budget)
         }
     }
 
-    private fun commitPrepared(
+    @Suppress("LongParameterList", "ReturnCount")
+    private suspend fun commitPrepared(
         request: RuntimeEvidenceCaptureRequest,
         session: SessionDto,
         startContext: CliRuntimeEvidenceContext,
         captured: RuntimeEvidencePayload,
         drift: RuntimeEvidenceContextDrift,
+        budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidencePreparedCapture {
         captured.warnings += drift.warnings
-        return when (val outcome = commitRuntimeEvidence(artifactStore, request.sessionId, captured)) {
+        val remaining = budget.remainingMillis()
+        if (remaining <= 0) {
+            return RuntimeEvidencePreparedCapture.Terminal(
+                artifactFailure(captured.captureId, RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT),
+            )
+        }
+        val outcome = withTimeoutOrNull(remaining) {
+            runInterruptible(Dispatchers.IO) {
+                commitRuntimeEvidence(artifactStore, request.sessionId, captured)
+            }
+        } ?: return RuntimeEvidencePreparedCapture.Terminal(
+            artifactFailure(captured.captureId, RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT),
+        )
+        return when (outcome) {
             is RuntimeEvidenceCommitOutcome.Failed -> RuntimeEvidencePreparedCapture.Terminal(
                 artifactFailure(captured.captureId, outcome.reason),
             )
@@ -233,31 +267,45 @@ internal class RuntimeEvidenceCaptureCoordinator(
         }
     }
 
-    private fun completePrepared(
+    private suspend fun completePrepared(
         request: RuntimeEvidenceCaptureRequest,
         prepared: RuntimeEvidencePreparedCapture,
         deleteExactRejection: Boolean,
+        budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidenceLinkCompletion = when (prepared) {
         is RuntimeEvidencePreparedCapture.Terminal -> RuntimeEvidenceLinkCompletion(
             prepared.result,
             RuntimeEvidenceLinkDisposition.NONE,
         )
-        is RuntimeEvidencePreparedCapture.Committed -> linkCommitted(request, prepared, deleteExactRejection)
+        is RuntimeEvidencePreparedCapture.Committed -> linkCommitted(request, prepared, deleteExactRejection, budget)
     }
 
-    private fun linkCommitted(
+    @Suppress("LongParameterList", "ReturnCount", "TooGenericExceptionCaught")
+    private suspend fun linkCommitted(
         request: RuntimeEvidenceCaptureRequest,
         prepared: RuntimeEvidencePreparedCapture.Committed,
         deleteExactRejection: Boolean,
+        budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidenceLinkCompletion {
-        val linked = runCatching {
-            linker.link(
-                request.sessionId,
-                request.screenId,
-                request.itemIds,
-                prepared.attachments,
-                prepared.aggregate,
-            )
+        val remaining = budget.remainingMillis()
+        if (remaining <= 0) return timedOutLink(prepared)
+        val linked = try {
+            val session = withTimeoutOrNull(remaining) {
+                runInterruptible(Dispatchers.IO) {
+                    linker.link(
+                        request.sessionId,
+                        request.screenId,
+                        request.itemIds,
+                        prepared.attachments,
+                        prepared.aggregate,
+                    )
+                }
+            } ?: return timedOutLink(prepared)
+            Result.success(session)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Result.failure(failure)
         }
         return linked.fold(
             onSuccess = {
@@ -278,6 +326,18 @@ internal class RuntimeEvidenceCaptureCoordinator(
             onFailure = { failure -> linkFailureResult(request, prepared, failure, deleteExactRejection) },
         )
     }
+
+    private fun timedOutLink(prepared: RuntimeEvidencePreparedCapture.Committed): RuntimeEvidenceLinkCompletion = RuntimeEvidenceLinkCompletion(
+        artifactFailure(
+            prepared.bundle.captureId,
+            RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT,
+            prepared.bundle,
+        ),
+        // A timed-out linker may have appended the session event before its
+        // post-commit persistence/compaction work was interrupted. Preserve
+        // the bundle unless a pre-append rejection proves it is unreferenced.
+        RuntimeEvidenceLinkDisposition.PRESERVE,
+    )
 
     private fun linkFailureResult(
         request: RuntimeEvidenceCaptureRequest,

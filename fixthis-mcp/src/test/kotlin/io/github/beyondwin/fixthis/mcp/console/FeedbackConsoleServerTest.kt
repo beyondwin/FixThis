@@ -5,7 +5,6 @@ import com.sun.net.httpserver.HttpContext
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpPrincipal
 import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
-import io.github.beyondwin.fixthis.mcp.fixtures.consoleTokenFrom
 import io.github.beyondwin.fixthis.mcp.fixtures.rawHttpResponseCode
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
@@ -93,13 +92,15 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun browserServedConsoleTokenAllowsMutation() {
+    fun authenticatedCapabilityAllowsMutationWithoutEmbeddingSecretInHtml() {
         val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
             service.openSession(null, newSession = true)
-            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+            val index = ConsoleHttpTestClient(server.url).get()
+            val token = server.consoleTokenForTests()
+            assertFalse(index.contains(token), "served HTML must not disclose the per-server capability")
             val connection = ConsoleHttpTestClient(server.url).connection("/api/items/draft")
             connection.requestMethod = "DELETE"
             connection.setRequestProperty("X-FixThis-Console-Token", token)
@@ -116,7 +117,7 @@ class FeedbackConsoleServerTest {
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
-            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+            val token = server.consoleTokenForTests()
 
             assertEquals(
                 403,
@@ -142,7 +143,7 @@ class FeedbackConsoleServerTest {
         server.start()
         try {
             service.openSession(null, newSession = true)
-            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+            val token = server.consoleTokenForTests()
 
             assertEquals(
                 403,
@@ -153,7 +154,7 @@ class FeedbackConsoleServerTest {
                     path = "/api/items/draft",
                     headers = mapOf(
                         CONSOLE_TOKEN_HEADER to token,
-                        "Origin" to server.url,
+                        "Origin" to server.originUrl,
                     ),
                 ),
             )
@@ -169,7 +170,7 @@ class FeedbackConsoleServerTest {
         server.start()
         try {
             service.openSession(null, newSession = true)
-            val token = consoleTokenFrom(ConsoleHttpTestClient(server.url).get())
+            val token = server.consoleTokenForTests()
 
             assertEquals(
                 200,
@@ -180,7 +181,7 @@ class FeedbackConsoleServerTest {
                     path = "/api/items/draft",
                     headers = mapOf(
                         CONSOLE_TOKEN_HEADER to token,
-                        "Origin" to server.url,
+                        "Origin" to server.originUrl,
                     ),
                 ),
             )
@@ -190,14 +191,47 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
-    fun getApiDoesNotRequireConsoleToken() {
+    fun sensitiveGetApiRequiresConsoleToken() {
         val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {
             val connection = ConsoleHttpTestClient(server.url, includeConsoleToken = false).connection("/api/session")
 
+            assertEquals(403, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun capabilityQueryAllowsHeaderlessBrowserSubresourceGet() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val token = server.consoleTokenForTests()
+            val connection = java.net.URI("${server.originUrl}/api/session?consoleToken=$token")
+                .toURL()
+                .openConnection() as java.net.HttpURLConnection
+
             assertEquals(200, connection.responseCode)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun indexDisablesReferrerPropagation() {
+        val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).getResponse("/")
+
+            assertEquals(200, response.statusCode)
+            assertEquals("no-referrer", response.headers.entries.first { it.key.equals("Referrer-Policy", ignoreCase = true) }.value.single())
+            assertTrue(response.body.contains("<meta name=\"referrer\" content=\"no-referrer\">"))
         } finally {
             server.stop()
         }
@@ -311,6 +345,7 @@ class FeedbackConsoleServerTest {
         try {
             assertTrue(url.startsWith("http://127.0.0.1:"))
             assertEquals(url, server.url)
+            assertTrue(url.contains("#consoleToken="), "open URL must carry the capability in a non-referrer fragment")
             assertTrue(ConsoleHttpTestClient(url).get().contains("FixThis Feedback Console"))
         } finally {
             server.stop()

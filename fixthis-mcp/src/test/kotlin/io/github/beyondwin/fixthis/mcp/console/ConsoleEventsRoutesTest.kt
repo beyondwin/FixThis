@@ -34,7 +34,7 @@ class ConsoleEventsRoutesTest {
         val server = FeedbackConsoleServer(fixture.service, eventBus = bus)
         try {
             server.start()
-            val connection = URI("${server.url}/api/events").toURL().openConnection() as HttpURLConnection
+            val connection = authenticatedGetConnection(server, "/api/events")
             connection.connectTimeout = 1000
             connection.readTimeout = 1000
             assertEquals(200, connection.responseCode)
@@ -65,7 +65,7 @@ class ConsoleEventsRoutesTest {
         val server = FeedbackConsoleServer(service)
         try {
             server.start()
-            val connection = URI("${server.url}/api/events").toURL().openConnection() as HttpURLConnection
+            val connection = authenticatedGetConnection(server, "/api/events")
             connection.connectTimeout = 1000
             connection.readTimeout = 1000
 
@@ -100,7 +100,7 @@ class ConsoleEventsRoutesTest {
         val server = FeedbackConsoleServer(fixture.service, eventBus = bus)
         try {
             server.start()
-            val connection = URI("${server.url}/api/session/open").toURL().openConnection() as HttpURLConnection
+            val connection = URI("${server.originUrl}/api/session/open").toURL().openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.setRequestProperty(CONSOLE_TOKEN_HEADER, server.consoleTokenForTests())
             connection.setRequestProperty("content-type", "application/json")
@@ -127,7 +127,7 @@ class ConsoleEventsRoutesTest {
         val server = FeedbackConsoleServer(fixture.service, eventBus = bus)
         try {
             server.start()
-            val connection = URI("${server.url}/api/session/open").toURL().openConnection() as HttpURLConnection
+            val connection = URI("${server.originUrl}/api/session/open").toURL().openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.setRequestProperty(CONSOLE_TOKEN_HEADER, server.consoleTokenForTests())
             connection.setRequestProperty("content-type", "application/json")
@@ -203,9 +203,9 @@ class ConsoleEventsRoutesTest {
         try {
             fixture.service.openSession(null, newSession = true)
             server.start()
-            get(server.url, "/api/connection")
-            get(server.url, "/api/devices")
-            get(server.url, "/api/preview")
+            get(server, "/api/connection")
+            get(server, "/api/devices")
+            get(server, "/api/preview")
 
             assertTrue(names.contains("connection-updated"), names.toString())
             assertTrue(names.contains("devices-updated"), names.toString())
@@ -229,7 +229,7 @@ class ConsoleEventsRoutesTest {
             fixture.service.openSession(null, newSession = true)
             server.start()
 
-            get(server.url, "/api/preview")
+            get(server, "/api/preview")
 
             val previewEvent = generateSequence { seen.poll(1, TimeUnit.SECONDS) }
                 .first { it.name == "preview-ready" }
@@ -251,7 +251,7 @@ class ConsoleEventsRoutesTest {
             server.start()
             bus.emit("sessions-updated", buildJsonObject { put("sessionId", "session-1") })
 
-            val connection = URI("${server.url}/api/events/diagnostics").toURL().openConnection() as HttpURLConnection
+            val connection = authenticatedGetConnection(server, "/api/events/diagnostics")
             connection.connectTimeout = 1000
             connection.readTimeout = 1000
 
@@ -264,11 +264,17 @@ class ConsoleEventsRoutesTest {
         }
     }
 
-    private fun get(baseUrl: String, path: String) {
-        val connection = URI("$baseUrl$path").toURL().openConnection() as HttpURLConnection
+    private fun get(server: FeedbackConsoleServer, path: String) {
+        val connection = authenticatedGetConnection(server, path)
         connection.connectTimeout = 1000
         connection.readTimeout = 1000
         assertEquals(200, connection.responseCode, connection.errorStream?.bufferedReader()?.readText())
         assertNotNull(connection.inputStream.bufferedReader().readText())
+    }
+
+    private fun authenticatedGetConnection(server: FeedbackConsoleServer, path: String): HttpURLConnection {
+        val separator = if ('?' in path) '&' else '?'
+        val url = "${server.originUrl}$path${separator}consoleToken=${server.consoleTokenForTests()}"
+        return URI(url).toURL().openConnection() as HttpURLConnection
     }
 }

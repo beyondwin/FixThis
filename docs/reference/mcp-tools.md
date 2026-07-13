@@ -227,6 +227,9 @@ Checks whether expected text is present on the current screen. `expectedText` is
 `fixthis_open_feedback_console`
 
 Opens or returns the local feedback console URL for the active MCP session.
+The URL contains a per-server capability in its fragment. Treat the full URL
+as a local secret: use the returned URL as-is, and do not publish it in logs or
+documentation. The bootstrap HTML does not contain the capability.
 
 Arguments:
 

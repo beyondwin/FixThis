@@ -21,11 +21,13 @@ internal class RuntimeEvidenceCollector(
     private val bridge: RuntimeEvidenceBridge,
     private val deadlineMillis: Long,
 ) {
+    @Suppress("LongParameterList")
     suspend fun collectBounded(
         packageName: String,
         preset: RuntimeEvidencePreset,
         screenCapturedAt: Long,
         collectionContext: RuntimeEvidenceCollectionContext,
+        deviceSerial: String,
         budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidenceCollectorBatch {
         val requestedKinds = preset.runtimeEvidenceKinds()
@@ -40,7 +42,7 @@ internal class RuntimeEvidenceCollector(
                 runnable.map { kind ->
                     async {
                         val result = RuntimeEvidenceCaptureRuntime.collect {
-                            collectWithRetry(packageName, kind, screenCapturedAt)
+                            collectWithRetry(packageName, deviceSerial, kind, screenCapturedAt)
                         }
                         completed[kind] = result
                     }
@@ -56,10 +58,11 @@ internal class RuntimeEvidenceCollector(
 
     suspend fun capabilitiesOrEmpty(
         packageName: String,
+        deviceSerial: String,
         budget: RuntimeEvidenceDeadline,
     ): CliRuntimeEvidenceCapabilities = try {
         withTimeoutOrNull(budget.remainingMillis().coerceAtLeast(1L)) {
-            runInterruptible(Dispatchers.IO) { bridge.capabilities(packageName) }
+            runInterruptible(Dispatchers.IO) { bridge.capabilitiesForDevice(packageName, deviceSerial) }
         } ?: CliRuntimeEvidenceCapabilities(false, emptySet())
     } catch (cancelled: CancellationException) {
         throw cancelled
@@ -69,6 +72,7 @@ internal class RuntimeEvidenceCollector(
 
     suspend fun endContextWithinReserve(
         packageName: String,
+        deviceSerial: String,
         budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidenceEndContextOutcome {
         val remaining = budget.remainingMillis()
@@ -76,7 +80,9 @@ internal class RuntimeEvidenceCollector(
             RuntimeEvidenceEndContextOutcome.TimedOut
         } else {
             try {
-                withTimeoutOrNull(minOf(endContextReserve(), remaining)) { bridge.context(packageName) }
+                withTimeoutOrNull(minOf(endContextReserve(), remaining)) {
+                    bridge.contextForDevice(packageName, deviceSerial)
+                }
                     ?.let(RuntimeEvidenceEndContextOutcome::Available)
                     ?: RuntimeEvidenceEndContextOutcome.TimedOut
             } catch (cancelled: CancellationException) {
@@ -89,12 +95,13 @@ internal class RuntimeEvidenceCollector(
 
     private suspend fun collectWithRetry(
         packageName: String,
+        deviceSerial: String,
         kind: CliRuntimeEvidenceKind,
         screenCapturedAt: Long,
     ): CliRuntimeEvidenceResult {
-        val first = collectAttempt(packageName, kind, screenCapturedAt)
+        val first = collectAttempt(packageName, deviceSerial, kind, screenCapturedAt)
         return if (first.isTransientRuntimeEvidenceFailure()) {
-            collectAttempt(packageName, kind, screenCapturedAt)
+            collectAttempt(packageName, deviceSerial, kind, screenCapturedAt)
         } else {
             first
         }
@@ -102,10 +109,11 @@ internal class RuntimeEvidenceCollector(
 
     private suspend fun collectAttempt(
         packageName: String,
+        deviceSerial: String,
         kind: CliRuntimeEvidenceKind,
         screenCapturedAt: Long,
     ): CliRuntimeEvidenceResult = try {
-        bridge.collect(packageName, kind, screenCapturedAt)
+        bridge.collectForDevice(packageName, deviceSerial, kind, screenCapturedAt)
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (_: Exception) {
@@ -210,15 +218,18 @@ internal fun classifyRuntimeEvidenceDrift(
         start.packageName != end.packageName ||
         !end.packageAvailable ||
         latest == null
-    val fingerprintChanged = start.currentScreenFingerprint != end.currentScreenFingerprint ||
-        session.screens.firstOrNull { it.screenId == request.screenId }?.fingerprint
-            ?.let { it != start.currentScreenFingerprint } == true
+    val persistedFingerprint = session.screens.firstOrNull { it.screenId == request.screenId }?.fingerprint
+    val fingerprintChanged = fingerprintsDiffer(start.currentScreenFingerprint, end.currentScreenFingerprint) ||
+        fingerprintsDiffer(persistedFingerprint, start.currentScreenFingerprint) ||
+        fingerprintsDiffer(persistedFingerprint, end.currentScreenFingerprint)
     val warnings = buildSet {
         if (start.pid != end.pid) add(RuntimeEvidenceWarning.PROCESS_RESTARTED)
         if (fingerprintChanged) add(RuntimeEvidenceWarning.CONTEXT_CHANGED)
     }
     return RuntimeEvidenceContextDrift(invalid, fingerprintChanged, warnings)
 }
+
+private fun fingerprintsDiffer(first: String?, second: String?): Boolean = first != null && second != null && first != second
 
 internal const val DEFAULT_DEADLINE_MILLIS = 2_500L
 private const val END_CONTEXT_RESERVE_MILLIS = 500L

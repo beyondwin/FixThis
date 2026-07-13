@@ -8,7 +8,6 @@ import java.nio.file.OpenOption
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 internal class RuntimeEvidenceArtifactQuotaGuard(
     private val evidenceRoot: File,
@@ -30,8 +29,11 @@ internal class RuntimeEvidenceArtifactQuotaGuard(
             "Runtime-evidence quota root must be a real directory"
         }
         val jvmLock = rootLocks.computeIfAbsent(canonicalRoot.toPath()) { ReentrantLock() }
-        return jvmLock.withLock {
+        jvmLock.lockInterruptibly()
+        return try {
             withProcessLock(canonicalRoot, block)
+        } finally {
+            jvmLock.unlock()
         }
     }
 
@@ -79,10 +81,13 @@ internal class RuntimeEvidenceQuotaFileLock(
         hooks.afterRecoveryBeforePrimaryOpen(primaryLock)
         hooks.beforePrimaryLock()
         val localPrimaryLock = primaryLocks.computeIfAbsent(evidenceRoot.canonicalFile.toPath()) { ReentrantLock() }
-        return localPrimaryLock.withLock {
+        localPrimaryLock.lockInterruptibly()
+        return try {
             openLockFile(primaryLock).use { channel ->
                 channel.lock().use { block() }
             }
+        } finally {
+            localPrimaryLock.unlock()
         }
     }
 
@@ -100,12 +105,16 @@ internal class RuntimeEvidenceQuotaFileLock(
     }
 
     private fun openLockFile(file: File): FileChannel {
+        require(evidenceRoot.isDirectory && !Files.isSymbolicLink(evidenceRoot.toPath())) {
+            "Runtime-evidence quota root must be a real directory"
+        }
+        RuntimeEvidencePrivatePermissions.tightenDirectory(evidenceRoot.toPath())
         val options: Set<OpenOption> = setOf(
             StandardOpenOption.CREATE,
             StandardOpenOption.WRITE,
             LinkOption.NOFOLLOW_LINKS,
         )
-        return FileChannel.open(file.toPath(), options)
+        return RuntimeEvidencePrivatePermissions.openFile(file.toPath(), options)
     }
 
     internal companion object {

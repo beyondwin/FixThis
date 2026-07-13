@@ -40,7 +40,7 @@ class FeedbackConsoleAssetsTest {
     fun reproducibleMetaResolvesRuntimeShaOnlyOnce() {
         val resolver = CountingShaResolver(value = "abcdef1")
         val assets = FeedbackConsoleAssets(shaResolver = resolver, clock = { 1000L })
-        repeat(5) { assets.buildIndexHtml(consoleAssetsDir = null, consoleToken = "") }
+        repeat(5) { assets.buildIndexHtml(consoleAssetsDir = null) }
         assertEquals(1, resolver.calls)
     }
 
@@ -52,7 +52,7 @@ class FeedbackConsoleAssetsTest {
             clock = { 1000L },
             errSink = { errors.appendLine(it) },
         )
-        val html = assets.buildIndexHtml(consoleAssetsDir = null, consoleToken = "")
+        val html = assets.buildIndexHtml(consoleAssetsDir = null)
         assertContains(html, "\"gitSha\":\"unknown\"")
         assertContains(errors.toString(), "git not found")
     }
@@ -61,7 +61,7 @@ class FeedbackConsoleAssetsTest {
     fun shaResolverRejectsNonHexOutput() {
         val resolver = StaticShaResolver(value = "fatal: not a git repo")
         val assets = FeedbackConsoleAssets(shaResolver = resolver, clock = { 1000L })
-        val html = assets.buildIndexHtml(consoleAssetsDir = null, consoleToken = "")
+        val html = assets.buildIndexHtml(consoleAssetsDir = null)
         assertContains(html, "\"gitSha\":\"unknown\"")
     }
 

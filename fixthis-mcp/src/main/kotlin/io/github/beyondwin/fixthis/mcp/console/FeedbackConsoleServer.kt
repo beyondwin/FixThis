@@ -10,6 +10,7 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.SESSION_CLOSED_PR
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.URLEncoder
 import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -26,7 +27,7 @@ private data class FeedbackConsoleServerConfig(
     val consoleToken: String = UUID.randomUUID().toString(),
 ) {
     val packagedIndexHtml: String? =
-        if (consoleAssetsDir == null) FeedbackConsoleAssets.html(null, consoleToken) else null
+        if (consoleAssetsDir == null) FeedbackConsoleAssets.html(null) else null
     val assetsWatcher: ConsoleAssetsWatcher? =
         consoleAssetsDir?.let { ConsoleAssetsWatcher(it, eventBus) }
 }
@@ -87,8 +88,11 @@ class FeedbackConsoleServer private constructor(
     private var server: HttpServer? = null
     private var executor: ExecutorService? = null
 
-    val url: String
+    internal val originUrl: String
         get() = "http://${host.toUrlHost()}:${runningServer().address.port}"
+
+    val url: String
+        get() = "$originUrl/#$CONSOLE_TOKEN_QUERY=${URLEncoder.encode(consoleToken, Charsets.UTF_8)}"
 
     internal fun consoleTokenForTests(): String = consoleToken
 
@@ -121,6 +125,8 @@ class FeedbackConsoleServer private constructor(
         server ?: throw IllegalStateException("Feedback console server is not running")
     }
 
+    private fun runningPortOrNull(): Int? = synchronized(lock) { server?.address?.port }
+
     private companion object {
         fun consoleRouteTable(config: FeedbackConsoleServerConfig) = ConsoleRouteTable(
             listOf(
@@ -130,7 +136,6 @@ class FeedbackConsoleServer private constructor(
                 SessionRoutes(
                     service = config.service,
                     consoleAssetsDir = config.consoleAssetsDir,
-                    consoleToken = config.consoleToken,
                     eventBus = config.eventBus,
                     packagedIndexHtml = config.packagedIndexHtml,
                 ),
@@ -147,12 +152,13 @@ class FeedbackConsoleServer private constructor(
 
     internal fun dispatch(exchange: HttpExchange) {
         try {
-            if (exchange.requiresConsoleMutationGuard()) {
-                exchange.requireConsoleMutationAllowed(
+            val runningPort = runningPortOrNull()
+            if (exchange.requiresConsoleApiGuard() && runningPort != null) {
+                exchange.requireConsoleApiAllowed(
                     ConsoleRequestAuthConfig(
                         token = consoleToken,
                         host = host,
-                        port = runningServer().address.port,
+                        port = runningPort,
                     ),
                 )
             }

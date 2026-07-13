@@ -79,20 +79,24 @@ class FixThisToolsEventLogIntegrationTest {
         ?: error("Cannot locate structured payload in $this")
 
     private class ConsoleClient(private val baseUrl: String) {
+        private val baseUri = URI(baseUrl)
+        private val originUrl = "${baseUri.scheme}://${baseUri.rawAuthority}"
         private val consoleToken: String? by lazy {
-            Regex("consoleToken:\\s*\"([^\"]+)\"")
-                .find(URI(baseUrl).toURL().readText())
-                ?.groupValues
+            baseUri.rawFragment
+                ?.split('&')
+                ?.mapNotNull { part -> part.split('=', limit = 2).takeIf { it.size == 2 } }
+                ?.firstOrNull { it[0] == "consoleToken" }
                 ?.get(1)
+                ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
         }
 
-        fun get(path: String): String = URI(baseUrl + path).toURL().openConnection().let { connection ->
+        fun get(path: String): String = URI(originUrl + path).toURL().openConnection().let { connection ->
             (connection as HttpURLConnection).applyToken(path)
             connection.inputStream.use { input -> input.readBytes().toString(Charsets.UTF_8) }
         }
 
         fun postJson(path: String, body: String): HttpURLConnection {
-            val connection = URI(baseUrl + path).toURL().openConnection() as HttpURLConnection
+            val connection = URI(originUrl + path).toURL().openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")

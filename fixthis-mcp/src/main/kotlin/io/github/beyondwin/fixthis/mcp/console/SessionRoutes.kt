@@ -13,7 +13,6 @@ private const val HTTP_STATUS_NOT_FOUND = 404
 internal class SessionRoutes(
     private val service: FeedbackSessionService,
     private val consoleAssetsDir: File?,
-    private val consoleToken: String,
     private val eventBus: ConsoleEventBus,
     private val packagedIndexHtml: String? = null,
 ) : ConsoleRoute {
@@ -82,13 +81,14 @@ internal class SessionRoutes(
     }
 
     private fun HttpExchange.handleIndex() {
+        responseHeaders.set("Referrer-Policy", "no-referrer")
         if (requestMethod == "HEAD") {
             sendResponseHeaders(200, -1)
             close()
             return
         }
         requireMethod("GET") {
-            val html = packagedIndexHtml ?: FeedbackConsoleAssets.html(consoleAssetsDir, consoleToken)
+            val html = packagedIndexHtml ?: FeedbackConsoleAssets.html(consoleAssetsDir)
             sendText(200, html, "text/html; charset=utf-8")
         }
     }

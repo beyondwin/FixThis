@@ -28,6 +28,8 @@ import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
  * Machine-readable prefix for the rejection raised when a mutation targets a closed
@@ -52,7 +54,7 @@ internal class FeedbackSessionStoreDelegate(
     private val eventLogCompactionThreshold: Int = 1000,
     private val compactionFailureSink: ((sessionId: String, cause: Throwable) -> Unit)? = null,
 ) {
-    private val lock = Any()
+    private val lock = ReentrantLock()
     private val store = SessionStateStore(persistence)
     private var currentSessionId: String? = null
     private val journal = SessionEventJournal(
@@ -86,7 +88,7 @@ internal class FeedbackSessionStoreDelegate(
 
     // Public API — unchanged signatures.
 
-    fun openSession(packageName: String, projectRoot: String): SessionDto = synchronized(lock) {
+    fun openSession(packageName: String, projectRoot: String): SessionDto = lock.withLock {
         val now = clock()
         val session = SessionDto(
             sessionId = idGenerator(),
@@ -101,16 +103,16 @@ internal class FeedbackSessionStoreDelegate(
         session
     }
 
-    fun currentSession(): SessionDto? = synchronized(lock) { currentSessionId?.let { getSessionLocked(it) } }
+    fun currentSession(): SessionDto? = lock.withLock { currentSessionId?.let { getSessionLocked(it) } }
 
-    fun getSession(sessionId: String): SessionDto = synchronized(lock) {
+    fun getSession(sessionId: String): SessionDto = lock.withLock {
         getSessionLocked(sessionId)
     }
 
     // Domain session-save seam for the SessionRepository/domain-mapping layer (snapshot &
     // annotation repos, and McpDomainRepositoryTest). Retained after R-4 removed the prod-dead
     // resolve/claim use-cases and their McpSessionRepository wrapper.
-    fun replaceSessionForDomain(session: SessionDto): SessionDto = synchronized(lock) {
+    fun replaceSessionForDomain(session: SessionDto): SessionDto = lock.withLock {
         val migrated = session.withMigratedItemSequenceCounter()
         store.saveAndPut(migrated)
         // A domain save replaces session state; it must not hijack the current-session
@@ -122,7 +124,7 @@ internal class FeedbackSessionStoreDelegate(
         migrated
     }
 
-    fun addOrReplaceScreenForDomain(sessionId: String, screen: SnapshotDto): SessionDto = synchronized(lock) {
+    fun addOrReplaceScreenForDomain(sessionId: String, screen: SnapshotDto): SessionDto = lock.withLock {
         val session = getSessionLocked(sessionId)
         val updated = session.copy(
             screens = session.screens.filterNot { it.screenId == screen.screenId } + screen,
@@ -131,7 +133,7 @@ internal class FeedbackSessionStoreDelegate(
         commitSessionMutation(session, updated)
     }
 
-    fun addOrReplaceAnnotationForDomain(sessionId: String, annotation: AnnotationDto): SessionDto = synchronized(lock) {
+    fun addOrReplaceAnnotationForDomain(sessionId: String, annotation: AnnotationDto): SessionDto = lock.withLock {
         val session = getSessionLocked(sessionId)
         require(session.screens.any { it.screenId == annotation.screenId }) {
             "Cannot save annotation for unknown screen: ${annotation.screenId}"
@@ -145,12 +147,12 @@ internal class FeedbackSessionStoreDelegate(
         commitSessionMutation(session, updated)
     }
 
-    fun nextId(): String = synchronized(lock) { idGenerator() }
+    fun nextId(): String = lock.withLock { idGenerator() }
 
     fun listSessions(
         packageName: String? = null,
         includeClosed: Boolean = false,
-    ): FeedbackSessionList = synchronized(lock) {
+    ): FeedbackSessionList = lock.withLock {
         val replaySkipped = bootReplayer.skippedList(packageName, includeClosed)
         persistence?.list(packageName, includeClosed)
             ?.let { list -> list.copy(skippedSessions = list.skippedSessions + replaySkipped) }
@@ -164,13 +166,13 @@ internal class FeedbackSessionStoreDelegate(
             )
     }
 
-    fun openExistingSession(sessionId: String): SessionDto = synchronized(lock) {
+    fun openExistingSession(sessionId: String): SessionDto = lock.withLock {
         val session = getSessionLocked(sessionId)
         currentSessionId = session.sessionId
         session
     }
 
-    fun closeSession(sessionId: String): SessionDto = synchronized(lock) {
+    fun closeSession(sessionId: String): SessionDto = lock.withLock {
         val session = getSessionLocked(sessionId)
         val now = clock()
         val closed = SessionReducer.reduce(session, SessionMutation.Close(now))
@@ -315,7 +317,7 @@ internal class FeedbackSessionStoreDelegate(
         }
     }
 
-    fun markReadyForAgent(sessionId: String): SessionDto = synchronized(lock) {
+    fun markReadyForAgent(sessionId: String): SessionDto = lock.withLock {
         store.saveAndPut(SessionMetadataMutations.markReadyForAgent(getSessionLocked(sessionId), clock()))
     }
 
@@ -443,7 +445,7 @@ internal class FeedbackSessionStoreDelegate(
         type: String,
         prepare: () -> EventBackedMutation<T>,
     ): T {
-        val result = synchronized(lock) {
+        val result = lock.withLock {
             requireOpenSessionForMutation(sessionId, type)
             val mutation = prepare()
             // Throws EventLogException on failure, so apply() is never reached.
@@ -460,9 +462,9 @@ internal class FeedbackSessionStoreDelegate(
         prepare: () -> EventBackedMutation<T>?,
         noop: () -> T,
     ): T {
-        val result = synchronized(lock) {
+        val result = lock.withLock {
             requireOpenSessionForMutation(sessionId, type)
-            val mutation = prepare() ?: return@synchronized noop()
+            val mutation = prepare() ?: return@withLock noop()
             journal.append(sessionId = sessionId, type = type, payload = mutation.payload)
             mutation.apply()
         }

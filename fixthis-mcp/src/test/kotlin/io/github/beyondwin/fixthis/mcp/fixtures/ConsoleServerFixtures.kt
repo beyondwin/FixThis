@@ -471,18 +471,24 @@ internal class ConsoleHttpTestClient(
     private val baseUrl: String,
     private val includeConsoleToken: Boolean = true,
 ) {
+    private val baseUri = java.net.URI(baseUrl)
+    private val originUrl = "${baseUri.scheme}://${baseUri.rawAuthority}"
     private val consoleToken: String? by lazy {
         if (!includeConsoleToken) return@lazy null
-        Regex("consoleToken:\\s*\"([^\"]+)\"")
-            .find(java.net.URI(baseUrl).toURL().readText())
-            ?.groupValues
+        baseUri.rawFragment
+            ?.split('&')
+            ?.mapNotNull { part -> part.split('=', limit = 2).takeIf { it.size == 2 } }
+            ?.firstOrNull { it[0] == "consoleToken" }
             ?.get(1)
+            ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
     }
 
-    fun get(path: String = "/"): String = java.net.URI(baseUrl + path).toURL().readText()
+    fun get(path: String = "/"): String = connection(path).inputStream.use { input ->
+        input.readBytes().toString(Charsets.UTF_8)
+    }
 
     fun getResponse(path: String, headers: Map<String, String> = emptyMap()): ConsoleHttpResponse {
-        val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+        val connection = java.net.URI(originUrl + path).toURL().openConnection() as java.net.HttpURLConnection
         connection.requestMethod = "GET"
         if (path.startsWith("/api/")) {
             consoleToken?.let { connection.setRequestProperty(CONSOLE_TOKEN_HEADER, it) }
@@ -508,7 +514,7 @@ internal class ConsoleHttpTestClient(
         body: String? = null,
         headers: Map<String, String> = emptyMap(),
     ): java.net.HttpURLConnection {
-        val connection = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+        val connection = java.net.URI(originUrl + path).toURL().openConnection() as java.net.HttpURLConnection
         connection.requestMethod = method
         if (path.startsWith("/api/")) {
             consoleToken?.let { connection.setRequestProperty(CONSOLE_TOKEN_HEADER, it) }
@@ -525,7 +531,7 @@ internal class ConsoleHttpTestClient(
     }
 
     fun postJson(path: String, body: String, headers: Map<String, String> = emptyMap()): ConsoleHttpResponse {
-        val conn = java.net.URI(baseUrl + path).toURL().openConnection() as java.net.HttpURLConnection
+        val conn = java.net.URI(originUrl + path).toURL().openConnection() as java.net.HttpURLConnection
         conn.requestMethod = "POST"
         conn.doOutput = true
         conn.setRequestProperty("Content-Type", "application/json")

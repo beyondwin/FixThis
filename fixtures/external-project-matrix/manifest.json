@@ -74,24 +74,6 @@
       "trustExpectations": []
     },
     {
-      "id": "weak-source-caveated",
-      "projectShape": "single-module",
-      "dsl": "kotlin",
-      "appModule": ":app",
-      "moduleDir": "app",
-      "applicationId": "io.github.beyondwin.fixthis.matrix.weaksource",
-      "variant": "debug",
-      "expectedSetup": "ready",
-      "runtimeCapability": "setup-only",
-      "trustExpectations": [
-        {
-          "kind": "weak-source",
-          "mustNotHighConfidence": true,
-          "mustWarn": ["WEAK_SOURCE_EVIDENCE"]
-        }
-      ]
-    },
-    {
       "id": "local-sample-first-handoff",
       "projectShape": "single-module",
       "dsl": "kotlin",

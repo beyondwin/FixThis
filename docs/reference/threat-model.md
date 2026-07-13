@@ -106,7 +106,7 @@ Paths are repository-root relative.
 | Boundary | Control | Implementation |
 | --- | --- | --- |
 | Host ↔ console | Bind to `127.0.0.1` by default (loopback only) | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/FeedbackConsoleServer.kt` |
-| Browser ↔ console | Mutating `/api/*` routes require a local console `Origin`, local `Host` pinned to the running loopback port, and the per-server `X-FixThis-Console-Token` | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt` |
+| Browser ↔ console | `fixthis_open_feedback_console` returns a per-server capability in the URL fragment; HTML never embeds the secret, sensitive `/api/*` reads require it, and mutations additionally enforce the local `Origin` and loopback `Host` | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/ConsoleRequestAuth.kt` |
 | App ↔ bridge | Shared session token; bridge rejects requests with a missing or mismatched token (`UNAUTHORIZED`) | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
 | App ↔ bridge | Screenshot path validation — canonicalize and require the file is under the FixThis screenshot cache, with explicit client-supplied paths rejected | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt`, `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt` |
 | App ↔ bridge | Transport is an abstract-namespace `LocalSocket` (app-sandbox scoped, reachable via `adb run-as`) | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
@@ -126,12 +126,14 @@ tracked these as gaps; they are now implemented and covered by tests.
   centralized in `PathSafety` and applied at screenshot read time.
 - **SEC-3 — Stale-socket recovery.** Bridge startup retries bounded suffix
   candidates and reports the resolved socket name to the host.
-- **SEC-4 — Console mutation auth hardening.** Mutating console requests are
-  guarded in `ConsoleRequestAuth`: read-only `GET` routes do not require the
-  token, while mutating `/api/*` routes require a local `Origin` when present,
-  a local `Host` pinned to the running loopback port when present, and a
-  constant-time comparison against the per-server
-  `X-FixThis-Console-Token`.
+- **SEC-4 — Console capability auth hardening.** The open-console MCP tool
+  returns the secret in a URL fragment, which is not sent in the bootstrap HTTP
+  request or embedded in served HTML. Sensitive read routes require the token
+  as a header or (for EventSource and image subresources) a query capability.
+  Mutating `/api/*` routes require the header, a local `Origin` when present,
+  and a loopback `Host`; token comparison is constant-time. The bootstrap HTML
+  also sends `Referrer-Policy: no-referrer` and includes the equivalent meta
+  policy so the capability is not propagated as a referrer.
 
 ## Runtime evidence limits
 
@@ -139,8 +141,11 @@ Runtime evidence is best-effort diagnostic context, not proof that a log or
 performance signal caused the annotated UI state. Capture has a 2,500 ms
 deadline and at most two collectors run concurrently. Logcat is capped at
 512 KiB, memory/frame summaries at 128 KiB each, a committed bundle at 2 MiB,
-and the project evidence root at 250 MiB. Summaries are capped and redacted,
-but redaction does not promise removal of every application-specific secret.
+and the project evidence root at 250 MiB. Runtime-evidence directories and
+files are restricted to the owning desktop user where the filesystem supports
+those controls. Summaries are capped and redacted, but redaction does not
+promise removal of every application-specific secret; logcat evidence always
+carries `sensitive_logs_possible`.
 
 Host collector support does not expand the app bridge attack surface. Bridge
 protocol remains `1.3`, and the sidekick `capabilities` payload does not claim

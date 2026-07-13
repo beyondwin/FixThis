@@ -39,6 +39,7 @@ internal data class CaptureKey(
     val sessionId: String,
     val screenId: String,
     val preset: RuntimeEvidencePreset,
+    val deviceSerial: String,
     val installEpochMillis: Long?,
 )
 

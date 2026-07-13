@@ -21,7 +21,7 @@ function createBrowserPollingUseCases(options = {}) {
         let nextSessionsEtag = sessionsEtag ?? null;
         let nextSessionEtag = sessionEtag ?? null;
         const listResp = await fetch('/api/sessions', {
-          headers: sessionsEtag ? { 'If-None-Match': sessionsEtag } : {},
+          headers: consoleRequestHeaders(sessionsEtag ? { 'If-None-Match': sessionsEtag } : {}),
         });
         if (listResp.status === 200) {
           nextSessionsEtag = listResp.headers.get('ETag');
@@ -31,7 +31,7 @@ function createBrowserPollingUseCases(options = {}) {
         const activeDisplayedSessionId = displayedSessionId();
         if (activeDisplayedSessionId) {
           const sessResp = await fetch('/api/session', {
-            headers: sessionEtag ? { 'If-None-Match': sessionEtag } : {},
+            headers: consoleRequestHeaders(sessionEtag ? { 'If-None-Match': sessionEtag } : {}),
           });
           if (sessResp.status === 200) {
             nextSessionEtag = sessResp.headers.get('ETag');

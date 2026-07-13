@@ -3,7 +3,7 @@
             let consoleEventsHasOpenedBefore = false;
             function startConsoleEvents() {
               if (typeof EventSource === 'undefined' || consoleEventsSource) return;
-              const source = consoleEventsSource = new EventSource('/api/events');
+              const source = consoleEventsSource = new EventSource(consoleCapabilityUrl('/api/events'));
               const json = (event) => { try { return JSON.parse(event.data || '{}'); } catch (_) { return {}; } };
               const on = (name, fn) => source.addEventListener(name, (event) => fn(json(event)));
               source.onopen = () => {

@@ -91,6 +91,36 @@ class RuntimeEvidenceRedactorTest {
     }
 
     @Test
+    fun redactorRemovesHeaderAndTokenAssignmentVariants() {
+        val secrets = listOf(
+            "authorization-equals-secret",
+            "authorization-space-secret",
+            "cookie-equals-secret",
+            "cookie-space-secret",
+            "bare-token-secret",
+            "quoted-token-secret",
+            "json-authorization-secret",
+            "json-cookie-secret",
+        )
+        val actual = RuntimeEvidenceRedactor().redact(
+            listOf(
+                "Authorization=Bearer ${secrets[0]}",
+                "Authorization Bearer ${secrets[1]}",
+                "Cookie=session=${secrets[2]}",
+                "Cookie session=${secrets[3]}",
+                "token=${secrets[4]}",
+                "token: '${secrets[5]}'",
+                "{\"authorization\":\"Bearer ${secrets[6]}\",\"cookie\":\"session=${secrets[7]}\"}",
+                "safe=value",
+            ).joinToString("\n"),
+        )
+
+        secrets.forEach { secret -> assertFalse(secret in actual.text, "secret remained: $secret") }
+        assertTrue("safe=value" in actual.text)
+        assertTrue(actual.redacted)
+    }
+
+    @Test
     fun projectPatternsAreAppliedWithoutRedactingUnrelatedText() {
         val redactor = RuntimeEvidenceRedactor(additionalPatterns = listOf("tenant-[0-9]{4}"))
 

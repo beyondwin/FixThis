@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, normalize, resolve, sep } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,8 @@ export const defaultManifestPath = join(repoRoot, 'fixtures/external-project-mat
 export const defaultMatrixReportDir = join(repoRoot, 'build/reports/fixthis-external-fixture-matrix');
 export const defaultMatrixWorkRoot = join(repoRoot, '.fixthis/external-fixture-matrix');
 export const defaultCliInstallTask = './gradlew :fixthis-cli:installDist --no-daemon';
+export const runtimeTrustReportRelativePath = 'build/reports/fixthis-source-matching/report.json';
+export const runtimeTrustReportMarker = 'FIXTHIS_TRUST_REPORT=';
 
 const allowedShapes = new Set([
   'single-module',
@@ -255,18 +257,27 @@ export function evaluateTrustExpectations(fixture, observation) {
     }));
   }
 
-  const warnings = collectWarnings(observation);
-  const riskFlags = collectRiskFlags(observation);
-  const confidence = highestConfidence(observation);
-  const confidenceLabel = normalizeConfidence(confidence);
-
   return expectations.map((expectation) => {
+    const activeObservation = observation?.byKind
+      ? observation.byKind[expectation.kind]
+      : observation;
+    if (!activeObservation) {
+      return {
+        kind: expectation.kind,
+        status: 'fail',
+        message: `${expectation.kind} trust observation unavailable`,
+      };
+    }
+    const warnings = collectWarnings(activeObservation);
+    const riskFlags = collectRiskFlags(activeObservation);
+    const confidence = highestConfidence(activeObservation);
+    const confidenceLabel = normalizeConfidence(confidence);
     const requiredWarnings = arrayOfStrings(expectation.mustWarn, `${expectation.kind} mustWarn`);
     const requiredRisks = arrayOfStrings(expectation.mustRisk, `${expectation.kind} mustRisk`);
     const missingWarnings = requiredWarnings.filter((warning) => !warnings.has(normalizeTrustToken(warning)));
     const missingRisks = requiredRisks.filter((risk) => !riskFlags.has(normalizeTrustToken(risk)));
     const highConfidence = expectation.mustNotHighConfidence === true && confidenceRank(confidence) >= confidenceRank('high');
-    const exactOwnership = expectation.mustNotExactOwnership === true && hasExactOwnershipClaim(observation);
+    const exactOwnership = expectation.mustNotExactOwnership === true && hasExactOwnershipClaim(activeObservation);
 
     if (expectation.kind === 'interop-boundary') {
       if (exactOwnership || missingWarnings.length > 0) {
@@ -577,22 +588,47 @@ function cleanupFixture(projectDir) {
   rmSync(projectDir, { recursive: true, force: true });
 }
 
-function observationFromTrustExpectations(fixture) {
-  const expectations = fixture.trustExpectations || [];
-  if (!expectations.length) return null;
-  const warnings = [...new Set(expectations.flatMap((expectation) => expectation.mustWarn || []))];
-  const riskFlags = [...new Set(expectations.flatMap((expectation) => expectation.mustRisk || []))];
-  return {
-    targetReliability: {
-      confidence: 'medium',
-      warnings,
-    },
-    sourceCandidates: [{
-      confidence: 'medium',
-      riskFlags,
-    }],
-    exactOwnershipClaimed: false,
-  };
+function parseMarkedTrustReport(stdout) {
+  const line = String(stdout || '')
+    .split(/\r?\n/)
+    .findLast((entry) => entry.startsWith(runtimeTrustReportMarker));
+  return line ? parseJsonObject(line.slice(runtimeTrustReportMarker.length)) : null;
+}
+
+function trustKindsForCase(testCase) {
+  const label = `${testCase?.caseId || ''} ${testCase?.trustPurpose || ''}`.toLowerCase();
+  const kinds = [];
+  if (label.includes('visual-area') || label.includes('visual area') || label.includes('visual-only')) kinds.push('visual-area');
+  if (label.includes('interop')) kinds.push('interop-boundary');
+  if (label.includes('shared')) kinds.push('shared-component');
+  if (label.includes('weak-source') || label.includes('weak source')) kinds.push('weak-source');
+  return kinds;
+}
+
+export function trustObservationFromStructuredReport(report) {
+  if (report?.schemaVersion !== 2 || report?.status !== 'pass' || !Array.isArray(report.fixtures)) return null;
+  const byKind = {};
+  for (const fixture of report.fixtures) {
+    for (const testCase of fixture?.cases || []) {
+      if (!testCase?.observed || typeof testCase.observed !== 'object') continue;
+      for (const kind of trustKindsForCase(testCase)) {
+        const current = byKind[kind] || { items: [] };
+        current.items.push(testCase.observed);
+        byKind[kind] = current;
+      }
+    }
+  }
+  return Object.keys(byKind).length > 0 ? { byKind } : null;
+}
+
+function observationFromRuntimeTrustOutput({ commands = [], root = repoRoot } = {}) {
+  const runtimeResult = commands.findLast((command) => command.name === 'runtime-trust-strict');
+  if (!runtimeResult || runtimeResult.status !== 'pass') return null;
+  const markedReport = parseMarkedTrustReport(runtimeResult.stdout);
+  if (markedReport) return trustObservationFromStructuredReport(markedReport);
+  const reportPath = join(root, runtimeTrustReportRelativePath);
+  if (!existsSync(reportPath)) return null;
+  return trustObservationFromStructuredReport(parseJsonObject(readFileSync(reportPath, 'utf8')));
 }
 
 export function runExternalMatrix({
@@ -605,7 +641,7 @@ export function runExternalMatrix({
   prepareCliDistributionFn = (activeRoot, envPatch, runner) => prepareCliDistribution(activeRoot, envPatch, runner),
   generateFixtureProjectFn = generateFixtureProject,
   cleanupFixtureFn = cleanupFixture,
-  trustObservationFn = (fixture) => observationFromTrustExpectations(fixture),
+  trustObservationFn = (_fixture, context) => observationFromRuntimeTrustOutput(context),
 } = {}) {
   const fixtures = [];
   let cliPreparation = null;
@@ -680,6 +716,9 @@ export function runExternalMatrix({
     }
     if (status === 'pass') {
       for (const entry of planRuntimeTrustCommands(fixture)) {
+        if (entry.name === 'runtime-trust-strict') {
+          rmSync(join(root, runtimeTrustReportRelativePath), { force: true });
+        }
         const result = runCommandFn(entry.command, root, androidEnvironment.envPatch);
         commands.push({ ...entry, ...result });
         if (result.status === 'fail') {

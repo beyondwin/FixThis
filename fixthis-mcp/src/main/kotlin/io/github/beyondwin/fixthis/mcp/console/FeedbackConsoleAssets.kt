@@ -71,7 +71,7 @@ internal class FeedbackConsoleAssets(
         return """{"buildEpochMs":${clock()},"gitSha":"$sha"}"""
     }
 
-    fun buildIndexHtml(consoleAssetsDir: File?, consoleToken: String = ""): String {
+    fun buildIndexHtml(consoleAssetsDir: File?): String {
         val effectiveMeta = effectiveBuildMetaJson()
         val devFields = if (consoleAssetsDir != null) {
             val buildHash = readBuildHashFromDir(consoleAssetsDir).orEmpty()
@@ -85,7 +85,9 @@ internal class FeedbackConsoleAssets(
                 ScriptPlaceholder,
                 """
                     <script>
-                    window.FixThisConsoleConfig = { consoleToken: "${consoleToken.escapeJavaScriptString()}"$devFields };
+                    const fixThisCapability = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+                    const fixThisConsoleToken = fixThisCapability.get('consoleToken') || '';
+                    window.FixThisConsoleConfig = { consoleToken: fixThisConsoleToken$devFields };
                     window.FixThisConsoleConfig.buildMeta = $effectiveMeta;
                     </script>
                     <script>
@@ -123,11 +125,9 @@ internal class FeedbackConsoleAssets(
         private val default: FeedbackConsoleAssets = FeedbackConsoleAssets()
 
         val indexHtml: String
-            get() = default.buildIndexHtml(consoleAssetsDir = null, consoleToken = "")
+            get() = default.buildIndexHtml(consoleAssetsDir = null)
 
-        fun html(consoleAssetsDir: File?): String = default.buildIndexHtml(consoleAssetsDir, consoleToken = "")
-
-        fun html(dir: File?, token: String): String = default.buildIndexHtml(dir, token)
+        fun html(consoleAssetsDir: File?): String = default.buildIndexHtml(consoleAssetsDir)
 
         fun resource(path: String): ByteArray = default.resource(path)
 

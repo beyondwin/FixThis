@@ -14,13 +14,19 @@ import kotlin.concurrent.thread
 private const val RUNTIME_EVIDENCE_BRIDGE_TIMEOUT_MILLIS = 1_250L
 private const val RUNTIME_EVIDENCE_ENRICHMENT_DEADLINE_MILLIS = 1_500L
 
-fun BridgeClient.runtimeEvidenceCapabilities(packageName: String): CliRuntimeEvidenceCapabilities {
-    val scope = runtimeEvidenceScope()
+fun BridgeClient.runtimeEvidenceCapabilities(
+    packageName: String,
+    deviceSerial: String? = null,
+): CliRuntimeEvidenceCapabilities {
+    val scope = runtimeEvidenceScope(deviceSerial)
     return AndroidRuntimeEvidenceCollector(scope.adb, scope.deviceSerial()).capabilities(packageName)
 }
 
-fun BridgeClient.runtimeEvidenceContext(packageName: String): CliRuntimeEvidenceContext {
-    val scope = runtimeEvidenceScope()
+fun BridgeClient.runtimeEvidenceContext(
+    packageName: String,
+    deviceSerial: String? = null,
+): CliRuntimeEvidenceContext {
+    val scope = runtimeEvidenceScope(deviceSerial)
     val adbContext = AndroidRuntimeEvidenceCollector(scope.adb, scope.deviceSerial()).context(packageName)
     val (status, snapshot) = runtimeEvidenceBridgeContext(scope, packageName)
     return adbContext.copy(
@@ -35,8 +41,9 @@ fun BridgeClient.collectRuntimeEvidence(
     packageName: String,
     kind: CliRuntimeEvidenceKind,
     screenCapturedAtEpochMillis: Long,
+    deviceSerial: String? = null,
 ): CliRuntimeEvidenceResult {
-    val scope = runtimeEvidenceScope()
+    val scope = runtimeEvidenceScope(deviceSerial)
     return AndroidRuntimeEvidenceCollector(scope.adb, scope.deviceSerial()).collect(
         packageName = packageName,
         kind = kind,
@@ -44,8 +51,8 @@ fun BridgeClient.collectRuntimeEvidence(
     )
 }
 
-private fun BridgeClient.runtimeEvidenceScope(): BridgeRequestScope {
-    val scope = currentRequestScope()
+private fun BridgeClient.runtimeEvidenceScope(deviceSerial: String?): BridgeRequestScope {
+    val scope = runtimeEvidenceRequestScope(deviceSerial)
     if (scope.selectedDeviceSerial != null) return scope
     val serial = scope.adb.devices().single { it.state == "device" }.serial
     return BridgeRequestScope(selectedDeviceSerial = serial, adb = scope.adb.forDevice(serial))

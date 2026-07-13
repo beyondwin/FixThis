@@ -21,6 +21,7 @@ import {
   renderMatrixMarkdown,
   repoRoot,
   runExternalMatrix,
+  trustObservationFromStructuredReport,
   validateExternalMatrixManifest,
   writeMatrixReports,
 } from './external-fixture-matrix.mjs';
@@ -41,17 +42,12 @@ test('manifest covers required external project shapes', () => {
 test('manifest v2 declares runtime capability and trust expectations', () => {
   const manifest = loadExternalMatrixManifest(defaultManifestPath);
   const single = manifest.fixtures.find((fixture) => fixture.id === 'single-kotlin-dsl');
-  const weak = manifest.fixtures.find((fixture) => fixture.id === 'weak-source-caveated');
   const runtime = manifest.fixtures.find((fixture) => fixture.id === 'local-sample-first-handoff');
 
   assert.equal(manifest.schemaVersion, 2);
   assert.equal(single.runtimeCapability, 'setup-only');
-  assert.equal(weak.runtimeCapability, 'setup-only');
-  assert.deepEqual(weak.trustExpectations, [{
-    kind: 'weak-source',
-    mustNotHighConfidence: true,
-    mustWarn: ['WEAK_SOURCE_EVIDENCE'],
-  }]);
+  assert.ok(manifest.fixtures.filter((fixture) => fixture.trustExpectations.length > 0)
+    .every((fixture) => fixture.runtimeCapability === 'first-handoff-trust'));
   assert.equal(runtime.runtimeCapability, 'first-handoff-trust');
   assert.deepEqual(runtime.trustExpectations.map((entry) => entry.kind), [
     'visual-area',
@@ -299,6 +295,64 @@ test('evaluateTrustExpectations fails high confidence missing warning and exact 
   ]);
 });
 
+test('evaluateTrustExpectations rejects exact ownership inside a structured by-kind observation', () => {
+  const fixture = {
+    id: 'bad-structured-runtime',
+    trustExpectations: [
+      { kind: 'interop-boundary', mustNotExactOwnership: true, mustWarn: ['POSSIBLE_VIEW_INTEROP'] },
+    ],
+  };
+
+  assert.deepEqual(evaluateTrustExpectations(fixture, {
+    byKind: {
+      'interop-boundary': {
+        items: [{ warnings: ['POSSIBLE_VIEW_INTEROP'], exactOwnershipClaimed: true }],
+      },
+    },
+  }), [
+    {
+      kind: 'interop-boundary',
+      status: 'fail',
+      message: 'exact ownership claimed or missing warnings: POSSIBLE_VIEW_INTEROP',
+    },
+  ]);
+});
+
+test('trustObservationFromStructuredReport maps actual runtime cases without copying expectations', () => {
+  const observation = trustObservationFromStructuredReport({
+    schemaVersion: 2,
+    status: 'pass',
+    fixtures: [{
+      fixtureId: 'fixthis-sample',
+      cases: [
+        {
+          caseId: 'fixthis-sample-diagnostics-visual-area',
+          trustPurpose: 'visual-only area remains caveated',
+          observed: { confidence: 'low', warnings: ['VISUAL_AREA_ONLY'] },
+        },
+        {
+          caseId: 'fixthis-sample-diagnostics-androidview-interop',
+          trustPurpose: 'AndroidView interop remains caveated',
+          observed: { confidence: 'medium', warnings: ['POSSIBLE_VIEW_INTEROP'] },
+        },
+        {
+          caseId: 'fixthis-sample-shared-header-medium-cap',
+          trustPurpose: 'shared component remains capped',
+          observed: { confidence: 'medium', riskFlags: ['SHARED_COMPONENT'] },
+        },
+      ],
+    }],
+  });
+
+  assert.deepEqual(observation, {
+    byKind: {
+      'visual-area': { items: [{ confidence: 'low', warnings: ['VISUAL_AREA_ONLY'] }] },
+      'interop-boundary': { items: [{ confidence: 'medium', warnings: ['POSSIBLE_VIEW_INTEROP'] }] },
+      'shared-component': { items: [{ confidence: 'medium', riskFlags: ['SHARED_COMPONENT'] }] },
+    },
+  });
+});
+
 test('outcomeForFixture classifies trust outcomes without hiding deferred or drift states', () => {
   assert.equal(outcomeForFixture({ status: 'deferred', reason: 'Android SDK unavailable', trustFindings: [] }), 'environment_deferred');
   assert.equal(outcomeForFixture({ status: 'fail', reason: 'fixture_drift: expected path disappeared', trustFindings: [] }), 'fixture_drift');
@@ -327,7 +381,7 @@ test('dry-run report keeps v2 runtime metadata for runtime-capable fixtures', ()
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(readFileSync('build/reports/fixthis-external-fixture-matrix/report.json', 'utf8'));
   assert.equal(report.schemaVersion, '2.0');
-  assert.equal(report.summary.total, 8);
+  assert.equal(report.summary.total, loadExternalMatrixManifest(defaultManifestPath).fixtures.length);
   assert.equal(report.fixtures.some((fixture) => fixture.runtimeCapability === 'first-handoff-trust'), true);
 });
 
@@ -563,7 +617,11 @@ test('runExternalMatrix attaches trust findings from injected observations', () 
 });
 
 test('runExternalMatrix evaluates declared setup-only trust expectations without injected observations', () => {
-  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'weak-source-caveated');
+  const fixture = {
+    ...loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'single-kotlin-dsl'),
+    id: 'synthetic-setup-only-trust-gap',
+    trustExpectations: [{ kind: 'weak-source', mustNotHighConfidence: true, mustWarn: ['WEAK_SOURCE_EVIDENCE'] }],
+  };
   const report = runExternalMatrix({
     manifest: { schemaVersion: 2, fixtures: [fixture] },
     strict: true,
@@ -576,13 +634,67 @@ test('runExternalMatrix evaluates declared setup-only trust expectations without
     cleanupFixtureFn: () => {},
   });
 
-  assert.equal(report.status, 'pass');
-  assert.equal(report.fixtures[0].outcome, 'caveated_pass');
+  assert.equal(report.status, 'fail');
+  assert.equal(report.fixtures[0].outcome, 'product_failure');
   assert.deepEqual(report.fixtures[0].trustFindings, [{
     kind: 'weak-source',
-    status: 'pass',
-    message: 'confidence medium with warnings WEAK_SOURCE_EVIDENCE',
+    status: 'fail',
+    message: 'weak-source trust observation unavailable',
   }]);
+});
+
+test('runExternalMatrix strict mode rejects passing runtime commands whose structured output lacks required trust evidence', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff');
+  const report = runExternalMatrix({
+    manifest: { schemaVersion: 2, fixtures: [fixture] },
+    strict: true,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: {} },
+    root: '/repo',
+    runCommandFn: (command) => ({
+      status: 'pass',
+      durationMs: 1,
+      stdout: command === 'npm run source-matching:fixtures:runtime -- --strict'
+        ? 'FIXTHIS_TRUST_REPORT={"schemaVersion":2,"status":"pass","fixtures":[{"fixtureId":"fixthis-sample","cases":[{"caseId":"visual-area-runtime","trustPurpose":"visual area evidence","observed":{"confidence":"medium","warnings":[],"riskFlags":[]}}]}]}\n'
+        : '',
+      stderr: '',
+      exitCode: 0,
+    }),
+    prepareCliDistributionFn: () => ({ name: 'prepare-cli', command: './gradlew :fixthis-cli:installDist --no-daemon', status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+  });
+
+  assert.equal(report.status, 'fail');
+  assert.equal(report.fixtures[0].status, 'fail');
+  assert.match(report.fixtures[0].reason, /missing warnings|missing risk flags/);
+});
+
+test('runExternalMatrix strict mode rejects unparseable structured trust output', () => {
+  const fixture = loadExternalMatrixManifest(defaultManifestPath).fixtures.find((entry) => entry.id === 'local-sample-first-handoff');
+  const report = runExternalMatrix({
+    manifest: { schemaVersion: 2, fixtures: [fixture] },
+    strict: true,
+    workRoot: '/tmp/fixthis-matrix',
+    androidEnvironment: { ready: true, reason: null, envPatch: {} },
+    root: '/repo',
+    runCommandFn: (command) => ({
+      status: 'pass',
+      durationMs: 1,
+      stdout: command === 'npm run source-matching:fixtures:runtime -- --strict'
+        ? 'FIXTHIS_TRUST_REPORT={not-json}\n'
+        : '',
+      stderr: '',
+      exitCode: 0,
+    }),
+    prepareCliDistributionFn: () => ({ name: 'prepare-cli', command: './gradlew :fixthis-cli:installDist --no-daemon', status: 'pass', durationMs: 1, stdout: '', stderr: '', exitCode: 0 }),
+    generateFixtureProjectFn: () => {},
+    cleanupFixtureFn: () => {},
+  });
+
+  assert.equal(report.status, 'fail');
+  assert.equal(report.fixtures[0].status, 'fail');
+  assert.equal(report.fixtures[0].reason, 'visual-area trust observation unavailable');
 });
 
 test('runExternalMatrix continues after accepted doctor next action', () => {

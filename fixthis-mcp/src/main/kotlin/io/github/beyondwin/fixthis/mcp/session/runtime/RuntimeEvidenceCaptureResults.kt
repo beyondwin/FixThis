@@ -33,6 +33,7 @@ internal fun aggregateRuntimeEvidenceStatus(captured: RuntimeEvidencePayload): R
     val statuses = captured.summaries.map { it.status }
     return when {
         statuses.all { it == RuntimeEvidenceStatus.UNSUPPORTED } -> RuntimeEvidenceStatus.UNSUPPORTED
+        captured.artifacts.isEmpty() -> RuntimeEvidenceStatus.FAILED
         statuses.all { it == RuntimeEvidenceStatus.FAILED } -> RuntimeEvidenceStatus.FAILED
         captured.batch.timedOut ||
             statuses.any { it != RuntimeEvidenceStatus.COMPLETE } ||

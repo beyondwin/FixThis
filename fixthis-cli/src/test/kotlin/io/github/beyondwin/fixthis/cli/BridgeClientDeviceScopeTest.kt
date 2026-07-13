@@ -71,6 +71,36 @@ class BridgeClientDeviceScopeTest {
     }
 
     @Test
+    fun runtimeEvidencePinnedSerialSurvivesSelectionChangeAcrossCapturePhases() {
+        val adb = DeviceScopeAdbFacade(
+            devices = listOf(
+                AdbDevice("emulator-5554", "device"),
+                AdbDevice("emulator-5556", "device"),
+            ),
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { DeviceScopeBridgeSocket() },
+        )
+        client.selectDevice("emulator-5554")
+        val start = client.runtimeEvidenceContext("io.github.beyondwin.fixthis.sample")
+        client.selectDevice("emulator-5556")
+        adb.executeSerials.clear()
+
+        client.collectRuntimeEvidence(
+            packageName = "io.github.beyondwin.fixthis.sample",
+            kind = CliRuntimeEvidenceKind.MEMORY_SUMMARY,
+            screenCapturedAtEpochMillis = 1L,
+            deviceSerial = start.deviceSerial,
+        )
+
+        assertTrue(adb.executeSerials.isNotEmpty())
+        assertTrue(adb.executeSerials.all { it == "emulator-5554" })
+    }
+
+    @Test
     fun runtimeEvidenceContextStartsShortBoundedBridgeEnrichmentConcurrently() {
         val adb = DeviceScopeAdbFacade(devices = listOf(AdbDevice("emulator-5554", "device")))
         val starts = CountDownLatch(2)

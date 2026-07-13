@@ -325,10 +325,16 @@ Only files produced by the selected preset are present. The file limits are
 committed bundle is capped at 2 MiB, and the project runtime-evidence root is
 capped at 250 MiB under a process/JVM file lock. Commit is temporary-directory
 plus atomic-rename; incomplete and orphan bundles are cleaned on recovery.
+On POSIX filesystems, runtime-evidence directories are owner-only (`0700`) and
+artifact, manifest, and quota-lock files are owner-readable/writable (`0600`).
+Existing runtime-evidence paths are tightened when the store opens them.
 
 Collector output is redacted before durable write. Built-in rules cover
 authorization/cookie headers, FixThis tokens, common secret/key/token
 assignments and query parameters, JSON secret values, and JWT-like tokens.
+Authorization, cookie, and token assignment rules accept colon, equals, quoted,
+JSON, and whitespace-delimited forms. Every logcat result includes
+`sensitive_logs_possible`, even when no built-in rule reports a substitution.
 The redactor accepts at most 32 optional injected patterns of at most 256
 characters each and rejects unsafe regular-expression shapes. The current
 console and MCP schemas do not accept redaction patterns from callers.

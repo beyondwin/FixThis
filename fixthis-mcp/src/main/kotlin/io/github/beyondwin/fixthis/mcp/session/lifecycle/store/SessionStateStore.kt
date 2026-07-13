@@ -9,7 +9,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.withMigratedItemSequenceCount
  * Owns the in-memory feedback-session map plus the persistence read/write seam.
  *
  * This store is deliberately **lock-free**: every method must be called by
- * [FeedbackSessionStoreDelegate] from inside its `synchronized(lock)` blocks
+ * [FeedbackSessionStoreDelegate] from inside its shared store-lock blocks
  * (and once, without the lock, from the delegate's `init` block at construction
  * time). The observable concurrency/locking semantics therefore live entirely
  * in the delegate and are unchanged by this extraction. The store introduces no

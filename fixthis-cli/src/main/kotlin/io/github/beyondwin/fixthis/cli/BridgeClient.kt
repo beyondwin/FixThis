@@ -86,6 +86,12 @@ class BridgeClient(
 
     internal fun currentRequestScope(): BridgeRequestScope = requestScope()
 
+    internal fun runtimeEvidenceRequestScope(deviceSerial: String?): BridgeRequestScope {
+        if (deviceSerial == null) return requestScope()
+        val resolvedSerial = BridgeRequestDeviceResolver.resolve(resolvedAdb.devices(), deviceSerial)
+        return BridgeRequestScope(selectedDeviceSerial = resolvedSerial, adb = resolvedAdb.forDevice(resolvedSerial))
+    }
+
     suspend fun request(
         packageName: String,
         method: String,

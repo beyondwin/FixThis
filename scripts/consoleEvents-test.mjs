@@ -24,7 +24,7 @@ function body(sourceText, signature) {
 }
 
 test('events subscriber uses EventSource and handles console event names', () => {
-  assert.match(source, /new EventSource\(['"]\/api\/events['"]\)/);
+  assert.match(source, /new EventSource\(consoleCapabilityUrl\(['"]\/api\/events['"]\)\)/);
   for (const eventName of [
     'snapshot',
     'session-updated',

@@ -23,12 +23,17 @@ internal suspend fun collectRuntimeEvidencePayload(
         .first { it.screenId == input.request.screenId }
         .capturedAtEpochMillis
     val proximity = runtimeEvidenceProximity(input.captureStartedAt - screenCapturedAt)
-    val capabilities = collector.capabilitiesOrEmpty(input.session.packageName, input.budget)
+    val capabilities = collector.capabilitiesOrEmpty(
+        input.session.packageName,
+        input.startContext.deviceSerial,
+        input.budget,
+    )
     val batch = collector.collectBounded(
         input.session.packageName,
         input.request.preset,
         screenCapturedAt,
         RuntimeEvidenceCollectionContext(input.startContext, capabilities),
+        input.startContext.deviceSerial,
         input.budget,
     )
     val summaries = batch.results.map { summarizer.summarize(it, screenCapturedAt) }

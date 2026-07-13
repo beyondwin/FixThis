@@ -87,17 +87,17 @@ class RuntimeEvidenceCaptureCoordinatorTest {
         val bridge = FakeRuntimeEvidenceBridge(
             timing = FakeBridgeTiming(
                 delayByKind = mapOf(
-                    CliRuntimeEvidenceKind.MEMORY_SUMMARY to 200,
-                    CliRuntimeEvidenceKind.FRAME_SUMMARY to 200,
+                    CliRuntimeEvidenceKind.MEMORY_SUMMARY to 1_000,
+                    CliRuntimeEvidenceKind.FRAME_SUMMARY to 1_000,
                 ),
             ),
         )
-        val fixture = fixture(bridge = bridge, timing = FixtureTiming(deadlineMillis = 80))
+        val fixture = fixture(bridge = bridge, timing = FixtureTiming(deadlineMillis = 300))
 
         val timed = fixture.coordinator.collect(fixture.request())
         val immediate = fixture.coordinator.collect(fixture.request(preset = RuntimeEvidencePreset.LOGS))
 
-        assertEquals(RuntimeEvidenceStatus.PARTIAL, timed.status)
+        assertEquals(RuntimeEvidenceStatus.PARTIAL, timed.status, timed.toString())
         assertEquals(setOf(RuntimeEvidenceType.LOGCAT_WINDOW), fixture.artifacts.commits.first().inputs.map { it.type }.toSet())
         val stored = fixture.store.getSession("s1").runtimeEvidence.filter { it.captureId == timed.captureId }
         assertEquals(RuntimeEvidenceStatus.COMPLETE, stored.single { it.type == RuntimeEvidenceType.LOGCAT_WINDOW }.status)
@@ -304,6 +304,41 @@ class RuntimeEvidenceCaptureContextTest {
     }
 
     @Test
+    fun unavailableFingerprintEnrichmentDoesNotInventContextDrift() = runBlocking {
+        val fixture = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                contexts = listOf(
+                    context().copy(currentScreenFingerprint = null),
+                    context(),
+                ),
+            ),
+        )
+
+        val actual = fixture.coordinator.collect(fixture.request())
+
+        assertEquals(RuntimeEvidenceStatus.COMPLETE, actual.status)
+        assertFalse(RuntimeEvidenceWarning.CONTEXT_CHANGED in actual.warnings)
+    }
+
+    @Test
+    fun unavailableStartFingerprintStillDetectsPersistedToEndDrift() = runBlocking {
+        val fixture = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                contexts = listOf(
+                    context().copy(currentScreenFingerprint = null),
+                    context().copy(currentScreenFingerprint = "different-screen"),
+                ),
+            ),
+        )
+
+        val actual = fixture.coordinator.collect(fixture.request())
+
+        assertEquals(RuntimeEvidenceStatus.PARTIAL, actual.status)
+        assertTrue(RuntimeEvidenceWarning.CONTEXT_CHANGED in actual.warnings)
+        assertTrue(fixture.store.getSession("s1").runtimeEvidence.all { it.proximity != RuntimeEvidenceProximity.NEAR })
+    }
+
+    @Test
     fun proximityUsesInclusiveThreeAndFifteenSecondBoundaries() = runBlocking {
         val near = fixture(timing = FixtureTiming(clockValues = listOf(4_000, 4_100)), sessionId = "near")
         val delayed = fixture(timing = FixtureTiming(clockValues = listOf(16_000, 16_100)), sessionId = "delayed")
@@ -455,9 +490,95 @@ class RuntimeEvidenceCaptureContextTest {
         assertEquals(2, transient.collectCalls.get())
         assertEquals(1, permission.collectCalls.get())
     }
+
+    @Test
+    fun mixedFailedAndUnsupportedCollectorsWithoutArtifactsReportFailed() = runBlocking {
+        val bridge = FakeRuntimeEvidenceBridge(
+            results = mapOf(
+                CliRuntimeEvidenceKind.LOGCAT_WINDOW to result(
+                    CliRuntimeEvidenceKind.LOGCAT_WINDOW,
+                    CliRuntimeEvidenceStatus.FAILED,
+                    "",
+                    failureCode = "permission_denied",
+                ),
+                CliRuntimeEvidenceKind.MEMORY_SUMMARY to result(
+                    CliRuntimeEvidenceKind.MEMORY_SUMMARY,
+                    CliRuntimeEvidenceStatus.UNSUPPORTED,
+                    "",
+                    failureCode = "unsupported",
+                ),
+                CliRuntimeEvidenceKind.FRAME_SUMMARY to result(
+                    CliRuntimeEvidenceKind.FRAME_SUMMARY,
+                    CliRuntimeEvidenceStatus.UNSUPPORTED,
+                    "",
+                    failureCode = "unsupported",
+                ),
+            ),
+        )
+        val fixture = fixture(bridge = bridge)
+
+        val actual = fixture.coordinator.collect(fixture.request())
+
+        assertEquals(RuntimeEvidenceStatus.FAILED, actual.status)
+        assertEquals(RuntimeEvidenceFailureReason.PERMISSION_DENIED, actual.failureReason)
+        assertTrue(actual.attachmentIds.isEmpty())
+        assertTrue(fixture.store.getSession("s1").runtimeEvidence.isEmpty())
+    }
 }
 
 class RuntimeEvidenceCaptureHardeningTest {
+
+    @Test
+    fun artifactCommitAndLinkingRespectTheEndToEndDeadline() = runBlocking {
+        val blockedCommit = fixture(
+            timing = FixtureTiming(deadlineMillis = 250),
+            effects = FixtureEffects(artifactDelayMillis = 5_000),
+        )
+        val blockedLink = fixture(
+            sessionId = "blocked-link",
+            timing = FixtureTiming(deadlineMillis = 100),
+            effects = FixtureEffects(
+                linker = { _, _, _, _, _ ->
+                    Thread.sleep(5_000)
+                    error("late link must not complete")
+                },
+            ),
+        )
+
+        val startedAt = System.nanoTime()
+        val commitResult = blockedCommit.coordinator.collect(blockedCommit.request())
+        val linkResult = blockedLink.coordinator.collect(blockedLink.request())
+        val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
+
+        assertEquals(RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT, commitResult.failureReason)
+        assertEquals(RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT, linkResult.failureReason)
+        assertTrue(elapsedMillis < 1_000, "deadline took ${elapsedMillis}ms")
+        assertTrue(blockedCommit.store.getSession("s1").runtimeEvidence.isEmpty())
+        assertTrue(blockedLink.store.getSession("blocked-link").runtimeEvidence.isEmpty())
+    }
+
+    @Test
+    fun linkTimeoutPreservesBundleWhenMutationCommittedBeforeDeadline() = runBlocking {
+        lateinit var linkedStore: FeedbackSessionStore
+        val fixture = fixture(
+            sessionId = "committed-before-timeout",
+            timing = FixtureTiming(deadlineMillis = 100),
+            effects = FixtureEffects(
+                linker = { sessionId, screenId, itemIds, attachments, status ->
+                    val linked = linkedStore.attachRuntimeEvidence(sessionId, screenId, itemIds, attachments, status)
+                    Thread.sleep(5_000)
+                    linked
+                },
+            ),
+        )
+        linkedStore = fixture.store
+
+        val actual = fixture.coordinator.collect(fixture.request())
+
+        assertEquals(RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT, actual.failureReason)
+        assertTrue(fixture.store.getSession(fixture.sessionId).runtimeEvidence.isNotEmpty())
+        assertTrue(fixture.artifacts.deletes.isEmpty())
+    }
 
     @Test
     fun thrownCollectorRuntimeAndIoFailuresBecomeTypedResultsWithOneRetry() = runBlocking {
@@ -745,7 +866,7 @@ private fun fixture(
     val clock = ArrayDeque(clockValues)
     val store = FeedbackSessionStore(clock = { clockValues.last() }, idGenerator = AtomicIds()::next)
     store.replaceSessionForDomain(session(sessionId, itemCount))
-    val artifacts = RecordingArtifactStore(effects.artifactFailure)
+    val artifacts = RecordingArtifactStore(effects.artifactFailure, effects.artifactDelayMillis)
     val coordinator = RuntimeEvidenceCaptureCoordinator(
         bridge = bridge,
         store = store,
@@ -785,6 +906,7 @@ private data class FixtureTiming(
 
 private data class FixtureEffects(
     val artifactFailure: RuntimeException? = null,
+    val artifactDelayMillis: Long = 0,
     val linker: RuntimeEvidenceLinker? = null,
 )
 
@@ -902,6 +1024,7 @@ private class SuspendBarrier(private val parties: Int) {
 
 private class RecordingArtifactStore(
     private val failure: RuntimeException? = null,
+    private val delayMillis: Long = 0,
 ) : RuntimeEvidenceArtifactStore {
     data class Commit(val sessionId: String, val captureId: String, val inputs: List<RuntimeEvidenceArtifactInput>)
 
@@ -913,6 +1036,7 @@ private class RecordingArtifactStore(
         captureId: String,
         inputs: List<RuntimeEvidenceArtifactInput>,
     ): CommittedRuntimeEvidenceBundle {
+        if (delayMillis > 0) Thread.sleep(delayMillis)
         failure?.let { throw it }
         commits += Commit(sessionId, captureId, inputs)
         val directory = ".fixthis/runtime-evidence/$sessionId/$captureId"
