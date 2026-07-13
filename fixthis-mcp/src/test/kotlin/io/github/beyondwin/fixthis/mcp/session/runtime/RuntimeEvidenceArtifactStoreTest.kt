@@ -3,9 +3,13 @@ package io.github.beyondwin.fixthis.mcp.session.runtime
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -382,6 +386,11 @@ class RuntimeEvidenceArtifactStoreTest {
     }
 
     @Test
+    fun concurrentQuotaLockRecoveryKeepsOnePrimaryInodeAndSerializesReservations() = withRoot { root ->
+        ConcurrentQuotaRecoveryRace(root).verify()
+    }
+
+    @Test
     fun writeFailureLeavesNeitherPartialPathNorTempDirectory() = withRoot { root ->
         val store = FileRuntimeEvidenceArtifactStore(
             projectRoot = root,
@@ -708,3 +717,90 @@ private fun runtimeEvidenceInput(
     fileName: String,
     text: String,
 ): RuntimeEvidenceArtifactInput = RuntimeEvidenceArtifactInput(type, fileName, text)
+
+private class ConcurrentQuotaRecoveryRace(root: File) {
+    private val evidenceRoot = File(root, ".fixthis/runtime-evidence").apply { mkdirs() }
+    private val primaryLock = File(evidenceRoot, RuntimeEvidenceArtifactQuotaGuard.LOCK_FILE_NAME)
+    private val poisonTarget = File(root, "quota-lock-poison-target").apply { writeText("keep") }
+    private val firstRecovered = CountDownLatch(1)
+    private val allowFirstPrimaryOpen = CountDownLatch(1)
+    private val firstAttemptingPrimaryLock = CountDownLatch(1)
+    private val firstEntered = CountDownLatch(1)
+    private val secondEntered = CountDownLatch(1)
+    private val releaseSecond = CountDownLatch(1)
+    private val activeReservations = AtomicInteger()
+    private val maximumReservations = AtomicInteger()
+    private val recreatedFileKey = AtomicReference<Any>()
+    private val secondFileKey = AtomicReference<Any>()
+    private val failures = Collections.synchronizedList(mutableListOf<Throwable>())
+
+    init {
+        Files.createSymbolicLink(primaryLock.toPath(), poisonTarget.toPath())
+    }
+
+    fun verify() {
+        val first = firstThread().apply { start() }
+        check(firstRecovered.await(5, TimeUnit.SECONDS))
+        val second = secondThread().apply { start() }
+        check(secondEntered.await(5, TimeUnit.SECONDS))
+        allowFirstPrimaryOpen.countDown()
+        check(firstAttemptingPrimaryLock.await(5, TimeUnit.SECONDS))
+        val overlapped = firstEntered.await(500, TimeUnit.MILLISECONDS)
+        releaseSecond.countDown()
+        first.join(10_000)
+        second.join(10_000)
+
+        assertFalse(first.isAlive)
+        assertFalse(second.isAlive)
+        assertFalse(overlapped, "primary reservations overlapped across recovered lock instances")
+        assertEquals(emptyList(), failures)
+        assertEquals(recreatedFileKey.get(), secondFileKey.get())
+        assertEquals(recreatedFileKey.get(), fileKey(primaryLock))
+        assertEquals(1, maximumReservations.get())
+        assertEquals("keep", poisonTarget.readText())
+    }
+
+    private fun firstThread() = thread(start = false, name = "runtime-evidence-recovery-first") {
+        val lock = RuntimeEvidenceQuotaFileLock(
+            evidenceRoot,
+            RuntimeEvidenceQuotaFileLockHooks(
+                afterRecoveryBeforePrimaryOpen = { file ->
+                    recreatedFileKey.set(fileKey(file))
+                    firstRecovered.countDown()
+                    check(allowFirstPrimaryOpen.await(5, TimeUnit.SECONDS))
+                },
+                beforePrimaryLock = { firstAttemptingPrimaryLock.countDown() },
+            ),
+        )
+        runCatching {
+            lock.withLock { trackReservation { firstEntered.countDown() } }
+        }.exceptionOrNull()?.let(failures::add)
+    }
+
+    private fun secondThread() = thread(start = false, name = "runtime-evidence-recovery-second") {
+        val lock = RuntimeEvidenceQuotaFileLock(evidenceRoot)
+        runCatching {
+            lock.withLock {
+                secondFileKey.set(fileKey(primaryLock))
+                trackReservation {
+                    secondEntered.countDown()
+                    check(releaseSecond.await(5, TimeUnit.SECONDS))
+                }
+            }
+        }.exceptionOrNull()?.let(failures::add)
+    }
+
+    private fun trackReservation(block: () -> Unit) {
+        val active = activeReservations.incrementAndGet()
+        maximumReservations.updateAndGet { maximum -> maxOf(maximum, active) }
+        try {
+            block()
+        } finally {
+            activeReservations.decrementAndGet()
+        }
+    }
+
+    private fun fileKey(file: File): Any = requireNotNull(
+        Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS).fileKey(),
+    )
+}

@@ -38,18 +38,7 @@ internal class RuntimeEvidenceArtifactQuotaGuard(
     private fun <T> withProcessLock(
         canonicalRoot: File,
         block: () -> T,
-    ): T {
-        val lockFile = File(canonicalRoot, LOCK_FILE_NAME)
-        if (Files.isSymbolicLink(lockFile.toPath())) Files.delete(lockFile.toPath())
-        val options: Set<OpenOption> = setOf(
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-            LinkOption.NOFOLLOW_LINKS,
-        )
-        return FileChannel.open(lockFile.toPath(), options).use { channel ->
-            channel.lock().use { block() }
-        }
-    }
+    ): T = RuntimeEvidenceQuotaFileLock(canonicalRoot).withLock(block)
 
     private fun enforceQuota(
         currentBytes: Long,
@@ -72,5 +61,53 @@ internal class RuntimeEvidenceArtifactQuotaGuard(
         const val LOCK_FILE_NAME = ".quota.lock"
         private const val PROJECT_QUOTA_BYTES = 250L * 1024L * 1024L
         private val rootLocks = ConcurrentHashMap<java.nio.file.Path, ReentrantLock>()
+    }
+}
+
+internal data class RuntimeEvidenceQuotaFileLockHooks(
+    val afterRecoveryBeforePrimaryOpen: (File) -> Unit = {},
+    val beforePrimaryLock: () -> Unit = {},
+)
+
+internal class RuntimeEvidenceQuotaFileLock(
+    private val evidenceRoot: File,
+    private val hooks: RuntimeEvidenceQuotaFileLockHooks = RuntimeEvidenceQuotaFileLockHooks(),
+) {
+    fun <T> withLock(block: () -> T): T {
+        val primaryLock = recoverPrimaryLock()
+        hooks.afterRecoveryBeforePrimaryOpen(primaryLock)
+        hooks.beforePrimaryLock()
+        val localPrimaryLock = primaryLocks.computeIfAbsent(evidenceRoot.canonicalFile.toPath()) { ReentrantLock() }
+        return localPrimaryLock.withLock {
+            openLockFile(primaryLock).use { channel ->
+                channel.lock().use { block() }
+            }
+        }
+    }
+
+    private fun recoverPrimaryLock(): File {
+        val recoveryLock = File(evidenceRoot, RECOVERY_LOCK_FILE_NAME)
+        openLockFile(recoveryLock).use { recoveryChannel ->
+            recoveryChannel.lock().use {
+                val primaryLock = File(evidenceRoot, RuntimeEvidenceArtifactQuotaGuard.LOCK_FILE_NAME)
+                if (Files.isSymbolicLink(primaryLock.toPath())) Files.delete(primaryLock.toPath())
+                openLockFile(primaryLock).use { }
+                return primaryLock
+            }
+        }
+    }
+
+    private fun openLockFile(file: File): FileChannel {
+        val options: Set<OpenOption> = setOf(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.WRITE,
+            LinkOption.NOFOLLOW_LINKS,
+        )
+        return FileChannel.open(file.toPath(), options)
+    }
+
+    internal companion object {
+        const val RECOVERY_LOCK_FILE_NAME = ".quota.recovery.lock"
+        private val primaryLocks = ConcurrentHashMap<java.nio.file.Path, ReentrantLock>()
     }
 }
