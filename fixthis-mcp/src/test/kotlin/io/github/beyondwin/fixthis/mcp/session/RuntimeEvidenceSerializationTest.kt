@@ -15,6 +15,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class RuntimeEvidenceSerializationTest {
     @Test
@@ -34,6 +35,32 @@ class RuntimeEvidenceSerializationTest {
         )
 
         assertEquals(RuntimeEvidencePolicy.MANUAL, session.runtimeEvidencePolicy)
+    }
+
+    @Test
+    fun legacyRuntimeEvidenceAttachmentWithoutLifecycleFieldsUsesCompatibilityDefaults() {
+        val attachment = fixThisJson.decodeFromString(
+            RuntimeEvidenceAttachment.serializer(),
+            """
+            {
+              "evidenceId": "legacy-evidence",
+              "type": "logcat_window",
+              "capturedAtEpochMillis": 1,
+              "packageName": "io.example",
+              "summary": "legacy summary"
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(RuntimeEvidenceStatus.COMPLETE, attachment.status)
+        assertEquals(RuntimeEvidenceTrigger.MANUAL_ATTACHMENT, attachment.trigger)
+        assertNull(attachment.captureId)
+        assertNull(attachment.screenCapturedAtEpochMillis)
+        assertNull(attachment.captureStartedAtEpochMillis)
+        assertNull(attachment.captureCompletedAtEpochMillis)
+        assertNull(attachment.proximity)
+        assertNull(attachment.failureReason)
+        assertEquals(emptyList(), attachment.warnings)
     }
 
     @Test
