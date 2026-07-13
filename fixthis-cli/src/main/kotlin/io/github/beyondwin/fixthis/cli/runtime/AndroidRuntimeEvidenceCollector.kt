@@ -37,7 +37,7 @@ class AndroidRuntimeEvidenceCollector(
         val plan = RuntimeEvidenceCommandPlanner.baseline(
             packageName = packageName,
             pid = baseline.context.pid,
-            logcatSince = logcatSince(screenCapturedAtEpochMillis),
+            logcatSince = RuntimeEvidenceResultSupport.logcatSince(screenCapturedAtEpochMillis),
         )
         if (kind != CliRuntimeEvidenceKind.CONTEXT && !baseline.context.packageAvailable) {
             return unavailableResult(startedAt, kind, RuntimeEvidenceFailure.PACKAGE_NOT_AVAILABLE)
@@ -83,7 +83,7 @@ class AndroidRuntimeEvidenceCollector(
     private fun contextResult(startedAt: Long, baseline: CollectedContext): CliRuntimeEvidenceResult {
         val warnings = baseline.results.flatMapTo(linkedSetOf()) { RuntimeEvidenceParsers.warnings(it) }
         val failures = baseline.results.map(RuntimeEvidenceParsers::failure)
-        val output = mergeBounded(
+        val output = RuntimeEvidenceResultSupport.mergeBounded(
             listOf(
                 "package" to baseline.results[0],
                 "pid" to baseline.results[1],
@@ -93,7 +93,7 @@ class AndroidRuntimeEvidenceCollector(
         )
         return CliRuntimeEvidenceResult(
             kind = CliRuntimeEvidenceKind.CONTEXT,
-            status = aggregateStatus(failures, warnings),
+            status = RuntimeEvidenceResultSupport.aggregateStatus(failures, warnings),
             startedAtEpochMillis = startedAt,
             completedAtEpochMillis = clock(),
             command = baseline.plan.packagePath.arguments,
@@ -126,11 +126,11 @@ class AndroidRuntimeEvidenceCollector(
         val failures = listOf(app.failure, RuntimeEvidenceParsers.failure(crashResult), RuntimeEvidenceParsers.failure(exitResult))
         return CliRuntimeEvidenceResult(
             kind = CliRuntimeEvidenceKind.LOGCAT_WINDOW,
-            status = aggregateStatus(failures, warnings),
+            status = RuntimeEvidenceResultSupport.aggregateStatus(failures, warnings),
             startedAtEpochMillis = startedAt,
             completedAtEpochMillis = clock(),
             command = app.command,
-            output = mergeBounded(
+            output = RuntimeEvidenceResultSupport.mergeBounded(
                 listOf("app_logcat" to app.result, "crash_logcat" to crashResult, "exit_info" to exitResult),
                 limits.logcatBytes,
             ),
@@ -179,13 +179,14 @@ class AndroidRuntimeEvidenceCollector(
         val result = execute(command)
         val failure = RuntimeEvidenceParsers.failure(result)
         val warnings = RuntimeEvidenceParsers.warnings(result)
+        val output = RuntimeEvidenceResultSupport.output(result)
         return CliRuntimeEvidenceResult(
             kind = kind,
-            status = status(failure, warnings, result.output().isNotBlank()),
+            status = RuntimeEvidenceResultSupport.status(failure, warnings, output.isNotBlank()),
             startedAtEpochMillis = startedAt,
             completedAtEpochMillis = clock(),
             command = command.arguments,
-            output = boundedUtf8(result.output(), limits.summaryBytes),
+            output = RuntimeEvidenceResultSupport.boundedUtf8(output, limits.summaryBytes),
             warnings = warnings,
             failureCode = failure.code,
         )
@@ -207,47 +208,6 @@ class AndroidRuntimeEvidenceCollector(
 
     private fun execute(command: RuntimeEvidenceCommand): AdbExecutionResult = adb.execute(command.arguments, command.limits)
 
-    private fun logcatSince(screenCapturedAtEpochMillis: Long): String? {
-        if (screenCapturedAtEpochMillis <= 0) return null
-        val timestampMillis = screenCapturedAtEpochMillis - LOGCAT_LOOKBACK_MILLIS
-        val seconds = Math.floorDiv(timestampMillis, 1_000L)
-        val millis = Math.floorMod(timestampMillis, 1_000L)
-        return "$seconds.${millis.toString().padStart(3, '0')}"
-    }
-
-    private fun aggregateStatus(
-        failures: List<RuntimeEvidenceFailure>,
-        warnings: Set<String>,
-    ): CliRuntimeEvidenceStatus {
-        val successful = failures.count { it == RuntimeEvidenceFailure.NONE }
-        if (successful > 0 && (successful < failures.size || warnings.isNotEmpty())) return CliRuntimeEvidenceStatus.PARTIAL
-        if (successful == failures.size) return CliRuntimeEvidenceStatus.COMPLETE
-        if (failures.all { it == RuntimeEvidenceFailure.UNSUPPORTED }) return CliRuntimeEvidenceStatus.UNSUPPORTED
-        return CliRuntimeEvidenceStatus.FAILED
-    }
-
-    private fun status(
-        failure: RuntimeEvidenceFailure,
-        warnings: Set<String>,
-        hasUsableOutput: Boolean,
-    ): CliRuntimeEvidenceStatus = when {
-        failure == RuntimeEvidenceFailure.UNSUPPORTED -> CliRuntimeEvidenceStatus.UNSUPPORTED
-        failure == RuntimeEvidenceFailure.NONE && warnings.isEmpty() -> CliRuntimeEvidenceStatus.COMPLETE
-        failure == RuntimeEvidenceFailure.NONE || (failure == RuntimeEvidenceFailure.TIMEOUT && hasUsableOutput) -> CliRuntimeEvidenceStatus.PARTIAL
-        else -> CliRuntimeEvidenceStatus.FAILED
-    }
-
-    private fun mergeBounded(parts: List<Pair<String, AdbExecutionResult>>, maxBytes: Int): String {
-        val merged = parts.joinToString("\n") { (label, result) -> "[$label]\n${result.output()}" }
-        return boundedUtf8(merged, maxBytes)
-    }
-
-    private fun AdbExecutionResult.output(): String = when {
-        stdout.isBlank() -> stderr
-        stderr.isBlank() -> stdout
-        else -> "$stdout\n$stderr"
-    }
-
     private data class CollectedContext(
         val context: CliRuntimeEvidenceContext,
         val plan: RuntimeEvidenceContextPlan,
@@ -262,7 +222,6 @@ class AndroidRuntimeEvidenceCollector(
 
     private companion object {
         const val MAX_LOGCAT_ATTEMPTS = 3
-        const val LOGCAT_LOOKBACK_MILLIS = 2_000L
 
         fun emptyResult() = AdbExecutionResult(0, "", "", false, false, false)
 
@@ -279,24 +238,6 @@ class AndroidRuntimeEvidenceCollector(
             disable()
             warnings += warning
             return true
-        }
-
-        fun boundedUtf8(value: String, maxBytes: Int): String {
-            if (maxBytes <= 0) return ""
-            if (value.toByteArray(Charsets.UTF_8).size <= maxBytes) return value
-            val output = StringBuilder()
-            var index = 0
-            var used = 0
-            while (index < value.length) {
-                val codePoint = value.codePointAt(index)
-                val text = String(Character.toChars(codePoint))
-                val bytes = text.toByteArray(Charsets.UTF_8).size
-                if (used + bytes > maxBytes) break
-                output.append(text)
-                used += bytes
-                index += Character.charCount(codePoint)
-            }
-            return output.toString()
         }
     }
 }

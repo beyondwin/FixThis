@@ -11,8 +11,8 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-private const val RuntimeEvidenceBridgeTimeoutMillis = 1_250L
-private const val RuntimeEvidenceEnrichmentDeadlineMillis = 1_500L
+private const val RUNTIME_EVIDENCE_BRIDGE_TIMEOUT_MILLIS = 1_250L
+private const val RUNTIME_EVIDENCE_ENRICHMENT_DEADLINE_MILLIS = 1_500L
 
 fun BridgeClient.runtimeEvidenceCapabilities(packageName: String): CliRuntimeEvidenceCapabilities {
     val scope = runtimeEvidenceScope()
@@ -65,7 +65,7 @@ private fun BridgeClient.runtimeEvidenceBridgeContext(
         val snapshot = executor.submit<JsonObject?> {
             runtimeEvidenceRequest(scope, packageName, "captureScreenSnapshot")
         }
-        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(RuntimeEvidenceEnrichmentDeadlineMillis)
+        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(RUNTIME_EVIDENCE_ENRICHMENT_DEADLINE_MILLIS)
         status.getBefore(deadlineNanos) to snapshot.getBefore(deadlineNanos)
     } finally {
         executor.shutdownNow()
@@ -82,7 +82,7 @@ private fun BridgeClient.runtimeEvidenceRequest(
             scope = scope,
             packageName = packageName,
             method = method,
-            readTimeoutMillis = RuntimeEvidenceBridgeTimeoutMillis,
+            readTimeoutMillis = RUNTIME_EVIDENCE_BRIDGE_TIMEOUT_MILLIS,
         )
     }
 }.getOrNull()

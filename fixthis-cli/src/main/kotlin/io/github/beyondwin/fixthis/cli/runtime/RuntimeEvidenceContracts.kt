@@ -1,5 +1,9 @@
 package io.github.beyondwin.fixthis.cli.runtime
 
+internal const val RUNTIME_EVIDENCE_BASELINE_BYTES = 2_097_152
+internal const val RUNTIME_EVIDENCE_LOGCAT_BYTES = 524_288
+internal const val RUNTIME_EVIDENCE_SUMMARY_BYTES = 131_072
+
 enum class CliRuntimeEvidenceKind { CONTEXT, LOGCAT_WINDOW, MEMORY_SUMMARY, FRAME_SUMMARY }
 
 enum class CliRuntimeEvidenceStatus { COMPLETE, PARTIAL, FAILED, UNSUPPORTED }
@@ -27,9 +31,9 @@ data class CliRuntimeEvidenceResult(
 )
 
 data class CliRuntimeEvidenceLimits(
-    val baselineBytes: Int = 2 * 1024 * 1024,
-    val logcatBytes: Int = 512 * 1024,
-    val summaryBytes: Int = 128 * 1024,
+    val baselineBytes: Int = RUNTIME_EVIDENCE_BASELINE_BYTES,
+    val logcatBytes: Int = RUNTIME_EVIDENCE_LOGCAT_BYTES,
+    val summaryBytes: Int = RUNTIME_EVIDENCE_SUMMARY_BYTES,
 )
 
 data class CliRuntimeEvidenceCapabilities(

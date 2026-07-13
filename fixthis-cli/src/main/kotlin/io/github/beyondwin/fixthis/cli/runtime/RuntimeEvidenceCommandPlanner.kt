@@ -27,9 +27,21 @@ data class RuntimeEvidenceCommandPlan(
 
 object RuntimeEvidenceCommandPlanner {
     private val applicationId = Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$")
-    private val contextLimits = AdbExecutionLimits(750, 128 * 1024, 128 * 1024)
-    private val logcatLimits = AdbExecutionLimits(1_500, 512 * 1024, 512 * 1024)
-    private val summaryLimits = AdbExecutionLimits(1_250, 128 * 1024, 128 * 1024)
+    private val contextLimits = AdbExecutionLimits(
+        CONTEXT_TIMEOUT_MILLIS,
+        RUNTIME_EVIDENCE_SUMMARY_BYTES,
+        RUNTIME_EVIDENCE_SUMMARY_BYTES,
+    )
+    private val logcatLimits = AdbExecutionLimits(
+        LOGCAT_TIMEOUT_MILLIS,
+        RUNTIME_EVIDENCE_LOGCAT_BYTES,
+        RUNTIME_EVIDENCE_LOGCAT_BYTES,
+    )
+    private val summaryLimits = AdbExecutionLimits(
+        SUMMARY_TIMEOUT_MILLIS,
+        RUNTIME_EVIDENCE_SUMMARY_BYTES,
+        RUNTIME_EVIDENCE_SUMMARY_BYTES,
+    )
 
     fun context(packageName: String): RuntimeEvidenceContextPlan {
         validatePackageName(packageName)
@@ -71,4 +83,8 @@ object RuntimeEvidenceCommandPlanner {
     fun validatePackageName(packageName: String) {
         require(applicationId.matches(packageName)) { "Invalid Android application id: $packageName" }
     }
+
+    private const val CONTEXT_TIMEOUT_MILLIS = 750L
+    private const val LOGCAT_TIMEOUT_MILLIS = 1_500L
+    private const val SUMMARY_TIMEOUT_MILLIS = 1_250L
 }

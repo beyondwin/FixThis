@@ -403,12 +403,12 @@ internal class ProcessAdbCommandRunner(
     }
 
     private class BoundedOutput(private val maxBytes: Int) {
-        private val retained = ByteArrayOutputStream(minOf(maxBytes, 8 * 1024))
+        private val retained = ByteArrayOutputStream(minOf(maxBytes, ADB_STREAM_BUFFER_BYTES))
         var truncated: Boolean = false
             private set
 
         fun drain(input: java.io.InputStream) {
-            val buffer = ByteArray(8 * 1024)
+            val buffer = ByteArray(ADB_STREAM_BUFFER_BYTES)
             while (true) {
                 val read = input.read(buffer)
                 if (read < 0) return
@@ -421,5 +421,9 @@ internal class ProcessAdbCommandRunner(
         }
 
         fun text(): String = retained.toByteArray().toString(Charsets.UTF_8)
+
+        private companion object {
+            const val ADB_STREAM_BUFFER_BYTES = 8_192
+        }
     }
 }

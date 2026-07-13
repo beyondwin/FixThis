@@ -57,21 +57,18 @@ object RuntimeEvidenceParsers {
     }
 
     fun failure(result: AdbExecutionResult): RuntimeEvidenceFailure {
-        if (result.timedOut) return RuntimeEvidenceFailure.TIMEOUT
         val diagnostic = "${result.stderr}\n${result.stdout}"
-        if (diagnostic.contains("permission denial", ignoreCase = true) ||
-            diagnostic.contains("permission denied", ignoreCase = true) ||
-            diagnostic.contains("not allowed", ignoreCase = true)
-        ) {
-            return RuntimeEvidenceFailure.PERMISSION_DENIED
+        return when {
+            result.timedOut -> RuntimeEvidenceFailure.TIMEOUT
+            diagnostic.contains("permission denial", ignoreCase = true) ||
+                diagnostic.contains("permission denied", ignoreCase = true) ||
+                diagnostic.contains("not allowed", ignoreCase = true) -> RuntimeEvidenceFailure.PERMISSION_DENIED
+            diagnostic.contains("unknown option", ignoreCase = true) ||
+                diagnostic.contains("unsupported", ignoreCase = true) ||
+                diagnostic.contains("not supported", ignoreCase = true) -> RuntimeEvidenceFailure.UNSUPPORTED
+            result.exitCode == 0 -> RuntimeEvidenceFailure.NONE
+            else -> RuntimeEvidenceFailure.COMMAND_FAILED
         }
-        if (diagnostic.contains("unknown option", ignoreCase = true) ||
-            diagnostic.contains("unsupported", ignoreCase = true) ||
-            diagnostic.contains("not supported", ignoreCase = true)
-        ) {
-            return RuntimeEvidenceFailure.UNSUPPORTED
-        }
-        return if (result.exitCode == 0) RuntimeEvidenceFailure.NONE else RuntimeEvidenceFailure.COMMAND_FAILED
     }
 
     fun unsupportedLogcatOption(result: AdbExecutionResult): UnsupportedLogcatOption {
