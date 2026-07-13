@@ -1,6 +1,8 @@
 package io.github.beyondwin.fixthis.cli
 
 import io.github.beyondwin.fixthis.cli.runtime.CliRuntimeEvidenceKind
+import io.github.beyondwin.fixthis.cli.runtime.collectRuntimeEvidence
+import io.github.beyondwin.fixthis.cli.runtime.runtimeEvidenceContext
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -136,10 +138,10 @@ class BridgeClientDeviceScopeTest {
     private class DeviceScopeAdbFacade(
         private val devices: List<AdbDevice>,
         private val selectedSerial: String? = null,
-        val runAsSerials: MutableList<String?> = mutableListOf(),
-        val forwardSerials: MutableList<String?> = mutableListOf(),
-        val removeForwardSerials: MutableList<String?> = mutableListOf(),
-        val executeSerials: MutableList<String?> = mutableListOf(),
+        val runAsSerials: MutableList<String?> = Collections.synchronizedList(mutableListOf()),
+        val forwardSerials: MutableList<String?> = Collections.synchronizedList(mutableListOf()),
+        val removeForwardSerials: MutableList<String?> = Collections.synchronizedList(mutableListOf()),
+        val executeSerials: MutableList<String?> = Collections.synchronizedList(mutableListOf()),
     ) : AdbFacade {
         override fun devices(): List<AdbDevice> = devices
 
