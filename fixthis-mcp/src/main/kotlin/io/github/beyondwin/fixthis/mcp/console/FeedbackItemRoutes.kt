@@ -127,15 +127,12 @@ internal class FeedbackItemRoutes(
                 exchange.sendJson(200, AgentHandoffResponse(session = result.session, prompt = result.prompt))
             }
             else -> {
-                if (!exchange.requestURI.path.startsWith("/api/items/")) return
-                if (exchange.requestURI.path.endsWith("/runtime-evidence/collect")) {
+                val path = exchange.requestURI.path
+                if (!path.startsWith("/api/items/")) return
+                val collectMatch = runtimeEvidenceCollectPath.matchEntire(path)
+                if (collectMatch != null) {
                     exchange.requireMethod("POST") {
-                        val itemId = exchange.requestURI.path
-                            .removePrefix("/api/items/")
-                            .removeSuffix("/runtime-evidence/collect")
-                            .trim('/')
-                            .takeIf { it.isNotBlank() }
-                            ?: throw FeedbackConsoleHttpException(404, "Feedback item not found")
+                        val itemId = collectMatch.groupValues[ITEM_ID_CAPTURE_GROUP]
                         val request = exchange.decodeJsonBody(
                             CollectRuntimeEvidenceRequest.serializer(),
                             blankValue = CollectRuntimeEvidenceRequest(),
@@ -335,3 +332,5 @@ private fun PreviewFeedbackRequestValidationException.toConsoleHttpException(): 
 
 private const val HTTP_STATUS_CONFLICT = 409
 private const val HTTP_STATUS_PRECONDITION_FAILED = 412
+private const val ITEM_ID_CAPTURE_GROUP = 1
+private val runtimeEvidenceCollectPath = Regex("^/api/items/([^/]+)/runtime-evidence/collect$")

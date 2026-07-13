@@ -108,6 +108,27 @@ class ConsoleRuntimeEvidenceRoutesTest {
     }
 
     @Test
+    fun runtimeEvidenceCollectNearMissPathsDoNotReachCollection() {
+        val bridge = CountingRuntimeBridge()
+        val store = FeedbackSessionStore(idGenerator = FakeIds("session-1", "item-1").next)
+        val root = Files.createTempDirectory("fixthis-console-runtime-near-miss").toFile()
+        val service = FeedbackSessionService(bridge, store, root.absolutePath, PACKAGE_NAME)
+        seedItem(service, store, "screen-1", "item-1")
+        val server = FeedbackConsoleServer(service)
+        server.start()
+        try {
+            val client = ConsoleHttpTestClient(server.url)
+            assertEquals(405, client.postJson("/api/items/item-1/nested/runtime-evidence/collect", "{}").statusCode)
+            assertEquals(405, client.postJson("/api/items/item-1/runtime-evidence/collect/", "{}").statusCode)
+            assertEquals(405, client.postJson("/api/items/item-1/runtime-evidence/collector", "{}").statusCode)
+            assertEquals(0, bridge.runtimeCalls.get())
+        } finally {
+            server.stop()
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun runtimeEvidenceCollectOffSkipsWithoutBridgeAndLegacyManualAttachmentRemainsReachable() {
         val bridge = CountingRuntimeBridge()
         val store = FeedbackSessionStore(idGenerator = FakeIds("session-1", "item-1", "evidence-1").next)

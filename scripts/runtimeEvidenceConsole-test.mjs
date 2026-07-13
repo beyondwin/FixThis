@@ -24,6 +24,7 @@ function deferred() {
 
 function fixture(initialSession) {
   let activeSession = initialSession;
+  let renderCount = 0;
   const requests = [];
   const pending = [];
   const ports = {
@@ -35,14 +36,42 @@ function fixture(initialSession) {
       return next.promise;
     },
     applySession: session => { activeSession = session; },
-    render: () => {},
+    render: () => { renderCount += 1; },
   };
   return {
     ports,
     requests,
     pending,
+    renderCount: () => renderCount,
     setActiveSession: session => { activeSession = session; },
   };
+}
+
+function browserFixture(initialSession) {
+  const state = { session: initialSession, runtimeEvidenceByItem: new Map() };
+  const requests = [];
+  const runtimeModule = loadConsoleSymbols({
+    modules: ['runtimeEvidence.js'],
+    symbols: ['collectRuntimeEvidenceForItem', 'runtimeEvidenceSectionHtml'],
+    args: ['state', 'fetch', 'setConsoleSession', 'renderInspectorRegion', 'showSuccess', 'showError'],
+    values: [
+      state,
+      (path, options) => {
+        requests.push({ path, options });
+        return Promise.resolve({
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ attempted: true, status: 'complete' }),
+          ok: true,
+          status: 200,
+        });
+      },
+      session => { state.session = session; },
+      () => {},
+      () => {},
+      () => {},
+    ],
+  });
+  return { runtimeModule, requests, state };
 }
 
 test('baseline manual recapture uses allowlisted request and reaches complete', async () => {
@@ -114,29 +143,98 @@ test('older recapture completion or rejection cannot erase the newer terminal st
   }
 });
 
-test('rapid policy updates apply only the latest response and never use localStorage', async () => {
+test('policy intents serialize durable writes and keep the latest UI policy over older SSE', async () => {
   const f = fixture({ sessionId: 's1', runtimeEvidencePolicy: 'manual', items: [] });
   const controller = module.createRuntimeEvidenceController(f.ports);
+  let durablePolicy = 'manual';
+  const commitPolicy = (index, policy) => {
+    durablePolicy = policy;
+    const session = { sessionId: 's1', runtimeEvidencePolicy: durablePolicy, items: [] };
+    f.setActiveSession(session); // server commit followed by its SSE projection
+    f.pending[index].resolve(session);
+  };
   const first = controller.updatePolicy('auto_on_handoff');
-  const second = controller.updatePolicy('off');
-  f.pending[1].resolve({ sessionId: 's1', runtimeEvidencePolicy: 'off', items: [] });
-  await second;
-  f.pending[0].resolve({ sessionId: 's1', runtimeEvidencePolicy: 'auto_on_handoff', items: [] });
-  await first;
+  const latest = controller.updatePolicy('off');
+
+  assert.equal(f.requests.length, 1, 'Off must wait until the Auto write settles');
+  assert.equal(f.requests[0].options.method, 'POST');
+  durablePolicy = 'auto_on_handoff';
+  f.setActiveSession({ sessionId: 's1', runtimeEvidencePolicy: durablePolicy, items: [] });
+  assert.equal(controller.effectivePolicy(), 'off', 'older SSE must not replace the pending Off intent');
+  f.pending[0].resolve({ sessionId: 's1', runtimeEvidencePolicy: durablePolicy, items: [] });
+  assert.equal(await first, null);
+
+  assert.equal(f.requests.length, 2, 'latest intent must start after the first write settles');
+  commitPolicy(1, 'off');
+  await latest;
+  assert.equal(durablePolicy, 'off');
   assert.equal(f.ports.activeSession().runtimeEvidencePolicy, 'off');
+  assert.equal(controller.effectivePolicy(), 'off');
+  assert.ok(f.requests.every(request => request.options.method === 'POST'), 'policy updates must not add GET polling');
   assert.doesNotMatch(source, /localStorage/);
 });
 
-test('stale policy rejection cannot overwrite or report over the newer policy', async () => {
+test('stale first policy rejection continues the queued latest intent', async () => {
   const f = fixture({ sessionId: 's1', runtimeEvidencePolicy: 'manual', items: [] });
   const controller = module.createRuntimeEvidenceController(f.ports);
-  const older = controller.updatePolicy('auto_on_handoff');
-  const newer = controller.updatePolicy('off');
+  const first = controller.updatePolicy('auto_on_handoff');
+  const latest = controller.updatePolicy('off');
+
+  f.pending[0].reject(new Error('Auto failed'));
+  assert.equal(await first, null);
+  assert.equal(f.requests.length, 2);
+  assert.equal(JSON.parse(f.requests[1].options.body).policy, 'off');
   f.pending[1].resolve({ sessionId: 's1', runtimeEvidencePolicy: 'off', items: [] });
-  await newer;
-  f.pending[0].reject(new Error('stale failure'));
-  assert.equal(await older, null);
-  assert.equal(f.ports.activeSession().runtimeEvidencePolicy, 'off');
+  await latest;
+  assert.equal(controller.effectivePolicy(), 'off');
+});
+
+test('latest policy failure clears the overlay and rolls back to authoritative policy', async () => {
+  const f = fixture({ sessionId: 's1', runtimeEvidencePolicy: 'manual', items: [] });
+  const controller = module.createRuntimeEvidenceController(f.ports);
+  const update = controller.updatePolicy('off');
+  assert.equal(controller.effectivePolicy(), 'off');
+  f.pending[0].reject(new Error('Off failed'));
+  await assert.rejects(() => update, /Off failed/);
+  assert.equal(controller.effectivePolicy(), 'manual');
+});
+
+test('policy completion after a session switch is silent and does not render the new session', async () => {
+  for (const outcome of ['resolve', 'reject']) {
+    const f = fixture({ sessionId: 's1', runtimeEvidencePolicy: 'manual', items: [] });
+    const controller = module.createRuntimeEvidenceController(f.ports);
+    const update = controller.updatePolicy('off');
+    f.setActiveSession({ sessionId: 's2', runtimeEvidencePolicy: 'manual', items: [] });
+    const rendersBeforeCompletion = f.renderCount();
+    if (outcome === 'resolve') {
+      f.pending[0].resolve({ sessionId: 's1', runtimeEvidencePolicy: 'off', items: [] });
+    } else {
+      f.pending[0].reject(new Error('old session failed'));
+    }
+    assert.equal(await update, null);
+    assert.equal(f.ports.activeSession().sessionId, 's2');
+    assert.equal(controller.effectivePolicy(), 'manual');
+    assert.equal(f.renderCount(), rendersBeforeCompletion);
+  }
+});
+
+test('closed session detail disables diagnostics and explains why', () => {
+  const item = { itemId: 'i1', screenId: 'screen-1', runtimeEvidenceIds: [] };
+  const f = browserFixture({
+    sessionId: 's1', status: 'closed', runtimeEvidencePolicy: 'manual', items: [item], runtimeEvidence: [],
+  });
+  const rendered = f.runtimeModule.runtimeEvidenceSectionHtml(item);
+  assert.match(rendered, /closed session/i);
+  assert.match(rendered, /id="collectRuntimeEvidenceButton"[^>]*disabled/);
+});
+
+test('closed session collection fails before making a request', async () => {
+  const item = { itemId: 'i1', screenId: 'screen-1', runtimeEvidenceIds: [] };
+  const f = browserFixture({
+    sessionId: 's1', status: 'closed', runtimeEvidencePolicy: 'manual', items: [item], runtimeEvidence: [],
+  });
+  await assert.rejects(() => f.runtimeModule.collectRuntimeEvidenceForItem(item), /closed session/i);
+  assert.equal(f.requests.length, 0);
 });
 
 test('annotation and top bar expose accessible diagnostics controls', () => {

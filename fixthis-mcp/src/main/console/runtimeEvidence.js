@@ -35,7 +35,7 @@
             function createRuntimeEvidenceController(ports) {
               const captures = ports.captureState || new Map();
               const captureSeq = new Map();
-              const policySeq = new Map();
+              const policyQueues = new Map();
               const keyOf = (sessionId, itemId) => sessionId + '\u0000' + itemId;
               const next = (map, key) => (map.set(key, (map.get(key) || 0) + 1), map.get(key));
               const current = input => {
@@ -83,29 +83,65 @@
                 }
               }
 
-              async function updatePolicy(policy) {
+              function effectivePolicy(session = ports.activeSession()) {
+                if (!session?.sessionId) return 'manual';
+                return policyQueues.get(session.sessionId)?.desired || session.runtimeEvidencePolicy || 'manual';
+              }
+
+              function drainPolicyQueue(sessionId, queue) {
+                if (queue.running || !queue.queued) return;
+                const mutation = queue.queued;
+                queue.queued = null;
+                queue.running = true;
+                let request;
+                try {
+                  request = ports.request('/api/sessions/' + encodeURIComponent(sessionId) + '/runtime-evidence-policy', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ policy: mutation.policy }),
+                  });
+                } catch (error) {
+                  request = Promise.reject(error);
+                }
+                Promise.resolve(request).then(updated => {
+                  const latest = queue.generation === mutation.generation;
+                  const active = ports.activeSession()?.sessionId === sessionId;
+                  if (latest && active) ports.applySession(updated);
+                  if (latest) queue.desired = null;
+                  queue.running = false;
+                  drainPolicyQueue(sessionId, queue);
+                  if (latest && active) ports.render?.();
+                  mutation.resolve(latest && active ? updated : null);
+                }, error => {
+                  const latest = queue.generation === mutation.generation;
+                  const active = ports.activeSession()?.sessionId === sessionId;
+                  if (latest) queue.desired = null;
+                  queue.running = false;
+                  drainPolicyQueue(sessionId, queue);
+                  if (latest && active) ports.render?.();
+                  if (latest && active) mutation.reject(error);
+                  else mutation.resolve(null);
+                });
+              }
+
+              function updatePolicy(policy) {
                 if (!RuntimeEvidencePolicies.includes(policy)) throw new Error('Unknown runtime evidence policy');
                 const sessionId = ports.activeSession()?.sessionId;
                 if (!sessionId) throw new Error('No active feedback session');
-                const generation = next(policySeq, sessionId);
-                let updated;
-                try {
-                  updated = await ports.request('/api/sessions/' + encodeURIComponent(sessionId) + '/runtime-evidence-policy', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ policy }),
-                  });
-                } catch (error) {
-                  if (policySeq.get(sessionId) !== generation || ports.activeSession()?.sessionId !== sessionId) return null;
-                  throw error;
-                }
-                if (policySeq.get(sessionId) !== generation || ports.activeSession()?.sessionId !== sessionId) return null;
-                ports.applySession(updated);
+                const queue = policyQueues.get(sessionId) || { desired: null, generation: 0, queued: null, running: false };
+                policyQueues.set(sessionId, queue);
+                const generation = ++queue.generation;
+                queue.desired = policy;
+                queue.queued?.resolve(null);
+                const promise = new Promise((resolve, reject) => {
+                  queue.queued = { generation, policy, reject, resolve };
+                });
                 ports.render?.();
-                return updated;
+                drainPolicyQueue(sessionId, queue);
+                return promise;
               }
 
               const stateFor = (itemId, sessionId = ports.activeSession()?.sessionId) =>
                 sessionId ? captures.get(keyOf(sessionId, itemId)) || null : null;
-              return { collect, stateFor, updatePolicy };
+              return { collect, effectivePolicy, stateFor, updatePolicy };
             }
 
             let browserRuntimeEvidenceController;
@@ -116,14 +152,18 @@
                 request: requestJson,
                 applySession: setConsoleSession,
                 captureState: state.runtimeEvidenceByItem,
-                render: () => renderInspectorRegion(),
+                render: () => {
+                  renderRuntimeEvidencePolicyControl();
+                  renderInspectorRegion();
+                },
               });
             }
 
             function collectRuntimeEvidenceForItem(item, preset = 'baseline') {
               const sessionId = state.session?.sessionId;
               if (!sessionId || !item?.itemId || !item?.screenId) return Promise.reject(new Error('Annotation context is unavailable'));
-              if (state.session.runtimeEvidencePolicy === 'off') return Promise.resolve(null);
+              if (state.session.status === 'closed') return Promise.reject(new Error('Diagnostics are unavailable for a closed session'));
+              if (runtimeEvidenceController().effectivePolicy() === 'off') return Promise.resolve(null);
               return runtimeEvidenceController().collect({ sessionId, itemId: item.itemId, screenId: item.screenId, preset });
             }
 
@@ -140,8 +180,10 @@
             function runtimeEvidenceSectionHtml(item) {
               const attachments = runtimeEvidenceAttachmentsForItem(item);
               const current = runtimeEvidenceController().stateFor(item?.itemId) || attachments[0];
-              const off = state.session?.runtimeEvidencePolicy === 'off';
-              const model = off ? runtimeEvidenceStatusModel({ status: 'disabled' }) : (current && runtimeEvidenceStatusModel(current));
+              const closed = state.session?.status === 'closed';
+              const off = runtimeEvidenceController().effectivePolicy() === 'off';
+              const model = closed ? { status: 'disabled', label: 'Diagnostics: unavailable' }
+                : (off ? runtimeEvidenceStatusModel({ status: 'disabled' }) : (current && runtimeEvidenceStatusModel(current)));
               const collecting = model?.status === 'collecting';
               const label = collecting ? 'Capturing diagnostics…' : ((attachments.length || current) ? 'Capture again' : 'Capture diagnostics');
               const entries = attachments.slice(0, 4).map(value => {
@@ -153,8 +195,9 @@
               const pendingRows = current && !attachments.length ? '<div class="evidence-grid">' + renderRuntimeEvidenceRows(current) + '</div>' : '';
               return '<section class="annotation-section runtime-evidence-section" role="status" aria-live="polite"><div class="runtime-evidence-heading"><h3>Diagnostics</h3>' +
                 (model ? '<span class="runtime-evidence-status" data-status="' + model.status + '">' + model.label + '</span>' : '') + '</div>' +
-                (off ? '<p class="runtime-evidence-help">Diagnostics are Off for this session.</p>' : '') + pendingRows + entries +
-                '<button id="collectRuntimeEvidenceButton" type="button" aria-busy="' + collecting + '"' + (collecting || off ? ' disabled' : '') + '>' + label + '</button></section>';
+                (closed ? '<p class="runtime-evidence-help">Diagnostics are unavailable for a closed session.</p>'
+                  : (off ? '<p class="runtime-evidence-help">Diagnostics are Off for this session.</p>' : '')) + pendingRows + entries +
+                '<button id="collectRuntimeEvidenceButton" type="button" aria-busy="' + collecting + '"' + (collecting || off || closed ? ' disabled' : '') + '>' + label + '</button></section>';
             }
 
             function bindRuntimeEvidenceCollection(root, item) {
@@ -169,5 +212,5 @@
               const control = document.getElementById('runtimeEvidencePolicy');
               if (!control) return;
               control.disabled = !state.session?.sessionId || state.session.status === 'closed';
-              control.value = state.session?.runtimeEvidencePolicy || 'manual';
+              control.value = runtimeEvidenceController().effectivePolicy();
             }

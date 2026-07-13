@@ -11,9 +11,9 @@ const script = resolve(root, 'scripts/build-console-assets.mjs');
 const targetJs = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
 const targetMeta = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
 
-// Runtime diagnostics adds +5,847 raw / +1,671 gzip bytes to the reproducible
-// asset; these match the production ratchet with narrow headroom.
-const RAW_BUDGET = 238_000;
+// Runtime diagnostics plus its serialized policy mutation queue adds 6,886
+// raw bytes to the reproducible asset, with narrow repair headroom.
+const RAW_BUDGET = 239_000;
 const GZIP_BUDGET = 60_500;
 
 test('build script runs without arguments and produces app.js', () => {

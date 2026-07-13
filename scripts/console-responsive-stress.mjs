@@ -35,6 +35,31 @@ async function loadPlaywright() {
   }
 }
 
+function trackPageRequestDrain(page) {
+  const active = new Set();
+  let drainWaiters = [];
+  const tracked = request => new URL(request.url()).pathname !== '/api/events';
+  page.on('request', request => {
+    if (tracked(request)) active.add(request);
+  });
+  const complete = request => {
+    if (!active.delete(request) || active.size) return;
+    const waiters = drainWaiters;
+    drainWaiters = [];
+    waiters.forEach(resolve => resolve());
+  };
+  page.on('requestfinished', complete);
+  page.on('requestfailed', complete);
+  return async () => {
+    do {
+      if (active.size) await new Promise(resolve => drainWaiters.push(resolve));
+      await page.evaluate(() => new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      }));
+    } while (active.size);
+  };
+}
+
 async function injectStressState(page) {
   await page.evaluate(() => {
     const longPath = '/Users/kws/source/android/FixThis/sample/src/main/java/io/github/beyondwin/fixthis/sample/screens/DiagnosticsScreen.kt:63:VeryLongComposableNameWithoutNaturalBreakpoints'.repeat(2);
@@ -415,6 +440,7 @@ async function run(baseUrl) {
   try {
     for (const viewport of viewports) {
       const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
+      const waitForRequestDrain = trackPageRequestDrain(page);
       await page.addInitScript(() => {
         const addEventListener = EventSource.prototype.addEventListener;
         EventSource.prototype.addEventListener = function addTrackedEventListener(type, listener, options) {
@@ -437,6 +463,7 @@ async function run(baseUrl) {
         window.FixThisConsoleDebug?.isConsoleEventsConnected?.() === true &&
         window.__fixthisInitialSnapshotApplied === true
       ));
+      await waitForRequestDrain();
       await injectStressState(page);
       await page.screenshot({
         path: resolve(outputDir, `fixthis-responsive-stress-${viewport.name}.png`),
