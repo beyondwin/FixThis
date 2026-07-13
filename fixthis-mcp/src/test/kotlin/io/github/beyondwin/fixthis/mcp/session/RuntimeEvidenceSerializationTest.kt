@@ -10,6 +10,7 @@ import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceTrigger
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceWarning
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -82,36 +83,44 @@ class RuntimeEvidenceSerializationTest {
     fun runtimeEvidenceAttachmentSerializesWithStableWireNames() {
         val json = fixThisJson.encodeToString(
             RuntimeEvidenceAttachment.serializer(),
-            RuntimeEvidenceAttachment(
-                evidenceId = "e-1",
-                type = RuntimeEvidenceType.LOGCAT_WINDOW,
-                capturedAtEpochMillis = 1L,
-                packageName = "io.example",
-                summary = "summary",
-                artifactPath = ".fixthis/runtime-evidence/e-1/logcat.txt",
-                captureId = "capture-1",
-                status = RuntimeEvidenceStatus.PARTIAL,
-                trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO,
-                screenCapturedAtEpochMillis = 2L,
-                captureStartedAtEpochMillis = 3L,
-                captureCompletedAtEpochMillis = 4L,
-                proximity = RuntimeEvidenceProximity.DELAYED,
-                failureReason = RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT,
-                warnings = listOf(
-                    RuntimeEvidenceWarning.OUTPUT_TRUNCATED,
-                    RuntimeEvidenceWarning.REDACTION_APPLIED,
-                    RuntimeEvidenceWarning.PROCESS_RESTARTED,
-                    RuntimeEvidenceWarning.CONTEXT_CHANGED,
-                    RuntimeEvidenceWarning.STALE_WINDOW,
-                    RuntimeEvidenceWarning.CUMULATIVE_NOT_WINDOWED,
-                    RuntimeEvidenceWarning.TIMESTAMP_FILTER_UNSUPPORTED,
-                    RuntimeEvidenceWarning.PID_FILTER_UNSUPPORTED,
-                ),
-            ),
+            runtimeEvidenceAttachmentWithLifecycleMetadata(),
         )
-
         val payload = fixThisJson.parseToJsonElement(json).jsonObject
 
+        assertStableRuntimeEvidenceWirePayload(payload)
+        assertLifecycleMetadataRoundTrips(json)
+    }
+
+    private fun runtimeEvidenceAttachmentWithLifecycleMetadata(): RuntimeEvidenceAttachment = RuntimeEvidenceAttachment(
+        evidenceId = "e-1",
+        type = RuntimeEvidenceType.LOGCAT_WINDOW,
+        capturedAtEpochMillis = 1L,
+        packageName = "io.example",
+        summary = "summary",
+        artifactPath = ".fixthis/runtime-evidence/e-1/logcat.txt",
+        captureId = "capture-1",
+        status = RuntimeEvidenceStatus.PARTIAL,
+        trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO,
+        screenCapturedAtEpochMillis = 2L,
+        captureStartedAtEpochMillis = 3L,
+        captureCompletedAtEpochMillis = 4L,
+        proximity = RuntimeEvidenceProximity.DELAYED,
+        failureReason = RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT,
+        warnings = runtimeEvidenceWarnings(),
+    )
+
+    private fun runtimeEvidenceWarnings(): List<RuntimeEvidenceWarning> = listOf(
+        RuntimeEvidenceWarning.OUTPUT_TRUNCATED,
+        RuntimeEvidenceWarning.REDACTION_APPLIED,
+        RuntimeEvidenceWarning.PROCESS_RESTARTED,
+        RuntimeEvidenceWarning.CONTEXT_CHANGED,
+        RuntimeEvidenceWarning.STALE_WINDOW,
+        RuntimeEvidenceWarning.CUMULATIVE_NOT_WINDOWED,
+        RuntimeEvidenceWarning.TIMESTAMP_FILTER_UNSUPPORTED,
+        RuntimeEvidenceWarning.PID_FILTER_UNSUPPORTED,
+    )
+
+    private fun assertStableRuntimeEvidenceWirePayload(payload: JsonObject) {
         assertEquals("logcat_window", payload.getValue("type").jsonPrimitive.content)
         assertEquals(
             ".fixthis/runtime-evidence/e-1/logcat.txt",
@@ -126,19 +135,23 @@ class RuntimeEvidenceSerializationTest {
         assertEquals("delayed", payload.getValue("proximity").jsonPrimitive.content)
         assertEquals("capture_timeout", payload.getValue("failureReason").jsonPrimitive.content)
         assertEquals(
-            listOf(
-                "output_truncated",
-                "redaction_applied",
-                "process_restarted",
-                "context_changed",
-                "stale_window",
-                "cumulative_not_windowed",
-                "timestamp_filter_unsupported",
-                "pid_filter_unsupported",
-            ),
+            runtimeEvidenceWarningWireNames(),
             payload.getValue("warnings").jsonArray.map { it.jsonPrimitive.content },
         )
+    }
 
+    private fun runtimeEvidenceWarningWireNames(): List<String> = listOf(
+        "output_truncated",
+        "redaction_applied",
+        "process_restarted",
+        "context_changed",
+        "stale_window",
+        "cumulative_not_windowed",
+        "timestamp_filter_unsupported",
+        "pid_filter_unsupported",
+    )
+
+    private fun assertLifecycleMetadataRoundTrips(json: String) {
         val decoded = fixThisJson.decodeFromString(RuntimeEvidenceAttachment.serializer(), json)
         assertEquals(RuntimeEvidenceStatus.PARTIAL, decoded.status)
         assertEquals(RuntimeEvidenceTrigger.HANDOFF_AUTO, decoded.trigger)

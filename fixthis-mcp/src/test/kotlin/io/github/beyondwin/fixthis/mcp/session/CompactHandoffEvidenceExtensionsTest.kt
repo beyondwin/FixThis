@@ -196,6 +196,12 @@ class CompactHandoffEvidenceExtensionsTest {
     fun compactHandoffRendersNewestRuntimeEvidenceMetadataAndBoundedSummariesOnly() {
         val boundedSummary = "x".repeat(180)
         val rawSecret = "RAW_SECRET_MUST_NOT_RENDER"
+        val markdown = CompactHandoffRenderer.render(runtimeEvidenceSession(boundedSummary, rawSecret))
+
+        assertRuntimeEvidenceMarkdown(markdown, boundedSummary, rawSecret)
+    }
+
+    private fun runtimeEvidenceSession(boundedSummary: String, rawSecret: String): SessionDto {
         val session = oneItemSession(
             AnnotationDto(
                 itemId = "item-runtime",
@@ -209,53 +215,65 @@ class CompactHandoffEvidenceExtensionsTest {
             ),
         ).copy(
             runtimeEvidence = listOf(
-                RuntimeEvidenceAttachment(
-                    evidenceId = "e-old",
-                    type = RuntimeEvidenceType.TRACE_ARTIFACT,
-                    capturedAtEpochMillis = 9L,
-                    packageName = "io.github.beyondwin.fixthis.sample",
-                    summary = "old evidence outside cap",
-                    artifactPath = ".fixthis/runtime-evidence/e-old/trace.perfetto",
-                ),
-                RuntimeEvidenceAttachment(
-                    evidenceId = "e-logcat",
-                    type = RuntimeEvidenceType.LOGCAT_WINDOW,
-                    capturedAtEpochMillis = 10L,
-                    packageName = "io.github.beyondwin.fixthis.sample",
-                    summary = "$boundedSummary $rawSecret",
-                    artifactPath = ".fixthis/runtime-evidence/e-logcat/logcat.txt",
-                    status = RuntimeEvidenceStatus.COMPLETE,
-                    trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO,
-                    proximity = RuntimeEvidenceProximity.NEAR,
-                    warnings = listOf(RuntimeEvidenceWarning.REDACTION_APPLIED),
-                ),
-                RuntimeEvidenceAttachment(
-                    evidenceId = "e-frame",
-                    type = RuntimeEvidenceType.FRAME_SUMMARY,
-                    capturedAtEpochMillis = 11L,
-                    packageName = "io.github.beyondwin.fixthis.sample",
-                    summary = "6 slow frames, 1 frozen frame candidate",
-                    artifactPath = ".fixthis/runtime-evidence/e-frame/gfxinfo.json",
-                    status = RuntimeEvidenceStatus.PARTIAL,
-                    trigger = RuntimeEvidenceTrigger.CONSOLE_MANUAL,
-                    proximity = RuntimeEvidenceProximity.DELAYED,
-                ),
-                RuntimeEvidenceAttachment(
-                    evidenceId = "e-memory",
-                    type = RuntimeEvidenceType.MEMORY_SUMMARY,
-                    capturedAtEpochMillis = 12L,
-                    packageName = "io.github.beyondwin.fixthis.sample",
-                    summary = "capture failed before memory summary",
-                    status = RuntimeEvidenceStatus.FAILED,
-                    trigger = RuntimeEvidenceTrigger.MCP_MANUAL,
-                    proximity = RuntimeEvidenceProximity.STALE,
-                    failureReason = RuntimeEvidenceFailureReason.PROCESS_NOT_RUNNING,
-                ),
+                oldRuntimeEvidenceAttachment(),
+                logcatRuntimeEvidenceAttachment(boundedSummary, rawSecret),
+                frameRuntimeEvidenceAttachment(),
+                memoryRuntimeEvidenceAttachment(),
             ),
         )
+        return session
+    }
 
-        val markdown = CompactHandoffRenderer.render(session)
+    private fun oldRuntimeEvidenceAttachment(): RuntimeEvidenceAttachment = RuntimeEvidenceAttachment(
+        evidenceId = "e-old",
+        type = RuntimeEvidenceType.TRACE_ARTIFACT,
+        capturedAtEpochMillis = 9L,
+        packageName = "io.github.beyondwin.fixthis.sample",
+        summary = "old evidence outside cap",
+        artifactPath = ".fixthis/runtime-evidence/e-old/trace.perfetto",
+    )
 
+    private fun logcatRuntimeEvidenceAttachment(
+        boundedSummary: String,
+        rawSecret: String,
+    ): RuntimeEvidenceAttachment = RuntimeEvidenceAttachment(
+        evidenceId = "e-logcat",
+        type = RuntimeEvidenceType.LOGCAT_WINDOW,
+        capturedAtEpochMillis = 10L,
+        packageName = "io.github.beyondwin.fixthis.sample",
+        summary = "$boundedSummary $rawSecret",
+        artifactPath = ".fixthis/runtime-evidence/e-logcat/logcat.txt",
+        status = RuntimeEvidenceStatus.COMPLETE,
+        trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO,
+        proximity = RuntimeEvidenceProximity.NEAR,
+        warnings = listOf(RuntimeEvidenceWarning.REDACTION_APPLIED),
+    )
+
+    private fun frameRuntimeEvidenceAttachment(): RuntimeEvidenceAttachment = RuntimeEvidenceAttachment(
+        evidenceId = "e-frame",
+        type = RuntimeEvidenceType.FRAME_SUMMARY,
+        capturedAtEpochMillis = 11L,
+        packageName = "io.github.beyondwin.fixthis.sample",
+        summary = "6 slow frames, 1 frozen frame candidate",
+        artifactPath = ".fixthis/runtime-evidence/e-frame/gfxinfo.json",
+        status = RuntimeEvidenceStatus.PARTIAL,
+        trigger = RuntimeEvidenceTrigger.CONSOLE_MANUAL,
+        proximity = RuntimeEvidenceProximity.DELAYED,
+    )
+
+    private fun memoryRuntimeEvidenceAttachment(): RuntimeEvidenceAttachment = RuntimeEvidenceAttachment(
+        evidenceId = "e-memory",
+        type = RuntimeEvidenceType.MEMORY_SUMMARY,
+        capturedAtEpochMillis = 12L,
+        packageName = "io.github.beyondwin.fixthis.sample",
+        summary = "capture failed before memory summary",
+        status = RuntimeEvidenceStatus.FAILED,
+        trigger = RuntimeEvidenceTrigger.MCP_MANUAL,
+        proximity = RuntimeEvidenceProximity.STALE,
+        failureReason = RuntimeEvidenceFailureReason.PROCESS_NOT_RUNNING,
+    )
+
+    private fun assertRuntimeEvidenceMarkdown(markdown: String, boundedSummary: String, rawSecret: String) {
         assertTrue(markdown.contains("  runtimeEvidence:"), markdown)
         assertTrue(markdown.contains("    - logcat_window status=complete proximity=near"), markdown)
         assertTrue(markdown.contains("      summary: $boundedSummary"), markdown)
