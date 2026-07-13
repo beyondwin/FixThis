@@ -48,6 +48,7 @@ private class RegexRiskScanner(
     private val groups = mutableListOf<GroupRisk>()
     private var lastClosedGroup: GroupRisk? = null
     private var previousTokenWasClosedGroup = false
+    private var quantifierCount = 0
     private var index = 0
 
     fun containsRiskyQuantifiedGroup(): Boolean {
@@ -116,9 +117,10 @@ private class RegexRiskScanner(
 
     private fun consumeQuantifier(): Boolean {
         val risky = previousTokenWasClosedGroup && lastClosedGroup?.risky == true
+        quantifierCount += 1
         groups.forEach { it.containsQuantifier = true }
         previousTokenWasClosedGroup = false
-        return risky
+        return risky || quantifierCount > MAX_QUANTIFIED_ATOMS
     }
 
     private fun consumeQuestionMark(): Boolean {
@@ -138,5 +140,9 @@ private class RegexRiskScanner(
         }
         index = closingBrace
         return consumeQuantifier()
+    }
+
+    private companion object {
+        const val MAX_QUANTIFIED_ATOMS = 1
     }
 }

@@ -211,7 +211,11 @@ internal class RuntimeEvidenceArtifactCleaner(
             val references = referencedCaptureIdsBySession[sessionDirectory.name].orEmpty()
             sessionDirectory.listFiles().orEmpty().forEach { orphan ->
                 val symlink = Files.isSymbolicLink(orphan.toPath())
-                if (!symlink && (RuntimeEvidenceArtifactNaming.isTemporaryBundle(orphan.name) || orphan.name in references)) {
+                if (!symlink && RuntimeEvidenceArtifactNaming.isTemporaryBundle(orphan.name)) {
+                    return@forEach
+                }
+                if (!symlink && orphan.name in references) {
+                    deleted += pruneSymlinkLeaves(orphan)
                     return@forEach
                 }
                 fileSystem.deleteTreeNoFollow(orphan)
@@ -234,6 +238,21 @@ internal class RuntimeEvidenceArtifactCleaner(
                 fileSystem.deleteTreeNoFollow(poisonedSession)
                 deleted += 1
             }
+        return deleted
+    }
+
+    private fun pruneSymlinkLeaves(directory: File): Int {
+        fileSystem.pathGuard.ensureWithinEvidenceRoot(directory)
+        var deleted = 0
+        directory.listFiles().orEmpty().forEach { child ->
+            when {
+                Files.isSymbolicLink(child.toPath()) -> {
+                    fileSystem.deleteTreeNoFollow(child)
+                    deleted += 1
+                }
+                child.isDirectory -> deleted += pruneSymlinkLeaves(child)
+            }
+        }
         return deleted
     }
 }

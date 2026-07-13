@@ -40,7 +40,7 @@ internal class RuntimeEvidenceArtifactQuotaGuard(
         block: () -> T,
     ): T {
         val lockFile = File(canonicalRoot, LOCK_FILE_NAME)
-        require(!Files.isSymbolicLink(lockFile.toPath())) { "Runtime-evidence quota lock must not be a symlink" }
+        if (Files.isSymbolicLink(lockFile.toPath())) Files.delete(lockFile.toPath())
         val options: Set<OpenOption> = setOf(
             StandardOpenOption.CREATE,
             StandardOpenOption.WRITE,

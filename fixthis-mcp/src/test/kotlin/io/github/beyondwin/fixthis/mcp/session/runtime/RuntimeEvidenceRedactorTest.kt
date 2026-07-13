@@ -131,6 +131,8 @@ class RuntimeEvidenceRedactorTest {
             "a?",
             ".*?",
             "(?=.)",
+            "a*a*a*a*a*a*a*a*a*b",
+            "[a-z]*[a-z]*[a-z]*[a-z]*X",
         )
 
         rejected.forEach { pattern ->

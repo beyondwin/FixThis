@@ -499,6 +499,25 @@ class RuntimeEvidenceArtifactStoreTest {
     }
 
     @Test
+    fun cleanupIncompleteRecoversSymlinkedQuotaLockWithoutFollowingIt() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-lock-link-").toFile()
+        try {
+            val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
+            val evidenceRoot = File(root, ".fixthis/runtime-evidence").apply { mkdirs() }
+            val lockLink = File(evidenceRoot, RuntimeEvidenceArtifactQuotaGuard.LOCK_FILE_NAME)
+            Files.createSymbolicLink(lockLink.toPath(), sentinel.toPath())
+            val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+
+            assertEquals(0, store.cleanupIncomplete())
+            assertFalse(Files.isSymbolicLink(lockLink.toPath()))
+            assertTrue(lockLink.isFile)
+            assertEquals("keep", sentinel.readText())
+        } finally {
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
     fun orphanCleanupPreservesCaptureReferencedByReplayedEvent() = withRoot { root ->
         val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
         store.commit("session-1", "event-before-snapshot", listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "keep")))
@@ -543,6 +562,36 @@ class RuntimeEvidenceArtifactStoreTest {
             assertEquals(1, store.cleanupOrphans(emptyMap()))
             assertFalse(orphan.exists())
             assertEquals("keep", sentinel.readText())
+        } finally {
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun cleanupOrphansPrunesSymlinkLeavesInsideReferencedCapture() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-referenced-links-").toFile()
+        try {
+            val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
+            val capture = File(root, ".fixthis/runtime-evidence/session-1/capture-1").apply { mkdirs() }
+            val ordinary = File(capture, "logcat.txt").apply { writeText("preserve") }
+            val nested = File(capture, "nested").apply { mkdir() }
+            val rootLink = File(capture, "root-link")
+            val nestedLink = File(nested, "nested-link")
+            Files.createSymbolicLink(rootLink.toPath(), outside.toPath())
+            Files.createSymbolicLink(nestedLink.toPath(), sentinel.toPath())
+            val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+
+            assertEquals(2, store.cleanupOrphans(mapOf("session-1" to setOf("capture-1"))))
+            assertTrue(capture.isDirectory)
+            assertEquals("preserve", ordinary.readText())
+            assertFalse(Files.exists(rootLink.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+            assertFalse(Files.exists(nestedLink.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+            assertEquals("keep", sentinel.readText())
+            store.commit(
+                "session-1",
+                "capture-after-cleanup",
+                listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "quota scan succeeds")),
+            )
         } finally {
             outside.deleteRecursively()
         }
