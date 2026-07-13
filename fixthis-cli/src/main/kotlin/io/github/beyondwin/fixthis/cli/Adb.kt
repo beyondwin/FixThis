@@ -1,5 +1,6 @@
 package io.github.beyondwin.fixthis.cli
 
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Properties
 import java.util.concurrent.TimeUnit
@@ -9,6 +10,27 @@ data class AdbResult(
     val exitCode: Int,
     val stdout: String,
     val stderr: String,
+)
+
+data class AdbExecutionLimits(
+    val timeoutMillis: Long,
+    val maxStdoutBytes: Int,
+    val maxStderrBytes: Int,
+) {
+    init {
+        require(timeoutMillis >= 0) { "timeoutMillis must not be negative" }
+        require(maxStdoutBytes >= 0) { "maxStdoutBytes must not be negative" }
+        require(maxStderrBytes >= 0) { "maxStderrBytes must not be negative" }
+    }
+}
+
+data class AdbExecutionResult(
+    val exitCode: Int?,
+    val stdout: String,
+    val stderr: String,
+    val timedOut: Boolean,
+    val stdoutTruncated: Boolean,
+    val stderrTruncated: Boolean,
 )
 
 data class AdbDevice(
@@ -21,11 +43,24 @@ data class AdbDevice(
 
 fun interface AdbCommandRunner {
     fun run(command: List<String>): AdbResult
+
+    fun runBounded(command: List<String>, limits: AdbExecutionLimits): AdbExecutionResult {
+        val result = run(command)
+        return AdbExecutionResult(
+            exitCode = result.exitCode,
+            stdout = result.stdout,
+            stderr = result.stderr,
+            timedOut = false,
+            stdoutTruncated = false,
+            stderrTruncated = false,
+        )
+    }
 }
 
 interface AdbFacade {
     fun devices(): List<AdbDevice>
     fun forDevice(serial: String?): AdbFacade = this
+    fun execute(arguments: List<String>, limits: AdbExecutionLimits): AdbExecutionResult = error("Bounded ADB execution is unsupported")
     fun runAsCat(packageName: String, path: String): String
     fun currentFocusOutput(): String? = null
     fun forward(localPort: Int, socketAddress: String)
@@ -40,6 +75,11 @@ class Adb(
     private val selectedSerial: String? = null,
 ) : AdbFacade {
     override fun forDevice(serial: String?): AdbFacade = Adb(adbExecutable = adbExecutable, runner = runner, selectedSerial = serial?.takeIf { it.isNotBlank() })
+
+    override fun execute(arguments: List<String>, limits: AdbExecutionLimits): AdbExecutionResult {
+        val serialArgs = if (!selectedSerial.isNullOrBlank()) listOf("-s", selectedSerial) else emptyList()
+        return runner.runBounded(listOf(adbExecutable) + serialArgs + arguments, limits)
+    }
 
     override fun devices(): List<AdbDevice> {
         val result = checkedRun(listOf("devices", "-l"), includeSelectedSerial = false)
@@ -184,9 +224,11 @@ class AdbException(
     },
 )
 
-internal class ProcessAdbCommandRunner : AdbCommandRunner {
+internal class ProcessAdbCommandRunner(
+    private val processStarter: (List<String>) -> Process = { command -> ProcessBuilder(command).start() },
+) : AdbCommandRunner {
     override fun run(command: List<String>): AdbResult {
-        val process = ProcessBuilder(command).start()
+        val process = processStarter(command)
         var stdout = ""
         var stderr = ""
         var stdoutFailure: Throwable? = null
@@ -228,6 +270,109 @@ internal class ProcessAdbCommandRunner : AdbCommandRunner {
         return AdbResult(exitCode = exitCode, stdout = stdout, stderr = stderr)
     }
 
+    override fun runBounded(command: List<String>, limits: AdbExecutionLimits): AdbExecutionResult {
+        val process = processStarter(command)
+        val stdout = BoundedOutput(limits.maxStdoutBytes)
+        val stderr = BoundedOutput(limits.maxStderrBytes)
+        var stdoutFailure: Throwable? = null
+        var stderrFailure: Throwable? = null
+
+        val stdoutThread = thread(name = "fixthis-adb-bounded-stdout", isDaemon = true) {
+            runCatching { process.inputStream.use(stdout::drain) }
+                .onFailure { stdoutFailure = it }
+        }
+        val stderrThread = thread(name = "fixthis-adb-bounded-stderr", isDaemon = true) {
+            runCatching { process.errorStream.use(stderr::drain) }
+                .onFailure { stderrFailure = it }
+        }
+
+        val completed = try {
+            process.waitFor(limits.timeoutMillis, TimeUnit.MILLISECONDS)
+        } catch (error: InterruptedException) {
+            cleanupInterruptedProcess(process, stdoutThread, stderrThread)
+            Thread.currentThread().interrupt()
+            throw error
+        }
+        val cleanupInterrupted = if (!completed) {
+            destroyTimedOutProcess(process)
+        } else {
+            false
+        }
+        if (cleanupInterrupted) {
+            joinReadersUninterruptibly(stdoutThread, stderrThread)
+            Thread.currentThread().interrupt()
+            throw InterruptedException("Interrupted while destroying timed-out ADB process")
+        }
+
+        try {
+            stdoutThread.join()
+            stderrThread.join()
+        } catch (error: InterruptedException) {
+            cleanupInterruptedProcess(process, stdoutThread, stderrThread)
+            Thread.currentThread().interrupt()
+            throw error
+        } finally {
+            process.closeStreams()
+        }
+        if (completed) {
+            stdoutFailure?.let { throw it }
+            stderrFailure?.let { throw it }
+        }
+        return AdbExecutionResult(
+            exitCode = if (completed) process.exitValue() else null,
+            stdout = stdout.text(),
+            stderr = stderr.text(),
+            timedOut = !completed,
+            stdoutTruncated = stdout.truncated,
+            stderrTruncated = stderr.truncated,
+        )
+    }
+
+    private fun destroyTimedOutProcess(process: Process): Boolean {
+        var interrupted = false
+        runCatching { process.destroy() }
+        try {
+            if (!process.waitFor(500, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly()
+                interrupted = waitForForcedProcess(process) || interrupted
+            }
+        } catch (_: InterruptedException) {
+            interrupted = true
+            process.destroyForcibly()
+            interrupted = waitForForcedProcess(process) || interrupted
+        } finally {
+            process.closeStreams()
+        }
+        return interrupted
+    }
+
+    private fun waitForForcedProcess(process: Process): Boolean {
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(500)
+        var interrupted = false
+        while (true) {
+            val remaining = deadline - System.nanoTime()
+            if (remaining <= 0) return interrupted
+            try {
+                process.waitFor(remaining, TimeUnit.NANOSECONDS)
+                return interrupted
+            } catch (_: InterruptedException) {
+                interrupted = true
+            }
+        }
+    }
+
+    private fun joinReadersUninterruptibly(vararg readers: Thread) {
+        readers.forEach { reader ->
+            while (reader.isAlive) {
+                try {
+                    reader.join()
+                } catch (_: InterruptedException) {
+                    // Preserve the original cleanup interruption after every reader has stopped.
+                }
+            }
+        }
+    }
+
     private fun cleanupInterruptedProcess(process: Process, stdoutThread: Thread, stderrThread: Thread) {
         var interruptedAgain = false
         runCatching { process.destroy() }
@@ -255,5 +400,26 @@ internal class ProcessAdbCommandRunner : AdbCommandRunner {
         runCatching { inputStream.close() }
         runCatching { errorStream.close() }
         runCatching { outputStream.close() }
+    }
+
+    private class BoundedOutput(private val maxBytes: Int) {
+        private val retained = ByteArrayOutputStream(minOf(maxBytes, 8 * 1024))
+        var truncated: Boolean = false
+            private set
+
+        fun drain(input: java.io.InputStream) {
+            val buffer = ByteArray(8 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) return
+                val remaining = maxBytes - retained.size()
+                if (remaining > 0) {
+                    retained.write(buffer, 0, minOf(read, remaining))
+                }
+                if (read > remaining.coerceAtLeast(0)) truncated = true
+            }
+        }
+
+        fun text(): String = retained.toByteArray().toString(Charsets.UTF_8)
     }
 }
