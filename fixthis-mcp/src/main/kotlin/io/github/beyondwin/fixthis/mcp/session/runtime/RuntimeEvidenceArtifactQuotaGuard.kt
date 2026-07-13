@@ -65,6 +65,7 @@ internal class RuntimeEvidenceArtifactQuotaGuard(
 }
 
 internal data class RuntimeEvidenceQuotaFileLockHooks(
+    val insideRecoveryLockBeforePrimaryInspection: () -> Unit = {},
     val afterRecoveryBeforePrimaryOpen: (File) -> Unit = {},
     val beforePrimaryLock: () -> Unit = {},
 )
@@ -89,6 +90,7 @@ internal class RuntimeEvidenceQuotaFileLock(
         val recoveryLock = File(evidenceRoot, RECOVERY_LOCK_FILE_NAME)
         openLockFile(recoveryLock).use { recoveryChannel ->
             recoveryChannel.lock().use {
+                hooks.insideRecoveryLockBeforePrimaryInspection()
                 val primaryLock = File(evidenceRoot, RuntimeEvidenceArtifactQuotaGuard.LOCK_FILE_NAME)
                 if (Files.isSymbolicLink(primaryLock.toPath())) Files.delete(primaryLock.toPath())
                 openLockFile(primaryLock).use { }
