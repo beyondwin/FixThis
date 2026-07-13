@@ -24,6 +24,10 @@ The things worth protecting:
 - **MCP feedback queue** — local session artifacts under `.fixthis/` (and the
   in-memory queue served to MCP clients) that aggregate the three items above
   per handoff batch.
+- **Runtime evidence artifacts** - bounded logcat, memory, and frame-summary
+  files under `.fixthis/runtime-evidence/`. They can contain application logs,
+  process metadata, paths, identifiers, and sensitive values that redaction did
+  not recognize.
 
 ## Trust boundaries
 
@@ -57,6 +61,8 @@ The things worth protecting:
    through `adb run-as` so other apps cannot impersonate the host.
 2. **ADB bridge ↔ host MCP process.** ADB is treated as an authenticated local
    channel: the developer has authorized this host to talk to this device.
+   Runtime diagnostics execute as allowlisted host ADB commands at this
+   boundary; they are not arbitrary commands supplied by MCP arguments.
 3. **Host MCP process ↔ local browser console.** Loopback HTTP on `127.0.0.1`,
    gated by a per-server console token and an `Origin` check. The browser is
    trusted to be the developer's own, but pages it loads are not.
@@ -104,6 +110,10 @@ Paths are repository-root relative.
 | App ↔ bridge | Shared session token; bridge rejects requests with a missing or mismatched token (`UNAUTHORIZED`) | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
 | App ↔ bridge | Screenshot path validation — canonicalize and require the file is under the FixThis screenshot cache, with explicit client-supplied paths rejected | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/PathSafety.kt`, `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeScreenshotReader.kt` |
 | App ↔ bridge | Transport is an abstract-namespace `LocalSocket` (app-sandbox scoped, reachable via `adb run-as`) | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
+| Device ↔ host evidence collector | Four MCP presets map to fixed logcat/memory/frame collectors; MCP arguments cannot supply shell commands | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/RuntimeEvidenceToolOperations.kt`, `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/RuntimeEvidenceCommandPlanner.kt` |
+| Host evidence collector ↔ local artifacts | Output is redacted before durable write, per-file/bundle/project quotas are enforced, and commits use guarded non-symlink paths plus atomic directory rename | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceRedactor.kt`, `RuntimeEvidenceArtifactStore.kt`, `RuntimeEvidenceArtifactQuotaGuard.kt` |
+| Runtime evidence ↔ feedback item | Device/install/package/session/item/screen drift rejects linkage; PID or fingerprint drift is retained only as partial warning evidence | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceCaptureSupport.kt`, `RuntimeEvidenceCaptureCoordinator.kt` |
+| Local artifacts ↔ MCP/Markdown | Raw collector bodies remain in ignored files; session JSON, MCP results, and compact handoffs expose bounded summaries and metadata only | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceSummarizer.kt`, `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/handoff/CompactHandoffRenderer.kt` |
 | Build-time | Debug-only manifest: sidekick startup provider is only merged into debug builds | `fixthis-compose-sidekick/src/debug/AndroidManifest.xml` |
 | Runtime | `FLAG_DEBUGGABLE` runtime guard — the initializer returns early if the host app is not a debuggable build | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/init/FixThisInitializer.kt` |
 
@@ -122,6 +132,19 @@ tracked these as gaps; they are now implemented and covered by tests.
   a local `Host` pinned to the running loopback port when present, and a
   constant-time comparison against the per-server
   `X-FixThis-Console-Token`.
+
+## Runtime evidence limits
+
+Runtime evidence is best-effort diagnostic context, not proof that a log or
+performance signal caused the annotated UI state. Capture has a 2,500 ms
+deadline and at most two collectors run concurrently. Logcat is capped at
+512 KiB, memory/frame summaries at 128 KiB each, a committed bundle at 2 MiB,
+and the project evidence root at 250 MiB. Summaries are capped and redacted,
+but redaction does not promise removal of every application-specific secret.
+
+Host collector support does not expand the app bridge attack surface. Bridge
+protocol remains `1.3`, and the sidekick `capabilities` payload does not claim
+runtime collectors; the host derives support from ADB/package/process state.
 
 ### Deferred follow-up
 

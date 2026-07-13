@@ -151,7 +151,8 @@ npm run evidence:release
 
 The runner is a convenience layer over canonical commands. If a profile fails,
 rerun the failed command printed in the summary. Android-connected trust checks,
-including runtime source trust and the real Copy Prompt browser smoke, are
+including runtime source trust, automatic runtime evidence, and the real Copy
+Prompt browser smoke, are
 reported as deferred when Android SDK or a ready emulator is unavailable unless
 the profile is run with `--strict-runtime`.
 
@@ -175,6 +176,10 @@ npm run console:test:fast
 
 # Draft workspace state-machine changes
 npm run console:draft:test
+
+# Runtime-evidence MCP/console contracts
+npm run runtime-evidence:smoke:test
+./gradlew :fixthis-cli:test :fixthis-mcp:test --no-daemon
 ```
 
 Per-feature focused harnesses are also available as named npm scripts (each
@@ -227,6 +232,20 @@ full gate, while `npm run ci:local:fast` and `npm run ci:local:changed` remain
 available for targeted debugging. Whitespace checks intentionally ignore
 Markdown files under `docs/superpowers/`, because those files are historical
 planning artifacts; all other files remain enforced.
+
+When changing runtime-evidence policy, collector, artifact, handoff, or console
+behavior, run this focused acceptance set before the full release gate:
+
+```bash
+./gradlew :fixthis-cli:test :fixthis-mcp:test --no-daemon
+npm run runtime-evidence:smoke:test
+npm run console:test:fast
+npm run handoff:eval:test
+./gradlew spotlessCheck detekt --no-daemon
+node scripts/check-doc-consistency.mjs
+bash scripts/check-docs-cli-surface.sh
+npm run release:package:test
+```
 
 To install the tracked pre-push hook for this checkout:
 
@@ -327,7 +346,7 @@ Failure artifacts (screenshots, traces, console logs) land under
 `node scripts/build-console-assets.mjs` produces three files under
 `fixthis-mcp/src/main/resources/console/`:
 
-- `app.js` — minified bundle (must be ≤ 225 KiB raw / ≤ 58 KiB gzipped; the build aborts otherwise).
+- `app.js` - minified bundle (must be ≤ 240,500 B raw / ≤ 61,000 B gzipped; the build aborts otherwise).
 - `app.js.map` — external source map; DevTools picks it up via the
   `//# sourceMappingURL=app.js.map` trailer when the console is served
   with `--console-assets-dir`. The map is excluded from the packaged JAR.
@@ -383,8 +402,9 @@ npm run android:proof -- --strict
 ```
 
 The runner checks Android SDK/ADB readiness, device selection, boot completion,
-the bundled sample smoke, real Copy Prompt, the external agent lifecycle, and
-the external fixture matrix. It writes JSON and Markdown reports under
+the bundled sample smoke, real Copy Prompt, the external agent lifecycle, the
+runtime-evidence MCP/Auto-handoff product path, and the external fixture
+matrix. It writes JSON and Markdown reports under
 `build/reports/fixthis-android-proof/`; these reports are ignored build
 artifacts and should not be committed.
 
@@ -400,6 +420,7 @@ When debugging a specific layer, the focused commands remain available:
 scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
 npm run real-copy-prompt:smoke -- --strict
 npm run agent-loop:smoke -- --strict
+npm run runtime-evidence:smoke -- --strict
 npm run external-fixture:matrix -- --strict
 ```
 
@@ -413,6 +434,12 @@ npm run external-fixture:matrix:test
 npm run release:gate
 npm run release:gate:test
 ```
+
+`runtime-evidence:smoke -- --strict` must call the real
+`fixthis_collect_runtime_evidence` MCP tool and prove artifact containment,
+redaction, item linkage, Auto Save-to-MCP, and restart replay. Generic direct
+logcat output is not accepted. The local report is written under
+`build/reports/fixthis-runtime-evidence/`.
 
 `release:gate` consumes the integrated connected Android proof report. It should
 not be treated as a request to run every connected smoke independently; use the
@@ -472,7 +499,11 @@ informational while CI remains the authoritative gate.
 
 ## Local Artifacts
 
-`.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`, `.fixthis/artifacts/`, and `.fixthis/smoke-reports/` can contain screenshots or local feedback. Do not commit or share them casually.
+`.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`,
+`.fixthis/artifacts/`, `.fixthis/smoke-reports/`, and
+`.fixthis/runtime-evidence/` can contain screenshots, local feedback, or
+redacted-but-still-sensitive debug diagnostics. Do not commit or share them
+casually.
 
 ## Compatibility Checklist
 

@@ -92,9 +92,12 @@ Feedback console sessions are returned by `fixthis_open_feedback_console` and se
 - `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
 - `screens`: persisted evidence snapshots saved from frozen previews.
 - `items`: feedback queue items.
-- `runtimeEvidence`: optional additive list of bounded local runtime evidence
-  summaries and artifact paths. Runtime evidence artifacts are local files and
-  must not be committed.
+- `runtimeEvidence`: additive list of bounded local runtime evidence summaries
+  and artifact paths. It defaults to an empty list. Runtime evidence artifacts
+  are local files and must not be committed.
+- `runtimeEvidencePolicy`: persisted session policy. Values are
+  `auto_on_handoff`, `manual`, and `off`. Newly created sessions explicitly
+  store `auto_on_handoff`; legacy JSON with no field decodes as `manual`.
 - `handoffBatches`: persisted sent handoff batches.
 - `nextItemSequenceNumber`: next monotonic human-readable feedback item
   number for this session. Legacy sessions that do not contain this field are
@@ -226,8 +229,10 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 ### `runtimeEvidence`
 
 Runtime evidence attachments are optional, local-first summaries that can help
-an agent verify a feedback item. They do not make runtime capture required for
-normal `Copy Prompt` or `Save to MCP` flows.
+an agent verify a feedback item. `Copy Prompt` never starts collection.
+`Save to MCP` runs the `baseline` preset only when the session policy is
+`auto_on_handoff`; Manual and Off record a skipped attempt. A typed collection
+failure does not prevent otherwise valid feedback from becoming sent.
 
 - `evidenceId`: stable id referenced by item-level `runtimeEvidenceIds`.
 - `type`: `logcat_window`, `frame_summary`, `memory_summary`, or
@@ -241,8 +246,96 @@ normal `Copy Prompt` or `Save to MCP` flows.
 - `artifactPath`: optional local path, usually under ignored `.fixthis/`
   storage.
 - `captureCommand`: optional command description used for the capture.
-- `warnings`: optional caveats such as `capture_deferred`,
-  `sensitive_logs_possible`, or `artifact_missing`.
+- `warnings`: optional warning tokens from the taxonomy below.
+- `captureId`: optional id shared by all attachments created by one bounded
+  capture. Items in one automatic same-screen handoff share this id.
+- `status`: `complete`, `partial`, `failed`, or `unsupported`. Legacy manual
+  attachments default to `complete`.
+- `trigger`: `handoff_auto`, `console_manual`, `mcp_manual`, or
+  `manual_attachment`.
+- `screenCapturedAtEpochMillis`, `captureStartedAtEpochMillis`, and
+  `captureCompletedAtEpochMillis`: optional correlation timestamps.
+- `proximity`: optional `near`, `delayed`, or `stale` correlation bucket.
+- `failureReason`: optional terminal or partial failure reason.
+
+Proximity is computed from capture start minus frozen-screen capture time:
+`near` is 0 through 3,000 ms, `delayed` is more than 3,000 through 15,000 ms,
+and `stale` is more than 15,000 ms or a negative delta. A screen-fingerprint
+change downgrades `near` to `delayed` and adds `context_changed`.
+
+Warning values are:
+
+- `capture_deferred`
+- `sensitive_logs_possible`
+- `artifact_missing`
+- `output_truncated`
+- `redaction_applied`
+- `process_restarted`
+- `context_changed`
+- `stale_window`
+- `cumulative_not_windowed`
+- `timestamp_filter_unsupported`
+- `pid_filter_unsupported`
+
+Failure reasons are `device_unavailable`, `device_changed`,
+`package_unavailable`, `process_not_running`, `collector_unsupported`,
+`permission_denied`, `capture_timeout`, `context_changed`,
+`artifact_write_failed`, `quota_exceeded`, and `artifact_missing`.
+
+Device serial, install epoch, package identity/availability, session state,
+item identity, and `screenId` are hard linkage boundaries. Drift at one of
+those boundaries fails closed and does not append links. PID restart and
+screen-fingerprint drift remain usable partial evidence: they add warnings and
+downgrade status instead of claiming a causal match.
+
+### Runtime evidence capture result
+
+`fixthis_collect_runtime_evidence` and the additive `runtimeEvidence` field on
+the `Save to MCP` response use this result shape:
+
+- `attempted`: whether collection was attempted.
+- `captureId`: optional capture id.
+- `status`: optional `complete`, `partial`, `failed`, or `unsupported`.
+- `attachmentIds`, `linkedItemIds`: bounded id lists.
+- `artifactDirectory`: optional relative bundle directory.
+- `warnings`: warning taxonomy above.
+- `failureReason`: optional failure taxonomy above.
+- `skippedReason`: optional policy/availability reason. Handoff policy uses
+  `manual` or `off`.
+
+The persisted handoff Markdown adds a `runtimeEvidenceAttempt` block containing
+only `attempted`, status, a mapped failure or skip reason, and at most eight
+warning tokens. It intentionally omits capture ids, attachment ids, local
+paths, commands, and raw bodies.
+
+### Runtime evidence storage and bounds
+
+Automatically collected artifacts use this project-relative layout:
+
+```text
+.fixthis/runtime-evidence/<session-id>/<capture-id>/
+├── logcat.txt
+├── memory-summary.txt
+├── frame-summary.txt
+└── manifest.json
+```
+
+Only files produced by the selected preset are present. The file limits are
+512 KiB for logcat and 128 KiB each for memory and frame summaries. One
+committed bundle is capped at 2 MiB, and the project runtime-evidence root is
+capped at 250 MiB under a process/JVM file lock. Commit is temporary-directory
+plus atomic-rename; incomplete and orphan bundles are cleaned on recovery.
+
+Collector output is redacted before durable write. Built-in rules cover
+authorization/cookie headers, FixThis tokens, common secret/key/token
+assignments and query parameters, JSON secret values, and JWT-like tokens.
+The redactor accepts at most 32 optional injected patterns of at most 256
+characters each and rejects unsafe regular-expression shapes. The current
+console and MCP schemas do not accept redaction patterns from callers.
+Persisted summaries are capped at 240 characters; compact handoff renders at
+most three attachments per item and 180 summary characters per attachment.
+Raw collector output is never embedded in feedback-session JSON, MCP tool
+results, or handoff Markdown.
 
 ### `editSurfaceCandidates`
 
@@ -276,7 +369,14 @@ Agents should treat these as inspection hints. They do not rename or replace
 
 The feedback console defaults to navigation. `Annotate` freezes the latest preview so the user can select a target or drag a visual area; that selection creates a pending UI-only item and focuses its detail editor for the comment. Pending items are numbered in the Studio UI and support focus and delete until `Copy Prompt` or `Save to MCP` persists written pending annotations when needed. That persistence promotes the frozen preview once into one persisted evidence snapshot, stores written pending items, and connects them to the same `screenId`. In a mixed draft, pin-only residual items stay browser-local for `Copy Prompt` and are discarded for `Save to MCP`. Later `Annotate` work on the same visible app screen creates a new evidence snapshot when pending annotations are persisted.
 
-`Save to MCP` creates a persisted handoff batch, changes saved items to `delivery: "sent"`, sets `handoffBatchId` and `sentAtEpochMillis`, and records those items in `handoffBatches`. It does not create a new external AI API payload; MCP tools read the persisted session data.
+`Save to MCP` first resolves the session runtime-evidence policy while the
+items remain draft. Auto collects and links one baseline capture for a
+same-screen batch; Manual and Off skip collection. The final session is then
+re-read, compact Markdown is rendered with the final evidence decision, and a
+persisted handoff batch changes the items to `delivery: "sent"`, sets
+`handoffBatchId` and `sentAtEpochMillis`, and records those items in
+`handoffBatches`. It does not create a new external AI API payload; MCP tools
+read the persisted session data.
 
 Connection loss does not change feedback delivery fields. Browser-only pending
 items are mirrored separately as DraftWorkspace schema-v2 envelopes under

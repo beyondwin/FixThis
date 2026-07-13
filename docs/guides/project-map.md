@@ -58,16 +58,21 @@ The Android app does not host MCP or HTTP. The desktop `fixthis-mcp` process own
 | Source matching and target reliability | `docs/reference/source-matching.md`, `docs/reference/output-schema.md` | `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/source/SourceMatcher.kt`, `fixthis-compose-core/src/main/kotlin/io/github/beyondwin/fixthis/compose/core/target/TargetReliabilityCalculator.kt` | `npm run source-matching:fixtures:test`, `./gradlew :fixthis-compose-core:test --no-daemon` |
 | Bridge protocol and Android runtime | `docs/reference/bridge-protocol.md`, `docs/architecture/overview.md` | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt`, `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/BridgeClient.kt` | `./gradlew :fixthis-compose-sidekick:testDebugUnitTest :fixthis-cli:test --no-daemon` |
 | Console UI and session lifecycle | `docs/reference/feedback-console-contract.md`, `docs/architecture/console-state-sync-design.md` | `fixthis-mcp/src/main/console/app.js`, `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/FeedbackSessionService.kt` | `npm run console:test:fast`, `./gradlew :fixthis-mcp:test --no-daemon` |
+| Runtime evidence collection and handoff policy | `docs/reference/mcp-tools.md`, `docs/reference/output-schema.md`, `docs/reference/privacy.md` | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/AndroidRuntimeEvidenceCollector.kt`, `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceCaptureCoordinator.kt`, `fixthis-mcp/src/main/console/runtimeEvidence.js` | `npm run runtime-evidence:smoke:test`, `npm run runtime-evidence:smoke -- --strict`, `npm run android:proof -- --strict` |
 | Release readiness | `docs/contributing/release-readiness.md`, `docs/contributing/release-process.md`, `CONTRIBUTING.md` | `scripts/check-release-readiness.mjs`, `scripts/run-release-evidence.mjs`, `package.json` | `npm run release:check` |
 | Architecture and guardrails | `docs/architecture/agent-code-compass.md`, `docs/architecture/adr/README.md`, `docs/architecture/adr/0008-session-package-decomposition.md` | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` | `./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon`, `git diff --check` |
 
 ## Artifact Boundaries
 
-- Do not commit `.fixthis/`; it contains local handoff sessions, screenshots, generated setup handoffs, and smoke artifacts.
+- Do not commit `.fixthis/`; it contains local handoff sessions, screenshots,
+  generated setup handoffs, smoke artifacts, and bounded runtime evidence under
+  `.fixthis/runtime-evidence/<session-id>/<capture-id>/`.
 - Do not commit `graphify-out/`; Graphify is an agent navigation aid and its outputs are local artifacts.
 - Do not commit Android build outputs, local source-matching fixture workspaces, generated Graphify HTML/wiki output, or screenshots unless a maintained doc explicitly asks for a checked-in asset.
 - When changing code, run the focused checks for the touched module, then the broader check requested by `CONTRIBUTING.md` or the release workflow.
 - When changing docs that mention CLI commands or flags, run `bash scripts/check-docs-cli-surface.sh`.
+- Runtime evidence collection is a host CLI/MCP capability over ADB. It does
+  not add app-side Bridge capabilities or change Bridge protocol `1.3`.
 
 ## Next Reads
 

@@ -337,6 +337,30 @@ not add release-build, XML/View, WebView, or cloud support.
 The release gate consumes these rows as the `android-agent-evidence-umbrella`
 claim.
 
+## Runtime Evidence Autopilot Evidence
+
+Runtime Evidence Autopilot is delivered on the current source line only after
+the focused connected product-path report and the aggregate Android proof both
+pass in strict mode. A deferred or host-only report is not delivery evidence.
+
+| Claim | Required evidence |
+| --- | --- |
+| New sessions use Auto on Save to MCP while legacy sessions with no policy decode as Manual; Manual and Off survive replay; Copy Prompt never starts collection. | `./gradlew :fixthis-mcp:test --tests "*RuntimeEvidencePolicyStoreTest*" --tests "*RuntimeEvidenceSerializationTest*" --tests "*RuntimeEvidenceHandoffServiceTest*" --no-daemon`, `npm run console:test:fast` |
+| The new MCP collector accepts only `baseline`, `logs`, `memory`, and `performance`, writes bounded redacted artifacts, links/replays the same evidence ids, and keeps raw output out of JSON/MCP/Markdown. | `./gradlew :fixthis-cli:test :fixthis-mcp:test --no-daemon`, `npm run runtime-evidence:smoke:test`, `npm run handoff:eval:test` |
+| Connected proof calls `fixthis_collect_runtime_evidence`, verifies artifacts, Auto Save-to-MCP, linkage, redaction, and restart replay through the product path. | `npm run runtime-evidence:smoke -- --strict`, `npm run android:proof -- --strict` |
+| External Android fixtures and the complete release candidate remain compatible. | `npm run external-fixture:matrix -- --strict`, `npm run release:check` |
+
+The focused strict report is
+`build/reports/fixthis-runtime-evidence/report.json`; the aggregate row is
+`Runtime evidence product path` in
+`build/reports/fixthis-android-proof/report.json`. Both reports are ignored
+local artifacts. The feature must be described as deferred when SDK, ADB, an
+unlocked ready device, the debug app, MCP product-path assertions, artifact
+verification, or replay verification is unavailable.
+
+Runtime evidence remains a host capability over ADB. It does not add a
+sidekick Bridge capability or bump Bridge protocol `1.3`.
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.
@@ -348,6 +372,10 @@ claim.
 - [ ] `docs/releases/unreleased.md` is reset for the next cycle after tagging.
 - [ ] Connected smoke is run on a real device or unlocked emulator, or the
       release notes explicitly say it was not run.
+- [ ] Runtime Evidence Autopilot claims have fresh passing
+      `npm run runtime-evidence:smoke -- --strict` and
+      `npm run android:proof -- --strict` reports; deferred is not called
+      connected proof.
 - [ ] CLI/MCP package workflow has produced the release tarball, or the release
       notes explicitly say no desktop package is attached.
 - [ ] Release tarball checksum sidecar exists and both shell/npm installers

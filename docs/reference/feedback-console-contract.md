@@ -14,7 +14,8 @@
 | Pending target secondary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="cancel"]` | `Cancel` |
 | Pending target primary action | `inspectorFooter[data-editor-state="pendingTarget"] [data-action="addAnnotation"]` | `Add annotation` |
 | Saved annotation destructive action | `inspectorFooter[data-editor-state="saved"] [data-action="delete"]` | `Delete annotation` |
-| Saved annotation runtime evidence action | `attachEvidenceButton` | `Log` |
+| Runtime diagnostics policy | `runtimeEvidencePolicy` | `Auto` / `Manual` / `Off` |
+| Saved annotation runtime evidence action | `collectRuntimeEvidenceButton` | `Capture diagnostics` / `Capture again` |
 | Refresh devices | `refreshDevicesButton` | `Refresh devices` |
 | Clear FixThis device selection | `disconnectDeviceButton` | `x` icon |
 | Workflow progress | `workflowProgress` | `FixThis feedback workflow` |
@@ -63,10 +64,24 @@
   browser can show prompt-handoff history, but it does not require or imply
   `delivery: sent`.
 - `Save to MCP` persists written pending annotations when needed, then creates a local handoff batch for MCP tools.
-- `Log` appears on saved annotation detail and posts a bounded
-  manual `logcat_window` summary to
-  `/api/items/<itemId>/runtime-evidence` for the active session. The browser
-  action does not stream or copy raw logs into the console.
+- The session-level runtime diagnostics policy is persisted, not stored in
+  browser `localStorage`. New sessions start at Auto; legacy sessions without
+  the field decode as Manual. Policy updates are serialized per session and
+  late results from another/replaced/closed session do not change the active
+  control.
+- Auto makes `Save to MCP` collect the allowlisted `baseline` preset before the
+  batch becomes sent. Manual skips automatic collection but keeps **Capture
+  diagnostics** available. Off skips automatic collection and disables the
+  console manual action. A typed terminal evidence result still lets valid
+  feedback become sent and is surfaced in the success status and handoff.
+- **Capture diagnostics** appears on saved annotation detail and posts the
+  `baseline` preset to
+  `/api/items/<itemId>/runtime-evidence/collect` for the owning session. The
+  browser renders complete, partial, failed, unsupported, warning, summary,
+  proximity, and artifact-path metadata; it does not stream or copy raw
+  collector output into the console.
+- `Copy Prompt` never starts automatic runtime collection. It renders only
+  evidence already persisted for the item.
 - `Clear Draft` deletes unsent draft feedback after confirmation.
 - Live preview frames are transient. Persisted `screens` are evidence snapshots, not every preview frame.
 - Browser-only pending work is stored as a schema-v2 DraftWorkspace envelope
@@ -232,6 +247,11 @@ diagnostics remain in Details.
 ## Privacy Semantics
 
 - `Save to MCP` stores a local handoff batch.
+- Automatically collected runtime diagnostics are redacted and stored only
+  under `.fixthis/runtime-evidence/<session-id>/<capture-id>/`. The console and
+  MCP responses expose bounded summaries/status metadata, not raw collector
+  bodies. Local artifact paths can still point to sensitive debug data and must
+  not be committed.
 - Pending recovery envelopes remain browser-local until a handoff action
   persists written items into `.fixthis/feedback-sessions/`. `Copy Prompt` may
   leave residual pin-only recovery browser-local; `Save to MCP` clears residual
@@ -245,7 +265,7 @@ Rule: source hints are candidates; verify screenshot, target, and code before ed
 ### v2 prompt grammar (BNF-ish)
 
 ```
-prompt        = header rule package_line source_root_line? quality_line? "" screen_block+ footer
+prompt        = header rule package_line source_root_line? quality_line? "" screen_block+ footer runtime_evidence_attempt?
 header        = "# FixThis Feedback Handoff" ""
 rule          = "Rule: source hints are candidates; verify screenshot, target, and code before editing." ""
 package_line   = "- Package: `" pkg "`"
@@ -290,6 +310,12 @@ footer         = "---"
                  "  on_complete: fixthis_resolve_feedback({sessionId, itemId, status: resolved|wont_fix|needs_clarification, summary})"
                  "  user_console_reflects_within: 2s"
                  "session_id: " session_id
+runtime_evidence_attempt = "" "runtimeEvidenceAttempt:"
+                 "  attempted=" boolean
+                 "  status=" ("complete" | "partial" | "failed" | "unsupported" | "skipped")
+                 ("  failure=" failure_reason)?
+                 ("  reason=" ("manual" | "off" | "skipped"))?
+                 ("  warning=" warning_token){0,8}
 ```
 
 The `screenshot:` line is optional and omitted when no screenshot artifact is available for the screen.
@@ -365,12 +391,17 @@ When no source candidates are available for the item, the source block consists 
   the item. Compact handoff renders at most 3 attachments per item, local
   artifact paths or `no-artifact`, and bounded summaries only. Raw logcat,
   frame, memory, or trace payloads are not emitted in compact Markdown.
+- `runtimeEvidenceAttempt:` - appended to a persisted Save-to-MCP prompt after
+  the agent-protocol footer. It records the final automatic/skipped decision
+  using booleans, enums, mapped reasons, and at most eight warnings. It omits
+  capture/attachment ids, artifact paths, commands, and raw output. Copy Prompt
+  does not append this block because it never starts collection.
 - `npm run runtime-evidence:smoke` writes a local runtime evidence report and
   defers missing Android prerequisites in non-strict mode. The strict variant
-  (`npm run runtime-evidence:smoke -- --strict`) captures a bounded logcat row
-  into ignored `.fixthis/runtime-evidence/` storage when a ready Android device
-  is present, and fails when connected runtime evidence prerequisites are
-  unavailable.
+  (`npm run runtime-evidence:smoke -- --strict`) drives the real MCP tool,
+  Auto Save-to-MCP handoff, bounded/redacted artifacts, restart replay, and
+  item linkage. It fails when connected prerequisites or any product-path
+  assertion are unavailable; generic direct logcat output cannot satisfy it.
 - Items with stale source candidates, visual-area targets, forced fingerprint
   mismatch, sensitive redaction, interop warnings, overlap risk, or duplicate
   marker references must not render `verify: source-first`.
@@ -460,7 +491,7 @@ and a bottom sheet/full-width modal on mobile.
 The console bundle is generated by `scripts/build-console-assets.mjs` from
 the source files in `fixthis-mcp/src/main/console/`. Source order is a
 topological sort over `// @requires` directives at the top of each file.
-The build emits a minified `app.js` (≤ 227 KiB raw / ≤ 58 KiB gzip), an
+The build emits a minified `app.js` (≤ 240,500 B raw / ≤ 61,000 B gzip), an
 external source map linked via `//# sourceMappingURL=app.js.map`, and a
 `console-build-meta.json` sidecar that `FeedbackConsoleAssets.kt` inlines
 into `window.FixThisConsoleConfig.buildMeta` at serve time.
@@ -533,8 +564,8 @@ The console bundle budget is intentionally enforced by
 `node scripts/build-console-assets.mjs --check`, but it carries working
 headroom so small console changes do not fail on byte-level churn:
 
-- Gzip budget — `58 KiB` (59,392 B).
-- Raw budget — `227 KiB` (232,448 B).
+- Gzip budget - `61,000 B`.
+- Raw budget - `240,500 B`.
 
 The `state.js` hotspot budget in `ArchitectureHotspotBudgetTest` was
 bumped from 440 → 470 lines to accept the

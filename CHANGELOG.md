@@ -27,7 +27,34 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
-- No unreleased changes yet.
+### Added
+
+- Save to MCP can now collect a bounded, redacted Android diagnostics baseline
+  before feedback becomes agent-visible. New sessions use Auto by default;
+  Manual and Off remain available per session, and Copy Prompt never starts
+  collection.
+- Added `fixthis_collect_runtime_evidence` with four fixed presets:
+  `baseline`, `logs`, `memory`, and `performance`. The legacy
+  `fixthis_capture_runtime_evidence` manual-summary tool remains compatible.
+- Added local runtime-evidence bundles under
+  `.fixthis/runtime-evidence/<session-id>/<capture-id>/`, with redaction,
+  per-file/bundle/project quotas, device/install/screen drift checks, event-log
+  replay, and bounded compact handoff summaries.
+
+### Changed
+
+- Connected Android proof now includes a strict MCP product-path row that
+  verifies Auto Save-to-MCP, artifact containment/redaction, item linkage, and
+  restart replay. Generic direct logcat output cannot satisfy the proof.
+- Runtime collectors are host-side ADB capabilities; the app-side Bridge
+  capability payload and Bridge protocol version `1.3` are unchanged.
+
+### Fixed
+
+- Runtime evidence now fails closed when device, install, package, session,
+  item, or screen ownership drifts, while PID and fingerprint drift remain
+  visible only as partial warning evidence. Late closed/deleted/replaced-screen
+  results cannot link to a newer feedback context.
 
 ## v1.4.1 — 2026-07-05
 

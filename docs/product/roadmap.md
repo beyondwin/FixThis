@@ -27,8 +27,28 @@ broader Android UI stacks or additional package channels.
   layout/style surfaces, visual areas, and interop risk.
 - **Pixel screenshots.** Editable and password text is redacted from semantics,
   but screenshots can still contain sensitive pixels.
+- **Bounded runtime diagnostics.** New feedback sessions default to an
+  automatic, local-only baseline before Save to MCP. Legacy sessions remain
+  Manual; users can choose Auto, Manual, or Off. Copy Prompt never starts
+  collection, and raw collector output stays in ignored local artifacts.
 
 ## High-priority Work
+
+### Runtime Evidence Autopilot (delivered)
+
+The host CLI/MCP path now collects allowlisted logcat, memory, and frame
+evidence with a 2,500 ms deadline, redaction, local artifact quotas,
+screen/device/install drift checks, event replay, and compact handoff
+summaries. The new MCP tool exposes only `baseline`, `logs`, `memory`, and
+`performance`; the legacy manual attachment tool remains compatible.
+
+This line was marked delivered only after
+`npm run runtime-evidence:smoke -- --strict` exercised the MCP tool, Auto
+Save-to-MCP flow, artifact containment/redaction, item linkage, and restart
+replay on a connected Android target, and `npm run android:proof -- --strict`
+passed the aggregate runtime-evidence row plus the external fixture matrix.
+Host collection does not change Bridge protocol `1.3` or add app-side
+capabilities.
 
 ### v1.1 trust loop evidence
 

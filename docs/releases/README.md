@@ -10,7 +10,8 @@ Maven Central, and the Gradle Plugin Portal.
 
 ## Releases
 
-- [Unreleased changes](unreleased.md) — current `main`, not yet tagged.
+- [Unreleased changes](unreleased.md) - Runtime Evidence Autopilot, strict
+  connected MCP product-path proof, and current `main`, not yet tagged.
 - [v1.4.1](v1.4.1.md) — release-readiness patch for source matching fixture
   lab discoverability and required-check enforcement tracking.
 - [v1.4.0](v1.4.0.md) — setup verification actions, connected Android proof,

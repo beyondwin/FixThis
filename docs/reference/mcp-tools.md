@@ -63,7 +63,7 @@ Typical flow:
 3. Use the live preview to navigate the app.
 4. Click `Annotate` to freeze the latest preview.
 5. Select targets or visual areas to create one or more pending annotations, then write comments in the focused detail editor.
-6. Click `Copy Prompt` to persist written pending annotations when needed and copy compact prompt text, or click `Save to MCP` to persist them and mark the items as ready for an agent to claim.
+6. Click `Copy Prompt` to persist written pending annotations when needed and copy compact prompt text, or click `Save to MCP` to persist them and mark the items as ready for an agent to claim. `Save to MCP` follows the session's runtime-diagnostics policy; `Copy Prompt` never starts automatic runtime collection.
 7. Call `fixthis_list_feedback` (defaults to SENT and unfinished items).
 8. Call `fixthis_read_feedback({itemId})` for the item to work on.
 9. Call `fixthis_claim_feedback({itemId})` before editing code.
@@ -324,11 +324,38 @@ Arguments:
 - `status`: required status. Must be one of `resolved`, `needs_clarification`, or `wont_fix`.
 - `summary`: optional agent-facing summary or reason. The browser console shows this on the saved annotation detail.
 
+### Runtime evidence policy
+
+Runtime evidence is a host-side, local-only capability. Newly created feedback
+sessions persist `runtimeEvidencePolicy: "auto_on_handoff"`; sessions written
+before this field existed decode as `manual`. The console's **Runtime
+diagnostics policy** selector writes one of these values to the session and the
+choice survives restart/event replay:
+
+- `auto_on_handoff` (**Auto**): `Save to MCP` runs the `baseline` preset before
+  it marks the batch sent. The batch stays draft until the evidence decision is
+  complete. A typed evidence failure is recorded in the handoff but does not
+  hide otherwise valid feedback from the agent.
+- `manual` (**Manual**): `Save to MCP` skips automatic collection. Use the
+  saved-annotation **Capture diagnostics** action or
+  `fixthis_collect_runtime_evidence` explicitly.
+- `off` (**Off**): `Save to MCP` and the console's manual capture action skip
+  collection. This is a Studio workflow policy, not an MCP authorization
+  boundary; an agent that explicitly calls a runtime-evidence MCP tool is still
+  making an explicit local operation.
+
+`Copy Prompt` is excluded from automatic collection under every policy. It
+renders the current persisted attachments only. `Save to MCP` returns an
+additive `runtimeEvidence` result and appends a bounded
+`runtimeEvidenceAttempt` block to the persisted prompt; neither surface embeds
+raw collector output.
+
 `fixthis_capture_runtime_evidence`
 
-Attaches bounded local runtime evidence to a feedback item. The first supported
-path stores a summary and optional local artifact path; raw logs and traces are
-not emitted in compact handoff.
+Legacy manual-attachment tool. It attaches a caller-provided bounded summary
+and optional local artifact path to a feedback item; it does not execute an
+Android collector. It remains compatible for existing clients. Raw logs and
+traces are not emitted in compact handoff.
 
 Arguments:
 
@@ -337,7 +364,49 @@ Arguments:
 - `type`: one of `logcat_window`, `frame_summary`, `memory_summary`, or
   `trace_artifact`.
 - `summary`: required bounded evidence summary.
-- `artifactPath`: optional local artifact path under ignored storage.
+- `artifactPath`: optional project-relative path under `.fixthis/`. Absolute
+  paths and traversal segments are rejected.
+
+The stored summary is capped at 240 characters. The response is the updated
+feedback session, including the new attachment id in the item's
+`runtimeEvidenceIds` list.
+
+`fixthis_collect_runtime_evidence`
+
+Collects bounded Android evidence through the host ADB/CLI adapter, stores
+redacted artifacts under ignored project storage, links the resulting
+attachments to one feedback item, and returns only collection metadata.
+
+Arguments:
+
+- `sessionId`: optional feedback session id. If omitted, the active session is
+  used.
+- `itemId`: required feedback item id. The item's persisted `screenId` defines
+  the frozen-screen correlation boundary.
+- `preset`: required allowlisted preset. The only accepted values are:
+  - `baseline`: logcat window, memory summary, and frame summary.
+  - `logs`: logcat window only.
+  - `memory`: memory summary only.
+  - `performance`: frame summary only.
+
+Unknown arguments and unknown presets are rejected. The result fields are
+`attempted`, optional `captureId`, optional `status` (`complete`, `partial`,
+`failed`, or `unsupported`), `attachmentIds`, `linkedItemIds`, optional
+`artifactDirectory`, `warnings`, optional `failureReason`, and optional
+`skippedReason`. Artifact content, collector commands, raw log lines, and trace
+bodies are not returned through MCP.
+
+Collection has one 2,500 ms end-to-end deadline, retries one transient
+collector failure, and runs at most two collectors concurrently across the MCP
+process. Equivalent automatic handoffs for the same project, session, screen,
+preset, and install share one in-flight capture. One same-screen handoff batch
+therefore shares one `captureId`; automatic collection rejects mixed-screen
+item sets.
+
+Runtime collectors are host capabilities discovered from ADB package/process
+state. They are not new app-side bridge capabilities and do not bump Bridge
+protocol `1.3`. The existing bridge status and screen snapshot only enrich
+install/activity/fingerprint context used to detect drift.
 
 ### Optional SourceCandidate fields
 

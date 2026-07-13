@@ -189,6 +189,95 @@ return to the pending annotations without writing.
 
 After `Save to MCP`, the saved items are recorded in a local handoff batch for MCP tools. It is not an external AI API call. The session stays visible in the main History list with a `working` pip while the agent claims and resolves items. Click `Annotate` again to freeze the current visible screen and create another saved evidence snapshot when pending annotations are persisted, even if the app has not visibly changed.
 
+## Runtime Diagnostics
+
+New sessions use Auto runtime diagnostics on `Save to MCP`; legacy sessions
+without a saved policy use Manual. Change the session selector to Manual to
+capture only from saved annotation detail, or Off to skip Studio collection.
+`Copy Prompt` never starts collection.
+
+Run the focused connected proof first when diagnosing this feature:
+
+```bash
+npm run runtime-evidence:smoke -- --strict
+```
+
+It drives `fixthis_collect_runtime_evidence`, Auto Save to MCP, artifact
+containment/redaction, item linkage, and restart replay. Its report is
+`build/reports/fixthis-runtime-evidence/report.json`. The aggregate proof is:
+
+```bash
+npm run android:proof -- --strict
+```
+
+Its `Runtime evidence product path` row must be `pass`; deferred is not
+connected proof.
+
+### `device_changed`
+
+`device_changed` remains in the additive failure-reason schema for compatible
+readers. The current coordinator reports a selected-device serial change as
+`context_changed` and refuses linkage. For either token, keep only the intended
+device selected, confirm it remains `device` in `adb devices -l`, reopen the
+owning feedback session, and retry **Capture diagnostics** or Save to MCP. Do
+not copy artifacts from the rejected capture into the session.
+
+### `permission_denied`
+
+Confirm the host is authorized in `adb devices -l`, the target package is a
+debug build, and `fixthis doctor --package <applicationId>` reaches the bridge.
+Unlock/authorize the device and retry the focused preset. If app or platform
+policy still denies the fixed ADB collector command, switch the session to
+Manual or Off and send the UI feedback without diagnostics; do not broaden the
+collector to arbitrary shell commands.
+
+### `capture_timeout`
+
+The end-to-end 2,500 ms budget expired. Keep the debug app foregrounded, close
+other expensive ADB work, and retry a focused preset (`logs`, `memory`, or
+`performance`) with `fixthis_collect_runtime_evidence`. Auto Save to MCP still
+sends otherwise valid feedback with a failed/partial attempt record. Repeated
+timeouts should stay visible as missing evidence, not be reported as a pass.
+
+### `quota_exceeded`
+
+The project `.fixthis/runtime-evidence/` root would exceed 250 MiB. Before
+stopping MCP, inspect the persisted sessions and each attachment's
+`artifactPath`. Decide which old session/capture bundles are no longer needed.
+Then stop MCP and archive only those selected capture directories outside the
+quota root, preserving their session/capture layout:
+
+```bash
+mkdir -p ".fixthis/runtime-evidence-archive/<session-id>"
+mv ".fixthis/runtime-evidence/<session-id>/<capture-id>" \
+  ".fixthis/runtime-evidence-archive/<session-id>/"
+```
+
+Restart MCP and retry the capture. Do not move the entire runtime-evidence root
+unless you intentionally accept `artifact_missing` for every persisted
+attachment. Moving any referenced capture makes that attachment unavailable,
+so archive only diagnostics you have confirmed are no longer needed.
+`fixthis clean` does not currently remove runtime-evidence bundles.
+
+### `artifact_missing`
+
+The session still references a capture but its committed local file is gone,
+not a regular file, or crosses a symlink/path boundary. FixThis materializes
+an originally `complete` attachment as `partial` and adds `artifact_missing`;
+an existing `partial`, `failed`, or `unsupported` status is preserved while
+the warning is added. It does not invent a replacement. Retry collection for
+the original item. If it repeats, inspect permissions and symlinks under
+`.fixthis/runtime-evidence/`, preserve every still-referenced capture, restart
+MCP, and capture again.
+
+### `context_changed` or `process_restarted`
+
+Device/install/package/session/item/screen drift fails linkage. Reinstall or
+reselect as needed, reopen the exact session and screen, and recapture. A PID
+restart or screen-fingerprint change can remain as partial evidence with
+`process_restarted` / `context_changed`; verify the screenshot and app state
+before treating it as related to the feedback.
+
 ## MCP stdout Log Corruption
 
 Symptom: an MCP client fails to parse JSON-RPC messages, often after seeing human-readable logs mixed into stdout.
