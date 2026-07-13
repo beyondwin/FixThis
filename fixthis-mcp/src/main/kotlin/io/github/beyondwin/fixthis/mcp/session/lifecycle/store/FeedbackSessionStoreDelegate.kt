@@ -79,8 +79,9 @@ internal class FeedbackSessionStoreDelegate(
 
     init {
         // Replay must finish before runtime-evidence orphan reconciliation.
-        currentSessionId = bootReplayer.replayAll(store, journal).currentSessionId
-        artifactJanitor.cleanupRuntimeEvidence(store.all())
+        val replay = bootReplayer.replayAll(store, journal)
+        currentSessionId = replay.currentSessionId
+        artifactJanitor.cleanupRuntimeEvidence(store.all(), replay.runtimeEvidenceReferencesComplete)
     }
 
     // Public API — unchanged signatures.

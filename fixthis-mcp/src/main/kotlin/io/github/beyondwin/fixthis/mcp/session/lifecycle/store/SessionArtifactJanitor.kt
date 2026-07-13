@@ -14,7 +14,10 @@ internal class SessionArtifactJanitor(
             ?.deleteRecursively()
     }
 
-    fun cleanupRuntimeEvidence(sessions: List<SessionDto>) {
+    fun cleanupRuntimeEvidence(
+        sessions: List<SessionDto>,
+        referencesComplete: Boolean,
+    ) {
         val sessionsByRoot = linkedMapOf<String, MutableList<SessionDto>>()
         persistence?.artifactPaths()?.projectRoot?.canonicalPath?.let { root ->
             sessionsByRoot.getOrPut(root) { mutableListOf() }
@@ -24,10 +27,13 @@ internal class SessionArtifactJanitor(
             sessionsByRoot.getOrPut(root) { mutableListOf() } += session
         }
         sessionsByRoot.forEach { (root, rootSessions) ->
+            val artifactStore = FileRuntimeEvidenceArtifactStore(File(root), RuntimeEvidenceRedactor())
+            artifactStore.cleanupIncomplete()
+            if (!referencesComplete) return@forEach
             val references = rootSessions.associate { session ->
                 session.sessionId to session.runtimeEvidence.mapNotNull { it.captureId }.toSet()
             }
-            FileRuntimeEvidenceArtifactStore(File(root), RuntimeEvidenceRedactor()).cleanupOrphans(references)
+            artifactStore.cleanupOrphans(references)
         }
     }
 }

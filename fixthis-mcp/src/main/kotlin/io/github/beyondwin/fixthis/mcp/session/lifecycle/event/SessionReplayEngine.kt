@@ -43,9 +43,23 @@ class SessionReplayEngine(
         recordSkipped: (sessionId: String, path: String, message: String) -> Unit,
     ): SessionDto {
         val checkpointRead = readReplayCheckpoint(sessionId, reader, recordSkipped)
-        val events = if (checkpointRead.shouldReplay) readReplayEventsOrNull(reader) else null
+        val events = if (checkpointRead.shouldReplay) {
+            readReplayEventsOrNull(sessionId, reader, recordSkipped)
+        } else {
+            null
+        }
         if (events != null) {
-            val replayed = replayEventsFrom(shell, checkpointRead.checkpoint, events)
+            val replayed = replayEventsFrom(
+                shell,
+                checkpointRead.checkpoint,
+                events,
+            ) { event ->
+                recordSkipped(
+                    sessionId,
+                    reader.checkpointFile.parentFile.absolutePath,
+                    "Could not replay event ${event.eventId}: unsupported type or malformed payload",
+                )
+            }
             if (checkpointRead.checkpoint != null || events.isNotEmpty()) {
                 applyReplayedSession(sessionId, replayed)
                 return replayed.session
@@ -54,8 +68,7 @@ class SessionReplayEngine(
         return shell
     }
 
-    // Boot replay errors degrade gracefully — see ALH-3 spec.
-    // The catch is intentional: invalid checkpoints must not crash the store at startup.
+    // Invalid checkpoints degrade gracefully instead of crashing boot (ALH-3).
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
     private fun readReplayCheckpoint(
         sessionId: String,
@@ -107,9 +120,18 @@ class SessionReplayEngine(
     }
 
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
-    private fun readReplayEventsOrNull(reader: EventLogReader): List<SessionEvent>? = try {
+    private fun readReplayEventsOrNull(
+        sessionId: String,
+        reader: EventLogReader,
+        recordSkipped: (sessionId: String, path: String, message: String) -> Unit,
+    ): List<SessionEvent>? = try {
         reader.readAll()
     } catch (e: Exception) {
+        recordSkipped(
+            sessionId,
+            reader.checkpointFile.parentFile.absolutePath,
+            "Could not read feedback session event log: ${e.message ?: e::class.java.simpleName}",
+        )
         null
     }
 
@@ -117,6 +139,7 @@ class SessionReplayEngine(
         shell: SessionDto,
         checkpoint: EventLogCheckpoint?,
         events: List<SessionEvent>,
+        recordSkipped: (SessionEvent) -> Unit,
     ): ReplayedSessionState {
         var current = replayStartingSession(shell, checkpoint)
         var maxSeq = maxOf(
@@ -124,10 +147,14 @@ class SessionReplayEngine(
             checkpoint?.compactedThroughSequenceNumber ?: -1L,
         )
         var replayedAny = false
-
         for (event in events) {
             if (event.sequenceNumber <= maxSeq) continue // idempotent guard
-            current = applyEvent(current, event) ?: current
+            val applied = applyEvent(current, event)
+            if (applied == null) {
+                recordSkipped(event)
+            } else {
+                current = applied
+            }
             maxSeq = event.sequenceNumber
             replayedAny = true
         }

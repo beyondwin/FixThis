@@ -34,13 +34,17 @@ internal class SessionBootReplayer(
     private val hasEventLog: Boolean = true,
 ) {
     private val replaySkippedSessions = mutableMapOf<String, SkippedFeedbackSession>()
+    private val preloadSkippedSessions = mutableListOf<SkippedFeedbackSession>()
     private var stateStore: SessionStateStore? = null
 
     /**
      * Carries what the delegate needs to finish boot. [currentSessionId] is the session the
      * delegate should select as current after reconstruction (or null when none qualifies).
      */
-    data class ReplayResult(val currentSessionId: String?)
+    data class ReplayResult(
+        val currentSessionId: String?,
+        val runtimeEvidenceReferencesComplete: Boolean,
+    )
 
     /**
      * Performs the two-part boot reconstruction that previously lived in the delegate's `init`.
@@ -62,8 +66,12 @@ internal class SessionBootReplayer(
      */
     fun replayAll(stateStore: SessionStateStore, journal: SessionEventJournal): ReplayResult {
         this.stateStore = stateStore
+        replaySkippedSessions.clear()
+        preloadSkippedSessions.clear()
 
-        var currentSessionId = preloadPersistedSessions(stateStore)
+        val preload = PersistedSessionPreloader(persistence).preload(stateStore)
+        preloadSkippedSessions += preload.loadFailures
+        var currentSessionId = preload.currentSessionId
 
         if (hasEventLog) {
             for (sid in stateStore.ids()) {
@@ -75,24 +83,10 @@ internal class SessionBootReplayer(
                 ?.sessionId
         }
 
-        return ReplayResult(currentSessionId)
-    }
-
-    /**
-     * Part (A): preload persisted sessions into [stateStore] in ascending updatedAt order,
-     * returning the running current-session pointer (last non-closed assignment wins).
-     */
-    private fun preloadPersistedSessions(stateStore: SessionStateStore): String? {
-        val p = persistence ?: return null
-        var currentSessionId: String? = null
-        p.list(includeClosed = true).sessions
-            .sortedBy { it.updatedAtEpochMillis }
-            .mapNotNull { summary -> runCatching { p.load(summary.sessionId) }.getOrNull() }
-            .forEach { session ->
-                stateStore.put(session)
-                if (session.status != SessionStatusDto.CLOSED) currentSessionId = session.sessionId
-            }
-        return currentSessionId
+        return ReplayResult(
+            currentSessionId,
+            preload.runtimeEvidenceReferencesComplete && replaySkippedSessions.isEmpty(),
+        )
     }
 
     /**
@@ -133,7 +127,7 @@ internal class SessionBootReplayer(
         includeClosed: Boolean,
     ): List<SkippedFeedbackSession> {
         val store = stateStore ?: return emptyList()
-        return replaySkippedSessions
+        val replaySkipped = replaySkippedSessions
             .filter { (sessionId, _) ->
                 val session = store.find(sessionId)
                 session != null &&
@@ -141,6 +135,6 @@ internal class SessionBootReplayer(
                     (includeClosed || session.status != SessionStatusDto.CLOSED)
             }
             .values
-            .toList()
+        return preloadSkippedSessions + replaySkipped
     }
 }

@@ -15,6 +15,7 @@ import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -99,11 +100,12 @@ class SessionBootReplayerTest {
         store.put(s)
         writeAddScreenEvent("s1", "scr1", seq = 0L, epoch = 50L)
 
-        replayer.replayAll(store, journal)
+        val result = replayer.replayAll(store, journal)
 
         val replayed = store.find("s1")!!
         assertEquals(1, replayed.screens.size, "Event must be replayed into store")
         assertEquals("scr1", replayed.screens.single().screenId)
+        assertTrue(result.runtimeEvidenceReferencesComplete)
     }
 
     @Test
@@ -134,11 +136,33 @@ class SessionBootReplayerTest {
         val dir = eventsDir("s1").apply { mkdirs() }
         File(dir, "checkpoint.json").writeText("{ not valid json")
 
-        replayer.replayAll(store, journal)
+        val result = replayer.replayAll(store, journal)
 
         val skipped = replayer.skippedList(packageName = null, includeClosed = true)
         assertEquals(1, skipped.size, "Invalid checkpoint must record a skipped session")
         assertTrue(skipped.single().message.contains("checkpoint"), "Skip message should mention checkpoint")
+        assertFalse(result.runtimeEvidenceReferencesComplete)
+    }
+
+    @Test
+    fun `replay completeness and skipped diagnostics reset on a fresh replayAll call`() {
+        val journal = journalFor()
+        val replayer = newReplayer(journal)
+        val store = SessionStateStore(persistence = null)
+        store.put(session("s1"))
+        val checkpoint = File(eventsDir("s1"), "checkpoint.json").apply {
+            parentFile.mkdirs()
+            writeText("{ not valid json")
+        }
+
+        val degraded = replayer.replayAll(store, journal)
+        assertFalse(degraded.runtimeEvidenceReferencesComplete)
+        assertEquals(1, replayer.skippedList(null, includeClosed = true).size)
+
+        assertTrue(checkpoint.delete())
+        val recovered = replayer.replayAll(store, journal)
+        assertTrue(recovered.runtimeEvidenceReferencesComplete)
+        assertTrue(replayer.skippedList(null, includeClosed = true).isEmpty())
     }
 
     @Test

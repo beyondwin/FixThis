@@ -5,9 +5,12 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionEventPayloadFactory
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogException
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionEvent
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.runtimeEvidence
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
@@ -20,6 +23,8 @@ import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceRedactor
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceService
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -260,6 +265,185 @@ class RuntimeEvidenceSessionEventTest {
         assertFalse(File(fixture.root, ".fixthis/runtime-evidence/${fixture.session.sessionId}/capture-orphan").exists())
     }
 
+    @Test
+    fun runtimeEvidenceStartupRemovesGeneratedTemporaryBundle() {
+        val root = Files.createTempDirectory("runtime-evidence-incomplete").toFile()
+        try {
+            val paths = FeedbackSessionPaths(root)
+            val temporary = File(
+                root,
+                ".fixthis/runtime-evidence/session-1/capture-1.tmp-0123456789abcdef0123456789abcdef",
+            ).apply {
+                mkdirs()
+                File(this, "logcat.txt").writeText("partial")
+            }
+
+            FeedbackSessionStore(persistence = FeedbackSessionPersistence(paths))
+
+            assertFalse(temporary.exists())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun runtimeEvidenceCorruptSnapshotPreservesCommittedBundles() {
+        val root = Files.createTempDirectory("runtime-evidence-corrupt-snapshot").toFile()
+        try {
+            val paths = FeedbackSessionPaths(root)
+            paths.sessionFile("broken-session").apply {
+                parentFile.mkdirs()
+                writeText("{ not valid json")
+            }
+            val artifacts = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+            artifacts.commit("broken-session", "capture-preserved", listOf(artifactInput()))
+
+            val store = FeedbackSessionStore(
+                persistence = FeedbackSessionPersistence(paths),
+                eventLogReaderProvider = { EventLogReader(paths.eventLogDirectory(it)) },
+            )
+
+            assertTrue(File(root, ".fixthis/runtime-evidence/broken-session/capture-preserved").isDirectory)
+            assertTrue(store.listSessions(includeClosed = true).skippedSessions.any { it.path.endsWith("session.json") })
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun runtimeEvidenceCorruptEventLogPreservesEventBeforeSnapshotBundle() = withFixture { fixture ->
+        val captureId = "capture-degraded"
+        FileRuntimeEvidenceArtifactStore(fixture.root, RuntimeEvidenceRedactor()).commit(
+            fixture.session.sessionId,
+            captureId,
+            listOf(artifactInput()),
+        )
+        val sequence = fixture.events().maxOf { it.sequenceNumber } + 1L
+        EventLogWriter(fixture.eventDirectory()).append(
+            SessionEvent(
+                eventId = "event-before-snapshot",
+                sequenceNumber = sequence,
+                epochMillis = 2_000L,
+                actor = "test",
+                type = "runtimeEvidenceCaptured",
+                payload = SessionEventPayloadFactory.runtimeEvidence(
+                    sessionId = fixture.session.sessionId,
+                    expectedScreenId = fixture.screen.screenId,
+                    itemIds = listOf(fixture.items.first().itemId),
+                    attachments = listOf(attachment("evidence-degraded", captureId)),
+                    aggregateStatus = RuntimeEvidenceStatus.COMPLETE,
+                ),
+            ),
+        )
+        File(fixture.eventDirectory(), "9999999999999-9999999999.jsonl").writeText("{ broken event")
+
+        val reopened = fixture.reopen()
+
+        assertTrue(File(fixture.root, ".fixthis/runtime-evidence/${fixture.session.sessionId}/$captureId").isDirectory)
+        assertTrue(
+            reopened.listSessions(includeClosed = true).skippedSessions.any {
+                it.message.contains("event log", ignoreCase = true)
+            },
+        )
+    }
+
+    @Test
+    fun runtimeEvidenceMalformedReplayEventPreservesCommittedBundle() = withFixture { fixture ->
+        val captureId = "capture-malformed-event"
+        FileRuntimeEvidenceArtifactStore(fixture.root, RuntimeEvidenceRedactor()).commit(
+            fixture.session.sessionId,
+            captureId,
+            listOf(artifactInput()),
+        )
+        val sequence = fixture.events().maxOf { it.sequenceNumber } + 1L
+        EventLogWriter(fixture.eventDirectory()).append(
+            SessionEvent(
+                eventId = "malformed-runtime-evidence",
+                sequenceNumber = sequence,
+                epochMillis = 2_000L,
+                actor = "test",
+                type = "runtimeEvidenceCaptured",
+                payload = buildJsonObject { put("sessionId", fixture.session.sessionId) },
+            ),
+        )
+
+        val reopened = fixture.reopen()
+
+        assertTrue(File(fixture.root, ".fixthis/runtime-evidence/${fixture.session.sessionId}/$captureId").isDirectory)
+        assertTrue(
+            reopened.listSessions(includeClosed = true).skippedSessions.any {
+                it.message.contains("replay event", ignoreCase = true)
+            },
+        )
+    }
+
+    @Test
+    fun runtimeEvidenceLegacyLinkIsNotRestoredAfterAuthoritativeDeleteEvent() = withFixture { fixture ->
+        val deletedItemId = fixture.items.first().itemId
+        val snapshotOnly = fixture.store.getSession(fixture.session.sessionId).copy(
+            runtimeEvidence = listOf(attachment("legacy-deleted")),
+            items = fixture.store.getSession(fixture.session.sessionId).items.map { item ->
+                if (item.itemId == deletedItemId) item.copy(runtimeEvidenceIds = listOf("legacy-deleted")) else item
+            },
+        )
+        fixture.store.replaceSessionForDomain(snapshotOnly)
+        val sequence = fixture.events().maxOf { it.sequenceNumber } + 1L
+        EventLogWriter(fixture.eventDirectory()).append(
+            SessionEvent(
+                eventId = "delete-after-legacy-link",
+                sequenceNumber = sequence,
+                epochMillis = 2_000L,
+                actor = "test",
+                type = "deleteDraftItem",
+                payload = buildJsonObject {
+                    put("sessionId", fixture.session.sessionId)
+                    put("itemId", deletedItemId)
+                },
+            ),
+        )
+
+        val replayed = fixture.reopen().getSession(fixture.session.sessionId)
+
+        assertTrue(replayed.items.none { it.itemId == deletedItemId })
+        assertTrue(replayed.items.none { "legacy-deleted" in it.runtimeEvidenceIds })
+    }
+
+    @Test
+    fun runtimeEvidenceReconcilesEachKnownProjectRoot() {
+        val persistenceRoot = Files.createTempDirectory("runtime-evidence-multi-root-a").toFile()
+        val secondRoot = Files.createTempDirectory("runtime-evidence-multi-root-b").toFile()
+        try {
+            val paths = FeedbackSessionPaths(persistenceRoot)
+            val persistence = FeedbackSessionPersistence(paths)
+            var id = 0
+            val ids: () -> String = { "multi-${++id}" }
+            fun store() = FeedbackSessionStore(
+                clock = { 1_000L },
+                idGenerator = ids,
+                persistence = persistence,
+                eventLogWriterProvider = { EventLogWriter(paths.eventLogDirectory(it)) },
+                eventLogReaderProvider = { EventLogReader(paths.eventLogDirectory(it)) },
+            )
+            val initial = store()
+            val first = createSessionEvidence(initial, persistenceRoot, "capture-a")
+            val second = createSessionEvidence(initial, secondRoot, "capture-b")
+            val firstArtifacts = FileRuntimeEvidenceArtifactStore(persistenceRoot, RuntimeEvidenceRedactor())
+            val secondArtifacts = FileRuntimeEvidenceArtifactStore(secondRoot, RuntimeEvidenceRedactor())
+            firstArtifacts.commit(first.sessionId, "orphan-a", listOf(artifactInput()))
+            secondArtifacts.commit(second.sessionId, "orphan-b", listOf(artifactInput()))
+
+            store()
+
+            assertTrue(File(persistenceRoot, ".fixthis/runtime-evidence/${first.sessionId}/capture-a").isDirectory)
+            assertTrue(File(secondRoot, ".fixthis/runtime-evidence/${second.sessionId}/capture-b").isDirectory)
+            assertFalse(File(persistenceRoot, ".fixthis/runtime-evidence/${first.sessionId}/orphan-a").exists())
+            assertFalse(File(secondRoot, ".fixthis/runtime-evidence/${second.sessionId}/orphan-b").exists())
+        } finally {
+            persistenceRoot.deleteRecursively()
+            secondRoot.deleteRecursively()
+        }
+    }
+
     private fun attachment(
         evidenceId: String,
         captureId: String? = null,
@@ -271,6 +455,44 @@ class RuntimeEvidenceSessionEventTest {
         summary = "redacted summary",
         captureId = captureId,
     )
+
+    private fun artifactInput() = RuntimeEvidenceArtifactInput(
+        RuntimeEvidenceType.LOGCAT_WINDOW,
+        "logcat.txt",
+        "redacted",
+    )
+
+    private fun createSessionEvidence(
+        store: FeedbackSessionStore,
+        projectRoot: File,
+        captureId: String,
+    ): SessionDto {
+        val session = store.openSession("com.test", projectRoot.absolutePath)
+        val screen = store.addScreen(session.sessionId, SnapshotDto("pending", 0L, displayName = "Screen"))
+        val item = store.addItem(
+            session.sessionId,
+            AnnotationDto(
+                itemId = "pending",
+                screenId = screen.screenId,
+                createdAtEpochMillis = 0L,
+                updatedAtEpochMillis = 0L,
+                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+                comment = "item",
+            ),
+        )
+        FileRuntimeEvidenceArtifactStore(projectRoot, RuntimeEvidenceRedactor()).commit(
+            session.sessionId,
+            captureId,
+            listOf(artifactInput()),
+        )
+        return store.attachRuntimeEvidence(
+            sessionId = session.sessionId,
+            expectedScreenId = screen.screenId,
+            itemIds = listOf(item.itemId),
+            attachments = listOf(attachment("evidence-$captureId", captureId)),
+            aggregateStatus = RuntimeEvidenceStatus.COMPLETE,
+        )
+    }
 
     private fun withFixture(
         onWriteHook: (Path) -> Unit = {},
@@ -314,7 +536,7 @@ class RuntimeEvidenceSessionEventTest {
             assertEquals(stateBefore, store.getSession(session.sessionId))
         }
 
-        private fun eventDirectory() = File(eventsRoot, "${session.sessionId}/events")
+        fun eventDirectory() = File(eventsRoot, "${session.sessionId}/events")
 
         companion object {
             fun create(
