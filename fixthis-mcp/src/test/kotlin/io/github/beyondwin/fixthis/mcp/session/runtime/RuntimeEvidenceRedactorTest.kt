@@ -10,14 +10,48 @@ class RuntimeEvidenceRedactorTest {
     @Test
     fun redactorRemovesAuthorizationAndPasswordsButKeepsOrdinaryEmail() {
         val actual = RuntimeEvidenceRedactor().redact(
-            "Authorization: Bearer abc.def.ghi user=dev@example.com password=hunter2",
+            "Authorization: Bearer abc.def.ghi\nuser=dev@example.com password=hunter2",
         )
 
         assertEquals(
-            "Authorization: [REDACTED] user=dev@example.com password=[REDACTED]",
+            "Authorization: [REDACTED]\nuser=dev@example.com password=[REDACTED]",
             actual.text,
         )
         assertTrue(actual.redacted)
+    }
+
+    @Test
+    fun redactorRemovesCompleteAuthorizationValuesForComplexAndUnknownSchemes() {
+        val actual = RuntimeEvidenceRedactor().redact(
+            listOf(
+                "Authorization: Digest username=\"alice\", realm=\"private\", response=\"digest-secret\"",
+                "Authorization: AWS4-HMAC-SHA256 Credential=AKIA/20260714/region/service, SignedHeaders=host, Signature=aws-secret",
+                "Authorization: Custom opaque unknown scheme value",
+                "contact=dev@example.com",
+            ).joinToString("\n"),
+        )
+
+        assertEquals(
+            listOf(
+                "Authorization: [REDACTED]",
+                "Authorization: [REDACTED]",
+                "Authorization: [REDACTED]",
+                "contact=dev@example.com",
+            ).joinToString("\n"),
+            actual.text,
+        )
+    }
+
+    @Test
+    fun redactorRemovesQuotedJsonSecretValuesButKeepsOrdinaryEmail() {
+        val actual = RuntimeEvidenceRedactor().redact(
+            """{"password":"hunter2","api_key": "json-api-secret","client_secret":"escaped-\"still-secret","user":"dev@example.com"}""",
+        )
+
+        assertEquals(
+            """{"password":"[REDACTED]","api_key": "[REDACTED]","client_secret":"[REDACTED]","user":"dev@example.com"}""",
+            actual.text,
+        )
     }
 
     @Test
@@ -93,6 +127,10 @@ class RuntimeEvidenceRedactorTest {
             "(secret)\\1",
             "(?<=token=).*",
             "(?<!safe)secret",
+            "(a|aa)+$",
+            "a?",
+            ".*?",
+            "(?=.)",
         )
 
         rejected.forEach { pattern ->

@@ -3,6 +3,10 @@ package io.github.beyondwin.fixthis.mcp.session.runtime
 import java.io.File
 import java.io.RandomAccessFile
 import java.nio.file.Files
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -129,7 +133,43 @@ class RuntimeEvidenceArtifactStoreTest {
     }
 
     @Test
-    fun deletionRejectsNestedSymlinkWithoutTraversingIt() = withRoot { root ->
+    fun writeRejectsTempParentReplacedBySymlinkAfterValidation() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-parent-outside-").toFile()
+        try {
+            val store = FileRuntimeEvidenceArtifactStore(
+                projectRoot = root,
+                redactor = RuntimeEvidenceRedactor(),
+                hooks = RuntimeEvidenceArtifactStoreHooks(
+                    beforeWrite = { file ->
+                        if (file.name == "logcat.txt") {
+                            assertTrue(file.parentFile.delete())
+                            Files.createSymbolicLink(file.parentFile.toPath(), outside.toPath())
+                        }
+                    },
+                ),
+            )
+
+            assertFailsWith<IllegalStateException> {
+                store.commit(
+                    "session-1",
+                    "capture-1",
+                    listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "password=must-stay-contained")),
+                )
+            }
+
+            assertFalse(File(outside, "logcat.txt").exists())
+            assertFalse(File(root, ".fixthis/runtime-evidence/session-1/capture-1").exists())
+            assertTrue(
+                File(root, ".fixthis/runtime-evidence/session-1").listFiles().orEmpty()
+                    .none { it.name.startsWith("capture-1.tmp-") },
+            )
+        } finally {
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun deleteBundleUnlinksNestedSymlinkWithoutTraversingIt() = withRoot { root ->
         val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
         val committed = store.commit(
             "session-1",
@@ -141,8 +181,9 @@ class RuntimeEvidenceArtifactStoreTest {
             val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
             Files.createSymbolicLink(File(root, "${committed.relativeDirectory}/nested-link").toPath(), outside.toPath())
 
-            assertFailsWith<IllegalArgumentException> { store.deleteBundle("session-1", "capture-1") }
+            store.deleteBundle("session-1", "capture-1")
             assertEquals("keep", sentinel.readText())
+            assertFalse(File(root, committed.relativeDirectory).exists())
         } finally {
             outside.deleteRecursively()
         }
@@ -184,6 +225,25 @@ class RuntimeEvidenceArtifactStoreTest {
     }
 
     @Test
+    fun enforcesPerFileLimitAfterRedactionExpansion() = withRoot { root ->
+        val store = FileRuntimeEvidenceArtifactStore(
+            root,
+            RuntimeEvidenceRedactor(additionalPatterns = listOf("x")),
+        )
+
+        val failure = assertFailsWith<RuntimeEvidenceArtifactLimitException> {
+            store.commit(
+                "session-1",
+                "capture-expanded",
+                listOf(input(RuntimeEvidenceType.MEMORY_SUMMARY, "memory.txt", "x".repeat(64 * 1024))),
+            )
+        }
+
+        assertTrue("MEMORY_SUMMARY" in failure.message.orEmpty())
+        assertFalse(File(root, ".fixthis/runtime-evidence/session-1/capture-expanded").exists())
+    }
+
+    @Test
     fun enforcesTwoHundredFiftyMiBProjectQuotaAtBoundary() = withRoot { root ->
         val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
         val calibration = store.commit(
@@ -218,6 +278,107 @@ class RuntimeEvidenceArtifactStoreTest {
                 listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "x")),
             )
         }
+    }
+
+    @Test
+    fun quotaAccountingOverflowFailsClosedWithoutAllocatingHugeFiles() = withRoot { root ->
+        val store = FileRuntimeEvidenceArtifactStore(
+            projectRoot = root,
+            redactor = RuntimeEvidenceRedactor(),
+            hooks = RuntimeEvidenceArtifactStoreHooks(quotaByteCounter = { Long.MAX_VALUE }),
+        )
+
+        val failure = assertFailsWith<RuntimeEvidenceArtifactQuotaException> {
+            store.commit(
+                "session-1",
+                "capture-overflow",
+                listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "small")),
+            )
+        }
+        assertTrue("overflow" in failure.message.orEmpty())
+        assertFalse(File(root, ".fixthis/runtime-evidence/session-1/capture-overflow").exists())
+    }
+
+    @Test
+    fun quotaTreeScanOverflowFailsClosedWithoutHugeAllocation() = withRoot { root ->
+        val existing = File(root, ".fixthis/runtime-evidence/existing").apply { mkdirs() }
+        File(existing, "first.bin").writeText("first")
+        File(existing, "second.bin").writeText("second")
+        val store = FileRuntimeEvidenceArtifactStore(
+            projectRoot = root,
+            redactor = RuntimeEvidenceRedactor(),
+            hooks = RuntimeEvidenceArtifactStoreHooks(
+                fileSizeReader = { path ->
+                    when (path.fileName.toString()) {
+                        "first.bin" -> Long.MAX_VALUE
+                        "second.bin" -> 1L
+                        else -> 0L
+                    }
+                },
+            ),
+        )
+
+        val failure = assertFailsWith<RuntimeEvidenceArtifactQuotaException> {
+            store.commit(
+                "session-1",
+                "capture-scan-overflow",
+                listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "small")),
+            )
+        }
+        assertTrue("scan overflow" in failure.message.orEmpty())
+        assertFalse(File(root, ".fixthis/runtime-evidence/session-1/capture-scan-overflow").exists())
+    }
+
+    @Test
+    fun concurrentStoreInstancesCannotBothConsumeLastQuotaSlot() = withRoot { root ->
+        val quotaCounter = calibratedQuotaCounter(root)
+
+        val firstAtQuotaCheck = CountDownLatch(1)
+        val releaseFirst = CountDownLatch(1)
+        val secondFinished = CountDownLatch(1)
+        val failures = Collections.synchronizedList(mutableListOf<Throwable?>())
+        val firstStore = concurrentQuotaStore(root, quotaCounter) {
+            firstAtQuotaCheck.countDown()
+            check(releaseFirst.await(5, TimeUnit.SECONDS))
+        }
+        val secondStore = concurrentQuotaStore(root, quotaCounter)
+
+        val first = thread(name = "runtime-evidence-first") {
+            failures += runCatching {
+                firstStore.commit(
+                    "session-1",
+                    "capture-a",
+                    listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "payload")),
+                )
+            }.exceptionOrNull()
+        }
+        assertTrue(firstAtQuotaCheck.await(5, TimeUnit.SECONDS))
+        val second = thread(name = "runtime-evidence-second") {
+            failures += runCatching {
+                secondStore.commit(
+                    "session-1",
+                    "capture-b",
+                    listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "payload")),
+                )
+            }.exceptionOrNull()
+            secondFinished.countDown()
+        }
+        val release = thread(name = "runtime-evidence-release") {
+            secondFinished.await(1, TimeUnit.SECONDS)
+            releaseFirst.countDown()
+        }
+
+        first.join(10_000)
+        second.join(10_000)
+        release.join(10_000)
+        assertFalse(first.isAlive)
+        assertFalse(second.isAlive)
+        assertEquals(1, failures.count { it == null })
+        assertEquals(1, failures.count { it is RuntimeEvidenceArtifactQuotaException })
+        assertEquals(
+            250L * 1024L * 1024L,
+            quotaCounter(File(root, ".fixthis/runtime-evidence")),
+        )
     }
 
     @Test
@@ -302,6 +463,42 @@ class RuntimeEvidenceArtifactStoreTest {
     }
 
     @Test
+    fun cleanupIncompleteUnlinksTemporarySymlinkWithoutFollowingIt() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-temp-link-").toFile()
+        try {
+            val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
+            val sessionRoot = File(root, ".fixthis/runtime-evidence/session-1").apply { mkdirs() }
+            val temporaryLink = File(sessionRoot, "capture.tmp-${"a".repeat(32)}")
+            Files.createSymbolicLink(temporaryLink.toPath(), outside.toPath())
+            val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+
+            assertEquals(1, store.cleanupIncomplete())
+            assertFalse(Files.exists(temporaryLink.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+            assertEquals("keep", sentinel.readText())
+        } finally {
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun cleanupIncompleteUnlinksRootLevelSessionSymlinkPoison() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-session-link-").toFile()
+        try {
+            val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
+            val evidenceRoot = File(root, ".fixthis/runtime-evidence").apply { mkdirs() }
+            val sessionLink = File(evidenceRoot, "session-poison")
+            Files.createSymbolicLink(sessionLink.toPath(), outside.toPath())
+            val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+
+            assertEquals(1, store.cleanupIncomplete())
+            assertFalse(Files.exists(sessionLink.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+            assertEquals("keep", sentinel.readText())
+        } finally {
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
     fun orphanCleanupPreservesCaptureReferencedByReplayedEvent() = withRoot { root ->
         val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
         store.commit("session-1", "event-before-snapshot", listOf(input(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "keep")))
@@ -314,6 +511,58 @@ class RuntimeEvidenceArtifactStoreTest {
         assertTrue(File(root, ".fixthis/runtime-evidence/session-1/event-before-snapshot/manifest.json").isFile)
         assertFalse(File(root, ".fixthis/runtime-evidence/session-1/bundle-without-event").exists())
         assertFalse(File(root, ".fixthis/runtime-evidence/session-2/unreferenced").exists())
+    }
+
+    @Test
+    fun cleanupOrphansUnlinksOrphanSymlinkWithoutFollowingIt() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-orphan-link-").toFile()
+        try {
+            val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
+            val sessionRoot = File(root, ".fixthis/runtime-evidence/session-1").apply { mkdirs() }
+            val orphanLink = File(sessionRoot, "orphan-capture")
+            Files.createSymbolicLink(orphanLink.toPath(), outside.toPath())
+            val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+
+            assertEquals(1, store.cleanupOrphans(emptyMap()))
+            assertFalse(Files.exists(orphanLink.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+            assertEquals("keep", sentinel.readText())
+        } finally {
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun cleanupOrphansUnlinksNestedSymlinkWithoutFollowingIt() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-nested-orphan-").toFile()
+        try {
+            val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
+            val orphan = File(root, ".fixthis/runtime-evidence/session-1/orphan").apply { mkdirs() }
+            Files.createSymbolicLink(File(orphan, "nested-link").toPath(), outside.toPath())
+            val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+
+            assertEquals(1, store.cleanupOrphans(emptyMap()))
+            assertFalse(orphan.exists())
+            assertEquals("keep", sentinel.readText())
+        } finally {
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun deleteSessionUnlinksNestedSymlinkWithoutFollowingIt() = withRoot { root ->
+        val outside = Files.createTempDirectory("fixthis-runtime-nested-session-").toFile()
+        try {
+            val sentinel = File(outside, "sentinel.txt").apply { writeText("keep") }
+            val session = File(root, ".fixthis/runtime-evidence/session-1/capture-1").apply { mkdirs() }
+            Files.createSymbolicLink(File(session, "nested-link").toPath(), outside.toPath())
+            val store = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+
+            store.deleteSession("session-1")
+            assertFalse(File(root, ".fixthis/runtime-evidence/session-1").exists())
+            assertEquals("keep", sentinel.readText())
+        } finally {
+            outside.deleteRecursively()
+        }
     }
 
     @Test
@@ -374,3 +623,39 @@ class RuntimeEvidenceArtifactStoreTest {
         }
     }
 }
+
+private fun calibratedQuotaCounter(root: File): (File) -> Long {
+    val calibrationStore = FileRuntimeEvidenceArtifactStore(root, RuntimeEvidenceRedactor())
+    val calibration = calibrationStore.commit(
+        "session-1",
+        "capture-a",
+        listOf(runtimeEvidenceInput(RuntimeEvidenceType.LOGCAT_WINDOW, "logcat.txt", "payload")),
+    )
+    val bundleBytes = File(root, calibration.relativeDirectory).walkTopDown()
+        .filter { it.isFile }
+        .sumOf { it.length() }
+    calibrationStore.deleteSession("session-1")
+    val simulatedExistingBytes = 250L * 1024L * 1024L - bundleBytes
+    return { evidenceRoot ->
+        simulatedExistingBytes + evidenceRoot.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+    }
+}
+
+private fun concurrentQuotaStore(
+    root: File,
+    quotaCounter: (File) -> Long,
+    beforeQuotaCheck: () -> Unit = {},
+): FileRuntimeEvidenceArtifactStore = FileRuntimeEvidenceArtifactStore(
+    root,
+    RuntimeEvidenceRedactor(),
+    RuntimeEvidenceArtifactStoreHooks(
+        quotaByteCounter = quotaCounter,
+        beforeQuotaCheck = beforeQuotaCheck,
+    ),
+)
+
+private fun runtimeEvidenceInput(
+    type: RuntimeEvidenceType,
+    fileName: String,
+    text: String,
+): RuntimeEvidenceArtifactInput = RuntimeEvidenceArtifactInput(type, fileName, text)
