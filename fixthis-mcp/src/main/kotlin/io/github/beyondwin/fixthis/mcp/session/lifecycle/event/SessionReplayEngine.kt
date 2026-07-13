@@ -133,7 +133,7 @@ class SessionReplayEngine(
         }
 
         return ReplayedSessionState(
-            session = current,
+            session = LegacyRuntimeEvidenceReplay.restoreSnapshotOnlyItemLinks(shell, current),
             maxSequenceNumber = maxSeq,
             replayedAny = replayedAny,
         )
@@ -181,10 +181,10 @@ class SessionReplayEngine(
             "updateDraftItem" -> applyUpdateDraftItem(session, event)
             "deleteDraftItem" -> applyDeleteDraftItem(session, event)
             "markSent" -> applyMarkSent(session, event)
-            "clearDraftItems" -> applyReplaceItems(session, event)
-            "markItemsHandedOff" -> applyReplaceItems(session, event)
-            "updateItemStatus" -> applyReplaceItems(session, event)
-            "claimFeedback" -> applyReplaceItems(session, event)
+            "clearDraftItems", "markItemsHandedOff", "updateItemStatus", "claimFeedback" ->
+                applyReplaceItems(session, event)
+            "runtimeEvidenceCaptured", "runtimeEvidencePolicyUpdated" ->
+                RuntimeEvidenceEventReplayer.apply(session, event)
             else -> null // Unknown event type — skip
         }
     } catch (e: Exception) {

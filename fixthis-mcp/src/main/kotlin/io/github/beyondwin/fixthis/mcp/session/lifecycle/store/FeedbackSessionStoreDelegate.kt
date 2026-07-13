@@ -23,7 +23,9 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLog
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionCompactionCoordinator
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 
@@ -36,22 +38,7 @@ internal const val SESSION_CLOSED_PREFIX = "SESSION_CLOSED:"
 
 private fun sessionClosed(type: String): FeedbackSessionException = FeedbackSessionException("$SESSION_CLOSED_PREFIX Cannot run $type on a closed feedback session.")
 
-/**
- * In-memory store for feedback sessions, with optional write-ahead event log support.
- *
- * When [eventLogWriterProvider] is non-null, every spec'd mutation appends a
- * [SessionEvent] BEFORE updating in-memory state. If the append throws
- * [io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogException], memory remains
- * unchanged (fail-stop).
- *
- * When [eventLogReaderProvider] is non-null, the init block replays events from
- * the log to reconstruct session state on boot (A.4 simplification: events
- * override the state.json snapshot for items/screens/handoffBatches, while the
- * session shell — id, package, projectRoot, createdAt — comes from persistence).
- *
- * When both are null, the store behaves identically to the pre-A.4 baseline,
- * preserving backward compatibility for the ~482 existing tests.
- */
+/** In-memory session store with optional write-ahead event logging and boot replay. */
 // TooManyFunctions/LongParameterList kept by design: this facade-delegate exposes the wide public
 // session-operation surface and a constructor whose arity is bound to the FeedbackSessionStore facade.
 @Suppress("LongParameterList", "TooManyFunctions")
@@ -88,17 +75,15 @@ internal class FeedbackSessionStoreDelegate(
     )
     private val mutations = SessionMutationService(clock, idGenerator)
     private val artifactJanitor = SessionArtifactJanitor(persistence)
+    private val runtimeEvidenceMutations = RuntimeEvidenceStoreMutations(lock, clock, store, journal, compactionCoordinator)
 
     init {
-        // Boot reconstruction (persistence preload + optional event-log replay) is delegated to
-        // SessionBootReplayer. It runs lock-free at construction (lock is not held yet) and returns
-        // the derived current-session pointer; currentSessionId stays a delegate field.
+        // Replay must finish before runtime-evidence orphan reconciliation.
         currentSessionId = bootReplayer.replayAll(store, journal).currentSessionId
+        artifactJanitor.cleanupRuntimeEvidence(store.all())
     }
 
-    // ------------------------------------------------------------------
-    // Public API — unchanged signatures
-    // ------------------------------------------------------------------
+    // Public API — unchanged signatures.
 
     fun openSession(packageName: String, projectRoot: String): SessionDto = synchronized(lock) {
         val now = clock()
@@ -332,9 +317,21 @@ internal class FeedbackSessionStoreDelegate(
         store.saveAndPut(SessionMetadataMutations.markReadyForAgent(getSessionLocked(sessionId), clock()))
     }
 
-    fun updateRuntimeEvidencePolicy(sessionId: String, policy: RuntimeEvidencePolicy): SessionDto = synchronized(lock) {
-        store.saveAndPut(SessionMetadataMutations.updateRuntimeEvidencePolicy(getSessionLocked(sessionId), policy, clock()))
-    }
+    fun updateRuntimeEvidencePolicy(sessionId: String, policy: RuntimeEvidencePolicy): SessionDto = runtimeEvidenceMutations.updatePolicy(sessionId, policy)
+
+    fun attachRuntimeEvidence(
+        sessionId: String,
+        expectedScreenId: String,
+        itemIds: List<String>,
+        attachments: List<RuntimeEvidenceAttachment>,
+        aggregateStatus: RuntimeEvidenceStatus,
+    ): SessionDto = runtimeEvidenceMutations.attach(
+        sessionId,
+        expectedScreenId,
+        itemIds,
+        attachments,
+        aggregateStatus,
+    )
 
     fun updateItemStatus(
         sessionId: String,

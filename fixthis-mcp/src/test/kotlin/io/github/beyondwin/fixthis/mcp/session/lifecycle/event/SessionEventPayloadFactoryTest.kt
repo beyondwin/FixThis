@@ -5,11 +5,18 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -189,6 +196,38 @@ class SessionEventPayloadFactoryTest {
         val actual = SessionEventPayloadFactory.handoff(SESSION_ID, batch, items)
 
         assertEquals(goldenString(golden), goldenString(actual))
+    }
+
+    @Test
+    fun `runtime evidence payload preserves additive event contract`() {
+        val attachment = RuntimeEvidenceAttachment(
+            evidenceId = "evidence-1",
+            type = RuntimeEvidenceType.LOGCAT_WINDOW,
+            capturedAtEpochMillis = 5L,
+            packageName = "com.test",
+            summary = "safe summary",
+        )
+        val payload = SessionEventPayloadFactory.runtimeEvidence(
+            sessionId = SESSION_ID,
+            expectedScreenId = "screen-1",
+            itemIds = listOf("item-1", "item-2"),
+            attachments = listOf(attachment),
+            aggregateStatus = RuntimeEvidenceStatus.PARTIAL,
+        )
+
+        assertEquals("\"$SESSION_ID\"", payload.getValue("sessionId").toString())
+        assertEquals("\"screen-1\"", payload.getValue("expectedScreenId").toString())
+        assertEquals("[\"item-1\",\"item-2\"]", payload.getValue("itemIds").toString())
+        assertEquals("\"partial\"", payload.getValue("aggregateStatus").toString())
+        assertEquals(attachment.evidenceId, payload.getValue("attachments").jsonArray.single().jsonObject.getValue("evidenceId").jsonPrimitive.content)
+    }
+
+    @Test
+    fun `runtime evidence policy payload preserves additive event contract`() {
+        val payload = SessionEventPayloadFactory.runtimeEvidencePolicy(SESSION_ID, RuntimeEvidencePolicy.OFF)
+
+        assertEquals("\"$SESSION_ID\"", payload.getValue("sessionId").toString())
+        assertEquals("\"off\"", payload.getValue("policy").toString())
     }
 
     private fun snapshot(): SnapshotDto = SnapshotDto(

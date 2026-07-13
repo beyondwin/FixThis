@@ -35,6 +35,11 @@ object SessionReducer {
             status = SessionStatusDto.READY_FOR_AGENT,
             updatedAtEpochMillis = mutation.now,
         )
+        is SessionMutation.AttachRuntimeEvidence -> attachRuntimeEvidence(session, mutation)
+        is SessionMutation.UpdateRuntimeEvidencePolicy -> session.copy(
+            runtimeEvidencePolicy = mutation.policy,
+            updatedAtEpochMillis = mutation.now,
+        )
     }
 
     private fun deleteScreen(session: SessionDto, screenId: String, now: Long): SessionDto {
@@ -62,4 +67,27 @@ object SessionReducer {
     ): List<FeedbackHandoffBatch> = batches
         .map { batch -> batch.copy(itemIds = batch.itemIds.filterNot { it in removedItemIds }) }
         .filter { it.itemIds.isNotEmpty() }
+
+    private fun attachRuntimeEvidence(
+        session: SessionDto,
+        mutation: SessionMutation.AttachRuntimeEvidence,
+    ): SessionDto {
+        val existingEvidenceIds = session.runtimeEvidence.map { it.evidenceId }.toSet()
+        val addedAttachments = mutation.attachments
+            .distinctBy { it.evidenceId }
+            .filterNot { it.evidenceId in existingEvidenceIds }
+        val linkedEvidenceIds = mutation.attachments.map { it.evidenceId }.distinct()
+        val targetItemIds = mutation.itemIds.toSet()
+        return session.copy(
+            runtimeEvidence = session.runtimeEvidence + addedAttachments,
+            items = session.items.map { item ->
+                if (item.itemId in targetItemIds) {
+                    item.copy(runtimeEvidenceIds = (item.runtimeEvidenceIds + linkedEvidenceIds).distinct())
+                } else {
+                    item
+                }
+            },
+            updatedAtEpochMillis = mutation.now,
+        )
+    }
 }

@@ -10,7 +10,9 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogCompactionTask
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogReader
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLogWriter
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 
@@ -85,6 +87,20 @@ class FeedbackSessionStore(
         sessionId: String,
         policy: RuntimeEvidencePolicy,
     ): SessionDto = delegate.updateRuntimeEvidencePolicy(sessionId, policy)
+
+    fun attachRuntimeEvidence(
+        sessionId: String,
+        expectedScreenId: String,
+        itemIds: List<String>,
+        attachments: List<RuntimeEvidenceAttachment>,
+        aggregateStatus: RuntimeEvidenceStatus,
+    ): SessionDto = delegate.attachRuntimeEvidence(
+        sessionId,
+        expectedScreenId,
+        itemIds,
+        attachments,
+        aggregateStatus,
+    )
 
     fun updateItemStatus(
         sessionId: String,

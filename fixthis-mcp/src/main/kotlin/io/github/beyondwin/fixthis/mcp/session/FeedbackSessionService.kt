@@ -106,6 +106,7 @@ class FeedbackSessionService(
         previewCaptureService = previewCaptureService,
     )
     private val runtimeEvidenceService = RuntimeEvidenceService(
+        store = store,
         idGenerator = { store.nextId() },
     )
 
@@ -308,17 +309,13 @@ class FeedbackSessionService(
         type: RuntimeEvidenceType,
         summary: String,
         artifactPath: String?,
-    ): SessionDto {
-        val session = registry.getSession(sessionId)
-        val updated = runtimeEvidenceService.attachManualSummary(
-            session = session,
-            itemId = itemId,
-            type = type,
-            summary = summary,
-            artifactPath = artifactPath,
-        )
-        return store.replaceSessionForDomain(updated)
-    }
+    ): SessionDto = runtimeEvidenceService.attachManualSummary(
+        sessionId = sessionId,
+        itemId = itemId,
+        type = type,
+        summary = summary,
+        artifactPath = artifactPath,
+    )
 
     // --- Handoff (kept on façade; uses registry for session lookup) ---
 
