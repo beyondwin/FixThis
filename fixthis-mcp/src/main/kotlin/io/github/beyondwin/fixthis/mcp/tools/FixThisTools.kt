@@ -156,7 +156,11 @@ interface FixThisBridge :
     NavigationBridge,
     SourceIndexBridge
 
-class CliFixThisBridge(private val client: BridgeClient) : FixThisBridge {
+open class CliDeviceFixThisBridge internal constructor(
+    protected val client: BridgeClient,
+) : PackageResolver,
+    DeviceBridge,
+    AppRuntimeBridge {
     override fun resolvePackageName(packageOverride: String?): String = client.resolvePackageName(packageOverride)
 
     override fun devices(): List<AdbDevice> = client.devices()
@@ -168,7 +172,12 @@ class CliFixThisBridge(private val client: BridgeClient) : FixThisBridge {
     override fun disconnectDevice() = client.disconnectDevice()
 
     override fun launchApp(packageName: String) = client.launchApp(packageName)
+}
 
+class CliFixThisBridge(client: BridgeClient) :
+    CliDeviceFixThisBridge(client),
+    FixThisBridge,
+    RuntimeEvidenceBridge by CliRuntimeEvidenceBridge(client) {
     override suspend fun status(packageName: String): JsonObject = client.request(packageName, "status")
 
     override suspend fun heartbeat(packageName: String): JsonObject = client.request(packageName, "heartbeat")

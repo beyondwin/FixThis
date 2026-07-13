@@ -29,11 +29,21 @@ import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCacheRetentionPoli
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewCaptureService
 import io.github.beyondwin.fixthis.mcp.session.preview.PreviewSnapshotCache
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenshotArtifactPromoter
+import io.github.beyondwin.fixthis.mcp.session.runtime.FileRuntimeEvidenceArtifactStore
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAvailabilityService
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureCoordinator
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureDependencies
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureRequest
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureResult
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceRedactor
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceService
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceSummarizer
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
+import io.github.beyondwin.fixthis.mcp.tools.RuntimeEvidenceBridge
+import io.github.beyondwin.fixthis.mcp.tools.UnavailableRuntimeEvidenceBridge
 import kotlinx.serialization.json.JsonObject
 import java.io.File
 
@@ -69,7 +79,10 @@ class FeedbackSessionService(
     previewCache: PreviewSnapshotCache = PreviewSnapshotCache(MaxRetainedPreviews),
     previewCacheRetentionPolicy: PreviewCacheRetentionPolicy = PreviewCacheRetentionPolicy(),
     sourceIndexRegistry: SourceIndexRegistry = SourceIndexRegistry(),
+    runtimeEvidenceBridge: RuntimeEvidenceBridge = bridge as? RuntimeEvidenceBridge
+        ?: UnavailableRuntimeEvidenceBridge(),
 ) {
+    private val configuredProjectRoot = File(projectRoot).canonicalFile
     private val connectionService = ConsoleConnectionService(bridge)
     private val screenshotArtifactPromoter = ScreenshotArtifactPromoter()
     private val targetEvidenceService = TargetEvidenceService(
@@ -109,6 +122,19 @@ class FeedbackSessionService(
         store = store,
         idGenerator = { store.nextId() },
     )
+    private val runtimeEvidenceAvailability = RuntimeEvidenceAvailabilityService(configuredProjectRoot)
+    private val runtimeEvidenceRedactor = RuntimeEvidenceRedactor()
+    private val runtimeEvidenceCoordinator = RuntimeEvidenceCaptureCoordinator(
+        bridge = runtimeEvidenceBridge,
+        store = store,
+        projectRoot = configuredProjectRoot,
+        artifactStore = FileRuntimeEvidenceArtifactStore(configuredProjectRoot, runtimeEvidenceRedactor),
+        dependencies = RuntimeEvidenceCaptureDependencies(
+            redactor = runtimeEvidenceRedactor,
+            summarizer = RuntimeEvidenceSummarizer(runtimeEvidenceRedactor),
+            idGenerator = { store.nextId() },
+        ),
+    )
 
     // --- Session lifecycle (delegates to FeedbackSessionRegistry) ---
 
@@ -116,21 +142,21 @@ class FeedbackSessionService(
         packageNameOverride: String?,
         sessionId: String? = null,
         newSession: Boolean = false,
-    ): SessionDto = registry.openSession(packageNameOverride, sessionId, newSession)
+    ): SessionDto = materialize(registry.openSession(packageNameOverride, sessionId, newSession))
 
-    fun currentSession(): SessionDto = registry.currentSession()
+    fun currentSession(): SessionDto = materialize(registry.currentSession())
 
-    fun currentSessionOrNull(): SessionDto? = registry.currentSessionOrNull()
+    fun currentSessionOrNull(): SessionDto? = registry.currentSessionOrNull()?.let(::materialize)
 
-    fun requireCurrentSession(): SessionDto = registry.requireCurrentSession()
+    fun requireCurrentSession(): SessionDto = materialize(registry.requireCurrentSession())
 
-    fun getSession(sessionId: String): SessionDto = registry.getSession(sessionId)
+    fun getSession(sessionId: String): SessionDto = materialize(registry.getSession(sessionId))
 
-    fun findSession(sessionId: String): SessionDto? = registry.findSession(sessionId)
+    fun findSession(sessionId: String): SessionDto? = registry.findSession(sessionId)?.let(::materialize)
 
     fun listSessions(packageNameOverride: String? = null, includeClosed: Boolean = false): FeedbackSessionList = registry.listSessions(packageNameOverride, includeClosed)
 
-    fun closeSession(sessionId: String): SessionDto = registry.closeSession(sessionId)
+    fun closeSession(sessionId: String): SessionDto = materialize(registry.closeSession(sessionId))
 
     suspend fun refreshSourceEvidenceForHandoff(session: SessionDto): SessionDto {
         val screenById = session.screens.associateBy { it.screenId }
@@ -139,14 +165,16 @@ class FeedbackSessionService(
             targetEvidenceService.readSourceIndexOrNull(session.packageName, it)
         }
         return if (sourceIndex != null && session.items.any { it.sourceCandidates.isNotEmpty() }) {
-            session.copy(
-                items = session.items.map { item ->
-                    val screen = screenById[item.screenId] ?: return@map item
-                    targetEvidenceService.refreshSourceEvidence(item, screen, sourceIndex)
-                },
+            materialize(
+                session.copy(
+                    items = session.items.map { item ->
+                        val screen = screenById[item.screenId] ?: return@map item
+                        targetEvidenceService.refreshSourceEvidence(item, screen, sourceIndex)
+                    },
+                ),
             )
         } else {
-            session
+            materialize(session)
         }
     }
 
@@ -211,15 +239,17 @@ class FeedbackSessionService(
         frozenFingerprint: String? = null,
         currentFingerprint: String? = null,
         forceMismatchOverride: Boolean = false,
-    ): SessionDto = annotations.savePreviewFeedbackItems(
-        sessionId = sessionId,
-        previewId = previewId,
-        items = items,
-        fallbackScreen = fallbackScreen,
-        workspaceId = workspaceId,
-        frozenFingerprint = frozenFingerprint,
-        currentFingerprint = currentFingerprint,
-        forceMismatchOverride = forceMismatchOverride,
+    ): SessionDto = materialize(
+        annotations.savePreviewFeedbackItems(
+            sessionId = sessionId,
+            previewId = previewId,
+            items = items,
+            fallbackScreen = fallbackScreen,
+            workspaceId = workspaceId,
+            frozenFingerprint = frozenFingerprint,
+            currentFingerprint = currentFingerprint,
+            forceMismatchOverride = forceMismatchOverride,
+        ),
     )
 
     internal fun savePreviewFeedbackItemsWithMetadata(
@@ -240,7 +270,7 @@ class FeedbackSessionService(
         frozenFingerprint = frozenFingerprint,
         currentFingerprint = currentFingerprint,
         forceMismatchOverride = forceMismatchOverride,
-    )
+    ).materialized()
 
     internal suspend fun savePreviewFeedbackItemsWithLiveFingerprintMetadata(
         request: PreviewFeedbackLiveSaveRequest,
@@ -274,12 +304,12 @@ class FeedbackSessionService(
                 clientFrozenFingerprintMismatched = clientFrozenFingerprint != null &&
                     clientFrozenFingerprint != serverFrozenFingerprint.value,
             ),
-        )
+        ).materialized()
     }
 
-    fun clearDraftItems(sessionId: String): SessionDto = annotations.clearDraftItems(sessionId)
+    fun clearDraftItems(sessionId: String): SessionDto = materialize(annotations.clearDraftItems(sessionId))
 
-    fun deleteScreen(sessionId: String, screenId: String): SessionDto = annotations.deleteScreen(sessionId, screenId)
+    fun deleteScreen(sessionId: String, screenId: String): SessionDto = materialize(annotations.deleteScreen(sessionId, screenId))
 
     fun resolveFeedback(
         sessionId: String,
@@ -297,11 +327,11 @@ class FeedbackSessionService(
         severity: AnnotationSeverityDto?,
         comment: String?,
         status: AnnotationStatusDto?,
-    ): SessionDto = annotations.updateDraftFeedback(sessionId, itemId, label, severity, comment, status)
+    ): SessionDto = materialize(annotations.updateDraftFeedback(sessionId, itemId, label, severity, comment, status))
 
-    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto = annotations.deleteDraftFeedback(sessionId, itemId)
+    fun deleteDraftFeedback(sessionId: String, itemId: String): SessionDto = materialize(annotations.deleteDraftFeedback(sessionId, itemId))
 
-    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = annotations.markItemsHandedOff(sessionId, itemIds)
+    fun markItemsHandedOff(sessionId: String, itemIds: List<String>): SessionDto = materialize(annotations.markItemsHandedOff(sessionId, itemIds))
 
     fun captureRuntimeEvidence(
         sessionId: String,
@@ -309,29 +339,37 @@ class FeedbackSessionService(
         type: RuntimeEvidenceType,
         summary: String,
         artifactPath: String?,
-    ): SessionDto = runtimeEvidenceService.attachManualSummary(
-        sessionId = sessionId,
-        itemId = itemId,
-        type = type,
-        summary = summary,
-        artifactPath = artifactPath,
+    ): SessionDto = materialize(
+        runtimeEvidenceService.attachManualSummary(
+            sessionId = sessionId,
+            itemId = itemId,
+            type = type,
+            summary = summary,
+            artifactPath = artifactPath,
+        ),
     )
+
+    suspend fun collectRuntimeEvidence(request: RuntimeEvidenceCaptureRequest): RuntimeEvidenceCaptureResult = runtimeEvidenceCoordinator.collect(request)
 
     // --- Handoff (kept on façade; uses registry for session lookup) ---
 
     fun sendDraftToAgent(sessionId: String, itemIds: List<String>): SendDraftToAgentResult {
         require(itemIds.isNotEmpty()) { "itemIds must not be empty" }
-        val session = registry.getSession(sessionId)
+        val session = materialize(registry.getSession(sessionId))
         val prompt = CompactHandoffRenderer.render(session, itemIds = itemIds)
         val updated = feedbackDraftService.sendDraftToAgent(
             sessionId = sessionId,
             prompt = prompt,
             targetItemIds = itemIds,
         )
-        return SendDraftToAgentResult(session = updated, prompt = prompt)
+        return SendDraftToAgentResult(session = materialize(updated), prompt = prompt)
     }
 
-    fun markReadyForAgent(sessionId: String): SessionDto = feedbackDraftService.markReadyForAgent(sessionId)
+    fun markReadyForAgent(sessionId: String): SessionDto = materialize(feedbackDraftService.markReadyForAgent(sessionId))
+
+    private fun materialize(session: SessionDto): SessionDto = runtimeEvidenceAvailability.materialize(session)
+
+    private fun PreviewFeedbackSaveResult.materialized(): PreviewFeedbackSaveResult = copy(session = materialize(session))
 
     private companion object {
         const val MaxRetainedPreviews = 3

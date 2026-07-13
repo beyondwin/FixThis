@@ -13,9 +13,7 @@ internal object McpToolRegistry {
     }
 
     fun listResources(): JsonArray = buildJsonArray {
-        ResourceDefinitions.forEach { resource ->
-            add(resource.toJson())
-        }
+        ResourceDefinitions.forEach { add(it.toJson()) }
     }
 }
 
@@ -45,6 +43,9 @@ private const val CLAIM_FEEDBACK_DESCRIPTION =
 private const val CAPTURE_RUNTIME_EVIDENCE_DESCRIPTION =
     "Attach bounded local runtime evidence to a feedback item. " +
         "Stores a summary and optional local artifact path; raw logs and traces are not emitted in compact handoff."
+private const val COLLECT_RUNTIME_EVIDENCE_DESCRIPTION =
+    "Collect bounded local Android runtime evidence for a feedback item through an allowlisted preset. " +
+        "Returns capture metadata and summaries only; raw collector output remains in ignored local artifacts."
 
 private data class ToolDefinition(
     val name: String,
@@ -204,6 +205,19 @@ private val ToolDefinitions = listOf(
             "summary" to stringProperty("Bounded evidence summary. Do not include raw logs or trace payloads."),
             "artifactPath" to stringProperty("Optional local artifact path under ignored storage."),
             required = listOf("itemId", "type", "summary"),
+        ),
+    ),
+    ToolDefinition(
+        name = "fixthis_collect_runtime_evidence",
+        description = COLLECT_RUNTIME_EVIDENCE_DESCRIPTION,
+        inputSchema = objectSchema(
+            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
+            "itemId" to stringProperty("Feedback item id to collect evidence for."),
+            "preset" to enumStringProperty(
+                description = "Allowlisted runtime evidence preset.",
+                values = listOf("baseline", "logs", "memory", "performance"),
+            ),
+            required = listOf("itemId", "preset"),
         ),
     ),
 )

@@ -15,7 +15,6 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackQueueFormatter
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionList
-import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import io.github.beyondwin.fixthis.mcp.textContent
 import io.github.beyondwin.fixthis.mcp.toolResult
 import kotlinx.serialization.json.JsonObject
@@ -141,24 +140,6 @@ internal class FeedbackToolOperations(
         val agentNote = arguments.stringParam("agentNote")?.takeIf { it.isNotBlank() }
         val item = feedbackService.claimFeedback(session.sessionId, itemId, agentNote)
         jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
-    }
-
-    internal suspend fun captureRuntimeEvidence(arguments: JsonObject): JsonObject = bridgeToolResult {
-        val session = requestedSession(arguments)
-        val itemId = arguments.stringParam("itemId")?.takeIf { it.isNotBlank() }
-            ?: throw FixThisToolException("fixthis_capture_runtime_evidence requires itemId")
-        val type = arguments.stringParam("type")?.toRuntimeEvidenceType()
-            ?: throw FixThisToolException("fixthis_capture_runtime_evidence requires type")
-        val summary = arguments.stringParam("summary")?.takeIf { it.isNotBlank() }
-            ?: throw FixThisToolException("fixthis_capture_runtime_evidence requires summary")
-        val updated = feedbackService.captureRuntimeEvidence(
-            sessionId = session.sessionId,
-            itemId = itemId,
-            type = type,
-            summary = summary,
-            artifactPath = arguments.stringParam("artifactPath"),
-        )
-        jsonToolResult(McpProtocol.json.encodeToJsonElement(SessionDto.serializer(), updated).jsonObject)
     }
 
     private fun openFeedbackConsolePayload(opened: OpenFeedbackConsoleResult): JsonObject = buildJsonObject {
@@ -292,14 +273,6 @@ internal class FeedbackToolOperations(
         "needs_clarification" -> AnnotationStatusDto.NEEDS_CLARIFICATION
         "wont_fix" -> AnnotationStatusDto.WONT_FIX
         else -> throw FixThisToolException("Unsupported feedback resolution status: $this")
-    }
-
-    private fun String.toRuntimeEvidenceType(): RuntimeEvidenceType = when (this) {
-        "logcat_window" -> RuntimeEvidenceType.LOGCAT_WINDOW
-        "frame_summary" -> RuntimeEvidenceType.FRAME_SUMMARY
-        "memory_summary" -> RuntimeEvidenceType.MEMORY_SUMMARY
-        "trace_artifact" -> RuntimeEvidenceType.TRACE_ARTIFACT
-        else -> throw FixThisToolException("Unsupported runtime evidence type: $this")
     }
 
     private fun String.toNavigationAction(): FeedbackNavigationAction = when (this) {

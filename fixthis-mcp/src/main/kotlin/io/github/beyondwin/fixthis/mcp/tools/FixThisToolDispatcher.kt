@@ -49,5 +49,8 @@ internal fun FixThisToolDispatcher(
         cache = services.cache,
         projectRoot = services.projectRoot,
     )
-    return FixThisToolDispatcher(defaultMcpToolHandlers(screenOperations, feedbackOperations))
+    val runtimeEvidenceOperations = RuntimeEvidenceToolOperations(services.feedbackService)
+    return FixThisToolDispatcher(
+        defaultMcpToolHandlers(screenOperations, feedbackOperations, runtimeEvidenceOperations),
+    )
 }

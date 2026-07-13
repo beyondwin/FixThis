@@ -82,6 +82,8 @@ class McpProtocolTest {
         assertTrue("fixthis_get_current_screen" in tools)
         assertTrue("fixthis_open_feedback_console" in tools)
         assertTrue("fixthis_resolve_feedback" in tools)
+        assertTrue("fixthis_capture_runtime_evidence" in tools)
+        assertTrue("fixthis_collect_runtime_evidence" in tools)
     }
 
     @Test
@@ -243,6 +245,7 @@ class McpProtocolTest {
                 "fixthis_resolve_feedback",
                 "fixthis_claim_feedback",
                 "fixthis_capture_runtime_evidence",
+                "fixthis_collect_runtime_evidence",
             ),
             tools,
         )

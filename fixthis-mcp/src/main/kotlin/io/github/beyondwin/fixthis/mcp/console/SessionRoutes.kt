@@ -33,7 +33,8 @@ internal class SessionRoutes(
                 if (current == null) {
                     exchange.sendText(200, "null", "application/json; charset=utf-8")
                 } else {
-                    val etag = etagOf(current.sessionId, current.updatedAtEpochMillis)
+                    val availabilityHash = current.runtimeEvidence.hashCode().toUInt().toString(HEX_RADIX)
+                    val etag = etagOf("${current.sessionId}:$availabilityHash", current.updatedAtEpochMillis)
                     if (exchange.ifNoneMatch() == etag) {
                         exchange.sendNotModified(etag)
                     } else {
@@ -96,3 +97,5 @@ internal class SessionRoutes(
         val newSession: Boolean = false,
     )
 }
+
+private const val HEX_RADIX = 16

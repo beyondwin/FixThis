@@ -7,8 +7,11 @@ import io.github.beyondwin.fixthis.mcp.fixtures.FakeIds
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -140,6 +143,51 @@ class ConsoleEventsRoutesTest {
         } finally {
             server.stop()
             fixture.close()
+        }
+    }
+
+    @Test
+    fun sessionUpdatedEventUsesMaterializedMissingRuntimeArtifactView() {
+        val root = java.nio.file.Files.createTempDirectory("fixthis-sse-artifact").toFile()
+        val store = FeedbackSessionStore(idGenerator = { "session-sse" })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
+        )
+        try {
+            val session = service.openSession(null, newSession = true)
+            store.replaceSessionForDomain(
+                store.getSession(session.sessionId).copy(
+                    runtimeEvidence = listOf(
+                        RuntimeEvidenceAttachment(
+                            evidenceId = "evidence-sse",
+                            type = RuntimeEvidenceType.LOGCAT_WINDOW,
+                            capturedAtEpochMillis = 1,
+                            packageName = session.packageName,
+                            summary = "summary",
+                            artifactPath = ".fixthis/runtime-evidence/${session.sessionId}/capture-sse/logcat.txt",
+                            captureId = "capture-sse",
+                        ),
+                    ),
+                ),
+            )
+            val bus = ConsoleEventBus()
+            var event: ConsoleEvent? = null
+            val subscription = bus.subscribe { emitted ->
+                if (emitted.name == "session-updated") event = emitted
+            }
+
+            bus.emitSessionUpdated(service.currentSession())
+            subscription.close()
+            val attachment = requireNotNull(event).data.getValue("session").jsonObject
+                .getValue("runtimeEvidence").jsonArray.single().jsonObject
+
+            assertEquals("partial", attachment.getValue("status").jsonPrimitive.content)
+            assertTrue(attachment.getValue("warnings").toString().contains("artifact_missing"))
+        } finally {
+            root.deleteRecursively()
         }
     }
 

@@ -4,6 +4,9 @@ import io.github.beyondwin.fixthis.mcp.fixtures.ConsoleHttpTestClient
 import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -118,6 +121,55 @@ class ConsoleEtagRoutesTest {
             assertTrue(second.body.isEmpty())
         } finally {
             server.stop()
+        }
+    }
+
+    @Test
+    fun apiSessionEtagChangesWhenReferencedRuntimeArtifactDisappears() {
+        val root = Files.createTempDirectory("fixthis-etag-artifact").toFile()
+        val store = FeedbackSessionStore(idGenerator = { "session-etag" })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
+        )
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val session = service.openSession(packageNameOverride = "com.example.app", newSession = true)
+            val artifact = root.resolve(".fixthis/runtime-evidence/${session.sessionId}/capture-etag/logcat.txt")
+            artifact.parentFile.mkdirs()
+            artifact.writeText("redacted")
+            store.replaceSessionForDomain(
+                store.getSession(session.sessionId).copy(
+                    runtimeEvidence = listOf(
+                        RuntimeEvidenceAttachment(
+                            evidenceId = "evidence-etag",
+                            type = RuntimeEvidenceType.LOGCAT_WINDOW,
+                            capturedAtEpochMillis = 1,
+                            packageName = "com.example.app",
+                            summary = "summary",
+                            artifactPath = artifact.relativeTo(root).invariantSeparatorsPath,
+                            captureId = "capture-etag",
+                        ),
+                    ),
+                ),
+            )
+            val client = ConsoleHttpTestClient(server.url)
+            val first = client.getResponse("/api/session")
+            val etag = first.header("ETag")!!
+            assertTrue(artifact.delete())
+
+            val second = client.getResponse("/api/session", headers = mapOf("If-None-Match" to etag))
+
+            assertEquals(200, second.statusCode)
+            assertNotEquals(etag, second.header("ETag"))
+            assertTrue(second.body.contains("partial"), second.body)
+            assertTrue(second.body.contains("artifact_missing"))
+        } finally {
+            server.stop()
+            root.deleteRecursively()
         }
     }
 
