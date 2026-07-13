@@ -68,6 +68,7 @@ internal class SessionBootReplayer(
         this.stateStore = stateStore
         replaySkippedSessions.clear()
         preloadSkippedSessions.clear()
+        journal.beginReplayPass()
 
         val preload = PersistedSessionPreloader(persistence).preload(stateStore)
         preloadSkippedSessions += preload.loadFailures

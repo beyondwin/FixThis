@@ -20,6 +20,11 @@ class SessionEventJournal(
 
     fun reader(sessionId: String): EventLogReader? = readerProvider?.invoke(sessionId)
 
+    /** Starts a fresh reconstruction pass without rewinding live append sequence counters. */
+    fun beginReplayPass() {
+        lastReplayedSeq.clear()
+    }
+
     fun append(sessionId: String, type: String, payload: JsonObject) {
         if (writerProvider != null) {
             val event = SessionEvent(

@@ -109,6 +109,45 @@ class SessionBootReplayerTest {
     }
 
     @Test
+    fun `repeated full log replay preserves event reconstructed state`() {
+        val journal = journalFor()
+        val replayer = newReplayer(journal)
+        val store = SessionStateStore(persistence = null)
+        store.put(session("s1"))
+        writeAddScreenEvent("s1", "scr1", seq = 0L, epoch = 50L)
+
+        replayer.replayAll(store, journal)
+        replayer.replayAll(store, journal)
+
+        assertEquals(listOf("scr1"), store.find("s1")!!.screens.map { it.screenId })
+    }
+
+    @Test
+    fun `repeated full log replay keeps malformed event diagnostics incomplete`() {
+        val journal = journalFor()
+        val replayer = newReplayer(journal)
+        val store = SessionStateStore(persistence = null)
+        store.put(session("s1"))
+        EventLogWriter(eventsDir("s1")).append(
+            SessionEvent(
+                eventId = "malformed-runtime-evidence",
+                sequenceNumber = 0L,
+                epochMillis = 50L,
+                actor = "mcp",
+                type = "runtimeEvidenceCaptured",
+                payload = buildJsonObject { put("sessionId", "s1") },
+            ),
+        )
+
+        val first = replayer.replayAll(store, journal)
+        val second = replayer.replayAll(store, journal)
+
+        assertFalse(first.runtimeEvidenceReferencesComplete)
+        assertFalse(second.runtimeEvidenceReferencesComplete)
+        assertTrue(replayer.skippedList(null, includeClosed = true).single().message.contains("replay event"))
+    }
+
+    @Test
     fun `session with no events keeps its shell unchanged`() {
         val journal = journalFor()
         val replayer = newReplayer(journal)
