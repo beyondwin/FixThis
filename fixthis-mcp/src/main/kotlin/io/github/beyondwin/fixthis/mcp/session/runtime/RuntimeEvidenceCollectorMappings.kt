@@ -62,6 +62,12 @@ internal fun runtimeEvidenceTimeoutResult(kind: CliRuntimeEvidenceKind) = emptyR
     "timeout",
 )
 
+internal fun runtimeEvidenceBridgeFailureResult(kind: CliRuntimeEvidenceKind) = emptyRuntimeEvidenceResult(
+    kind,
+    CliRuntimeEvidenceStatus.FAILED,
+    "adb_command_failed",
+)
+
 private fun emptyRuntimeEvidenceResult(
     kind: CliRuntimeEvidenceKind,
     status: CliRuntimeEvidenceStatus,

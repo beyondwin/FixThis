@@ -11,7 +11,9 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX
 import io.github.beyondwin.fixthis.mcp.tools.RuntimeEvidenceBridge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -20,10 +22,12 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.io.IOException
 import java.util.ArrayDeque
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -126,6 +130,39 @@ class RuntimeEvidenceCaptureCoordinatorTest {
         assertNotEquals(results[0].captureId, third.captureId)
         assertEquals(6, bridge.collectCalls.get())
     }
+
+    @Test
+    fun automaticDisjointItemBatchesShareCaptureAndLinkEveryCaller() = runBlocking {
+        val bridge = FakeRuntimeEvidenceBridge(
+            timing = FakeBridgeTiming(collectDelayMillis = 30),
+            coordination = FakeBridgeCoordination(startContextBarrier = SuspendBarrier(2)),
+        )
+        val fixture = fixture(bridge = bridge, itemCount = 2)
+
+        val results = awaitAll(
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i1"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i2"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+        )
+
+        assertEquals(3, bridge.collectCalls.get())
+        assertEquals(1, fixture.artifacts.commits.size)
+        assertEquals(results[0].captureId, results[1].captureId)
+        assertEquals(results[0].attachmentIds, results[1].attachmentIds)
+        val stored = fixture.store.getSession("s1")
+        assertEquals(results[0].attachmentIds, stored.items.single { it.itemId == "i1" }.runtimeEvidenceIds)
+        assertEquals(results[0].attachmentIds, stored.items.single { it.itemId == "i2" }.runtimeEvidenceIds)
+    }
+}
+
+class RuntimeEvidenceCaptureContextTest {
 
     @Test
     fun startContextCapabilitiesCollectorsAndEndContextShareOneWallClockDeadline() = runBlocking {
@@ -418,6 +455,108 @@ class RuntimeEvidenceCaptureCoordinatorTest {
         assertEquals(2, transient.collectCalls.get())
         assertEquals(1, permission.collectCalls.get())
     }
+}
+
+class RuntimeEvidenceCaptureHardeningTest {
+
+    @Test
+    fun thrownCollectorRuntimeAndIoFailuresBecomeTypedResultsWithOneRetry() = runBlocking {
+        val runtime = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                failures = FakeBridgeFailures(
+                    collectFailures = ArrayDeque(
+                        listOf(IllegalStateException("adb exploded"), IllegalStateException("adb exploded again")),
+                    ),
+                ),
+            ),
+        )
+        val io = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                failures = FakeBridgeFailures(
+                    collectFailures = ArrayDeque(listOf(IOException("device gone"), IOException("still gone"))),
+                ),
+            ),
+            sessionId = "io",
+        )
+
+        val runtimeResult = runtime.coordinator.collect(runtime.request(preset = RuntimeEvidencePreset.LOGS))
+        val ioResult = io.coordinator.collect(io.request(preset = RuntimeEvidencePreset.LOGS))
+
+        assertEquals(RuntimeEvidenceFailureReason.DEVICE_UNAVAILABLE, runtimeResult.failureReason)
+        assertEquals(RuntimeEvidenceFailureReason.DEVICE_UNAVAILABLE, ioResult.failureReason)
+        assertEquals(2, (runtime.coordinatorBridge as FakeRuntimeEvidenceBridge).collectCalls.get())
+        assertEquals(2, (io.coordinatorBridge as FakeRuntimeEvidenceBridge).collectCalls.get())
+    }
+
+    @Test
+    fun thrownCollectorFailureRetriesAndUsesSecondSuccessfulResult() = runBlocking {
+        val bridge = FakeRuntimeEvidenceBridge(
+            failures = FakeBridgeFailures(
+                collectFailures = ArrayDeque(listOf(IOException("first adb call failed"))),
+            ),
+        )
+        val fixture = fixture(bridge = bridge)
+
+        val actual = fixture.coordinator.collect(fixture.request(preset = RuntimeEvidencePreset.LOGS))
+
+        assertEquals(RuntimeEvidenceStatus.COMPLETE, actual.status)
+        assertEquals(2, bridge.collectCalls.get())
+        assertEquals(1, fixture.artifacts.commits.size)
+    }
+
+    @Test
+    fun startCapabilitiesAndEndExceptionsNormalizeWithoutEscaping() = runBlocking {
+        val startRuntime = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                failures = FakeBridgeFailures(contextFailures = mapOf(1 to IllegalStateException("start"))),
+            ),
+        )
+        val startIo = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                failures = FakeBridgeFailures(contextFailures = mapOf(1 to IOException("start io"))),
+            ),
+            sessionId = "start-io",
+        )
+        val capabilities = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                failures = FakeBridgeFailures(capabilitiesFailure = IOException("capabilities")),
+            ),
+            sessionId = "capabilities",
+        )
+        val end = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                failures = FakeBridgeFailures(
+                    contextFailures = mapOf(2 to IOException("end")),
+                ),
+            ),
+            sessionId = "end",
+        )
+
+        val startRuntimeResult = startRuntime.coordinator.collect(startRuntime.request())
+        val startIoResult = startIo.coordinator.collect(startIo.request())
+        val capabilitiesResult = capabilities.coordinator.collect(capabilities.request())
+        val endResult = end.coordinator.collect(end.request())
+
+        assertEquals(RuntimeEvidenceFailureReason.DEVICE_UNAVAILABLE, startRuntimeResult.failureReason)
+        assertEquals(RuntimeEvidenceFailureReason.DEVICE_UNAVAILABLE, startIoResult.failureReason)
+        assertEquals(RuntimeEvidenceStatus.UNSUPPORTED, capabilitiesResult.status)
+        assertEquals(RuntimeEvidenceFailureReason.DEVICE_UNAVAILABLE, endResult.failureReason)
+    }
+
+    @Test
+    fun externalCollectorCancellationStillPropagates() {
+        val fixture = fixture(
+            bridge = FakeRuntimeEvidenceBridge(
+                failures = FakeBridgeFailures(
+                    collectFailures = ArrayDeque(listOf(CancellationException("caller cancelled"))),
+                ),
+            ),
+        )
+
+        assertFailsWith<CancellationException> {
+            runBlocking { fixture.coordinator.collect(fixture.request(preset = RuntimeEvidencePreset.LOGS)) }
+        }
+    }
 
     @Test
     fun genericLinkWriterFailureKeepsCommittedBundleForReplayButContextRejectionDeletesIt() = runBlocking {
@@ -437,84 +576,240 @@ class RuntimeEvidenceCaptureCoordinatorTest {
         assertNull(actual.skippedReason)
     }
 
-    private fun fixture(
-        bridge: FakeRuntimeEvidenceBridge = FakeRuntimeEvidenceBridge(),
-        itemCount: Int = 1,
-        sessionId: String = "s1",
-        timing: FixtureTiming = FixtureTiming(),
-        effects: FixtureEffects = FixtureEffects(),
-    ): Fixture {
-        val deadlineMillis = timing.deadlineMillis
-        val clockValues = timing.clockValues
-        val clock = ArrayDeque(clockValues)
-        val store = FeedbackSessionStore(clock = { clockValues.last() }, idGenerator = AtomicIds()::next)
-        store.replaceSessionForDomain(session(sessionId, itemCount))
-        val artifacts = RecordingArtifactStore(effects.artifactFailure)
-        val coordinator = RuntimeEvidenceCaptureCoordinator(
-            bridge = bridge,
-            store = store,
-            projectRoot = java.io.File("/tmp/$sessionId"),
-            artifactStore = artifacts,
-            dependencies = RuntimeEvidenceCaptureDependencies(
-                redactor = RuntimeEvidenceRedactor(),
-                summarizer = RuntimeEvidenceSummarizer(RuntimeEvidenceRedactor()),
-                idGenerator = AtomicIds("capture")::next,
-                clock = { if (clock.isEmpty()) clockValues.last() else clock.removeFirst() },
-                deadlineMillis = deadlineMillis,
-                linker = effects.linker,
+    @Test
+    fun exactPreAppendContextRejectionDeletesCommittedBundleExactlyOnce() = runBlocking {
+        val fixture = fixture(
+            effects = FixtureEffects(
+                linker = { _, _, _, _, _ ->
+                    throw FeedbackSessionException("${RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX}: item deleted")
+                },
             ),
         )
-        return Fixture(store, artifacts, coordinator, sessionId, bridge)
+
+        val actual = fixture.coordinator.collect(fixture.request())
+
+        assertEquals(RuntimeEvidenceFailureReason.CONTEXT_CHANGED, actual.failureReason)
+        assertEquals(listOf("s1" to actual.captureId), fixture.artifacts.deletes)
     }
 
-    private data class Fixture(
-        val store: FeedbackSessionStore,
-        val artifacts: RecordingArtifactStore,
-        val coordinator: RuntimeEvidenceCaptureCoordinator,
-        val sessionId: String,
-        val coordinatorBridge: RuntimeEvidenceBridge,
-    ) {
-        fun request(
-            itemIds: List<String> = listOf("i1"),
-            screenId: String = "screen1",
-            preset: RuntimeEvidencePreset = RuntimeEvidencePreset.BASELINE,
-            trigger: RuntimeEvidenceTrigger = RuntimeEvidenceTrigger.MCP_MANUAL,
-        ) = RuntimeEvidenceCaptureRequest(sessionId, itemIds, screenId, preset, trigger)
+    @Test
+    fun automaticContextRejectionDoesNotDeleteBundleLinkedByAnotherCaller() = runBlocking {
+        lateinit var linkedStore: FeedbackSessionStore
+        val bridge = FakeRuntimeEvidenceBridge(
+            timing = FakeBridgeTiming(collectDelayMillis = 30),
+            coordination = FakeBridgeCoordination(startContextBarrier = SuspendBarrier(2)),
+        )
+        val fixture = fixture(
+            bridge = bridge,
+            itemCount = 2,
+            effects = FixtureEffects(
+                linker = { sessionId, screenId, itemIds, attachments, status ->
+                    if ("i1" in itemIds) {
+                        throw FeedbackSessionException("${RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX}: i1 deleted")
+                    }
+                    linkedStore.attachRuntimeEvidence(sessionId, screenId, itemIds, attachments, status)
+                },
+            ),
+        )
+        linkedStore = fixture.store
+
+        val results = awaitAll(
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i1"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i2"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+        )
+
+        assertEquals(
+            RuntimeEvidenceFailureReason.CONTEXT_CHANGED,
+            results.single { it.failureReason == RuntimeEvidenceFailureReason.CONTEXT_CHANGED }.failureReason,
+        )
+        assertEquals(RuntimeEvidenceStatus.COMPLETE, results.single { "i2" in it.linkedItemIds }.status)
+        assertTrue(fixture.artifacts.deletes.isEmpty())
+        assertEquals(1, fixture.artifacts.commits.size)
     }
 
-    private data class FixtureTiming(
-        val deadlineMillis: Long = 2_500,
-        val clockValues: List<Long> = listOf(2_000, 2_100),
-    )
+    @Test
+    fun automaticGenericLinkFailurePreventsDeletionWhenAnotherCallerIsExactlyRejected() = runBlocking {
+        val bridge = FakeRuntimeEvidenceBridge(
+            timing = FakeBridgeTiming(collectDelayMillis = 30),
+            coordination = FakeBridgeCoordination(startContextBarrier = SuspendBarrier(2)),
+        )
+        val fixture = fixture(
+            bridge = bridge,
+            itemCount = 2,
+            effects = FixtureEffects(
+                linker = { _, _, itemIds, _, _ ->
+                    if ("i1" in itemIds) error("snapshot may have failed after event append")
+                    throw FeedbackSessionException("${RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX}: i2 deleted")
+                },
+            ),
+        )
 
-    private data class FixtureEffects(
-        val artifactFailure: RuntimeException? = null,
-        val linker: RuntimeEvidenceLinker? = null,
-    )
+        val results = awaitAll(
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i1"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i2"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+        )
 
-    private fun session(id: String, itemCount: Int): SessionDto = SessionDto(
-        sessionId = id,
-        packageName = "io.github.beyondwin.fixthis.sample",
-        projectRoot = "/tmp/$id",
-        createdAtEpochMillis = 1,
-        updatedAtEpochMillis = 1,
-        screens = listOf(SnapshotDto("screen1", 1_000, displayName = "Screen", fingerprint = "frozen")),
-        items = (1..itemCount).map { index ->
-            AnnotationDto(
-                itemId = "i$index",
-                screenId = "screen1",
-                createdAtEpochMillis = 1,
-                updatedAtEpochMillis = 1,
-                target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
-                comment = "comment $index",
-            )
-        },
-    )
-
-    private class AtomicIds(private val prefix: String = "id") {
-        private val next = AtomicInteger()
-        fun next(): String = "$prefix-${next.incrementAndGet()}"
+        assertTrue(results.all { it.status == RuntimeEvidenceStatus.FAILED })
+        assertTrue(fixture.artifacts.deletes.isEmpty())
+        assertEquals(1, fixture.artifacts.commits.size)
     }
+
+    @Test
+    fun automaticAllExactRejectionsDeleteSharedBundleExactlyOnce() = runBlocking {
+        val bridge = FakeRuntimeEvidenceBridge(
+            timing = FakeBridgeTiming(collectDelayMillis = 30),
+            coordination = FakeBridgeCoordination(startContextBarrier = SuspendBarrier(2)),
+        )
+        val fixture = fixture(
+            bridge = bridge,
+            itemCount = 2,
+            effects = FixtureEffects(
+                linker = { _, _, _, _, _ ->
+                    throw FeedbackSessionException("${RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX}: deleted")
+                },
+            ),
+        )
+
+        val results = awaitAll(
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i1"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+            async {
+                fixture.coordinator.collect(
+                    fixture.request(itemIds = listOf("i2"), trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO),
+                )
+            },
+        )
+
+        assertTrue(results.all { it.failureReason == RuntimeEvidenceFailureReason.CONTEXT_CHANGED })
+        assertEquals(1, fixture.artifacts.deletes.size)
+        assertEquals(1, fixture.artifacts.commits.size)
+    }
+
+    @Test
+    fun cancelledAutomaticLeasePreventsDeletionAfterOtherCallerExactRejection() = runBlocking {
+        val bridge = FakeRuntimeEvidenceBridge(
+            timing = FakeBridgeTiming(collectDelayMillis = 50),
+            coordination = FakeBridgeCoordination(startContextBarrier = SuspendBarrier(2)),
+        )
+        val fixture = fixture(
+            bridge = bridge,
+            effects = FixtureEffects(
+                linker = { _, _, _, _, _ ->
+                    throw FeedbackSessionException("${RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX}: deleted")
+                },
+            ),
+        )
+        val request = fixture.request(trigger = RuntimeEvidenceTrigger.HANDOFF_AUTO)
+        val cancelled = async { fixture.coordinator.collect(request) }
+        val rejected = async { fixture.coordinator.collect(request) }
+        delay(10)
+
+        cancelled.cancel(CancellationException("caller left"))
+        cancelled.cancelAndJoin()
+        val rejectedResult = rejected.await()
+
+        assertEquals(RuntimeEvidenceFailureReason.CONTEXT_CHANGED, rejectedResult.failureReason)
+        assertTrue(fixture.artifacts.deletes.isEmpty())
+        assertEquals(1, fixture.artifacts.commits.size)
+    }
+}
+
+private fun fixture(
+    bridge: FakeRuntimeEvidenceBridge = FakeRuntimeEvidenceBridge(),
+    itemCount: Int = 1,
+    sessionId: String = "s1",
+    timing: FixtureTiming = FixtureTiming(),
+    effects: FixtureEffects = FixtureEffects(),
+): Fixture {
+    val deadlineMillis = timing.deadlineMillis
+    val clockValues = timing.clockValues
+    val clock = ArrayDeque(clockValues)
+    val store = FeedbackSessionStore(clock = { clockValues.last() }, idGenerator = AtomicIds()::next)
+    store.replaceSessionForDomain(session(sessionId, itemCount))
+    val artifacts = RecordingArtifactStore(effects.artifactFailure)
+    val coordinator = RuntimeEvidenceCaptureCoordinator(
+        bridge = bridge,
+        store = store,
+        projectRoot = java.io.File("/tmp/$sessionId"),
+        artifactStore = artifacts,
+        dependencies = RuntimeEvidenceCaptureDependencies(
+            redactor = RuntimeEvidenceRedactor(),
+            summarizer = RuntimeEvidenceSummarizer(RuntimeEvidenceRedactor()),
+            idGenerator = AtomicIds("capture")::next,
+            clock = { if (clock.isEmpty()) clockValues.last() else clock.removeFirst() },
+            deadlineMillis = deadlineMillis,
+            linker = effects.linker,
+        ),
+    )
+    return Fixture(store, artifacts, coordinator, sessionId, bridge)
+}
+
+private data class Fixture(
+    val store: FeedbackSessionStore,
+    val artifacts: RecordingArtifactStore,
+    val coordinator: RuntimeEvidenceCaptureCoordinator,
+    val sessionId: String,
+    val coordinatorBridge: RuntimeEvidenceBridge,
+) {
+    fun request(
+        itemIds: List<String> = listOf("i1"),
+        screenId: String = "screen1",
+        preset: RuntimeEvidencePreset = RuntimeEvidencePreset.BASELINE,
+        trigger: RuntimeEvidenceTrigger = RuntimeEvidenceTrigger.MCP_MANUAL,
+    ) = RuntimeEvidenceCaptureRequest(sessionId, itemIds, screenId, preset, trigger)
+}
+
+private data class FixtureTiming(
+    val deadlineMillis: Long = 2_500,
+    val clockValues: List<Long> = listOf(2_000, 2_100),
+)
+
+private data class FixtureEffects(
+    val artifactFailure: RuntimeException? = null,
+    val linker: RuntimeEvidenceLinker? = null,
+)
+
+private fun session(id: String, itemCount: Int): SessionDto = SessionDto(
+    sessionId = id,
+    packageName = "io.github.beyondwin.fixthis.sample",
+    projectRoot = "/tmp/$id",
+    createdAtEpochMillis = 1,
+    updatedAtEpochMillis = 1,
+    screens = listOf(SnapshotDto("screen1", 1_000, displayName = "Screen", fingerprint = "frozen")),
+    items = (1..itemCount).map { index ->
+        AnnotationDto(
+            itemId = "i$index",
+            screenId = "screen1",
+            createdAtEpochMillis = 1,
+            updatedAtEpochMillis = 1,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 1f, 1f)),
+            comment = "comment $index",
+        )
+    },
+)
+
+private class AtomicIds(private val prefix: String = "id") {
+    private val next = AtomicInteger()
+    fun next(): String = "$prefix-${next.incrementAndGet()}"
 }
 
 private class FakeRuntimeEvidenceBridge(
@@ -523,12 +818,15 @@ private class FakeRuntimeEvidenceBridge(
     private val timing: FakeBridgeTiming = FakeBridgeTiming(),
     private val coordination: FakeBridgeCoordination = FakeBridgeCoordination(),
     private val scriptedResults: ArrayDeque<CliRuntimeEvidenceResult> = ArrayDeque(),
+    private val failures: FakeBridgeFailures = FakeBridgeFailures(),
 ) : RuntimeEvidenceBridge {
     private val contexts = ArrayDeque(contexts)
     val collectCalls = AtomicInteger()
+    private val contextCalls = AtomicInteger()
     var afterFirstCollect: (() -> Unit)? = null
 
     override fun capabilities(packageName: String): CliRuntimeEvidenceCapabilities {
+        failures.capabilitiesFailure?.let { throw it }
         if (timing.capabilitiesDelayMillis > 0) Thread.sleep(timing.capabilitiesDelayMillis)
         return CliRuntimeEvidenceCapabilities(
             baselineAvailable = true,
@@ -541,6 +839,7 @@ private class FakeRuntimeEvidenceBridge(
     }
 
     override suspend fun context(packageName: String): CliRuntimeEvidenceContext {
+        failures.contextFailures[contextCalls.incrementAndGet()]?.let { throw it }
         coordination.startContextBarrier?.await()
         if (timing.contextDelayMillis > 0) delay(timing.contextDelayMillis)
         return synchronized(contexts) {
@@ -557,6 +856,9 @@ private class FakeRuntimeEvidenceBridge(
         val current = coordination.active.incrementAndGet()
         coordination.maximum.accumulateAndGet(current, ::maxOf)
         return try {
+            synchronized(failures.collectFailures) {
+                if (failures.collectFailures.isNotEmpty()) throw failures.collectFailures.removeFirst()
+            }
             val delayMillis = timing.delayByKind[kind] ?: timing.collectDelayMillis
             if (delayMillis > 0) delay(delayMillis)
             if (collectCalls.get() == 1) afterFirstCollect?.invoke()
@@ -580,6 +882,12 @@ private data class FakeBridgeCoordination(
     val active: AtomicInteger = AtomicInteger(),
     val maximum: AtomicInteger = AtomicInteger(),
     val startContextBarrier: SuspendBarrier? = null,
+)
+
+private data class FakeBridgeFailures(
+    val capabilitiesFailure: Exception? = null,
+    val contextFailures: Map<Int, Exception> = emptyMap(),
+    val collectFailures: ArrayDeque<Exception> = ArrayDeque(),
 )
 
 private class SuspendBarrier(private val parties: Int) {

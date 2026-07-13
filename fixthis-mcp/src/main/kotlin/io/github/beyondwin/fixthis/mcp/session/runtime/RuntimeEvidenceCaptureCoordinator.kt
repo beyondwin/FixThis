@@ -5,18 +5,9 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import io.github.beyondwin.fixthis.mcp.tools.RuntimeEvidenceBridge
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
 
 @Serializable
 enum class RuntimeEvidencePreset {
@@ -115,7 +106,7 @@ internal class RuntimeEvidenceCaptureCoordinator(
                 startContext,
                 budget,
             )
-            else -> collectOnce(request, session, startContext, budget)
+            else -> manualCollect(request, session, startContext, budget)
         }
     }
 
@@ -124,24 +115,48 @@ internal class RuntimeEvidenceCaptureCoordinator(
         session: SessionDto,
         startContext: CliRuntimeEvidenceContext,
         budget: RuntimeEvidenceDeadline,
-    ): RuntimeEvidenceCaptureResult = RuntimeEvidenceCaptureRuntime.deduplicate(
-        CaptureKey(
+    ): RuntimeEvidenceCaptureResult {
+        val key = CaptureKey(
             projectRoot = projectRoot,
             sessionId = request.sessionId,
             screenId = request.screenId,
             preset = request.preset,
             installEpochMillis = startContext.installEpochMillis,
-        ),
-    ) {
-        collectOnce(request, session, startContext, budget)
+        )
+        val lease = RuntimeEvidenceCaptureRuntime.acquire(key) {
+            prepareCapture(request, session, startContext, budget)
+        }
+        var prepared: RuntimeEvidencePreparedCapture? = null
+        var disposition = RuntimeEvidenceLinkDisposition.PRESERVE
+        return try {
+            prepared = lease.await()
+            val completion = completePrepared(request, prepared, deleteExactRejection = false)
+            disposition = completion.disposition
+            completion.result
+        } finally {
+            val committed = prepared as? RuntimeEvidencePreparedCapture.Committed
+            lease.release(disposition) {
+                committed?.bundle?.let { artifactStore.deleteBundle(request.sessionId, it.captureId) }
+            }
+        }
     }
 
-    private suspend fun collectOnce(
+    private suspend fun manualCollect(
         request: RuntimeEvidenceCaptureRequest,
         session: SessionDto,
         startContext: CliRuntimeEvidenceContext,
         budget: RuntimeEvidenceDeadline,
     ): RuntimeEvidenceCaptureResult {
+        val prepared = prepareCapture(request, session, startContext, budget)
+        return completePrepared(request, prepared, deleteExactRejection = true).result
+    }
+
+    private suspend fun prepareCapture(
+        request: RuntimeEvidenceCaptureRequest,
+        session: SessionDto,
+        startContext: CliRuntimeEvidenceContext,
+        budget: RuntimeEvidenceDeadline,
+    ): RuntimeEvidencePreparedCapture {
         val captured = collectRuntimeEvidencePayload(
             input = RuntimeEvidenceAssembler(
                 request = request,
@@ -155,134 +170,136 @@ internal class RuntimeEvidenceCaptureCoordinator(
             summarizer = summarizer,
             redactor = redactor,
         )
-        val endContext = collector.endContextWithinReserve(session.packageName, budget)
-        val drift = endContext?.let { classifyRuntimeEvidenceDrift(store, startContext, it, session, request) }
-        return when {
-            endContext == null -> artifactFailure(captured.captureId, RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT)
-            drift?.invalid != false -> contextFailure(captured.captureId)
-            captured.artifacts.isEmpty() -> runtimeEvidenceResultWithoutArtifacts(captured)
-            else -> commitAndLink(request, session, startContext, captured, drift)
+        return when (val endContext = collector.endContextWithinReserve(session.packageName, budget)) {
+            RuntimeEvidenceEndContextOutcome.TimedOut -> RuntimeEvidencePreparedCapture.Terminal(
+                artifactFailure(captured.captureId, RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT),
+            )
+            RuntimeEvidenceEndContextOutcome.Unavailable -> RuntimeEvidencePreparedCapture.Terminal(
+                deviceFailure(captured.captureId),
+            )
+            is RuntimeEvidenceEndContextOutcome.Available -> finishCapture(
+                request,
+                session,
+                startContext,
+                captured,
+                endContext.context,
+            )
         }
     }
 
-    private fun commitAndLink(
+    private fun finishCapture(
+        request: RuntimeEvidenceCaptureRequest,
+        session: SessionDto,
+        startContext: CliRuntimeEvidenceContext,
+        captured: RuntimeEvidencePayload,
+        endContext: CliRuntimeEvidenceContext,
+    ): RuntimeEvidencePreparedCapture {
+        val drift = classifyRuntimeEvidenceDrift(store, startContext, endContext, session, request)
+        return when {
+            drift.invalid -> RuntimeEvidencePreparedCapture.Terminal(contextFailure(captured.captureId))
+            captured.artifacts.isEmpty() -> RuntimeEvidencePreparedCapture.Terminal(
+                runtimeEvidenceResultWithoutArtifacts(captured),
+            )
+            else -> commitPrepared(request, session, startContext, captured, drift)
+        }
+    }
+
+    private fun commitPrepared(
         request: RuntimeEvidenceCaptureRequest,
         session: SessionDto,
         startContext: CliRuntimeEvidenceContext,
         captured: RuntimeEvidencePayload,
         drift: RuntimeEvidenceContextDrift,
-    ): RuntimeEvidenceCaptureResult {
+    ): RuntimeEvidencePreparedCapture {
         captured.warnings += drift.warnings
-        return when (val outcome = commit(request.sessionId, captured)) {
-            is RuntimeEvidenceCommitOutcome.Failed -> artifactFailure(captured.captureId, outcome.reason)
+        return when (val outcome = commitRuntimeEvidence(artifactStore, request.sessionId, captured)) {
+            is RuntimeEvidenceCommitOutcome.Failed -> RuntimeEvidencePreparedCapture.Terminal(
+                artifactFailure(captured.captureId, outcome.reason),
+            )
             is RuntimeEvidenceCommitOutcome.Succeeded -> {
-                val attachmentContext = RuntimeEvidenceAttachmentContext(
-                    session = session,
-                    request = request,
-                    startContext = startContext,
-                    drift = drift,
-                    completedAt = clock(),
-                )
                 val attachments = createRuntimeEvidenceAttachments(
                     captured,
                     outcome.bundle,
-                    attachmentContext,
+                    RuntimeEvidenceAttachmentContext(session, request, startContext, drift, clock()),
                     idGenerator,
                 )
-                val aggregate = aggregateRuntimeEvidenceStatus(captured)
-                linkCommitted(request, outcome.bundle, attachments, aggregate, captured.warnings)
+                RuntimeEvidencePreparedCapture.Committed(
+                    outcome.bundle,
+                    attachments,
+                    aggregateRuntimeEvidenceStatus(captured),
+                    captured.warnings,
+                )
             }
         }
     }
 
-    private fun commit(
-        sessionId: String,
-        captured: RuntimeEvidencePayload,
-    ): RuntimeEvidenceCommitOutcome = try {
-        RuntimeEvidenceCommitOutcome.Succeeded(
-            artifactStore.commit(sessionId, captured.captureId, captured.artifacts),
+    private fun completePrepared(
+        request: RuntimeEvidenceCaptureRequest,
+        prepared: RuntimeEvidencePreparedCapture,
+        deleteExactRejection: Boolean,
+    ): RuntimeEvidenceLinkCompletion = when (prepared) {
+        is RuntimeEvidencePreparedCapture.Terminal -> RuntimeEvidenceLinkCompletion(
+            prepared.result,
+            RuntimeEvidenceLinkDisposition.NONE,
         )
-    } catch (cancelled: CancellationException) {
-        throw cancelled
-    } catch (_: RuntimeEvidenceArtifactQuotaException) {
-        RuntimeEvidenceCommitOutcome.Failed(RuntimeEvidenceFailureReason.QUOTA_EXCEEDED)
-    } catch (_: RuntimeException) {
-        RuntimeEvidenceCommitOutcome.Failed(RuntimeEvidenceFailureReason.ARTIFACT_WRITE_FAILED)
+        is RuntimeEvidencePreparedCapture.Committed -> linkCommitted(request, prepared, deleteExactRejection)
     }
 
     private fun linkCommitted(
         request: RuntimeEvidenceCaptureRequest,
-        committed: CommittedRuntimeEvidenceBundle,
-        attachments: List<RuntimeEvidenceAttachment>,
-        aggregate: RuntimeEvidenceStatus,
-        warnings: Set<RuntimeEvidenceWarning>,
-    ): RuntimeEvidenceCaptureResult {
+        prepared: RuntimeEvidencePreparedCapture.Committed,
+        deleteExactRejection: Boolean,
+    ): RuntimeEvidenceLinkCompletion {
         val linked = runCatching {
-            linker.link(request.sessionId, request.screenId, request.itemIds, attachments, aggregate)
+            linker.link(
+                request.sessionId,
+                request.screenId,
+                request.itemIds,
+                prepared.attachments,
+                prepared.aggregate,
+            )
         }
         return linked.fold(
             onSuccess = {
-                RuntimeEvidenceCaptureResult(
-                    attempted = true,
-                    captureId = committed.captureId,
-                    status = aggregate,
-                    attachmentIds = attachments.map { it.evidenceId },
-                    linkedItemIds = request.itemIds,
-                    artifactDirectory = committed.relativeDirectory,
-                    warnings = warnings.toList(),
-                    failureReason = attachments.mapNotNull { it.failureReason }.firstOrNull(),
+                RuntimeEvidenceLinkCompletion(
+                    RuntimeEvidenceCaptureResult(
+                        attempted = true,
+                        captureId = prepared.bundle.captureId,
+                        status = prepared.aggregate,
+                        attachmentIds = prepared.attachments.map { it.evidenceId },
+                        linkedItemIds = request.itemIds,
+                        artifactDirectory = prepared.bundle.relativeDirectory,
+                        warnings = prepared.warnings.toList(),
+                        failureReason = prepared.attachments.mapNotNull { it.failureReason }.firstOrNull(),
+                    ),
+                    RuntimeEvidenceLinkDisposition.SUCCESS,
                 )
             },
-            onFailure = { failure -> linkFailureResult(request, committed, failure) },
+            onFailure = { failure -> linkFailureResult(request, prepared, failure, deleteExactRejection) },
         )
     }
 
     private fun linkFailureResult(
         request: RuntimeEvidenceCaptureRequest,
-        committed: CommittedRuntimeEvidenceBundle,
+        prepared: RuntimeEvidencePreparedCapture.Committed,
         failure: Throwable,
-    ): RuntimeEvidenceCaptureResult = when {
+        deleteExactRejection: Boolean,
+    ): RuntimeEvidenceLinkCompletion = when {
         failure is CancellationException -> throw failure
         failure.isPreAppendRuntimeEvidenceContextChange() -> {
-            artifactStore.deleteBundle(request.sessionId, committed.captureId)
-            contextFailure(committed.captureId)
+            if (deleteExactRejection) artifactStore.deleteBundle(request.sessionId, prepared.bundle.captureId)
+            RuntimeEvidenceLinkCompletion(
+                contextFailure(prepared.bundle.captureId),
+                RuntimeEvidenceLinkDisposition.EXACT_REJECTION,
+            )
         }
-        else -> artifactFailure(
-            committed.captureId,
-            RuntimeEvidenceFailureReason.ARTIFACT_WRITE_FAILED,
-            committed,
+        else -> RuntimeEvidenceLinkCompletion(
+            artifactFailure(
+                prepared.bundle.captureId,
+                RuntimeEvidenceFailureReason.ARTIFACT_WRITE_FAILED,
+                prepared.bundle,
+            ),
+            RuntimeEvidenceLinkDisposition.PRESERVE,
         )
     }
 }
-
-internal data class CaptureKey(
-    val projectRoot: String,
-    val sessionId: String,
-    val screenId: String,
-    val preset: RuntimeEvidencePreset,
-    val installEpochMillis: Long?,
-)
-
-internal object RuntimeEvidenceCaptureRuntime {
-    private val semaphore = Semaphore(MAX_CONCURRENT_COLLECTORS)
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val inFlight = ConcurrentHashMap<CaptureKey, Deferred<RuntimeEvidenceCaptureResult>>()
-
-    suspend fun <T> collect(block: suspend () -> T): T = semaphore.withPermit { block() }
-
-    suspend fun deduplicate(
-        key: CaptureKey,
-        block: suspend () -> RuntimeEvidenceCaptureResult,
-    ): RuntimeEvidenceCaptureResult {
-        val candidate = scope.async(start = CoroutineStart.LAZY) { block() }
-        val existing = inFlight.putIfAbsent(key, candidate)
-        val selected = existing ?: candidate.also { deferred ->
-            deferred.invokeOnCompletion { inFlight.remove(key, deferred) }
-            deferred.start()
-        }
-        if (existing != null) candidate.cancel()
-        return selected.await()
-    }
-}
-
-private const val MAX_CONCURRENT_COLLECTORS = 2

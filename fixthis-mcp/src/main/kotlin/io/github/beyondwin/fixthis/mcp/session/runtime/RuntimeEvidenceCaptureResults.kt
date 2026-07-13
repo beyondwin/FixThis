@@ -2,6 +2,23 @@ package io.github.beyondwin.fixthis.mcp.session.runtime
 
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.RUNTIME_EVIDENCE_CONTEXT_CHANGED_PREFIX
+import kotlinx.coroutines.CancellationException
+
+internal fun commitRuntimeEvidence(
+    artifactStore: RuntimeEvidenceArtifactStore,
+    sessionId: String,
+    captured: RuntimeEvidencePayload,
+): RuntimeEvidenceCommitOutcome = try {
+    RuntimeEvidenceCommitOutcome.Succeeded(
+        artifactStore.commit(sessionId, captured.captureId, captured.artifacts),
+    )
+} catch (cancelled: CancellationException) {
+    throw cancelled
+} catch (_: RuntimeEvidenceArtifactQuotaException) {
+    RuntimeEvidenceCommitOutcome.Failed(RuntimeEvidenceFailureReason.QUOTA_EXCEEDED)
+} catch (_: RuntimeException) {
+    RuntimeEvidenceCommitOutcome.Failed(RuntimeEvidenceFailureReason.ARTIFACT_WRITE_FAILED)
+}
 
 internal fun runtimeEvidenceResultWithoutArtifacts(captured: RuntimeEvidencePayload): RuntimeEvidenceCaptureResult = RuntimeEvidenceCaptureResult(
     attempted = true,
@@ -33,8 +50,9 @@ internal fun contextFailure(captureId: String? = null) = RuntimeEvidenceCaptureR
     warnings = listOf(RuntimeEvidenceWarning.CONTEXT_CHANGED),
 )
 
-internal fun deviceFailure() = RuntimeEvidenceCaptureResult(
+internal fun deviceFailure(captureId: String? = null) = RuntimeEvidenceCaptureResult(
     attempted = true,
+    captureId = captureId,
     status = RuntimeEvidenceStatus.FAILED,
     failureReason = RuntimeEvidenceFailureReason.DEVICE_UNAVAILABLE,
 )

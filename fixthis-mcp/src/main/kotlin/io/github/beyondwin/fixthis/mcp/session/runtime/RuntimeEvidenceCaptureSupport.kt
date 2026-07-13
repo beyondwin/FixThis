@@ -63,19 +63,27 @@ internal class RuntimeEvidenceCollector(
         } ?: CliRuntimeEvidenceCapabilities(false, emptySet())
     } catch (cancelled: CancellationException) {
         throw cancelled
-    } catch (_: RuntimeException) {
+    } catch (_: Exception) {
         CliRuntimeEvidenceCapabilities(false, emptySet())
     }
 
     suspend fun endContextWithinReserve(
         packageName: String,
         budget: RuntimeEvidenceDeadline,
-    ): CliRuntimeEvidenceContext? {
+    ): RuntimeEvidenceEndContextOutcome {
         val remaining = budget.remainingMillis()
         return if (remaining <= 0) {
-            null
+            RuntimeEvidenceEndContextOutcome.TimedOut
         } else {
-            withTimeoutOrNull(minOf(endContextReserve(), remaining)) { bridge.context(packageName) }
+            try {
+                withTimeoutOrNull(minOf(endContextReserve(), remaining)) { bridge.context(packageName) }
+                    ?.let(RuntimeEvidenceEndContextOutcome::Available)
+                    ?: RuntimeEvidenceEndContextOutcome.TimedOut
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                RuntimeEvidenceEndContextOutcome.Unavailable
+            }
         }
     }
 
@@ -84,12 +92,24 @@ internal class RuntimeEvidenceCollector(
         kind: CliRuntimeEvidenceKind,
         screenCapturedAt: Long,
     ): CliRuntimeEvidenceResult {
-        val first = bridge.collect(packageName, kind, screenCapturedAt)
+        val first = collectAttempt(packageName, kind, screenCapturedAt)
         return if (first.isTransientRuntimeEvidenceFailure()) {
-            bridge.collect(packageName, kind, screenCapturedAt)
+            collectAttempt(packageName, kind, screenCapturedAt)
         } else {
             first
         }
+    }
+
+    private suspend fun collectAttempt(
+        packageName: String,
+        kind: CliRuntimeEvidenceKind,
+        screenCapturedAt: Long,
+    ): CliRuntimeEvidenceResult = try {
+        bridge.collect(packageName, kind, screenCapturedAt)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: Exception) {
+        runtimeEvidenceBridgeFailureResult(kind)
     }
 
     private fun endContextReserve(): Long = (deadlineMillis / END_CONTEXT_RESERVE_DIVISOR)
@@ -123,6 +143,12 @@ internal data class RuntimeEvidenceContextDrift(
     val warnings: Set<RuntimeEvidenceWarning> = emptySet(),
 )
 
+internal sealed interface RuntimeEvidenceEndContextOutcome {
+    data class Available(val context: CliRuntimeEvidenceContext) : RuntimeEvidenceEndContextOutcome
+    data object TimedOut : RuntimeEvidenceEndContextOutcome
+    data object Unavailable : RuntimeEvidenceEndContextOutcome
+}
+
 internal data class RuntimeEvidenceAttachmentContext(
     val session: SessionDto,
     val request: RuntimeEvidenceCaptureRequest,
@@ -154,7 +180,7 @@ internal suspend fun runtimeEvidenceContextOrNull(
     withTimeoutOrNull(budget.remainingMillis().coerceAtLeast(1L)) { bridge.context(packageName) }
 } catch (cancelled: CancellationException) {
     throw cancelled
-} catch (_: RuntimeException) {
+} catch (_: Exception) {
     null
 }
 
