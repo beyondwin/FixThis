@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
@@ -96,6 +96,10 @@ const failureCatalog = Object.freeze({
   agent_loop_failed: {
     reason: "The MCP agent loop smoke failed.",
     nextAction: "Inspect the agent-loop smoke report and rerun `npm run agent-loop:smoke -- --strict`.",
+  },
+  runtime_evidence_failed: {
+    reason: "The runtime evidence MCP product-path proof failed.",
+    nextAction: "Inspect the runtime evidence report and rerun `npm run runtime-evidence:smoke -- --strict`.",
   },
   external_fixture_failed: {
     reason: "The strict external fixture matrix failed.",
@@ -267,6 +271,12 @@ export function buildProofSteps(options = {}, environment = {}) {
       reportPath: "build/reports/fixthis-agent-loop/report.json",
     },
     {
+      name: "Runtime evidence product path",
+      command: "npm run runtime-evidence:smoke -- --strict",
+      failureCode: "runtime_evidence_failed",
+      reportPath: "build/reports/fixthis-runtime-evidence/report.json",
+    },
+    {
       name: "External fixture matrix",
       command: "npm run external-fixture:matrix -- --strict",
       failureCode: "external_fixture_failed",
@@ -348,13 +358,22 @@ export function normalizeStepResult(step, result) {
   };
 }
 
-function runShellCommand(command) {
+function proofCommandEnvironment(preflight) {
+  const platformTools = preflight.adb ? dirname(preflight.adb) : null;
+  return {
+    ...(preflight.sdk ? { ANDROID_HOME: preflight.sdk, ANDROID_SDK_ROOT: preflight.sdk } : {}),
+    ...(preflight.deviceSerial ? { ANDROID_SERIAL: preflight.deviceSerial } : {}),
+    PATH: [platformTools, process.env.PATH].filter(Boolean).join(delimiter),
+  };
+}
+
+function runShellCommand(command, envPatch = {}) {
   const started = Date.now();
-  const result = spawnSync("bash", ["-lc", command], {
+  const result = spawnSync("bash", ["-c", command], {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: "pipe",
-    env: process.env,
+    env: { ...process.env, ...envPatch },
   });
   return {
     status: result.status ?? 1,
@@ -369,8 +388,9 @@ export function runAndroidProof(options = {}, deps = {}) {
   const steps = [];
   if (preflight.status === "pass") {
     const run = deps.runCommand || runShellCommand;
+    const commandEnvironment = proofCommandEnvironment(preflight);
     for (const step of buildProofSteps(options, preflight)) {
-      const normalized = normalizeStepResult(step, run(step.command));
+      const normalized = normalizeStepResult(step, run(step.command, commandEnvironment));
       steps.push(normalized);
       if (normalized.status === "fail" && !options.continueOnFailure) break;
     }

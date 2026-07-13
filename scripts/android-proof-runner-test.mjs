@@ -184,12 +184,16 @@ test("buildProofSteps creates ordered smoke commands and forwards flags", () => 
     "Sample smoke",
     "Real Copy Prompt smoke",
     "Agent loop smoke",
+    "Runtime evidence product path",
     "External fixture matrix",
   ]);
   assert.equal(steps[0].command, "scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --device emulator-5554 --no-build");
   assert.equal(steps[1].command, "npm run real-copy-prompt:smoke -- --strict --headed");
   assert.equal(steps[2].command, "npm run agent-loop:smoke -- --strict --headed");
-  assert.equal(steps[3].command, "npm run external-fixture:matrix -- --strict");
+  assert.equal(steps[3].command, "npm run runtime-evidence:smoke -- --strict");
+  assert.equal(steps[3].failureCode, "runtime_evidence_failed");
+  assert.equal(steps[3].reportPath, "build/reports/fixthis-runtime-evidence/report.json");
+  assert.equal(steps[4].command, "npm run external-fixture:matrix -- --strict");
 });
 
 test("buildReport derives fail deferred and pass statuses", () => {
@@ -330,7 +334,11 @@ test("runAndroidProof stops on first failed step by default", () => {
       failureCode: null,
       nextAction: null,
     }),
-    runCommand: (command) => {
+    runCommand: (command, envPatch) => {
+      assert.equal(envPatch.ANDROID_HOME, "/sdk");
+      assert.equal(envPatch.ANDROID_SDK_ROOT, "/sdk");
+      assert.equal(envPatch.ANDROID_SERIAL, "emulator-5554");
+      assert.match(envPatch.PATH, /^\/sdk\/platform-tools:/);
       commands.push(command);
       return { status: command.includes("real-copy-prompt") ? 1 : 0, stdout: "", stderr: "copy failed", durationMs: 5 };
     },
@@ -371,7 +379,7 @@ test("runAndroidProof continues after failed steps when requested", () => {
     writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
   });
 
-  assert.equal(commands.length, 4);
+  assert.equal(commands.length, 5);
   assert.equal(report.status, "fail");
   assert.equal(report.steps.find((step) => step.name === "Agent loop smoke").failureCode, "agent_loop_failed");
 });

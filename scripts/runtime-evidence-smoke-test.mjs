@@ -1,189 +1,180 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
   buildRuntimeEvidenceReport,
-  captureStrictRuntimeEvidence,
   createRuntimeEvidenceSmokeReport,
-  normalizeRuntimeEvidenceStatus,
   parseArgs,
+  proveRuntimeEvidenceProductPath,
   renderRuntimeEvidenceMarkdown,
-  selectRuntimeEvidenceCommand,
+  validateRuntimeEvidenceProductPath,
   writeRuntimeEvidenceReport,
 } from "./runtime-evidence-smoke.mjs";
 
-test("normalizeRuntimeEvidenceStatus defers missing Android prerequisites in non-strict mode", () => {
-  assert.deepEqual(
-    normalizeRuntimeEvidenceStatus({ strict: false, androidReady: false, reason: "No connected Android device." }),
-    { status: "deferred", reason: "No connected Android device." },
-  );
-  assert.deepEqual(
-    normalizeRuntimeEvidenceStatus({ strict: true, androidReady: false, reason: "No connected Android device." }),
-    { status: "fail", reason: "No connected Android device." },
-  );
-  assert.deepEqual(
-    normalizeRuntimeEvidenceStatus({ strict: true, androidReady: true, evidenceCount: 1 }),
-    { status: "pass", reason: null },
-  );
-});
+const productPath = {
+  tool: "fixthis_collect_runtime_evidence",
+  sessionId: "session-1",
+  itemIds: ["item-1"],
+  captureStatus: "complete",
+  attachmentCount: 3,
+  artifactVerified: true,
+  compactHandoffBounded: true,
+  replayVerified: true,
+  autoHandoffVerified: true,
+  linkageVerified: true,
+  redactionVerified: true,
+};
 
-test("strict runtime evidence fails when no evidence rows were captured", () => {
-  assert.deepEqual(
-    normalizeRuntimeEvidenceStatus({ strict: true, androidReady: true, evidenceCount: 0 }),
-    { status: "fail", reason: "Strict runtime evidence requires at least one captured evidence row." },
-  );
-});
-
-test("strict runtime evidence captures a bounded logcat row when Android is ready", () => {
-  const report = createRuntimeEvidenceSmokeReport({
-    args: { strict: true, outDir: "build/custom", evidence: [] },
-    androidEnvironment: { ready: true, device: "emulator-5554", envPatch: {} },
-    captureRuntimeEvidence: () => ({
-      itemId: "strict-runtime",
-      type: "logcat_window",
-      summary: "Captured 2 logcat lines from emulator-5554.",
-      artifactPath: ".fixthis/runtime-evidence/strict-runtime-logcat.txt",
-    }),
-  });
-
-  assert.equal(report.status, "pass");
-  assert.equal(report.evidence.length, 1);
-  assert.equal(report.evidence[0].itemId, "strict-runtime");
-  assert.equal(report.evidence[0].type, "logcat_window");
-  assert.match(report.evidence[0].artifactPath, /^\.fixthis\/runtime-evidence\//);
-});
-
-test("strict runtime evidence fails when ready capture cannot produce a row", () => {
-  const report = createRuntimeEvidenceSmokeReport({
-    args: { strict: true, outDir: "build/custom", evidence: [] },
-    androidEnvironment: { ready: true, device: "emulator-5554", envPatch: {} },
-    captureRuntimeEvidence: () => null,
-  });
-
-  assert.equal(report.status, "fail");
-  assert.match(report.reason, /requires at least one captured evidence row/);
-  assert.equal(report.evidence.length, 0);
-});
-
-test("strict runtime evidence capture records the concrete adb command and local artifact", () => {
-  const root = mkdtempSync(join(tmpdir(), "fixthis-runtime-capture-"));
-  try {
-    const evidence = captureStrictRuntimeEvidence({
-      root,
-      now: () => new Date("2026-06-21T16:48:29.832Z"),
-      androidEnvironment: { ready: true, device: "emulator-5554", envPatch: { PATH: "/sdk/platform-tools" } },
-      spawn: (command, args, options) => {
-        assert.equal(command, "adb");
-        assert.deepEqual(args, ["-s", "emulator-5554", "logcat", "-d", "-t", "80"]);
-        assert.equal(options.env.PATH, "/sdk/platform-tools");
-        return { status: 0, stdout: "line 1\nline 2\n" };
+function productFixture(root) {
+  const evidenceRoot = join(root, ".fixthis/runtime-evidence/session-1");
+  const manualPath = join(evidenceRoot, "capture-manual/logcat.txt");
+  const autoPath = join(evidenceRoot, "capture-auto/logcat.txt");
+  mkdirSync(join(evidenceRoot, "capture-manual"), { recursive: true });
+  mkdirSync(join(evidenceRoot, "capture-auto"), { recursive: true });
+  writeFileSync(manualPath, "safe manual output\n");
+  writeFileSync(autoPath, "Authorization: [REDACTED]\n");
+  const attachments = [
+    {
+      evidenceId: "manual-1",
+      trigger: "mcp_manual",
+      captureId: "capture-manual",
+      artifactPath: ".fixthis/runtime-evidence/session-1/capture-manual/logcat.txt",
+      warnings: [],
+    },
+    {
+      evidenceId: "auto-1",
+      trigger: "handoff_auto",
+      captureId: "capture-auto",
+      artifactPath: ".fixthis/runtime-evidence/session-1/capture-auto/logcat.txt",
+      warnings: ["redaction_applied"],
+    },
+  ];
+  const session = {
+    sessionId: "session-1",
+    runtimeEvidencePolicy: "auto_on_handoff",
+    runtimeEvidence: attachments,
+    items: [{ itemId: "item-1", runtimeEvidenceIds: ["manual-1", "auto-1"] }],
+  };
+  return {
+    toolName: "fixthis_collect_runtime_evidence",
+    sessionId: "session-1",
+    itemId: "item-1",
+    projectDir: root,
+    policy: { runtimeEvidencePolicy: "auto_on_handoff" },
+    collected: {
+      attempted: true,
+      captureId: "capture-manual",
+      status: "complete",
+      attachmentIds: ["manual-1"],
+      linkedItemIds: ["item-1"],
+    },
+    handoff: {
+      prompt: "runtimeEvidenceAttempt:\n  attempted=true\n  status=complete\n",
+      runtimeEvidence: {
+        attempted: true,
+        captureId: "capture-auto",
+        status: "complete",
+        attachmentIds: ["auto-1"],
+        linkedItemIds: ["item-1"],
       },
-    });
+      session,
+    },
+    session,
+    replayed: structuredClone(session),
+  };
+}
 
-    assert.equal(evidence.command, "adb -s emulator-5554 logcat -d -t 80");
-    assert.equal(evidence.artifactPath, ".fixthis/runtime-evidence/2026-06-21T16-48-29-832Z-logcat.txt");
-    assert.match(readFileSync(join(root, evidence.artifactPath), "utf8"), /line 2/);
+test("product-path report carries the strict MCP collection contract", async () => {
+  const report = await createRuntimeEvidenceSmokeReport({
+    args: { strict: true, outDir: "build/custom" },
+    environment: { ready: true, device: "emulator-5554", envPatch: {} },
+    runProductPath: async () => productPath,
+  });
+  assert.equal(report.status, "pass");
+  assert.deepEqual(report.productPath, productPath);
+});
+
+test("non-strict missing Android defers while strict fails closed", async () => {
+  const missing = { ready: false, reason: "No connected Android device." };
+  assert.equal((await createRuntimeEvidenceSmokeReport({ args: { strict: false }, environment: missing })).status, "deferred");
+  assert.equal((await createRuntimeEvidenceSmokeReport({ args: { strict: true }, environment: missing })).status, "fail");
+});
+
+test("validator rejects missing tool attachment unsafe artifact raw handoff and replay mismatch", () => {
+  const invalid = [
+    [{ ...productPath, tool: null }, /missing collection tool/],
+    [{ ...productPath, attachmentCount: 0 }, /missing runtime evidence attachment/],
+    [{ ...productPath, captureStatus: "failed" }, /usable terminal status/],
+    [{ ...productPath, artifactVerified: false }, /missing or outside/],
+    [{ ...productPath, compactHandoffBounded: false }, /unbounded.*raw secret/],
+    [{ ...productPath, replayVerified: false }, /replay mismatch/],
+  ];
+  for (const [value, pattern] of invalid) assert.throws(() => validateRuntimeEvidenceProductPath(value), pattern);
+});
+
+test("product-path proof ties manual MCP and Auto handoff attachments to one item, artifacts, redaction, and replay", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-runtime-proof-"));
+  try {
+    assert.deepEqual(proveRuntimeEvidenceProductPath(productFixture(root)), { ...productPath, attachmentCount: 1 });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("selectRuntimeEvidenceCommand maps evidence type to stable command description", () => {
-  assert.equal(selectRuntimeEvidenceCommand("logcat_window").label, "Logcat window");
-  assert.equal(selectRuntimeEvidenceCommand("frame_summary").command, "adb shell dumpsys gfxinfo <package>");
-  assert.equal(selectRuntimeEvidenceCommand("memory_summary").command, "adb shell dumpsys meminfo <package>");
-  assert.throws(() => selectRuntimeEvidenceCommand("raw_log_dump"), /Unsupported runtime evidence type/);
+test("product-path proof fails closed for skipped Auto, missing linkage, unsafe artifacts, raw secret, and replay drift", () => {
+  const cases = [
+    [fixture => { fixture.policy.runtimeEvidencePolicy = "manual"; }, /policy did not persist/],
+    [fixture => { fixture.handoff.runtimeEvidence.attempted = false; }, /Auto handoff did not attempt/],
+    [fixture => { fixture.handoff.runtimeEvidence.linkedItemIds = []; }, /linked item mismatch/],
+    [fixture => { fixture.handoff.session.runtimeEvidence = fixture.handoff.session.runtimeEvidence.filter(entry => entry.evidenceId !== "auto-1"); }, /attachment missing/],
+    [fixture => { fixture.handoff.session.items[0].runtimeEvidenceIds = ["manual-1"]; }, /not linked/],
+    [fixture => { fixture.handoff.session.runtimeEvidence[1].artifactPath = "../outside.txt"; }, /artifact missing or outside/],
+    [fixture => { fixture.handoff.prompt += "fixthis-runtime-secret-7f3a"; }, /raw secret entered handoff/],
+    [fixture => { fixture.replayed.runtimeEvidence[1].captureId = "drifted"; }, /replay mismatch/],
+  ];
+  for (const [mutate, expected] of cases) {
+    const root = mkdtempSync(join(tmpdir(), "fixthis-runtime-proof-fail-"));
+    try {
+      const fixture = productFixture(root);
+      mutate(fixture);
+      assert.throws(() => proveRuntimeEvidenceProductPath(fixture), expected);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
 });
 
-test("report markdown includes status type and artifact path", () => {
-  const report = buildRuntimeEvidenceReport({
-    strict: false,
-    status: "pass",
-    evidence: [
-      {
-        itemId: "item-1",
-        type: "logcat_window",
-        summary: "2 warnings",
-        artifactPath: ".fixthis/runtime-evidence/e-1/logcat.txt",
-      },
-    ],
+test("ready product-path validation failure produces a failing report", async () => {
+  const report = await createRuntimeEvidenceSmokeReport({
+    args: { strict: true },
+    environment: { ready: true, device: "emulator-5554", envPatch: {} },
+    runProductPath: async () => validateRuntimeEvidenceProductPath({ ...productPath, replayVerified: false }),
   });
+  assert.equal(report.status, "fail");
+  assert.match(report.reason, /replay mismatch/);
+});
+
+test("report markdown renders product proof without direct generic adb rows", () => {
+  const report = buildRuntimeEvidenceReport({ strict: true, status: "pass", productPath });
   const markdown = renderRuntimeEvidenceMarkdown(report);
-
-  assert.match(markdown, /# FixThis Runtime Evidence Report/);
-  assert.match(markdown, /\| item-1 \| logcat_window \| 2 warnings \| `.fixthis\/runtime-evidence\/e-1\/logcat.txt` \|/);
+  assert.match(markdown, /fixthis_collect_runtime_evidence/);
+  assert.match(markdown, /session-1/);
+  assert.doesNotMatch(markdown, /adb logcat -d -t 80|strict-runtime/);
 });
 
-test("report markdown bounds long summaries and keeps raw lines out", () => {
-  const report = buildRuntimeEvidenceReport({
-    strict: false,
-    status: "pass",
-    evidence: [
-      {
-        itemId: "item-1",
-        type: "logcat_window",
-        summary: "RuntimeException stack line ".repeat(40),
-        artifactPath: ".fixthis/runtime-evidence/e-1/logcat.txt",
-      },
-    ],
-  });
-  const markdown = renderRuntimeEvidenceMarkdown(report);
-
-  assert.ok(markdown.length < 900);
-  assert.doesNotMatch(markdown, /RuntimeException stack line RuntimeException stack line RuntimeException stack line RuntimeException stack line RuntimeException stack line RuntimeException stack line RuntimeException stack line RuntimeException stack line/);
+test("parseArgs accepts only strict and report output", () => {
+  assert.deepEqual(parseArgs(["--strict", "--out-dir", "build/custom"]), { strict: true, outDir: "build/custom" });
+  assert.throws(() => parseArgs(["--item", "fabricated"]), /Unknown flag/);
 });
 
-test("parseArgs recognizes strict output and evidence rows", () => {
-  assert.deepEqual(
-    parseArgs([
-      "--strict",
-      "--out-dir",
-      "build/custom",
-      "--item",
-      "item-1",
-      "--type",
-      "frame_summary",
-      "--summary",
-      "6 slow frames",
-      "--artifact",
-      ".fixthis/runtime-evidence/e-2/gfxinfo.json",
-    ]),
-    {
-      strict: true,
-      outDir: "build/custom",
-      evidence: [
-        {
-          itemId: "item-1",
-          type: "frame_summary",
-          summary: "6 slow frames",
-          artifactPath: ".fixthis/runtime-evidence/e-2/gfxinfo.json",
-        },
-      ],
-    },
-  );
-});
-
-test("writeRuntimeEvidenceReport writes json and markdown reports", () => {
-  const root = mkdtempSync(join(tmpdir(), "fixthis-runtime-evidence-"));
+test("writeRuntimeEvidenceReport writes JSON and Markdown", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-runtime-report-"));
   try {
-    const report = buildRuntimeEvidenceReport({
-      strict: false,
-      status: "pass",
-      evidence: [
-        {
-          itemId: "item-1",
-          type: "memory_summary",
-          summary: "No growth detected",
-          artifactPath: ".fixthis/runtime-evidence/e-3/meminfo.txt",
-        },
-      ],
-    });
-    const paths = writeRuntimeEvidenceReport(report, root);
-
-    assert.match(readFileSync(paths.json, "utf8"), /"status": "pass"/);
-    assert.match(readFileSync(paths.markdown, "utf8"), /FixThis Runtime Evidence Report/);
+    const paths = writeRuntimeEvidenceReport(buildRuntimeEvidenceReport({ strict: true, status: "pass", productPath }), root);
+    assert.match(readFileSync(paths.json, "utf8"), /"replayVerified": true/);
+    assert.match(readFileSync(paths.markdown, "utf8"), /Runtime Evidence Report/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

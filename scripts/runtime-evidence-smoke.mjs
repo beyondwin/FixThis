@@ -1,89 +1,71 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
+import { createMcpJsonRpcClient } from "./mcp-json-rpc-client.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(scriptPath), "..");
 const defaultReportDir = "build/reports/fixthis-runtime-evidence";
-const defaultAndroidReason = "Android SDK or ready emulator is unavailable.";
-const summaryLimit = 140;
-const strictRuntimeItemId = "strict-runtime";
+const packageName = "io.github.beyondwin.fixthis.sample";
+const secretValue = "fixthis-runtime-secret-7f3a";
+const handoffLimit = 20_000;
 
-export function normalizeRuntimeEvidenceStatus({
-  strict = false,
-  androidReady = false,
-  evidenceCount = 0,
-  reason = defaultAndroidReason,
-} = {}) {
-  if (!androidReady) return { status: strict ? "fail" : "deferred", reason };
-  if (strict && evidenceCount === 0) {
-    return {
-      status: "fail",
-      reason: "Strict runtime evidence requires at least one captured evidence row.",
-    };
+export function parseArgs(argv = process.argv.slice(2)) {
+  const args = { strict: false, outDir: defaultReportDir };
+  for (let index = 0; index < argv.length; index += 1) {
+    const flag = argv[index];
+    if (flag === "--strict") args.strict = true;
+    else if (flag === "--out-dir" || flag === "--output-dir") {
+      const value = argv[++index];
+      if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
+      args.outDir = value;
+    } else if (flag === "-h" || flag === "--help") {
+      throw new Error("Usage: node scripts/runtime-evidence-smoke.mjs [--strict] [--out-dir <dir>]");
+    } else throw new Error(`Unknown flag: ${flag}`);
   }
-  return { status: "pass", reason: null };
+  return args;
 }
 
-export function selectRuntimeEvidenceCommand(type) {
-  const commands = {
-    logcat_window: { label: "Logcat window", command: "adb logcat -d --pid <pid>" },
-    frame_summary: { label: "Frame summary", command: "adb shell dumpsys gfxinfo <package>" },
-    memory_summary: { label: "Memory summary", command: "adb shell dumpsys meminfo <package>" },
-    trace_artifact: { label: "Trace artifact", command: "perfetto or simpleperf capture script" },
-  };
-  if (!commands[type]) throw new Error(`Unsupported runtime evidence type: ${type}`);
-  return commands[type];
+export function validateRuntimeEvidenceProductPath(productPath) {
+  if (!productPath || productPath.tool !== "fixthis_collect_runtime_evidence") throw new Error("missing collection tool proof");
+  if (!productPath.sessionId) throw new Error("missing product-path session");
+  if (!Array.isArray(productPath.itemIds) || productPath.itemIds.length === 0) throw new Error("missing linked feedback item");
+  if (!["complete", "partial"].includes(productPath.captureStatus)) throw new Error("runtime evidence capture did not produce a usable terminal status");
+  if (!(productPath.attachmentCount > 0)) throw new Error("missing runtime evidence attachment");
+  if (productPath.artifactVerified !== true) throw new Error("runtime evidence artifact is missing or outside the project root");
+  if (productPath.compactHandoffBounded !== true) throw new Error("compact handoff is missing, unbounded, or contains raw secret data");
+  if (productPath.replayVerified !== true) throw new Error("runtime evidence replay mismatch");
+  if (productPath.autoHandoffVerified !== true) throw new Error("Save to MCP Auto handoff was not verified");
+  if (productPath.linkageVerified !== true) throw new Error("runtime evidence linkage was not verified");
+  if (productPath.redactionVerified !== true) throw new Error("runtime evidence redaction was not verified");
+  return productPath;
 }
 
-export function buildRuntimeEvidenceReport({
-  strict = false,
-  status = "pass",
-  reason = null,
-  evidence = [],
-} = {}) {
-  return {
-    generatedAt: new Date().toISOString(),
-    strict,
-    status,
-    reason,
-    evidence: evidence.map((entry) => ({
-      itemId: entry.itemId || "-",
-      type: entry.type,
-      summary: entry.summary || "",
-      artifactPath: entry.artifactPath || null,
-      command: entry.command || selectRuntimeEvidenceCommand(entry.type).command,
-    })),
-  };
-}
-
-function boundedCell(value) {
-  const text = String(value || "-").replace(/\s+/g, " ").trim();
-  if (text.length <= summaryLimit) return text;
-  return `${text.slice(0, summaryLimit - 1)}…`;
+export function buildRuntimeEvidenceReport({ strict, status, reason = null, productPath = null, failures = [] }) {
+  return { generatedAt: new Date().toISOString(), strict, status, reason, productPath, failures };
 }
 
 export function renderRuntimeEvidenceMarkdown(report) {
+  const path = report.productPath;
   const lines = [
     "# FixThis Runtime Evidence Report",
     "",
     `Status: ${report.status}`,
     `Strict: ${report.strict}`,
     "",
-    "| Item | Type | Summary | Artifact |",
-    "| --- | --- | --- | --- |",
+    "| Tool | Session | Items | Capture | Attachments | Artifact | Handoff | Replay |",
+    "| --- | --- | --- | --- | ---: | --- | --- | --- |",
   ];
-  for (const entry of report.evidence || []) {
-    lines.push(
-      `| ${entry.itemId || "-"} | ${entry.type} | ${boundedCell(entry.summary)} | \`${entry.artifactPath || "-"}\` |`,
-    );
-  }
-  if (!report.evidence?.length) lines.push("| - | - | - | `-` |");
+  lines.push(path
+    ? `| ${path.tool} | ${path.sessionId} | ${path.itemIds.join(",")} | ${path.captureStatus} | ${path.attachmentCount} | ${path.artifactVerified} | ${path.compactHandoffBounded} | ${path.replayVerified} |`
+    : "| - | - | - | - | 0 | false | false | false |");
   if (report.reason) lines.push("", `Reason: ${report.reason}`);
+  for (const failure of report.failures || []) lines.push(`- Failure: ${String(failure).replace(/\s+/g, " ").slice(0, 240)}`);
   return `${lines.join("\n")}\n`;
 }
 
@@ -96,141 +78,246 @@ export function writeRuntimeEvidenceReport(report, outDir = defaultReportDir) {
   return { json, markdown };
 }
 
-function strictArtifactPath(now = new Date()) {
-  const timestamp = now.toISOString().replace(/[:.]/g, "-");
-  return `.fixthis/runtime-evidence/${timestamp}-logcat.txt`;
-}
-
-function logcatSummary(stdout = "", device = null) {
-  const lines = stdout.split(/\r?\n/).filter((line) => line.trim()).length;
-  return `Captured ${lines} logcat lines from ${device || "ready Android device"}.`;
-}
-
-export function captureStrictRuntimeEvidence({
-  androidEnvironment,
-  now = () => new Date(),
-  spawn = spawnSync,
-  root = repoRoot,
-} = {}) {
-  const artifactPath = strictArtifactPath(now());
-  const fullPath = resolve(root, artifactPath);
-  const adbArgs = [];
-  if (androidEnvironment?.device) adbArgs.push("-s", androidEnvironment.device);
-  adbArgs.push("logcat", "-d", "-t", "80");
-  const command = ["adb", ...adbArgs].join(" ");
-  const result = spawn("adb", adbArgs, {
-    cwd: root,
+function run(command, args, environment, options = {}) {
+  return spawnSync(command, args, {
+    cwd: options.cwd || repoRoot,
     encoding: "utf8",
-    env: { ...process.env, ...(androidEnvironment?.envPatch || {}) },
+    stdio: options.stdio || "pipe",
+    env: { ...process.env, ...(environment?.envPatch || {}) },
   });
-  if (result.status !== 0) return null;
-  mkdirSync(dirname(fullPath), { recursive: true });
-  writeFileSync(fullPath, result.stdout || "");
-  return {
-    itemId: strictRuntimeItemId,
-    type: "logcat_window",
-    summary: logcatSummary(result.stdout || "", androidEnvironment?.device),
-    artifactPath,
-    command,
-  };
 }
 
-function requireValue(argv, index, flag) {
-  const value = argv[index + 1];
-  if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
-  return value;
+function ensureMcpDistribution(environment) {
+  const result = run("./gradlew", [":fixthis-mcp:installDist", "--no-daemon"], environment, { stdio: "inherit" });
+  if (result.status !== 0) throw new Error("Could not build the MCP distribution");
+  return join(repoRoot, "fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp");
 }
 
-export function parseArgs(argv = process.argv.slice(2)) {
-  const args = {
-    strict: false,
-    outDir: defaultReportDir,
-    evidence: [],
-  };
-  let pending = null;
-  const pushPending = () => {
-    if (!pending) return;
-    if (!pending.itemId) throw new Error("--item is required for runtime evidence rows");
-    if (!pending.type) throw new Error("--type is required for runtime evidence rows");
-    selectRuntimeEvidenceCommand(pending.type);
-    args.evidence.push({
-      itemId: pending.itemId,
-      type: pending.type,
-      summary: pending.summary || "",
-      artifactPath: pending.artifactPath || null,
+async function consoleClient(consoleUrl) {
+  const base = new URL(consoleUrl);
+  const response = await fetch(base);
+  if (!response.ok) throw new Error(`Console bootstrap failed (${response.status})`);
+  const html = await response.text();
+  const token = html.match(/consoleToken:\s*"([^"]+)"/)?.[1];
+  if (!token) throw new Error("Console token was not present in bootstrap HTML");
+  const origin = base.origin;
+  return async (path, body) => {
+    const next = await fetch(new URL(path, origin), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-FixThis-Console-Token": token, Origin: origin },
+      body: JSON.stringify(body),
     });
-    pending = null;
+    const text = await next.text();
+    if (!next.ok) throw new Error(`${path} failed (${next.status}): ${text}`);
+    return JSON.parse(text);
   };
-
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === "--strict") {
-      args.strict = true;
-    } else if (arg === "--out-dir" || arg === "--output-dir") {
-      args.outDir = requireValue(argv, i, arg);
-      i += 1;
-    } else if (arg === "--item") {
-      pushPending();
-      pending = { itemId: requireValue(argv, i, arg) };
-      i += 1;
-    } else if (arg === "--type") {
-      if (!pending) pending = {};
-      pending.type = requireValue(argv, i, arg);
-      i += 1;
-    } else if (arg === "--summary") {
-      if (!pending) pending = {};
-      pending.summary = requireValue(argv, i, arg);
-      i += 1;
-    } else if (arg === "--artifact" || arg === "--artifact-path") {
-      if (!pending) pending = {};
-      pending.artifactPath = requireValue(argv, i, arg);
-      i += 1;
-    } else if (arg === "-h" || arg === "--help") {
-      throw new Error(
-        "Usage: node scripts/runtime-evidence-smoke.mjs [--strict] [--out-dir <dir>] [--item <id> --type <type> --summary <text> --artifact <path>]",
-      );
-    } else {
-      throw new Error(`Unknown flag: ${arg}`);
-    }
-  }
-  pushPending();
-  return args;
 }
 
-export function createRuntimeEvidenceSmokeReport({
+function requireProof(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+function sortedUnique(values = []) {
+  return [...new Set(values)].sort();
+}
+
+function sameIds(actual, expected) {
+  return JSON.stringify(sortedUnique(actual)) === JSON.stringify(sortedUnique(expected));
+}
+
+function evidenceProjection(session, itemId, result, projectDir, expectedTrigger, requireRedaction = false) {
+  requireProof(result?.attempted === true, `${expectedTrigger} collection was not attempted`);
+  requireProof(["complete", "partial"].includes(result.status), `${expectedTrigger} collection did not produce a usable terminal status`);
+  requireProof(Boolean(result.captureId), `${expectedTrigger} collection is missing capture id`);
+  const ids = sortedUnique(result.attachmentIds);
+  requireProof(ids.length > 0, `${expectedTrigger} collection is missing attachments`);
+  requireProof(sameIds(result.linkedItemIds, [itemId]), `${expectedTrigger} linked item mismatch`);
+  const targetItem = session.items?.find((entry) => entry.itemId === itemId);
+  requireProof(targetItem, "target feedback item missing from session");
+  const root = realpathSync(resolve(projectDir, ".fixthis/runtime-evidence"));
+  let redactionMarkerFound = false;
+  const attachments = ids.map((id) => {
+    const attachment = session.runtimeEvidence?.find((entry) => entry.evidenceId === id);
+    requireProof(attachment, `${expectedTrigger} attachment missing from session: ${id}`);
+    requireProof(targetItem.runtimeEvidenceIds?.includes(id), `${expectedTrigger} attachment is not linked to target item: ${id}`);
+    requireProof(attachment.trigger === expectedTrigger, `${expectedTrigger} attachment has wrong trigger: ${id}`);
+    requireProof(attachment.captureId === result.captureId, `${expectedTrigger} attachment has wrong capture id: ${id}`);
+    requireProof(Boolean(attachment.artifactPath), `${expectedTrigger} attachment is missing artifact path: ${id}`);
+    const candidate = isAbsolute(attachment.artifactPath) ? attachment.artifactPath : resolve(projectDir, attachment.artifactPath);
+    requireProof(existsSync(candidate), `${expectedTrigger} artifact missing or outside evidence root: ${id}`);
+    const actual = realpathSync(candidate);
+    requireProof(actual.startsWith(`${root}${sep}`) && statSync(actual).isFile(), `${expectedTrigger} artifact missing or outside evidence root: ${id}`);
+    const body = readFileSync(actual, "utf8");
+    requireProof(!body.includes(secretValue), `${expectedTrigger} artifact contains raw secret: ${id}`);
+    if (body.includes("[REDACTED]") && attachment.warnings?.includes("redaction_applied")) redactionMarkerFound = true;
+    return {
+      evidenceId: attachment.evidenceId,
+      trigger: attachment.trigger,
+      captureId: attachment.captureId,
+      artifactPath: attachment.artifactPath,
+    };
+  });
+  if (requireRedaction) requireProof(redactionMarkerFound, `${expectedTrigger} redaction marker was not observed`);
+  return attachments.sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
+}
+
+function noSecret(value) {
+  return !JSON.stringify(value).includes(secretValue);
+}
+
+export function proveRuntimeEvidenceProductPath({
+  toolName,
+  sessionId,
+  itemId,
+  projectDir,
+  policy,
+  collected,
+  handoff,
+  session,
+  replayed,
+}) {
+  requireProof(toolName === "fixthis_collect_runtime_evidence", "missing collection tool proof");
+  requireProof(policy?.runtimeEvidencePolicy === "auto_on_handoff", "runtime evidence policy did not persist as Auto");
+  requireProof(handoff?.session?.runtimeEvidencePolicy === "auto_on_handoff", "handoff session lost Auto runtime evidence policy");
+  requireProof(noSecret(handoff), "raw secret entered handoff JSON or Markdown");
+  requireProof(noSecret(session), "raw secret entered session JSON");
+  requireProof(noSecret(replayed), "raw secret entered replayed session JSON");
+
+  const manualProjection = evidenceProjection(session, itemId, collected, projectDir, "mcp_manual");
+  const auto = handoff.runtimeEvidence;
+  requireProof(auto?.attempted === true, "Auto handoff did not attempt runtime evidence collection");
+  requireProof(!auto.skippedReason, "Auto handoff runtime evidence was skipped");
+  const autoProjection = evidenceProjection(session, itemId, auto, projectDir, "handoff_auto", true);
+  const handoffProjection = evidenceProjection(handoff.session, itemId, auto, projectDir, "handoff_auto", true);
+  requireProof(JSON.stringify(autoProjection) === JSON.stringify(handoffProjection), "handoff response attachment mismatch");
+
+  const compactHandoffBounded = handoff.prompt.length <= handoffLimit &&
+    handoff.prompt.includes("runtimeEvidenceAttempt:") && handoff.prompt.includes("attempted=true") && noSecret(handoff.prompt);
+  requireProof(compactHandoffBounded, "compact handoff is missing, unbounded, or contains raw secret data");
+
+  const relevantIds = sortedUnique([...collected.attachmentIds, ...auto.attachmentIds]);
+  const replayItem = replayed.items?.find((entry) => entry.itemId === itemId);
+  requireProof(sameIds(replayItem?.runtimeEvidenceIds, relevantIds), "runtime evidence item linkage replay mismatch");
+  const replayProjection = relevantIds.map((id) => {
+    const attachment = replayed.runtimeEvidence?.find((entry) => entry.evidenceId === id);
+    requireProof(attachment, `runtime evidence replay attachment missing: ${id}`);
+    return {
+      evidenceId: attachment.evidenceId,
+      trigger: attachment.trigger,
+      captureId: attachment.captureId,
+      artifactPath: attachment.artifactPath,
+    };
+  }).sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
+  const expectedReplay = [...manualProjection, ...autoProjection].sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
+  const replayVerified = JSON.stringify(replayProjection) === JSON.stringify(expectedReplay);
+  requireProof(replayVerified, "runtime evidence replay mismatch");
+
+  return validateRuntimeEvidenceProductPath({
+    tool: toolName,
+    sessionId,
+    itemIds: [itemId],
+    captureStatus: auto.status,
+    attachmentCount: auto.attachmentIds.length,
+    artifactVerified: true,
+    compactHandoffBounded,
+    replayVerified,
+    autoHandoffVerified: true,
+    linkageVerified: true,
+    redactionVerified: true,
+  });
+}
+
+export async function runRuntimeEvidenceProductPath({ environment, projectDir, mcpBin = ensureMcpDistribution(environment) }) {
+  const env = { ...process.env, ...(environment.envPatch || {}) };
+  let mcp;
+  try {
+    mcp = await createMcpJsonRpcClient({
+      command: mcpBin,
+      args: ["--project-dir", projectDir, "--package", packageName],
+      cwd: repoRoot,
+      env,
+      clientInfo: { name: "runtime-evidence-smoke", version: "0" },
+    });
+    const opened = await mcp.callTool("fixthis_open_feedback_console", { packageName, newSession: true });
+    const sessionId = opened.sessionId;
+    const captured = await mcp.callTool("fixthis_capture_screen", { sessionId });
+    const post = await consoleClient(opened.consoleUrl);
+    const item = await post("/api/items", {
+      sessionId,
+      screenId: captured.screen.screenId,
+      comment: "Runtime evidence product-path proof",
+      targetType: "area",
+      bounds: { left: 0, top: 0, right: 32, bottom: 32 },
+    });
+    const policy = await post(`/api/sessions/${encodeURIComponent(sessionId)}/runtime-evidence-policy`, { policy: "auto_on_handoff" });
+    const collected = await mcp.callTool("fixthis_collect_runtime_evidence", {
+      sessionId,
+      itemId: item.itemId,
+      preset: "baseline",
+    }, 30_000);
+    const logged = run(
+      "adb",
+      ["-s", environment.device, "shell", "log", "-b", "crash", "-t", "FixThisRuntimeSmoke", `Authorization: Bearer ${secretValue}`],
+      environment,
+    );
+    if (logged.status !== 0) throw new Error(`Could not inject redaction sentinel: ${logged.stderr || logged.stdout}`);
+    const handoff = await post("/api/agent-handoffs", { sessionId, itemIds: [item.itemId] });
+    const session = await mcp.callTool("fixthis_read_feedback", { sessionId, includeAll: true });
+    await mcp.close();
+    mcp = null;
+
+    const replay = await createMcpJsonRpcClient({
+      command: mcpBin,
+      args: ["--project-dir", projectDir, "--package", packageName],
+      cwd: repoRoot,
+      env,
+      clientInfo: { name: "runtime-evidence-replay-smoke", version: "0" },
+    });
+    mcp = replay;
+    const replayed = await replay.callTool("fixthis_read_feedback", { sessionId, includeAll: true });
+    return proveRuntimeEvidenceProductPath({
+      toolName: "fixthis_collect_runtime_evidence",
+      sessionId,
+      itemId: item.itemId,
+      projectDir,
+      policy,
+      collected,
+      handoff,
+      session,
+      replayed,
+    });
+  } finally {
+    await mcp?.close?.();
+  }
+}
+
+export async function createRuntimeEvidenceSmokeReport({
   args = parseArgs(),
-  androidEnvironment = resolveAndroidEnvironment(),
-  captureRuntimeEvidence = captureStrictRuntimeEvidence,
+  environment = resolveAndroidEnvironment(),
+  runProductPath = runRuntimeEvidenceProductPath,
 } = {}) {
-  const evidence = args.evidence.slice();
-  if (args.strict && androidEnvironment.ready && evidence.length === 0) {
-    const captured = captureRuntimeEvidence({ androidEnvironment });
-    if (captured) evidence.push(captured);
+  if (!environment.ready) {
+    const status = args.strict ? "fail" : "deferred";
+    return buildRuntimeEvidenceReport({ strict: args.strict, status, reason: environment.reason || "Android device unavailable" });
   }
-  const status = normalizeRuntimeEvidenceStatus({
-    strict: args.strict,
-    androidReady: androidEnvironment.ready,
-    evidenceCount: evidence.length,
-    reason: androidEnvironment.reason || defaultAndroidReason,
-  });
-  return buildRuntimeEvidenceReport({
-    strict: args.strict,
-    status: status.status,
-    reason: status.reason,
-    evidence,
-  });
+  const projectDir = mkdtempSync(join(tmpdir(), "fixthis-runtime-product-path-"));
+  try {
+    const productPath = await runProductPath({ environment, projectDir });
+    return buildRuntimeEvidenceReport({ strict: args.strict, status: "pass", productPath });
+  } catch (error) {
+    return buildRuntimeEvidenceReport({ strict: args.strict, status: "fail", reason: error.message, failures: [error.message] });
+  } finally {
+    rmSync(projectDir, { recursive: true, force: true });
+  }
 }
 
-export function main(argv = process.argv.slice(2), io = { stdout: process.stdout, stderr: process.stderr }) {
+export async function main(argv = process.argv.slice(2), io = { stdout: process.stdout, stderr: process.stderr }) {
   try {
     const args = parseArgs(argv);
-    const report = createRuntimeEvidenceSmokeReport({ args });
+    const report = await createRuntimeEvidenceSmokeReport({ args });
     const paths = writeRuntimeEvidenceReport(report, args.outDir);
-    io.stdout.write(`Runtime evidence smoke: ${report.status}\n`);
-    io.stdout.write(`JSON: ${paths.json}\n`);
-    io.stdout.write(`Markdown: ${paths.markdown}\n`);
-    if (report.status === "fail") return 1;
-    return 0;
+    io.stdout.write(`Runtime evidence smoke: ${report.status}\nJSON: ${paths.json}\nMarkdown: ${paths.markdown}\n`);
+    return report.status === "fail" ? 1 : 0;
   } catch (error) {
     io.stderr.write(`${error.message}\n`);
     return 2;
@@ -238,5 +325,5 @@ export function main(argv = process.argv.slice(2), io = { stdout: process.stdout
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
-  process.exitCode = main();
+  main().then((code) => { process.exitCode = code; });
 }

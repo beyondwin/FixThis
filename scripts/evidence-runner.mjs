@@ -39,6 +39,11 @@ const profileDefinitions = {
       deferrable: true,
       requiresAndroid: true,
     }),
+    step("Runtime evidence product path", "npm run runtime-evidence:smoke -- --strict", {
+      deferrable: true,
+      requiresAndroid: true,
+      reportPath: "build/reports/fixthis-runtime-evidence/report.json",
+    }),
   ],
   console: [
     step("Studio reliability contract", "node --test scripts/studioReliabilityContract-test.mjs"),
@@ -152,9 +157,13 @@ function sdkCandidates({ env, homeDir, platform }) {
   return [...new Set(candidates.filter((value) => typeof value === "string" && value.trim()))];
 }
 
-export function parseReadyAndroidDevice(stdout = "") {
-  const match = stdout.match(/\n(\S+)\s+device\b/);
-  return match?.[1] || null;
+export function parseReadyAndroidDevice(stdout = "", preferredSerial = null) {
+  const ready = stdout
+    .split(/\r?\n/)
+    .map((line) => line.match(/^(\S+)\s+device\b/)?.[1])
+    .filter(Boolean);
+  if (preferredSerial) return ready.includes(preferredSerial) ? preferredSerial : null;
+  return ready[0] || null;
 }
 
 export function resolveAndroidEnvironment({
@@ -189,11 +198,14 @@ export function resolveAndroidEnvironment({
     encoding: "utf8",
     env: { ...process.env, ...env, ...envPatch },
   });
-  const device = parseReadyAndroidDevice(adb.stdout);
+  const preferredSerial = env.ANDROID_SERIAL?.trim() || null;
+  const device = parseReadyAndroidDevice(adb.stdout, preferredSerial);
   return {
     ready: adb.status === 0 && Boolean(device),
-    reason: "Android SDK or ready emulator is unavailable.",
-    envPatch,
+    reason: preferredSerial && !device
+      ? `Selected Android device is unavailable: ${preferredSerial}`
+      : "Android SDK or ready emulator is unavailable.",
+    envPatch: device ? { ...envPatch, ANDROID_SERIAL: device } : envPatch,
     device,
   };
 }

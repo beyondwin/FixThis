@@ -39,6 +39,11 @@ test("trust profile includes source matching and runtime strict as deferrable", 
   const agentLoop = steps.find((step) => step.command === "npm run agent-loop:smoke -- --strict");
   assert.equal(agentLoop.deferrable, true);
   assert.equal(agentLoop.requiresAndroid, true);
+  const runtimeProductPath = steps.find((step) => step.name === "Runtime evidence product path");
+  assert.equal(runtimeProductPath.command, "npm run runtime-evidence:smoke -- --strict");
+  assert.equal(runtimeProductPath.deferrable, true);
+  assert.equal(runtimeProductPath.requiresAndroid, true);
+  assert.equal(runtimeProductPath.reportPath, "build/reports/fixthis-runtime-evidence/report.json");
 });
 
 test("trust profile keeps focused external trust matrix v2 strict evidence", () => {
@@ -54,7 +59,28 @@ test("trust profile keeps focused external trust matrix v2 strict evidence", () 
 
 test("android device parser returns the first ready adb device", () => {
   assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\tdevice\nphone-1\toffline\n"), "emulator-5554");
+  assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\tdevice\nphone-1\tdevice\n", "phone-1"), "phone-1");
+  assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\tdevice\nphone-1\toffline\n", "phone-1"), null);
   assert.equal(parseReadyAndroidDevice("List of devices attached\nemulator-5554\toffline\n"), null);
+});
+
+test("android readiness pins the propagated ANDROID_SERIAL instead of the first ready device", () => {
+  const sdk = "/sdk";
+  const result = resolveAndroidEnvironment({
+    env: { ANDROID_HOME: sdk, ANDROID_SERIAL: "phone-1", PATH: "/usr/bin" },
+    homeDir: "/Users/test",
+    platform: "darwin",
+    exists: (path) => path === join(sdk, "platform-tools", "adb"),
+    spawn: () => ({
+      status: 0,
+      stdout: "List of devices attached\nemulator-5554\tdevice\nphone-1\tdevice\n",
+      stderr: "",
+    }),
+  });
+
+  assert.equal(result.ready, true);
+  assert.equal(result.device, "phone-1");
+  assert.equal(result.envPatch.ANDROID_SERIAL, "phone-1");
 });
 
 test("android readiness falls back to common macOS SDK and injects platform-tools", () => {
