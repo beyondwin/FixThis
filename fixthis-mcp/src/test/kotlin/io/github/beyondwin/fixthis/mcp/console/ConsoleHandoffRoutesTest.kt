@@ -15,6 +15,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -78,6 +79,7 @@ class ConsoleHandoffRoutesTest {
             defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
         val session = service.openSession(null, newSession = true)
+        service.updateRuntimeEvidencePolicy(session.sessionId, RuntimeEvidencePolicy.MANUAL)
         val screen = service.captureFakeScreenForTest(session.sessionId)
         service.addAreaFeedback(session.sessionId, screen.screenId, FixThisRect(0f, 0f, 10f, 10f), "Fix it")
         val server = FeedbackConsoleServer(service = service, port = 0)
@@ -117,7 +119,8 @@ class ConsoleHandoffRoutesTest {
             projectRoot = "/repo",
             defaultPackageName = "io.github.beyondwin.fixthis.sample",
         )
-        service.openSession(null, newSession = true)
+        val session = service.openSession(null, newSession = true)
+        service.updateRuntimeEvidencePolicy(session.sessionId, RuntimeEvidencePolicy.MANUAL)
         val server = FeedbackConsoleServer(service = service, port = 0)
         server.start()
         try {

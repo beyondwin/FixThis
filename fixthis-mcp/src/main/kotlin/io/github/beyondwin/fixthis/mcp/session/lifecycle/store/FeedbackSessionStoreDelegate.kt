@@ -94,6 +94,7 @@ internal class FeedbackSessionStoreDelegate(
             projectRoot = projectRoot,
             createdAtEpochMillis = now,
             updatedAtEpochMillis = now,
+            runtimeEvidencePolicy = RuntimeEvidencePolicy.AUTO_ON_HANDOFF,
         )
         store.saveAndPut(session)
         currentSessionId = session.sessionId
