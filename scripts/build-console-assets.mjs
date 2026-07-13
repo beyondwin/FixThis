@@ -220,10 +220,10 @@ async function buildOnce({ reproducible } = {}) {
   const jsText = new TextDecoder().decode(jsBytes);
   assertContractSymbols(jsText);
 
-  // Runtime diagnostics plus its serialized policy mutation queue adds 6,886
-  // raw bytes over the prior reproducible asset, with narrow repair headroom.
-  const RAW_BUDGET_BYTES = 239_000;
-  const GZIP_BUDGET_BYTES = 60_500;
+  // Runtime diagnostics, its serialized policy queue, and the automatic handoff
+  // status and session-fencing boundary add 8,235 raw bytes, with narrow headroom.
+  const RAW_BUDGET_BYTES = 240_500;
+  const GZIP_BUDGET_BYTES = 61_000;
   if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
     throw new Error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes.`);
   }

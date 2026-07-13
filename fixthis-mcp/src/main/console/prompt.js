@@ -1,4 +1,4 @@
-// @requires state.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, annotations.js, preview.js
+// @requires state.js, studioWorkflowAdapter.js, draftWorkspace.js, draftUseCases.js, annotations.js, preview.js, runtimeEvidence.js
             function promptUnavailableMessage() {
               if (!state.session) return 'Select a history item before copying or sending annotations.';
               const annotations = toolbarAnnotations();
@@ -136,6 +136,24 @@
                 });
             }
 
+            function runtimeEvidenceHandoffSuccessMessage(runtimeEvidence) {
+                if (!runtimeEvidence) return 'Saved to MCP ✓ — agent will pick up';
+                if (runtimeEvidence.attempted === false) {
+                    if (runtimeEvidence.skippedReason === 'off') return 'Saved to MCP ✓ — diagnostics Off';
+                    if (runtimeEvidence.skippedReason === 'manual') return 'Saved to MCP ✓ — diagnostics Manual';
+                    return 'Saved to MCP ✓ — diagnostics skipped';
+                }
+                if (runtimeEvidence.status === 'complete') return 'Saved to MCP ✓ — diagnostics complete';
+                if (runtimeEvidence.status === 'partial') return 'Saved to MCP ✓ — diagnostics partial';
+                if (runtimeEvidence.status === 'failed') return 'Saved to MCP ✓ — diagnostics failed';
+                if (runtimeEvidence.status === 'unsupported') return 'Saved to MCP ✓ — diagnostics unsupported';
+                return 'Saved to MCP ✓ — diagnostics finished';
+            }
+
+            function handoffContextMatches(context, sessionId = state.session?.sessionId, generation = pollingUseCases.getState().mutationGeneration) {
+                return Boolean(context && context.sessionId === sessionId && context.generation === generation);
+            }
+
             async function sendAgentPrompt() {
                 store.dispatch({ type: 'SAVE_TO_MCP_CLICKED' });
                 if (pollingUseCases.getState().promptActionInFlight) return;
@@ -147,10 +165,19 @@
                     pollingUseCases.setPromptActionInFlight(true);
                     updateComposerState();
                     let sent = false;
+                    let successMessage = 'Saved to MCP ✓ — agent will pick up';
                     try {
-                        const itemIds = await persistAndCollectItemIds({ keepResidualDraftActive: false });
                         const sessionId = draftWorkspace?.context?.sessionId || state.session?.sessionId;
                         if (!sessionId) throw new Error('Feedback session context is missing. Re-capture and try again.');
+                        const handoffContext = {
+                            sessionId,
+                            generation: pollingUseCases.getState().mutationGeneration,
+                        };
+                        await runtimeEvidenceController().awaitPolicySettled(sessionId);
+                        if (!handoffContextMatches(handoffContext)) return;
+                        const itemIds = await persistAndCollectItemIds({ keepResidualDraftActive: false });
+                        if (!handoffContextMatches(handoffContext)) return;
+                        showStatus('Collecting diagnostics…', { variant: 'info' });
                         const result = await requestJson('/api/agent-handoffs', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -159,18 +186,23 @@
                                 itemIds
                             }),
                         });
+                        if (!handoffContextMatches(handoffContext)) {
+                            await refreshSessionsWhenEventsDisconnected();
+                            return;
+                        }
                         setConsoleSession(result.session);
                         comment.value = '';
                         resetComposer();
                         clearPreview();
                         await refreshSessionsWhenEventsDisconnected();
                         render();
+                        successMessage = runtimeEvidenceHandoffSuccessMessage(result.runtimeEvidence);
                         sent = true;
                     } finally {
                         pollingUseCases.setPromptActionInFlight(false);
                         if (sent) await restoreLivePreviewAfterPromptPersistence();
                         updateComposerState();
-                        if (sent) showSuccess('Saved to MCP ✓ — agent will pick up', 3000);
+                        if (sent) showSuccess(successMessage, 3000);
                     }
                 });
             }

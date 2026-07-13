@@ -97,6 +97,13 @@ class ConsoleHandoffRoutesTest {
             )
             val prompt = payload["prompt"]!!.jsonPrimitive.content
             assertTrue(prompt.contains("id: item-1"), "prompt should contain 'id: item-1', got:\n$prompt")
+            val runtimeEvidence = payload["runtimeEvidence"]!!.jsonObject
+            assertFalse(runtimeEvidence["attempted"]!!.jsonPrimitive.boolean)
+            assertEquals("manual", runtimeEvidence["skippedReason"]!!.jsonPrimitive.content)
+            assertTrue(
+                service.requireCurrentSession().handoffBatches.single().markdownSnapshot.orEmpty()
+                    .contains("runtimeEvidenceAttempt:"),
+            )
         } finally {
             server.stop()
         }

@@ -6,6 +6,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationSeverityDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationStatusDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureResult
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -37,6 +38,7 @@ data class AgentHandoffRequest(
 data class AgentHandoffResponse(
     val session: SessionDto,
     val prompt: String,
+    val runtimeEvidence: RuntimeEvidenceCaptureResult? = null,
 )
 
 @Serializable

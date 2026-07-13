@@ -122,9 +122,18 @@ internal class FeedbackItemRoutes(
                     throw FeedbackConsoleHttpException(400, "itemIds must not be empty (legacy {prompt} body is no longer accepted; use {itemIds:[...]})")
                 }
                 val sessionId = requestSessionId(request.sessionId)
-                val result = service.sendDraftToAgent(sessionId, request.itemIds)
+                val result = runBlocking {
+                    service.sendDraftToAgentWithRuntimeEvidence(sessionId, request.itemIds)
+                }
                 eventBus.emitSessionUpdated(result.session)
-                exchange.sendJson(200, AgentHandoffResponse(session = result.session, prompt = result.prompt))
+                exchange.sendJson(
+                    200,
+                    AgentHandoffResponse(
+                        session = result.session,
+                        prompt = result.prompt,
+                        runtimeEvidence = result.runtimeEvidence,
+                    ),
+                )
             }
             else -> {
                 val path = exchange.requestURI.path

@@ -11,10 +11,10 @@ const script = resolve(root, 'scripts/build-console-assets.mjs');
 const targetJs = resolve(root, 'fixthis-mcp/src/main/resources/console/app.js');
 const targetMeta = resolve(root, 'fixthis-mcp/src/main/resources/console/console-build-meta.json');
 
-// Runtime diagnostics plus its serialized policy mutation queue adds 6,886
-// raw bytes to the reproducible asset, with narrow repair headroom.
-const RAW_BUDGET = 239_000;
-const GZIP_BUDGET = 60_500;
+// Runtime diagnostics, its serialized policy queue, and the automatic handoff
+// status and session-fencing boundary add 8,235 raw bytes, with narrow feature headroom.
+const RAW_BUDGET = 240_500;
+const GZIP_BUDGET = 61_000;
 
 test('build script runs without arguments and produces app.js', () => {
   execFileSync('node', [script], { cwd: root, stdio: 'pipe' });

@@ -134,6 +134,7 @@
                 const promise = new Promise((resolve, reject) => {
                   queue.queued = { generation, policy, reject, resolve };
                 });
+                queue.latestPromise = promise;
                 ports.render?.();
                 drainPolicyQueue(sessionId, queue);
                 return promise;
@@ -141,7 +142,9 @@
 
               const stateFor = (itemId, sessionId = ports.activeSession()?.sessionId) =>
                 sessionId ? captures.get(keyOf(sessionId, itemId)) || null : null;
-              return { collect, effectivePolicy, stateFor, updatePolicy };
+              const awaitPolicySettled = (sessionId = ports.activeSession()?.sessionId) =>
+                sessionId ? (policyQueues.get(sessionId)?.latestPromise || Promise.resolve(null)) : Promise.resolve(null);
+              return { awaitPolicySettled, collect, effectivePolicy, stateFor, updatePolicy };
             }
 
             let browserRuntimeEvidenceController;

@@ -35,11 +35,13 @@ import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureCoo
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureDependencies
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureRequest
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureResult
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceHandoffService
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceRedactor
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceService
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceSummarizer
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
+import io.github.beyondwin.fixthis.mcp.session.runtime.SendDraftToAgentWithRuntimeEvidenceResult
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
@@ -135,6 +137,20 @@ class FeedbackSessionService(
             summarizer = RuntimeEvidenceSummarizer(runtimeEvidenceRedactor),
             idGenerator = { store.nextId() },
         ),
+    )
+    private val runtimeEvidenceHandoffService = RuntimeEvidenceHandoffService(
+        readSession = { sessionId -> materialize(registry.getSession(sessionId)) },
+        collect = runtimeEvidenceCoordinator::collect,
+        render = { session, itemIds -> CompactHandoffRenderer.render(session, itemIds = itemIds) },
+        markSent = { sessionId, prompt, itemIds ->
+            materialize(
+                feedbackDraftService.sendDraftToAgent(
+                    sessionId = sessionId,
+                    prompt = prompt,
+                    targetItemIds = itemIds,
+                ),
+            )
+        },
     )
 
     // --- Session lifecycle (delegates to FeedbackSessionRegistry) ---
@@ -367,6 +383,11 @@ class FeedbackSessionService(
         )
         return SendDraftToAgentResult(session = materialize(updated), prompt = prompt)
     }
+
+    suspend fun sendDraftToAgentWithRuntimeEvidence(
+        sessionId: String,
+        itemIds: List<String>,
+    ): SendDraftToAgentWithRuntimeEvidenceResult = runtimeEvidenceHandoffService.sendDraftToAgentWithRuntimeEvidence(sessionId, itemIds)
 
     fun markReadyForAgent(sessionId: String): SessionDto = materialize(feedbackDraftService.markReadyForAgent(sessionId))
 
