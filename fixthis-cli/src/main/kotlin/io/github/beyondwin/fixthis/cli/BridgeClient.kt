@@ -10,6 +10,11 @@ import io.github.beyondwin.fixthis.cli.bridge.ScreenshotArtifactDownloader
 import io.github.beyondwin.fixthis.cli.bridge.ScreenshotArtifactRequest
 import io.github.beyondwin.fixthis.cli.bridge.SidekickSession
 import io.github.beyondwin.fixthis.cli.bridge.sanitizedPathSegment
+import io.github.beyondwin.fixthis.cli.runtime.AndroidRuntimeEvidenceCollector
+import io.github.beyondwin.fixthis.cli.runtime.CliRuntimeEvidenceCapabilities
+import io.github.beyondwin.fixthis.cli.runtime.CliRuntimeEvidenceContext
+import io.github.beyondwin.fixthis.cli.runtime.CliRuntimeEvidenceKind
+import io.github.beyondwin.fixthis.cli.runtime.CliRuntimeEvidenceResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -29,6 +34,9 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -39,6 +47,8 @@ import kotlin.coroutines.resumeWithException
 // of the 4 sites lag — bump them all together. See docs/reference/bridge-protocol.md.
 internal const val BridgeProtocolVersion = "1.3"
 private const val DefaultSocketTimeoutMillis = 30_000
+private const val RuntimeEvidenceBridgeTimeoutMillis = 1_250L
+private const val RuntimeEvidenceEnrichmentDeadlineMillis = 1_500L
 private const val BRIDGE_SOCKET_NAME_MAX_ATTEMPTS = 3
 private const val BRIDGE_CLOSED_BEFORE_RESPONSE = "Bridge closed before sending a response"
 
@@ -82,6 +92,13 @@ class BridgeClient(
         val selectedSerial = deviceSelection.selected()
         val scopedSerial = BridgeRequestDeviceResolver.resolve(resolvedAdb.devices(), selectedSerial)
         return BridgeRequestScope(selectedDeviceSerial = scopedSerial, adb = resolvedAdb.forDevice(scopedSerial))
+    }
+
+    private fun runtimeEvidenceScope(): BridgeRequestScope {
+        val scope = requestScope()
+        if (scope.selectedDeviceSerial != null) return scope
+        val serial = scope.adb.devices().single { it.state == "device" }.serial
+        return BridgeRequestScope(selectedDeviceSerial = serial, adb = scope.adb.forDevice(serial))
     }
 
     suspend fun request(
@@ -154,6 +171,61 @@ class BridgeClient(
         scope.adb.launchApp(packageName)
     }
 
+    fun runtimeEvidenceCapabilities(packageName: String): CliRuntimeEvidenceCapabilities {
+        val scope = runtimeEvidenceScope()
+        return AndroidRuntimeEvidenceCollector(scope.adb, scope.deviceSerial()).capabilities(packageName)
+    }
+
+    fun runtimeEvidenceContext(packageName: String): CliRuntimeEvidenceContext {
+        val scope = runtimeEvidenceScope()
+        val adbContext = AndroidRuntimeEvidenceCollector(scope.adb, scope.deviceSerial()).context(packageName)
+        val (status, snapshot) = runtimeEvidenceBridgeContext(scope, packageName)
+        return adbContext.copy(
+            installEpochMillis = status.stringValue("installEpochMillis")?.toLongOrNull() ?: adbContext.installEpochMillis,
+            currentActivity = status.stringValue("activity") ?: snapshot.stringValue("activity"),
+            bridgeProtocolVersion = status.stringValue("bridgeProtocolVersion"),
+            currentScreenFingerprint = snapshot.stringValue("fingerprint"),
+        )
+    }
+
+    private fun runtimeEvidenceBridgeContext(
+        scope: BridgeRequestScope,
+        packageName: String,
+    ): Pair<JsonObject?, JsonObject?> {
+        val executor = Executors.newFixedThreadPool(2) { task ->
+            thread(start = false, isDaemon = true, name = "fixthis-runtime-evidence-bridge", block = task::run)
+        }
+        return try {
+            val status = executor.submit<JsonObject?> {
+                runCatching {
+                    requestBlockingInScope(scope, packageName, "status", RuntimeEvidenceBridgeTimeoutMillis)
+                }.getOrNull()
+            }
+            val snapshot = executor.submit<JsonObject?> {
+                runCatching {
+                    requestBlockingInScope(scope, packageName, "captureScreenSnapshot", RuntimeEvidenceBridgeTimeoutMillis)
+                }.getOrNull()
+            }
+            val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(RuntimeEvidenceEnrichmentDeadlineMillis)
+            status.getBefore(deadlineNanos) to snapshot.getBefore(deadlineNanos)
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    fun collectRuntimeEvidence(
+        packageName: String,
+        kind: CliRuntimeEvidenceKind,
+        screenCapturedAtEpochMillis: Long,
+    ): CliRuntimeEvidenceResult {
+        val scope = runtimeEvidenceScope()
+        return AndroidRuntimeEvidenceCollector(scope.adb, scope.deviceSerial()).collect(
+            packageName = packageName,
+            kind = kind,
+            screenCapturedAtEpochMillis = screenCapturedAtEpochMillis,
+        )
+    }
+
     suspend fun captureScreenSnapshot(
         packageName: String,
         sessionId: String? = null,
@@ -203,7 +275,42 @@ class BridgeClient(
         val devices = adb.devices()
         BridgeRequestDeviceResolver.resolve(devices, selectedDeviceSerial)
     }
+
+    private fun requestBlockingInScope(
+        scope: BridgeRequestScope,
+        packageName: String,
+        method: String,
+        readTimeoutMillis: Long,
+    ): JsonObject {
+        val activeRequest = ActiveBridgeRequest(scope.adb)
+        return executeRequest(
+            packageName = packageName,
+            method = method,
+            params = JsonObject(emptyMap()),
+            readTimeoutMillis = readTimeoutMillis,
+            scope = scope,
+            activeRequest = activeRequest,
+        )
+    }
 }
+
+private fun <T> Future<T>.getBefore(deadlineNanos: Long): T? {
+    val remainingNanos = deadlineNanos - System.nanoTime()
+    if (remainingNanos <= 0) {
+        cancel(true)
+        return null
+    }
+    return runCatching { get(remainingNanos, TimeUnit.NANOSECONDS) }
+        .onFailure { cancel(true) }
+        .getOrNull()
+}
+
+private fun JsonObject?.stringValue(name: String): String? = this
+    ?.get(name)
+    ?.jsonPrimitive
+    ?.contentOrNull
+
+private fun BridgeRequestScope.deviceSerial(): String = requireNotNull(selectedDeviceSerial)
 
 private fun SidekickSession.withSocketNameAttempt(attempt: Int): SidekickSession {
     if (attempt == 0) return this

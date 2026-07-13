@@ -1,13 +1,18 @@
 package io.github.beyondwin.fixthis.cli
 
+import io.github.beyondwin.fixthis.cli.runtime.CliRuntimeEvidenceKind
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class BridgeClientDeviceScopeTest {
     @get:Rule
@@ -36,7 +41,62 @@ class BridgeClientDeviceScopeTest {
         assertEquals(listOf("emulator-5556"), adb.removeForwardSerials)
     }
 
-    private class DeviceScopeBridgeSocket : BridgeSocket {
+    @Test
+    fun runtimeEvidencePinsContextBridgeAndCollectorCommandsToOneDeviceScope() {
+        val adb = DeviceScopeAdbFacade(
+            devices = listOf(AdbDevice("emulator-5554", "device")),
+        )
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = { DeviceScopeBridgeSocket() },
+        )
+
+        val context = client.runtimeEvidenceContext("io.github.beyondwin.fixthis.sample")
+        client.collectRuntimeEvidence(
+            packageName = "io.github.beyondwin.fixthis.sample",
+            kind = CliRuntimeEvidenceKind.MEMORY_SUMMARY,
+            screenCapturedAtEpochMillis = 1L,
+        )
+
+        assertEquals("emulator-5554", context.deviceSerial)
+        assertTrue(adb.executeSerials.isNotEmpty())
+        assertTrue(adb.executeSerials.all { it == "emulator-5554" })
+        assertTrue(adb.runAsSerials.all { it == "emulator-5554" })
+        assertTrue(adb.forwardSerials.all { it == "emulator-5554" })
+        assertTrue(adb.removeForwardSerials.all { it == "emulator-5554" })
+    }
+
+    @Test
+    fun runtimeEvidenceContextStartsShortBoundedBridgeEnrichmentConcurrently() {
+        val adb = DeviceScopeAdbFacade(devices = listOf(AdbDevice("emulator-5554", "device")))
+        val starts = CountDownLatch(2)
+        val connectorThreads = Collections.synchronizedSet(mutableSetOf<Long>())
+        val readTimeouts = Collections.synchronizedList(mutableListOf<Int>())
+        val client = BridgeClient(
+            adb = adb,
+            projectRoot = temporaryFolder.newFolder(),
+            portAllocator = { 34567 },
+            socketConnector = {
+                connectorThreads += Thread.currentThread().threadId()
+                starts.countDown()
+                check(starts.await(1, TimeUnit.SECONDS)) { "bridge enrichment requests did not start concurrently" }
+                DeviceScopeBridgeSocket(readTimeouts)
+            },
+        )
+
+        val context = client.runtimeEvidenceContext("io.github.beyondwin.fixthis.sample")
+
+        assertEquals("1.3", context.bridgeProtocolVersion)
+        assertEquals("screen-fingerprint", context.currentScreenFingerprint)
+        assertEquals(2, connectorThreads.size)
+        assertEquals(listOf(1_250, 1_250), readTimeouts.sorted())
+    }
+
+    private class DeviceScopeBridgeSocket(
+        private val readTimeouts: MutableList<Int>? = null,
+    ) : BridgeSocket {
         override val input = ByteArrayInputStream(
             frame(
                 """
@@ -45,7 +105,9 @@ class BridgeClientDeviceScopeTest {
                   "ok": true,
                   "result": {
                     "bridgeProtocolVersion": "1.3",
-                    "activity": "MainActivity"
+                    "installEpochMillis": 1234,
+                    "activity": "MainActivity",
+                    "fingerprint": "screen-fingerprint"
                   }
                 }
                 """.trimIndent(),
@@ -53,6 +115,10 @@ class BridgeClientDeviceScopeTest {
         )
         override val output = ByteArrayOutputStream()
         override var readTimeoutMillis: Int = 0
+            set(value) {
+                field = value
+                readTimeouts?.add(value)
+            }
         override fun close() = Unit
 
         private fun frame(payload: String): ByteArray {
@@ -73,6 +139,7 @@ class BridgeClientDeviceScopeTest {
         val runAsSerials: MutableList<String?> = mutableListOf(),
         val forwardSerials: MutableList<String?> = mutableListOf(),
         val removeForwardSerials: MutableList<String?> = mutableListOf(),
+        val executeSerials: MutableList<String?> = mutableListOf(),
     ) : AdbFacade {
         override fun devices(): List<AdbDevice> = devices
 
@@ -82,7 +149,19 @@ class BridgeClientDeviceScopeTest {
             runAsSerials = runAsSerials,
             forwardSerials = forwardSerials,
             removeForwardSerials = removeForwardSerials,
+            executeSerials = executeSerials,
         )
+
+        override fun execute(arguments: List<String>, limits: AdbExecutionLimits): AdbExecutionResult {
+            executeSerials += selectedSerial
+            val stdout = when {
+                arguments.take(3) == listOf("shell", "pm", "path") -> "package:/data/app/base.apk"
+                arguments.take(2) == listOf("shell", "pidof") -> "123"
+                arguments.take(3) == listOf("shell", "dumpsys", "meminfo") -> "TOTAL PSS: 42"
+                else -> ""
+            }
+            return AdbExecutionResult(0, stdout, "", false, false, false)
+        }
 
         override fun runAsCat(packageName: String, path: String): String {
             runAsSerials += selectedSerial
