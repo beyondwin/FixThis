@@ -7,6 +7,9 @@ import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackQueueFormatter
 import kotlinx.serialization.Serializable
 import java.io.File
 
+private const val SESSION_ID_CAPTURE_GROUP = 1
+private const val HTTP_STATUS_NOT_FOUND = 404
+
 internal class SessionRoutes(
     private val service: FeedbackSessionService,
     private val consoleAssetsDir: File?,
@@ -20,6 +23,7 @@ internal class SessionRoutes(
         path == "/api/sessions" ||
         path == "/api/session/open" ||
         path == "/api/session/close" ||
+        runtimeEvidencePolicyPath.matches(path) ||
         path == "/api/export/markdown"
 
     override fun handle(exchange: HttpExchange) {
@@ -73,6 +77,7 @@ internal class SessionRoutes(
             "/api/export/markdown" -> exchange.requireMethod("GET") {
                 exchange.sendText(200, FeedbackQueueFormatter.toMarkdown(service.requireCurrentSession()), "text/markdown; charset=utf-8")
             }
+            else -> exchange.handleRuntimeEvidencePolicy()
         }
     }
 
@@ -90,6 +95,20 @@ internal class SessionRoutes(
 
     private fun HttpExchange.decodeOpenSessionBody(): OpenSessionRequest = decodeJsonBody(OpenSessionRequest.serializer())
 
+    private fun HttpExchange.handleRuntimeEvidencePolicy() {
+        requireMethod("POST") {
+            val sessionId = runtimeEvidencePolicyPath.matchEntire(requestURI.path)
+                ?.groupValues
+                ?.get(SESSION_ID_CAPTURE_GROUP)
+                ?.takeIf { it.isNotBlank() }
+                ?: throw FeedbackConsoleHttpException(HTTP_STATUS_NOT_FOUND, "Feedback session not found")
+            val request = decodeJsonBody(UpdateRuntimeEvidencePolicyRequest.serializer())
+            val session = service.updateRuntimeEvidencePolicy(sessionId, request.policy)
+            eventBus.emitSessionUpdated(session)
+            sendJson(200, session)
+        }
+    }
+
     @Serializable
     private data class OpenSessionRequest(
         val packageName: String? = null,
@@ -99,3 +118,4 @@ internal class SessionRoutes(
 }
 
 private const val HEX_RADIX = 16
+private val runtimeEvidencePolicyPath = Regex("^/api/sessions/([^/]+)/runtime-evidence-policy$")

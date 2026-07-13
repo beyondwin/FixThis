@@ -45,6 +45,12 @@
               localStorage.setItem(PreviewIntervalStorageKey, previewIntervalSelect.value);
               startLivePreviewPolling();
             });
+            document.getElementById('runtimeEvidencePolicy')?.addEventListener('change', event => {
+              updateRuntimeEvidencePolicy(event.target.value).catch(error => {
+                renderRuntimeEvidencePolicyControl();
+                showError(error);
+              });
+            });
             document.addEventListener('keydown', handleGlobalShortcut);
             // ALH-2: Undo/redo via Cmd+Z / Cmd+Shift+Z.
             window.addEventListener('keydown', (e) => {

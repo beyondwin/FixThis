@@ -43,6 +43,12 @@
                   <option value="2000">2s</option>
                   <option value="5000">5s</option>
                 </select>
+                <label class="sr-only" for="runtimeEvidencePolicy">Runtime diagnostics policy</label>
+                <select id="runtimeEvidencePolicy" aria-label="Runtime diagnostics policy" disabled>
+                  <option value="auto_on_handoff">Auto</option>
+                  <option value="manual" selected>Manual</option>
+                  <option value="off">Off</option>
+                </select>
                 <button id="refreshDevicesButton" class="icon-button" type="button" title="Refresh devices" aria-label="Refresh devices">↻</button>
                 <span id="deviceStatus" class="status-pill" hidden>No device</span>
                 <button id="historyToggleButton" class="history-toggle-button" type="button" aria-controls="historyPanel" aria-expanded="false">History</button>

@@ -24,7 +24,8 @@
     "scripts/boundaryRenderModelIsolation-test.mjs",
     "scripts/startDraftContextMismatchToast-test.mjs",
     "scripts/v04LegacyPurgeContract-test.mjs",
-    "scripts/annotationDetailActions-test.mjs"
+    "scripts/annotationDetailActions-test.mjs",
+    "scripts/runtimeEvidenceConsole-test.mjs"
   ],
   "pending": ["scripts/pendingRecoveryVariant-test.mjs"],
   "beforeunload": ["scripts/beforeunloadGuard-test.mjs"],

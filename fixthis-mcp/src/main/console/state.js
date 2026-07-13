@@ -17,6 +17,7 @@
               connection: null, // projected from connectionUseCases below
               previewFsm: null, // projected from previewUseCases below
 	              pollingFsm: null, // projected from pollingUseCases below
+	              runtimeEvidenceByItem: new Map(),
 	            };
 
 	            function setConsoleSession(session) {

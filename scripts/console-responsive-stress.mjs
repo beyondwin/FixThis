@@ -110,8 +110,12 @@ async function injectStressState(page) {
         '<div id="selectionOverlay" class="selection-overlay"></div>' +
       '</div>';
 
-    document.getElementById('pendingItems').innerHTML =
-      '<div id="pendingRecoveryBanner" class="annotation-banner annotation-banner-warn pending-recovery-banner" role="status" aria-live="polite">' +
+    const pendingRecoveryBanner = document.getElementById('pendingRecoveryBanner');
+    pendingRecoveryBanner.hidden = false;
+    pendingRecoveryBanner.className = 'annotation-banner annotation-banner-warn pending-recovery-banner';
+    pendingRecoveryBanner.setAttribute('role', 'status');
+    pendingRecoveryBanner.setAttribute('aria-live', 'polite');
+    pendingRecoveryBanner.innerHTML =
         '<div class="pending-recovery-copy" data-pending-recovery-copy>' +
           '<strong>Unsaved 1 annotation found</strong>' +
           '<div>Recover restores the frozen preview and pins from this session.</div>' +
@@ -120,8 +124,8 @@ async function injectStressState(page) {
           '<button type="button" class="annotation-done">Recover</button>' +
           '<button type="button" class="annotation-done">Recapture</button>' +
           '<button type="button" class="annotation-danger">Discard</button>' +
-        '</div>' +
-      '</div>' +
+        '</div>';
+    document.getElementById('pendingItems').innerHTML =
       '<div class="activity-drift-warning" role="status" aria-live="polite" data-activity-drift>' +
         '<div class="activity-drift-warning-body">' +
           '<div class="activity-drift-warning-title">Activity changed during freeze</div>' +
@@ -306,6 +310,7 @@ async function assertAnnotateModeBadgeDoesNotWrap(page, viewportName) {
 
 async function assertPendingRecoveryBannerIsReadable(page, viewportName) {
   const failure = await page.evaluate(() => {
+    const banners = document.querySelectorAll('#pendingRecoveryBanner');
     const banner = document.getElementById('pendingRecoveryBanner');
     const text = banner?.querySelector('[data-pending-recovery-copy]') || banner?.firstElementChild;
     const actions = banner?.querySelector('.annotation-actions');
@@ -319,6 +324,7 @@ async function assertPendingRecoveryBannerIsReadable(page, viewportName) {
       return box.left < bannerBox.left - 1 || box.right > bannerBox.right + 1;
     }).map(button => button.textContent);
     return {
+      bannerCount: banners.length,
       stacked: actionsBox.top >= textBox.bottom - 1,
       clippedButtons,
       textOverflow: text.scrollWidth - text.clientWidth,
@@ -328,6 +334,7 @@ async function assertPendingRecoveryBannerIsReadable(page, viewportName) {
   assert.deepEqual(
     Object.fromEntries(Object.entries(failure).filter(([key, value]) => {
       if (key === 'missing') return value === true;
+      if (key === 'bannerCount') return value !== 1;
       if (Array.isArray(value)) return value.length > 0;
       if (typeof value === 'number') return value > 1;
       if (typeof value === 'boolean') return value === false;
@@ -408,7 +415,28 @@ async function run(baseUrl) {
   try {
     for (const viewport of viewports) {
       const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
+      await page.addInitScript(() => {
+        const addEventListener = EventSource.prototype.addEventListener;
+        EventSource.prototype.addEventListener = function addTrackedEventListener(type, listener, options) {
+          if (type !== 'snapshot' || typeof listener !== 'function') {
+            return addEventListener.call(this, type, listener, options);
+          }
+          return addEventListener.call(this, type, function trackInitialSnapshot(event) {
+            const result = listener.call(this, event);
+            window.__fixthisInitialSnapshotApplied = true;
+            return result;
+          }, options);
+        };
+      });
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+      // Let the console's initial async refresh finish before replacing the DOM
+      // with deterministic stress fixtures. EventSource opens before its initial
+      // snapshot callback runs, so both barriers are required to prevent the
+      // application render from erasing an injected fixture.
+      await page.waitForFunction(() => (
+        window.FixThisConsoleDebug?.isConsoleEventsConnected?.() === true &&
+        window.__fixthisInitialSnapshotApplied === true
+      ));
       await injectStressState(page);
       await page.screenshot({
         path: resolve(outputDir, `fixthis-responsive-stress-${viewport.name}.png`),

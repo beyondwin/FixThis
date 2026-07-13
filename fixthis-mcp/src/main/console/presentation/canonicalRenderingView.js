@@ -4,6 +4,7 @@
               renderPreviewRegion();
               renderInspectorRegion();
               renderConnection(state.connection.current);
+              renderRuntimeEvidencePolicyControl();
               renderWorkflowProgress();
               updateComposerState();
             }

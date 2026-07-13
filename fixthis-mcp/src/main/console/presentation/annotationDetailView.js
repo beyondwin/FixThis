@@ -1,4 +1,4 @@
-// @requires annotations.js, viewmodel/reliabilityPresentation.js, domain/targetReliabilityViewModel.js, presentation/selectionOverlayView.js
+// @requires annotations.js, runtimeEvidence.js, viewmodel/reliabilityPresentation.js, domain/targetReliabilityViewModel.js, presentation/selectionOverlayView.js
             function itemBounds(item) {
               return boundsForTarget(item?.target) || item?.bounds || item?.target?.bounds || null;
             }
@@ -496,7 +496,7 @@
                   '<section class="annotation-section evidence-section">' +
                     evidenceDetailsHtml(item) +
                   '</section>' +
-                  '<button id="attachEvidenceButton">Log</button>' +
+                  runtimeEvidenceSectionHtml(item) +
                 '</div>';
               const labelInput = draftItems.querySelector('#annotationLabelInput');
               const commentInput = draftItems.querySelector('#annotationCommentInput');
@@ -561,8 +561,5 @@
                   }
                 });
               });
-              draftItems.querySelector('#attachEvidenceButton').onclick = () => {
-                requestJson('/api/items/' + encodeURIComponent(item.itemId) + '/runtime-evidence', { method:'POST', body:JSON.stringify({ sessionId:editSessionId, type:'logcat_window', summary:'log' }) })
-                  .then(result => (renderInspectorRegion(setConsoleSession(result)), showSuccess('Attached evidence', 2e3))).catch(showError);
-              };
+              bindRuntimeEvidenceCollection(draftItems, item);
             }

@@ -11,21 +11,28 @@ function runConsoleContractGuards() {
     path.join(repoRoot, "fixthis-mcp/src/main/console/presentation/annotationDetailView.js"),
     "utf8",
   );
+  const runtimeEvidenceSource = fs.readFileSync(
+    path.join(repoRoot, "fixthis-mcp/src/main/console/runtimeEvidence.js"),
+    "utf8",
+  );
   const apiSource = fs.readFileSync(path.join(repoRoot, "fixthis-mcp/src/main/console/api.js"), "utf8");
-  if (!detailSource.includes('id="attachEvidenceButton"')) {
-    throw new Error("Saved annotation detail must expose attachEvidenceButton.");
+  if (!runtimeEvidenceSource.includes('id="collectRuntimeEvidenceButton"')) {
+    throw new Error("Saved annotation detail must expose the diagnostics collection control.");
   }
-  if (!detailSource.includes("/runtime-evidence")) {
-    throw new Error("Attach evidence action must call the runtime-evidence item route.");
+  if (!detailSource.includes("runtimeEvidenceSectionHtml(item)")) {
+    throw new Error("Saved annotation detail must render runtime evidence state.");
   }
-  if (!detailSource.includes("encodeURIComponent(item.itemId)")) {
-    throw new Error("Attach evidence action must encode the feedback item id.");
+  if (!runtimeEvidenceSource.includes("/runtime-evidence/collect")) {
+    throw new Error("Diagnostics action must call the runtime-evidence collection route.");
   }
-  if (!detailSource.includes("setConsoleSession(result)")) {
-    throw new Error("Attach evidence action must refresh console session state.");
+  if (!runtimeEvidenceSource.includes("encodeURIComponent(input.itemId)")) {
+    throw new Error("Diagnostics action must encode the feedback item id.");
   }
-  if (!detailSource.includes("showSuccess('Attached evidence")) {
-    throw new Error("Attach evidence action must show success feedback.");
+  if (!runtimeEvidenceSource.includes("showSuccess('Diagnostics captured")) {
+    throw new Error("Diagnostics action must show success feedback.");
+  }
+  if (runtimeEvidenceSource.includes("localStorage")) {
+    throw new Error("Runtime diagnostics policy must remain session-scoped.");
   }
   if (!apiSource.includes("X-FixThis-Console-Token")) {
     throw new Error("Console mutation requests must keep token header wiring.");

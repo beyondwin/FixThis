@@ -12,11 +12,17 @@ import io.github.beyondwin.fixthis.mcp.session.draft.DraftSaveService
 import io.github.beyondwin.fixthis.mcp.session.draft.PreviewFeedbackRequestValidationException
 import io.github.beyondwin.fixthis.mcp.session.draft.StaleDraftRevisionException
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SessionStatusDto
 import io.github.beyondwin.fixthis.mcp.session.preview.ScreenFingerprintMismatch
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureRequest
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceCaptureResult
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
+import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceTrigger
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
 private const val UNPROCESSABLE_ENTITY = 422
@@ -122,7 +128,51 @@ internal class FeedbackItemRoutes(
             }
             else -> {
                 if (!exchange.requestURI.path.startsWith("/api/items/")) return
-                if (exchange.requestURI.path.endsWith("/runtime-evidence")) {
+                if (exchange.requestURI.path.endsWith("/runtime-evidence/collect")) {
+                    exchange.requireMethod("POST") {
+                        val itemId = exchange.requestURI.path
+                            .removePrefix("/api/items/")
+                            .removeSuffix("/runtime-evidence/collect")
+                            .trim('/')
+                            .takeIf { it.isNotBlank() }
+                            ?: throw FeedbackConsoleHttpException(404, "Feedback item not found")
+                        val request = exchange.decodeJsonBody(
+                            CollectRuntimeEvidenceRequest.serializer(),
+                            blankValue = CollectRuntimeEvidenceRequest(),
+                        )
+                        val sessionId = requestSessionId(request.sessionId)
+                        val session = service.getSession(sessionId)
+                        if (session.status == SessionStatusDto.CLOSED) {
+                            throw FeedbackConsoleHttpException(
+                                HTTP_STATUS_CONFLICT,
+                                "Feedback session is closed",
+                                "session_closed",
+                            )
+                        }
+                        val item = session.items.firstOrNull { it.itemId == itemId }
+                            ?: throw FeedbackConsoleHttpException(404, "Feedback item not found", "unknown_feedback_item")
+                        val result = if (session.runtimeEvidencePolicy == RuntimeEvidencePolicy.OFF) {
+                            RuntimeEvidenceCaptureResult.skipped("runtime_evidence_disabled")
+                        } else {
+                            runBlocking {
+                                service.collectRuntimeEvidence(
+                                    RuntimeEvidenceCaptureRequest(
+                                        sessionId = sessionId,
+                                        itemIds = listOf(itemId),
+                                        screenId = item.screenId,
+                                        preset = request.preset,
+                                        trigger = RuntimeEvidenceTrigger.CONSOLE_MANUAL,
+                                    ),
+                                )
+                            }
+                        }
+                        eventBus.emitSessionUpdated(service.getSession(sessionId))
+                        exchange.sendJson(
+                            200,
+                            fixThisJson.encodeToJsonElement(RuntimeEvidenceCaptureResult.serializer(), result).jsonObject,
+                        )
+                    }
+                } else if (exchange.requestURI.path.endsWith("/runtime-evidence")) {
                     exchange.requireMethod("POST") {
                         val itemId = exchange.requestURI.path
                             .removePrefix("/api/items/")
@@ -147,39 +197,39 @@ internal class FeedbackItemRoutes(
                         eventBus.emitSessionUpdated(session)
                         exchange.sendJson(200, session)
                     }
-                    return
-                }
-                val itemId = exchange.requestURI.path.removePrefix("/api/items/")
-                    .takeIf { it.isNotBlank() }
-                    ?: throw FeedbackConsoleHttpException(404, "Feedback item not found")
-                when (exchange.requestMethod) {
-                    "PUT" -> {
-                        val request = exchange.decodeUpdateFeedbackItemBody()
-                        val session = service.updateDraftFeedback(
-                            sessionId = request.sessionId?.takeIf { it.isNotBlank() }
-                                ?: service.requireCurrentSession().sessionId,
-                            itemId = itemId,
-                            label = request.label,
-                            severity = request.severity,
-                            comment = request.comment,
-                            status = request.status,
-                        )
-                        eventBus.emitSessionUpdated(session)
-                        exchange.sendJson(200, session)
+                } else {
+                    val itemId = exchange.requestURI.path.removePrefix("/api/items/")
+                        .takeIf { it.isNotBlank() }
+                        ?: throw FeedbackConsoleHttpException(404, "Feedback item not found")
+                    when (exchange.requestMethod) {
+                        "PUT" -> {
+                            val request = exchange.decodeUpdateFeedbackItemBody()
+                            val session = service.updateDraftFeedback(
+                                sessionId = request.sessionId?.takeIf { it.isNotBlank() }
+                                    ?: service.requireCurrentSession().sessionId,
+                                itemId = itemId,
+                                label = request.label,
+                                severity = request.severity,
+                                comment = request.comment,
+                                status = request.status,
+                            )
+                            eventBus.emitSessionUpdated(session)
+                            exchange.sendJson(200, session)
+                        }
+                        "DELETE" -> {
+                            val session = service.deleteDraftFeedback(
+                                sessionId = exchange.queryParameter("sessionId")?.takeIf { it.isNotBlank() }
+                                    ?: service.requireCurrentSession().sessionId,
+                                itemId = itemId,
+                            )
+                            eventBus.emitSessionUpdated(session)
+                            exchange.sendJson(
+                                200,
+                                session,
+                            )
+                        }
+                        else -> exchange.requireMethod("PUT") {}
                     }
-                    "DELETE" -> {
-                        val session = service.deleteDraftFeedback(
-                            sessionId = exchange.queryParameter("sessionId")?.takeIf { it.isNotBlank() }
-                                ?: service.requireCurrentSession().sessionId,
-                            itemId = itemId,
-                        )
-                        eventBus.emitSessionUpdated(session)
-                        exchange.sendJson(
-                            200,
-                            session,
-                        )
-                    }
-                    else -> exchange.requireMethod("PUT") {}
                 }
             }
         }
