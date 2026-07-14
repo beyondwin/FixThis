@@ -26,7 +26,8 @@ When documents disagree, prefer the current implementation and `docs/reference/*
 
 - JDK 21+
 - Android SDK with ADB (`adb devices` shows a connected device or emulator)
-- Node.js 20.0+ LTS (for console JS harnesses; see `CONTRIBUTING.md` § Prerequisites)
+- Node.js 20.0+ compatibility floor; use an upstream-supported Node 22 or 24
+  release for local development (see `CONTRIBUTING.md` § Prerequisites)
 - Target app is a **debug build** (`debugImplementation` only; release is not supported)
 
 ## Quick Start
@@ -89,8 +90,9 @@ human-driven flow (build → doctor → run → console → agent handoff).
    its annotation detail.
 6. Type a comment.
 7. Repeat for additional feedback on this screen.
-8. **Save to MCP** persists written annotations as a local handoff. (Use
-   **Copy Prompt** instead to paste compact Markdown into a chat-style agent.)
+8. **Save to MCP** persists written annotations as a local handoff. New
+   sessions use Auto runtime evidence by default; Manual and Off are available,
+   and **Copy Prompt** never starts collection.
 9. Call `fixthis_read_feedback` to read the queue, then
    `fixthis_resolve_feedback` after making changes.
 
@@ -110,6 +112,8 @@ Deeper agent workflow notes:
 | `fixthis_list_feedback_sessions` | List resumable feedback workspaces |
 | `fixthis_capture_screen` | Capture into the active feedback session |
 | `fixthis_navigate_app` | One debug-only tap, swipe, or back |
+| `fixthis_collect_runtime_evidence` | Collect one bounded local diagnostics preset |
+| `fixthis_capture_runtime_evidence` | Attach a compatible manual runtime-evidence summary |
 | `fixthis_list_feedback` | List feedback queue summaries |
 | `fixthis_read_feedback` | Read queue as JSON + compact Markdown |
 | `fixthis_claim_feedback` | Mark items in-progress (avoids duplicate work) |

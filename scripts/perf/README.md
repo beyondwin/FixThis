@@ -26,7 +26,7 @@ output is documented in `parse-gradle-profile.mjs`.
 ## Regression rule
 
 A scenario is flagged `REGRESS` when:
-- `median_current - median_baseline > max(2 * stddev_baseline, 0.02 * median_baseline)` (noise band)
+- `median_current - median_baseline > max(2 * hypot(stddev_baseline, stddev_current), 0.02 * median_baseline)` (combined noise band)
 - AND `(median_current - median_baseline) / median_baseline * 100 > scenario.regress_threshold_pct`
 
 Improvements use the symmetric rule against `improve_threshold_pct`.
@@ -34,6 +34,8 @@ Everything else is `NEUTRAL`.
 
 ## Hardware variance
 
-The JSON records OS, CPU model, RAM, JDK, and Node versions. When
-comparing across machines the comparator prints a warning but does
-not fail; re-baseline locally for a fair comparison.
+The JSON records OS, architecture, CPU model and core count, RAM, JDK, and Node
+versions. When comparing across environments the comparator reports apparent
+regressions and improvements as advisory and does not fail. A hard regression
+or confirmed improvement requires matching environment fingerprints;
+re-baseline locally for a fair comparison.

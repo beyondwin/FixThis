@@ -48,8 +48,9 @@ artifact workflows receive the same version through `-PFIXTHIS_VERSION`.
 
 ## Branch-protection policy
 
-`main` is protected and requires four GitHub Actions status checks
-(`CI`, `CodeQL`, `Console JS`, `Gradle verification`) before merge.
+`main` is protected and requires four exact GitHub Actions status contexts
+before merge: `Gradle verification`, `Console JavaScript`,
+`Analyze (java-kotlin)`, and `Analyze (javascript-typescript)`.
 
 - **Normal flow:** open a PR, let the four checks run, merge through the
   GitHub UI. Do not push directly to `main`.
@@ -93,7 +94,7 @@ Before tagging:
 1. Move CHANGELOG `Unreleased` entries under a new dated heading:
 
    ```markdown
-   ## [0.2.0] - 2026-MM-DD
+   ## v0.2.0 — 2026-MM-DD
 
    ### Added
    - Release readiness documentation and validation.
@@ -131,12 +132,23 @@ Before tagging:
    git commit -m "release: 0.2.0"
    ```
 
-5. Tag:
+5. After the release PR is merged and the required checks are green,
+   synchronize local `main` with the protected remote branch and tag exactly
+   the commit at `origin/main`:
 
    ```bash
-   git tag -a v0.2.0 -m "FixThis 0.2.0"
-   git push origin main v0.2.0
+   tag=v0.2.0
+   git fetch origin main
+   git switch main
+   git merge --ff-only origin/main
+   tag_target="$(git rev-parse origin/main)"
+   test "$(git rev-parse HEAD)" = "$tag_target"
+   git tag -a "$tag" "$tag_target" -m "FixThis ${tag#v}"
+   git push origin "$tag"
    ```
+
+   Push the tag only. The protected `main` update must come from the reviewed
+   PR merge, never from the release workstation.
 
 6. Build and attach the CLI/MCP package. The `Release CLI/MCP Package`
    workflow runs on `v*.*.*` tags and creates draft release assets:
@@ -155,11 +167,25 @@ Before tagging:
        build/release/fixthis-cli-mcp-v0.2.0.tar.gz.sha256 --clobber
    ```
 
-7. Create or update the GitHub Release from the tag using the new CHANGELOG section as
-   the release body:
+7. Finalize the draft GitHub Release from the tag using the human release note
+   as the release body. The tag workflow normally creates the draft first, so
+   the command must be idempotent:
 
    ```bash
-   gh release create v0.2.0 --title "FixThis v0.2.0" --notes-file docs/releases/v0.2.0.md
+   tag=v0.2.0
+   notes=docs/releases/v0.2.0.md
+   if gh release view "$tag" >/dev/null 2>&1; then
+     gh release edit "$tag" \
+       --title "FixThis $tag" \
+       --notes-file "$notes" \
+       --draft=false \
+       --latest
+   else
+     gh release create "$tag" \
+       --title "FixThis $tag" \
+       --notes-file "$notes" \
+       --latest
+   fi
    ```
 
 ## Artifact Release Gate
@@ -177,12 +203,40 @@ Before publishing Maven Central or Gradle Plugin Portal artifacts:
    ./gradlew :fixthis-gradle-plugin:validatePlugins --no-daemon
    ```
 
-5. Publish from an explicitly approved manual workflow or local maintainer
-   machine. Maven Central artifacts are published through
-   `.github/workflows/publish-maven-central.yml`, which builds a signed Central
-   Portal bundle for `:fixthis-compose-core`, `:fixthis-compose-sidekick`,
+5. Publish from explicitly approved manual workflows in this order after the
+   tag and GitHub Release assets exist. Maven and Gradle accept a tag-style
+   input; npm/MCP requires the version without the `v` prefix:
+
+   ```bash
+   tag=vX.Y.Z
+   version=X.Y.Z
+
+   gh workflow run publish-maven-central.yml --ref main -f version="$tag"
+   gh workflow run publish-gradle-plugin.yml --ref main -f version="$tag"
+   gh workflow run publish-npm-mcp.yml --ref main -f version="$version"
+   ```
+
+   Wait for each workflow to succeed before starting the dependent next step;
+   npm must be public before MCP Registry publication in the combined workflow.
+   Every publication workflow checks out and verifies the immutable release tag
+   before running repository code with registry credentials. The npm/MCP job
+   uses MCP publisher v1.8.0 with a pinned SHA-256 rather than a mutable latest
+   download. Per-channel concurrency groups serialize duplicate dispatches for
+   the same immutable version without cancelling a publication in progress.
+   The Maven workflow builds a signed Central Portal bundle for
+   `:fixthis-compose-core`, `:fixthis-compose-sidekick`,
    `:fixthis-gradle-plugin`, and the Gradle plugin marker publication, uploads
    it to the Publisher API, and waits for the deployment to reach `PUBLISHED`.
+   Public verification checks all four Maven coordinates; a partial set fails
+   closed rather than attempting to republish an immutable version.
+   If the Maven upload succeeds but the wait is interrupted, download the
+   `deployment-id-X.Y.Z` workflow artifact and resume without re-uploading:
+
+   ```bash
+   gh workflow run publish-maven-central.yml --ref main \
+     -f version="$tag" \
+     -f deployment_id="<Central deployment UUID>"
+   ```
 6. Verify from a clean external consumer project that:
 
    ```kotlin
@@ -199,6 +253,11 @@ Before publishing Maven Central or Gradle Plugin Portal artifacts:
 
 7. After verification, update README and getting-started docs if the public
    install command changes.
+
+8. Update `beyondwin/homebrew-tools` only after the GitHub tarball and checksum
+   sidecar are public. Set `Formula/fixthis.rb` to the matching tag URL and
+   tarball SHA-256, run `brew audit --strict --online` and `brew test`, then
+   merge the tap change before declaring the Homebrew channel current.
 
 ### Publish Prep Validation
 
@@ -226,6 +285,11 @@ covers the included plugin build without enabling remote publication.
 - Verify MCP Registry only after npm is public:
   `mcp-publisher validate`, then registry search for
   `io.github.beyondwin/fixthis`.
+- Run the aggregate public-surface gate after every intended channel is live:
+  `npm run release:reality -- --strict` and
+  `npm run release:gate -- --strict`. Before tagging, the gate's
+  `Release reality` row is expected to fail for the not-yet-created tag and
+  registry versions; every other row must pass.
 - Bump README compatibility matrix if needed for the next development cycle.
 - File follow-up issues for anything deferred from this release.
 

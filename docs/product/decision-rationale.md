@@ -118,12 +118,30 @@ automation API. The important tools are:
 - `fixthis_read_feedback`
 - `fixthis_claim_feedback`
 - `fixthis_resolve_feedback`
+- `fixthis_collect_runtime_evidence`
 - `fixthis_get_current_screen`
 - `fixthis_verify_ui_change`
 - `fixthis_status`
 
 Lower-level actions exist only where they support the feedback workflow, such as
 debug-only navigation through the console.
+
+## Bounded Runtime Evidence On Save To MCP
+
+**Decision:** New sessions use Auto runtime evidence for Save to MCP, while
+Manual and Off remain session choices and Copy Prompt never starts collection.
+
+**Why:** A screenshot and semantics tree often identify the UI target, but
+logs, memory state, or a short performance trace can explain why the current
+screen is wrong. Fixed presets let an agent request useful diagnostics without
+accepting arbitrary commands. Redaction, quotas, ownership checks, and local
+artifact containment keep the capability aligned with FixThis's debug-only,
+local-first trust model.
+
+**Trade-off:** Auto can add collection latency before a batch becomes visible.
+Typed collection failures are recorded rather than hiding valid feedback, and
+users can choose Manual or Off when diagnostics are unnecessary or too
+sensitive for the current session.
 
 ## Source Index Before Compiler Plugin
 

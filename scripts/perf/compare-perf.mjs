@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-const ENV_KEYS = ["os", "arch", "cpu_model", "ram_mb", "jdk", "node"];
+const ENV_KEYS = ["os", "arch", "cpu_model", "cpu_count", "ram_mb", "jdk", "node"];
 
 export function comparePerf(baseline, current) {
   const warnings = [];
@@ -9,10 +9,13 @@ export function comparePerf(baseline, current) {
       warnings.push(`env.${key} differs: baseline=${baseline.env?.[key]} current=${current.env?.[key]}`);
     }
   }
+  const comparableEnvironment = warnings.length === 0;
   const baselineByKey = new Map(baseline.results.map((r) => [r.key, r]));
   const rows = [];
   const regressed = [];
+  const advisoryRegressions = [];
   const improved = [];
+  const advisoryImprovements = [];
   for (const cur of current.results) {
     const base = baselineByKey.get(cur.key);
     if (!base) {
@@ -21,17 +24,30 @@ export function comparePerf(baseline, current) {
     }
     const deltaMs = cur.median_ms - base.median_ms;
     const deltaPct = (deltaMs / base.median_ms) * 100;
-    const noiseBand = Math.max(2 * base.stddev_ms, 0.02 * base.median_ms);
+    const noiseBand = Math.max(
+      2 * Math.hypot(base.stddev_ms, cur.stddev_ms),
+      0.02 * base.median_ms,
+    );
     const regressThreshold = cur.regress_threshold_pct ?? base.regress_threshold_pct ?? 10;
     const improveThreshold = cur.improve_threshold_pct ?? base.improve_threshold_pct ?? 5;
 
     let verdict = "NEUTRAL";
     if (deltaMs > noiseBand && deltaPct > regressThreshold) {
-      verdict = "REGRESS";
-      regressed.push(cur.key);
+      if (comparableEnvironment) {
+        verdict = "REGRESS";
+        regressed.push(cur.key);
+      } else {
+        verdict = "ADVISORY";
+        advisoryRegressions.push(cur.key);
+      }
     } else if (-deltaMs > noiseBand && -deltaPct >= improveThreshold) {
-      verdict = "IMPROVE";
-      improved.push(cur.key);
+      if (comparableEnvironment) {
+        verdict = "IMPROVE";
+        improved.push(cur.key);
+      } else {
+        verdict = "ADVISORY";
+        advisoryImprovements.push(cur.key);
+      }
     }
     rows.push({
       key: cur.key,
@@ -44,7 +60,15 @@ export function comparePerf(baseline, current) {
       verdict,
     });
   }
-  return { rows, regressed, improved, warnings, exitCode: regressed.length > 0 ? 1 : 0 };
+  return {
+    rows,
+    regressed,
+    advisoryRegressions,
+    improved,
+    advisoryImprovements,
+    warnings,
+    exitCode: regressed.length > 0 ? 1 : 0,
+  };
 }
 
 export function renderMarkdown(result) {
@@ -52,7 +76,13 @@ export function renderMarkdown(result) {
   lines.push("| Scenario | Baseline (median) | Current (median) | Delta | Verdict |");
   lines.push("| --- | --- | --- | --- | --- |");
   for (const r of result.rows) {
-    const verdictTag = r.verdict === "REGRESS" ? "❌ REGRESS" : r.verdict === "IMPROVE" ? "✅ IMPROVE" : r.verdict;
+    const verdictTag = r.verdict === "REGRESS"
+      ? "❌ REGRESS"
+      : r.verdict === "IMPROVE"
+        ? "✅ IMPROVE"
+        : r.verdict === "ADVISORY"
+          ? "⚠️ ADVISORY"
+          : r.verdict;
     const delta = r.deltaMs == null ? "—" : `${r.deltaMs >= 0 ? "+" : ""}${r.deltaMs} ms (${r.deltaPct >= 0 ? "+" : ""}${r.deltaPct}%)`;
     lines.push(`| ${r.key} | ${r.baselineMedianMs ?? "—"} ms | ${r.currentMedianMs ?? "—"} ms | ${delta} | ${verdictTag} |`);
   }

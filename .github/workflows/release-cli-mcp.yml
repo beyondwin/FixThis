@@ -14,6 +14,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-cli-mcp-${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   package:
     name: Build CLI/MCP package
@@ -27,6 +31,19 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.version) || github.ref }}
+
+      - name: Verify immutable release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$FIXTHIS_RELEASE_VERSION"
+          if [[ ! "$tag" =~ ^v[0-9]+[.][0-9]+[.][0-9]+([-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error title=Invalid release tag::$tag is not a supported release tag"
+            exit 2
+          fi
+          tag_commit="$(git rev-parse "refs/tags/$tag^{commit}")"
+          test "$(git rev-parse HEAD)" = "$tag_commit"
 
       - name: Set up Java
         uses: actions/setup-java@v5

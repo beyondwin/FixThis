@@ -9,6 +9,8 @@ FixThis is a local-first debug tool for Android Jetpack Compose apps.
 - Localhost browser feedback console.
 - ADB access to the developer's own device or emulator.
 - Local feedback session artifacts under `.fixthis/`.
+- Redacted, quota-limited runtime diagnostics under
+  `.fixthis/runtime-evidence/`.
 
 ## Local Debug Guards
 

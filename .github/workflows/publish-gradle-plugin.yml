@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: publish-gradle-plugin-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Publish Gradle Plugin Portal artifact
@@ -19,12 +23,14 @@ jobs:
     env:
       GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
       GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+      RELEASE_TAG: ${{ inputs.version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.version }}
+          fetch-depth: 0
+          ref: refs/tags/${{ inputs.version }}
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -50,20 +56,56 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ inputs.version }}"
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+[.][0-9]+[.][0-9]+([-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error title=Invalid release tag::$RELEASE_TAG is not a supported release tag"
+            exit 2
+          fi
+          tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test "$(git rev-parse HEAD)" = "$tag_commit"
+          version="$RELEASE_TAG"
           version="${version#v}"
           ./gradlew -p fixthis-gradle-plugin \
             test \
             -PFIXTHIS_VERSION="$version" \
             --no-daemon
 
-      - name: Publish Gradle plugin
+      - name: Check whether Gradle Plugin Portal version is already public
+        id: plugin-status
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ inputs.version }}"
+          version="$RELEASE_TAG"
+          version="${version#v}"
+          url="https://plugins.gradle.org/m2/io/github/beyondwin/fixthis/compose/io.github.beyondwin.fixthis.compose.gradle.plugin/$version/io.github.beyondwin.fixthis.compose.gradle.plugin-$version.pom"
+          status="$(
+            curl --silent --show-error --location --retry 3 --retry-all-errors \
+              --output /dev/null --write-out "%{http_code}" "$url"
+          )"
+          case "$status" in
+            200)
+              echo "already_published=true" >> "$GITHUB_OUTPUT"
+              ;;
+            404)
+              echo "already_published=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error title=Gradle Plugin Portal check failed::HTTP $status while checking $url"
+              exit 1
+              ;;
+          esac
+
+      - name: Publish Gradle plugin
+        if: steps.plugin-status.outputs.already_published != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$RELEASE_TAG"
           version="${version#v}"
           ./gradlew \
             :fixthis-gradle-plugin:publishPlugins \
             -PFIXTHIS_VERSION="$version" \
             --no-daemon
+
+      - name: Confirm plugin version already public
+        if: steps.plugin-status.outputs.already_published == 'true'
+        run: echo "FixThis $RELEASE_TAG is already public on the Gradle Plugin Portal."

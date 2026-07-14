@@ -78,7 +78,7 @@
   "real-copy-prompt:smoke:test": "node --test scripts/real-copy-prompt-smoke-test.mjs",
   "agent-loop:smoke": "node scripts/agent-loop-smoke.mjs",
   "agent-loop:smoke:test": "node --test scripts/agent-loop-smoke-test.mjs",
-  "release:package:test": "node --test scripts/package-cli-release-test.mjs && node --test scripts/install-fixthis-test.mjs",
+  "release:package:test": "node --test scripts/package-cli-release-test.mjs scripts/release-publish-workflow-test.mjs && node --test scripts/install-fixthis-test.mjs",
     "release:npm:test": "node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs",
     "release:compat:test": "node --test scripts/android-compatibility-docs-test.mjs",
     "release:v06:claims:test": "node --test scripts/v06-release-claims-test.mjs",

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -43,12 +45,60 @@ function jsonFromCommand(command, args, options = {}) {
   }
 }
 
-function probeGithubRelease(version, fetchJson = jsonFromUrl, execJson = jsonFromCommand) {
+export function verifyGithubReleaseAssets(archiveAsset, checksumAsset) {
+  if (!archiveAsset?.browser_download_url || !checksumAsset?.browser_download_url) return false;
+  const workspace = mkdtempSync(join(tmpdir(), "fixthis-release-assets-"));
+  const archivePath = join(workspace, "release.tar.gz");
+  const checksumPath = join(workspace, "release.tar.gz.sha256");
+  try {
+    for (const [url, output] of [
+      [archiveAsset.browser_download_url, archivePath],
+      [checksumAsset.browser_download_url, checksumPath],
+    ]) {
+      execFileSync("curl", ["--fail", "--silent", "--show-error", "--location", "--retry", "3", "--output", output, url], {
+        cwd: workspace,
+        stdio: ["ignore", "ignore", "ignore"],
+        timeout: 60_000,
+      });
+    }
+    const expected = readFileSync(checksumPath, "utf8").trim().split(/\s+/)[0];
+    if (!/^[a-f0-9]{64}$/i.test(expected)) return false;
+    const actual = createHash("sha256").update(readFileSync(archivePath)).digest("hex");
+    return actual.toLowerCase() === expected.toLowerCase();
+  } catch {
+    return false;
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+}
+
+function probeGithubRelease(
+  version,
+  fetchJson = jsonFromUrl,
+  execJson = jsonFromCommand,
+  verifyAssets = verifyGithubReleaseAssets,
+) {
   const path = `repos/beyondwin/FixThis/releases/tags/v${version}`;
   const json =
     execJson("gh", ["api", path], { timeoutMs: 20_000 }) ||
     fetchJson(`https://api.github.com/${path}`);
-  return json?.tag_name || null;
+  if (!json) return null;
+  if (json.draft || !json.published_at) return "draft";
+  if (json.prerelease) return "prerelease";
+  const archiveName = `fixthis-cli-mcp-v${version}.tar.gz`;
+  const checksumName = `${archiveName}.sha256`;
+  const requiredAssets = new Map([
+    [archiveName, null],
+    [checksumName, null],
+  ]);
+  for (const asset of json.assets || []) {
+    if (requiredAssets.has(asset?.name) && Number(asset?.size || 0) > 0) {
+      requiredAssets.set(asset.name, asset);
+    }
+  }
+  if ([...requiredAssets.values()].some((asset) => !asset)) return "missing-assets";
+  if (!verifyAssets(requiredAssets.get(archiveName), requiredAssets.get(checksumName))) return "checksum-mismatch";
+  return json.tag_name || null;
 }
 
 export function readMcpServerName(root = repoRoot) {
@@ -120,6 +170,10 @@ function mavenCentralPomUrl(artifact, version) {
   return `https://repo1.maven.org/maven2/io/github/beyondwin/${artifact}/${version}/${artifact}-${version}.pom`;
 }
 
+function mavenCentralPluginMarkerPomUrl(version) {
+  return `https://repo1.maven.org/maven2/io/github/beyondwin/fixthis/compose/io.github.beyondwin.fixthis.compose.gradle.plugin/${version}/io.github.beyondwin.fixthis.compose.gradle.plugin-${version}.pom`;
+}
+
 function statusForSurfaces(surfaces, strict) {
   if (surfaces.some((surface) => surface.status === "mismatch")) return "fail";
   if (strict && surfaces.some((surface) => surface.status === "deferred")) return "fail";
@@ -146,16 +200,24 @@ export function buildReleaseRealityReport({
 export function defaultProbes(root = repoRoot, dependencies = {}) {
   const fetchJson = dependencies.fetchJson || jsonFromUrl;
   const execJson = dependencies.execJson || jsonFromCommand;
+  const verifyGithubAssets = dependencies.verifyGithubAssets || verifyGithubReleaseAssets;
   return {
     gitTag: (version) => execText("git", ["tag", "--list", `v${version}`]) || "missing",
-    githubRelease: (version) => probeGithubRelease(version, fetchJson, execJson),
+    githubRelease: (version) => probeGithubRelease(version, fetchJson, execJson, verifyGithubAssets),
     homebrew: () => execText("bash", ["-lc", "brew info --json=v2 beyondwin/tools/fixthis 2>/dev/null | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d);process.stdin.on(\"end\",()=>{const j=JSON.parse(s);console.log(j.formulae?.[0]?.versions?.stable||\"\")})'"]) || null,
     npm: () => execText("npm", ["view", "@beyondwin/fixthis", "version"]) || null,
     mcpRegistry: (version) => probeMcpRegistryVersion(version, readMcpServerName(root), fetchJson),
     gradlePluginPortal: (version) => probePomArtifact(version, gradlePluginMarkerPomUrl(version)),
     mavenCentralSidekick: (version) => probePomArtifact(version, mavenCentralPomUrl("fixthis-compose-sidekick", version)),
     mavenCentralCore: (version) => probePomArtifact(version, mavenCentralPomUrl("fixthis-compose-core", version)),
+    mavenCentralPluginImplementation: (version) => probePomArtifact(version, mavenCentralPomUrl("fixthis-gradle-plugin", version)),
+    mavenCentralPluginMarker: (version) => probePomArtifact(version, mavenCentralPluginMarkerPomUrl(version)),
   };
+}
+
+function runArtifactProbe(primary, fallback, version) {
+  const probe = primary || fallback;
+  return probe ? probe(version) : null;
 }
 
 export function runReleaseRealityCheck({
@@ -198,14 +260,26 @@ export function runReleaseRealityCheck({
     classifySurface({
       name: "maven-central-sidekick",
       expected: version,
-      actual: (probes.mavenCentralSidekick || probes.mavenCentral)(version),
+      actual: runArtifactProbe(probes.mavenCentralSidekick, probes.mavenCentral, version),
       reason: "Maven Central sidekick POM unavailable",
     }),
     classifySurface({
       name: "maven-central-core",
       expected: version,
-      actual: (probes.mavenCentralCore || probes.mavenCentral)(version),
+      actual: runArtifactProbe(probes.mavenCentralCore, probes.mavenCentral, version),
       reason: "Maven Central core POM unavailable",
+    }),
+    classifySurface({
+      name: "maven-central-plugin-implementation",
+      expected: version,
+      actual: runArtifactProbe(probes.mavenCentralPluginImplementation, probes.mavenCentral, version),
+      reason: "Maven Central Gradle plugin implementation POM unavailable",
+    }),
+    classifySurface({
+      name: "maven-central-plugin-marker",
+      expected: version,
+      actual: runArtifactProbe(probes.mavenCentralPluginMarker, probes.mavenCentral, version),
+      reason: "Maven Central Gradle plugin marker POM unavailable",
     }),
   ];
   return buildReleaseRealityReport({ strict, version, surfaces });
