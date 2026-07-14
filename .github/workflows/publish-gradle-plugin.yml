@@ -76,7 +76,7 @@ jobs:
           set -euo pipefail
           version="$RELEASE_TAG"
           version="${version#v}"
-          url="https://plugins.gradle.org/m2/io/github/beyondwin/fixthis/compose/io.github.beyondwin.fixthis.compose.gradle.plugin/$version/io.github.beyondwin.fixthis.compose.gradle.plugin-$version.pom"
+          url="https://plugins.gradle.org/plugin/io.github.beyondwin.fixthis.compose/$version"
           status="$(
             curl --silent --show-error --location --retry 3 --retry-all-errors \
               --output /dev/null --write-out "%{http_code}" "$url"
@@ -85,7 +85,7 @@ jobs:
             200)
               echo "already_published=true" >> "$GITHUB_OUTPUT"
               ;;
-            404)
+            400|404)
               echo "already_published=false" >> "$GITHUB_OUTPUT"
               ;;
             *)

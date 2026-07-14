@@ -133,8 +133,9 @@ test("immutable release publication channels serialize the same version", () => 
 test("Gradle Plugin Portal publication skips an already-public immutable version", () => {
   const workflow = read(".github/workflows/publish-gradle-plugin.yml");
 
-  assert.match(workflow, /id: plugin-status[\s\S]*?plugins\.gradle\.org\/m2/);
-  assert.match(workflow, /case "\$status" in[\s\S]*?200\)[\s\S]*?404\)[\s\S]*?\*\)/);
+  assert.match(workflow, /id: plugin-status[\s\S]*?plugins\.gradle\.org\/plugin\/io\.github\.beyondwin\.fixthis\.compose\/\$version/);
+  assert.doesNotMatch(workflow, /id: plugin-status[\s\S]*?plugins\.gradle\.org\/m2/);
+  assert.match(workflow, /case "\$status" in[\s\S]*?200\)[\s\S]*?400\|404\)[\s\S]*?\*\)/);
   assert.match(workflow, /if: steps\.plugin-status\.outputs\.already_published != 'true'/);
   assert.match(workflow, /if: steps\.plugin-status\.outputs\.already_published == 'true'/);
 });

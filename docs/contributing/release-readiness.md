@@ -378,6 +378,8 @@ sidekick Bridge capability or bump Bridge protocol `1.3`.
       commit before executing repository code with publication credentials.
 - [ ] Duplicate publication dispatches for the same channel and version are
       serialized with `cancel-in-progress: false`.
+- [ ] Gradle Plugin Portal idempotency checks the exact plugin-version page,
+      not the `/m2/` proxy marker.
 - [ ] MCP publisher version and SHA-256 are pinned in
       `.github/workflows/publish-npm-mcp.yml`.
 - [ ] Connected smoke is run on a real device or unlocked emulator, or the
