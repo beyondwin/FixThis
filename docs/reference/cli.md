@@ -131,7 +131,7 @@ fixthis init --target codex --dry-run
 | `--project-dir` | `.` | Android project root. |
 | `--agent` | off | Also write `.fixthis/agent-setup.md`, `.fixthis/agent-setup.json`, and `.fixthis/mcp.json.template`. |
 | `--apply-gradle-plugin` | off | Also apply `io.github.beyondwin.fixthis.compose` to the detected Android app module. |
-| `--plugin-version` | `1.4.1` | FixThis Gradle plugin version to apply when `--apply-gradle-plugin` is set. |
+| `--plugin-version` | `1.5.0` | FixThis Gradle plugin version to apply when `--apply-gradle-plugin` is set. |
 | `--dry-run` | off | Print planned writes without modifying files. |
 | `--target` | `all` | Agent target: `claude`, `codex`, `cursor`, `local` (project-local only — `claude` + `cursor`), or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
@@ -143,7 +143,7 @@ When using the GitHub Release CLI/MCP package, install the desktop tools first:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v1.4.1
+  | bash -s -- --version v1.5.0
 ```
 
 Then run `fixthis init` from the Android app repository.
@@ -181,7 +181,7 @@ fixthis install-agent --project-dir . --target all --dry-run
 | `--target` | `all` | Agent target: `claude`, `codex`, `cursor`, `local` (project-local only — `claude` + `cursor`), or `all`. |
 | `--server-name` | `fixthis` | MCP server name to write. |
 | `--skip-gradle-plugin` | off | Do not modify the app module build file. |
-| `--plugin-version` | `1.4.1` | FixThis Gradle plugin version to apply. |
+| `--plugin-version` | `1.5.0` | FixThis Gradle plugin version to apply. |
 | `--allow-global` | off | Permit writes to global config files (e.g. `~/.codex/config.toml`) when run outside an Android project. Default: refuse the global write and exit with PARTIAL. |
 | `--json` | off | Emit JSON (`schemaVersion`, `ok`, `applied[]`, `skipped[]`, `errors[]`, `next[]`, optional `readiness`, `nextAction`, and `restartRequired`). |
 | `--verify` | off | After setup, run doctor checks and emit one unified agent setup report in `--json` mode. With `--dry-run`, verification is skipped and reported as `verification.skippedReason=dry_run_no_side_effects`. |
@@ -356,10 +356,10 @@ without scraping the human-readable line.
 
 ```bash
 fixthis version
-# fixthis 1.4.1 (bridge protocol v1.3)
+# fixthis 1.5.0 (bridge protocol v1.3)
 
 fixthis version --json
-# {"cliVersion":"1.4.1","bridgeProtocolVersion":"1.3"}
+# {"cliVersion":"1.5.0","bridgeProtocolVersion":"1.3"}
 ```
 
 | Flag | Default | Description |

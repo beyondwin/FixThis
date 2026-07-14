@@ -164,12 +164,25 @@ your comments + target evidence + top-3 source candidates + severity / status
 ### Save to MCP — for Claude Code or Codex
 
 Click **Save to MCP**. The batch is persisted as a local handoff under
-`.fixthis/feedback-sessions/<session-id>/`. Then in your agent:
+`.fixthis/feedback-sessions/<session-id>/`. New sessions show an evidence policy
+control with **Auto** selected. Auto collects a bounded, redacted baseline
+before the batch becomes agent-visible; **Manual** saves without automatic
+collection, and **Off** disables collection for the session. Copy Prompt never
+starts diagnostics.
+
+If collection succeeds or partially succeeds, bounded summaries appear with
+the saved item while raw artifacts remain under
+`.fixthis/runtime-evidence/<session-id>/<capture-id>/`. A typed collection
+failure does not discard otherwise valid written feedback; the saved handoff
+records the failure state and recovery detail. Then in your agent:
 
 > Read the latest FixThis handoff and start fixing.
 
 The agent calls `fixthis_read_feedback`, gets the same JSON + Markdown, and
 edits.
+
+Saved annotation details also expose **Capture diagnostics** / **Capture
+again** for a deliberate post-save capture using one of the fixed presets.
 
 Both paths share the same compact prompt format and the same JSON evidence;
 **Save to MCP** just removes the manual paste step and never uploads the

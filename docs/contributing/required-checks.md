@@ -1,8 +1,8 @@
 # Required PR checks — readiness tracker
 
-This document tracks the observation windows for the workflows listed in the
-"Required PR checks" table in [`CONTRIBUTING.md`](../../CONTRIBUTING.md). The
-actual GitHub branch-protection enable is a maintainer admin action.
+This document records live branch-protection contexts and observation windows
+for non-required workflows listed in the "Required PR checks" table in
+[`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 This tracker separates three states:
 
@@ -21,12 +21,10 @@ confirms the exact GitHub status-check names to require.
 
 | Check | Workflow or status source | Observation evidence | Ready to require? | Enforcement status |
 |---|---|---|---|---|
-| Build + unit tests | `.github/workflows/ci.yml` baseline job | pre-existing | yes | required |
-| Kotlin formatting | `./gradlew spotlessCheck` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
-| Static analysis | `./gradlew detekt` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
-| Console asset bundle | `node scripts/build-console-assets.mjs --check` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
-| Console JS harnesses | `npm run console:test:all` in ci.yml | `.github/workflows/ci.yml` workflow-level observation ready: 12/7 green | no - status-check name confirmation required before individual promotion | not enforced |
-| CodeQL | `.github/workflows/codeql.yml` | workflow observation ready: 17/7 green | yes, after maintainer confirms the latest analysis is present in GitHub Security | admin action pending |
+| `Gradle verification` | `.github/workflows/ci.yml` (`gradle-verification`) | live PR check | yes | required |
+| `Console JavaScript` | `.github/workflows/ci.yml` (`console-js`) | live PR check | yes | required |
+| `Analyze (java-kotlin)` | `.github/workflows/codeql.yml` | live PR check | yes | required |
+| `Analyze (javascript-typescript)` | `.github/workflows/codeql.yml` | live PR check | yes | required |
 | Nightly connected tests | `.github/workflows/connected-tests.yml` | workflow observation ready: 20/14 green | no - scheduled device workflow still requires separate maintainer discussion before branch protection | informational only |
 | Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | workflow observation ready: 8/1 green | no - scheduled compatibility workflow still requires separate maintainer discussion before branch protection | informational only |
 
@@ -58,10 +56,9 @@ this tracker as follows:
 - Scheduled device and compatibility workflows have longer or lower-cadence
   windows, but observation readiness does not automatically mean they should be
   branch-protection requirements.
-- The CodeQL row is also gated on a maintainer confirming that the latest
-  analysis is visible in the GitHub Security tab.
-- For command-level rows inside `ci.yml`, confirm the exact GitHub status-check
-  name before moving **Ready to require?** to `yes`.
+- Live branch protection currently requires exactly `Gradle verification`,
+  `Console JavaScript`, `Analyze (java-kotlin)`, and
+  `Analyze (javascript-typescript)` with strict up-to-date branches.
 - Gradle 9.3.1 reports a Gradle 10 deprecation from Detekt 1.23.7 during
   `./gradlew :fixthis-mcp:detekt --warning-mode all --stacktrace --no-daemon`:
   `io.gitlab.arturbosch.detekt.DetektPlugin.apply` calls the deprecated

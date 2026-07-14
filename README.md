@@ -31,6 +31,9 @@ room, interop content, or another region that is not a clean component.
 - Let an agent configure your Android app with `fixthis install-agent`.
 - Use **Copy Prompt** with Cursor, ChatGPT, or any chat-style coding agent.
 - Use **Save to MCP** with Claude Code or Codex after running the bootstrap script.
+- Let **Save to MCP** collect a bounded, redacted Android diagnostics baseline
+  for new sessions; switch the session to Manual or Off when automatic
+  collection is not appropriate. **Copy Prompt** never starts collection.
 - Runs locally over ADB and `127.0.0.1`; FixThis makes no external API calls.
 - Debug builds only. Jetpack Compose only.
 
@@ -65,7 +68,7 @@ npm install -g @beyondwin/fixthis
 
 # macOS/Linux fallback path
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v1.4.1
+  | bash -s -- --version v1.5.0
 
 fixthis install-agent --project-dir . --target all --verify --json
 ```
@@ -89,7 +92,7 @@ The published Gradle plugin coordinates:
 
 ```kotlin
 plugins {
-    id("io.github.beyondwin.fixthis.compose") version "1.4.1"
+    id("io.github.beyondwin.fixthis.compose") version "1.5.0"
 }
 ```
 
@@ -167,6 +170,9 @@ FixThis adds the missing handoff structure:
   possible AndroidView/WebView targets so agents know when to verify rather
   than trust source hints directly.
 - **Agent verification posture.** Handoffs say whether the agent should inspect source first, corroborate multiple signals, treat source paths as hints, or verify manually.
+- **Bounded runtime diagnostics.** Save to MCP can attach redacted summaries
+  from fixed `baseline`, `logs`, `memory`, and `performance` presets while raw
+  artifacts stay in quota-limited local bundles under `.fixthis/`.
 - **Retry-safe local batches.** Slow or retried `Copy Prompt` / `Save to MCP`
   saves reuse browser draft ids, so duplicate requests do not create duplicate
   agent work.
@@ -219,9 +225,10 @@ FixThis is local-first: the sidekick talks to the desktop tools over ADB, the
 browser console binds to localhost, and **Save to MCP** writes local files under
 `.fixthis/`. FixThis does not call an external AI API.
 
-Screenshots may still contain sensitive pixels. Review copied prompts or local
-artifacts before sharing them outside your machine, and do not commit
-`.fixthis/`.
+Screenshots and runtime diagnostics may still contain sensitive pixels or app
+data. Review copied prompts and local artifacts before sharing them outside
+your machine, and do not commit `.fixthis/`. Runtime evidence is redacted and
+bounded, but it remains local debug data that you control.
 
 Details: [Privacy](docs/reference/privacy.md), [Security](SECURITY.md), and
 [Threat model](docs/reference/threat-model.md).

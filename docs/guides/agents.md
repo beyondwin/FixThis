@@ -17,6 +17,12 @@ script builds the local CLI/MCP distributions and then runs
 `fixthis setup --write`; use the raw CLI command only for manual setup or
 Windows shells.
 
+New feedback sessions use **Auto** runtime evidence for Save to MCP. Before the
+batch becomes agent-visible, FixThis attempts a bounded, redacted diagnostics
+baseline and records a complete, partial, failed, unsupported, or skipped
+result. The session can be switched to **Manual** or **Off**. **Copy Prompt**
+never starts collection.
+
 ## Claude Code
 
 Claude Code reads MCP servers from per-project `.claude/settings.json`. Bootstrap:
@@ -38,6 +44,10 @@ opens the browser console. After saving feedback, ask the agent to pick it up:
 
 The agent calls `fixthis_read_feedback`, gets the compact Markdown prompt and
 JSON evidence, and edits the right call sites.
+
+When a saved item needs a fresh targeted snapshot, an MCP agent can call
+`fixthis_collect_runtime_evidence` with one fixed preset: `baseline`, `logs`,
+`memory`, or `performance`. The tool cannot execute arbitrary host commands.
 
 For queue work, the agent should claim the item before editing:
 
@@ -95,7 +105,12 @@ tools.
 
 - **Both modes are local.** No FixThis call goes to an external API. **Save to
   MCP** persists `.fixthis/feedback-sessions/<id>/` files; **Copy Prompt** writes
-  to the clipboard.
+  to the clipboard. Runtime evidence bundles stay under
+  `.fixthis/runtime-evidence/<session-id>/<capture-id>/` and must not be
+  committed.
+- **Automatic collection belongs only to Save to MCP.** Auto waits for the
+  evidence decision before exposing the batch. Manual and Off remain explicit
+  session policies, while Copy Prompt always remains side-effect free.
 - **JSON is always complete.** Agent-facing Markdown is intentionally compact
   but includes the item and session IDs needed for claim/resolve workflows. JSON
   kept on disk preserves all IDs, paths, and MCP contracts — see the

@@ -27,6 +27,8 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
 
 ## Unreleased
 
+## v1.5.0 — 2026-07-14
+
 ### Added
 
 - Save to MCP can now collect a bounded, redacted Android diagnostics baseline
@@ -55,6 +57,10 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   item, or screen ownership drifts, while PID and fingerprint drift remain
   visible only as partial warning evidence. Late closed/deleted/replaced-screen
   results cannot link to a newer feedback context.
+- Scheduled performance reports now use baseline and current-run variance for
+  the noise band and keep cross-environment comparisons advisory, preventing
+  GitHub-hosted runner rotation and cold-build jitter from producing false
+  blocking regressions.
 
 ## v1.4.1 — 2026-07-05
 

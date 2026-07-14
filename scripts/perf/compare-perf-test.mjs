@@ -41,6 +41,56 @@ test("comparePerf warns on env fingerprint mismatch but does not fail", () => {
   assert.equal(result.exitCode, 0);
 });
 
+test("comparePerf keeps cross-environment regressions advisory", () => {
+  const altEnv = JSON.parse(JSON.stringify(loadFixture("current-regress.json")));
+  altEnv.env.cpu_model = "different-cpu";
+
+  const result = comparePerf(baseline, altEnv);
+
+  assert.deepEqual(result.regressed, []);
+  assert.deepEqual(result.advisoryRegressions, ["warm-mcp-test"]);
+  assert.equal(result.exitCode, 0);
+});
+
+test("comparePerf treats CPU-count drift as a cross-environment comparison", () => {
+  const altEnv = JSON.parse(JSON.stringify(loadFixture("current-regress.json")));
+  altEnv.env.cpu_count = baseline.env.cpu_count + 1;
+
+  const result = comparePerf(baseline, altEnv);
+
+  assert.ok(result.warnings.some((warning) => warning.includes("cpu_count")));
+  assert.deepEqual(result.regressed, []);
+  assert.deepEqual(result.advisoryRegressions, ["warm-mcp-test"]);
+  assert.equal(result.exitCode, 0);
+});
+
+test("comparePerf keeps cross-environment improvements advisory", () => {
+  const altEnv = JSON.parse(JSON.stringify(loadFixture("current-improve.json")));
+  altEnv.env.cpu_model = "different-cpu";
+
+  const result = comparePerf(baseline, altEnv);
+  const row = result.rows.find((candidate) => candidate.key === "warm-mcp-test");
+
+  assert.equal(row.verdict, "ADVISORY");
+  assert.deepEqual(result.improved, []);
+  assert.deepEqual(result.advisoryImprovements, ["warm-mcp-test"]);
+  assert.equal(result.exitCode, 0);
+});
+
+test("comparePerf includes current-run variance in the regression noise band", () => {
+  const noisyCurrent = JSON.parse(JSON.stringify(loadFixture("current-neutral.json")));
+  const row = noisyCurrent.results.find((result) => result.key === "warm-mcp-test");
+  row.median_ms = 1100;
+  row.stddev_ms = 100;
+
+  const result = comparePerf(baseline, noisyCurrent);
+  const compared = result.rows.find((candidate) => candidate.key === "warm-mcp-test");
+
+  assert.equal(compared.verdict, "NEUTRAL");
+  assert.equal(compared.noiseBandMs, 200.73);
+  assert.equal(result.exitCode, 0);
+});
+
 test("renderMarkdown produces a table with verdicts", () => {
   const result = comparePerf(baseline, loadFixture("current-regress.json"));
   const md = renderMarkdown(result);

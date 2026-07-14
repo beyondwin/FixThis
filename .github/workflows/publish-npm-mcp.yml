@@ -40,7 +40,23 @@ jobs:
       - name: Test npm wrapper and registry metadata
         run: node --test scripts/npm-wrapper-test.mjs scripts/mcp-registry-metadata-test.mjs
 
+      - name: Check whether npm version is already public
+        id: npm-status
+        shell: bash
+        run: |
+          set -euo pipefail
+          published="$(
+            npm view "@beyondwin/fixthis@${{ inputs.version }}" version 2>/dev/null || true
+          )"
+          if [[ "$published" == "${{ inputs.version }}" ]]; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "@beyondwin/fixthis@${{ inputs.version }} is already public; continuing with MCP Registry publication."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish package to npm
+        if: steps.npm-status.outputs.already_published != 'true'
         working-directory: npm/fixthis
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

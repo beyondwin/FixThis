@@ -32,7 +32,7 @@ discovery.
 - Install the CLI/MCP package with npm:
   `npm install -g @beyondwin/fixthis`.
 - Install the CLI/MCP package from GitHub Releases:
-  `scripts/install-fixthis.sh --version v1.4.1`.
+  `scripts/install-fixthis.sh --version v1.5.0`.
 - Use `fixthis install-agent --project-dir . --target all` in an external
   debug Compose app.
 - Use **Copy Prompt** for chat-style agents without MCP.
@@ -372,7 +372,8 @@ sidekick Bridge capability or bump Bridge protocol `1.3`.
 - [ ] `git diff --check` passes.
 - [ ] `CHANGELOG.md` entries are reviewed and moved under the release heading.
 - [ ] `docs/releases/vX.Y.Z.md` exists and matches the changelog summary.
-- [ ] `docs/releases/unreleased.md` is reset for the next cycle after tagging.
+- [ ] `docs/releases/unreleased.md` is reset for the next cycle in the
+      release-prep commit before tagging.
 - [ ] Connected smoke is run on a real device or unlocked emulator, or the
       release notes explicitly say it was not run.
 - [ ] Runtime Evidence Autopilot claims have fresh passing
@@ -436,8 +437,9 @@ sidekick Bridge capability or bump Bridge protocol `1.3`.
 
 ## Required Maintainer Secrets
 
-These names document the default expected CI inputs. They are not committed and
-can be renamed before real publication is enabled.
+These are the required GitHub Actions secret names used by the live publication
+workflows. They are not committed. Rename one only together with every workflow
+reference that consumes it.
 
 | Secret | Purpose |
 | --- | --- |

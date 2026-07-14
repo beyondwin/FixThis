@@ -52,6 +52,12 @@ run the debug app
 -> the agent reads the item, claims it, and resolves it
 ```
 
+Save to MCP can also resolve a session-level runtime-evidence policy before the
+batch becomes agent-visible. New sessions use Auto, legacy sessions decode as
+Manual, and Off disables collection. Copy Prompt stays clipboard-only and never
+starts diagnostics. Raw evidence remains in bounded, redacted local bundles;
+the handoff carries summaries and status metadata.
+
 Inside the Android app, FixThis shows only the `MCP waiting` / `MCP connected`
 status pill. Selection, annotation, prompt generation, feedback queue state,
 and handoff persistence are owned by the desktop console.

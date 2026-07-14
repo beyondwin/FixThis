@@ -19,7 +19,7 @@ Run a debug Compose app
 -> freeze the screen with Annotate
 -> select a Compose component or draw a visual area
 -> write one or more comments
--> Copy Prompt or Save to MCP
+-> Copy Prompt, or Save to MCP with the session evidence policy
 -> the agent edits and resolves the feedback
 ```
 
@@ -47,6 +47,7 @@ FixThis adds runtime evidence around the human selection:
 - target confidence and warning signals
 - stable item IDs for MCP claim/resolve workflows
 - browser draft ids that make retried handoff saves idempotent
+- optional bounded runtime-evidence summaries and local artifact references
 - batching across multiple annotations on one frozen screen
 
 ## Product Principles
@@ -87,6 +88,8 @@ In scope:
 - best-effort source candidates
 - compact Markdown handoff and complete JSON session data
 - MCP feedback queue with claim/resolve status
+- Auto, Manual, and Off runtime-evidence policy for Save to MCP
+- fixed-preset host diagnostics with redacted, quota-limited local bundles
 
 Out of scope for V1:
 

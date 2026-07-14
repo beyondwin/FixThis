@@ -6,7 +6,7 @@
 |---|---|---|
 | JDK | 21 | Adoptium Temurin recommended. |
 | Android SDK + ADB | API 30+ | Required for `:app:assembleDebug` and connected smoke. |
-| Node.js | 20.0.0 | Enforced via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20.x LTS is supported through 2026-04; 22.x LTS also supported. Node 18.x is EOL. |
+| Node.js | 20.0.0 | Compatibility floor enforced via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20 reached upstream EOL on 2026-04-30; use an upstream-supported Node 22 or 24 release for local development. CI keeps one Node 20 lane until the compatibility floor changes. |
 | Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. macOS 11+ / Ubuntu 20.04+ required by Playwright's bundled Chromium. |
 
 Run `npm install` and `npx playwright install chromium` once before running any `npm run console:*` script.
@@ -32,20 +32,21 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## Required PR checks
 
-The following table is the canonical contract for which workflows are (or will become) required status checks on pull requests targeting `main`. The actual GitHub branch-protection flip is a maintainer admin action and is deferred until each "Pending" row meets its observation window; readiness is tracked in [`docs/contributing/required-checks.md`](docs/contributing/required-checks.md).
+The following table is the canonical contract for status checks on pull
+requests targeting `main`. The exact live contexts are also recorded in
+[`docs/contributing/required-checks.md`](docs/contributing/required-checks.md).
 
 | Check | Workflow | Source task | Status |
 |---|---|---|---|
-| Build + unit tests | `.github/workflows/ci.yml` (baseline job) | pre-existing | Required (already enforced) |
-| Kotlin formatting | `./gradlew spotlessCheck` in ci.yml | CI-1 | Pending — promote after 7 days green |
-| Static analysis | `./gradlew detekt` in ci.yml | CI-2 | Pending — promote after 7 days green |
-| Console asset bundle | `node scripts/build-console-assets.mjs --check` in ci.yml | post-v0.1 stabilization | Pending — promote with baseline job |
-| Console JS harnesses | `npm run console:test:all` in ci.yml | post-v0.1 stabilization | Pending — promote with baseline job |
-| CodeQL | `.github/workflows/codeql.yml` | CI-3 | Pending — promote after first analysis lands |
+| `Gradle verification` | `.github/workflows/ci.yml` (`gradle-verification`) | build, formatting, detekt, unit tests, sample assemble, CLI/MCP install | Required |
+| `Console JavaScript` | `.github/workflows/ci.yml` (`console-js`) | docs, release contracts, console assets/tests, package/perf contracts | Required |
+| `Analyze (java-kotlin)` | `.github/workflows/codeql.yml` | CodeQL Java/Kotlin analysis | Required |
+| `Analyze (javascript-typescript)` | `.github/workflows/codeql.yml` | CodeQL JavaScript/TypeScript analysis | Required |
 | Nightly connected tests | `.github/workflows/connected-tests.yml` | CI-4 | Informational only — promote after 14 consecutive green |
 | Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | BR-4 | Informational only — promote after 1 week stable |
 
-The branch-protection flip itself is gated on the "Pending" rows above turning green for the stated observation window. Maintainers update the readiness tracker as windows complete.
+The four required context names above must match live branch protection exactly.
+Scheduled jobs remain observation-only until a separate policy change.
 
 ## Console Inner Loop
 
@@ -441,10 +442,13 @@ redaction, item linkage, Auto Save-to-MCP, and restart replay. Generic direct
 logcat output is not accepted. The local report is written under
 `build/reports/fixthis-runtime-evidence/`.
 
-`release:gate` consumes the integrated connected Android proof report. It should
-not be treated as a request to run every connected smoke independently; use the
-focused smoke commands above only when debugging the failing child row named in
-`build/reports/fixthis-android-proof/report.json`.
+`release:gate` consumes the integrated connected Android proof report and the
+public release-reality check. Before tagging, use the focused commands above and
+`android:proof -- --strict`; a pre-tag gate run is expected to fail only its
+`Release reality` row because the new tag and registry versions do not exist
+yet. After every channel is published, `release:gate -- --strict` must pass.
+Do not run every connected smoke independently unless debugging a failing child
+row named in `build/reports/fixthis-android-proof/report.json`.
 
 The release gate writes JSON and Markdown reports under
 `build/reports/fixthis-release-gate/`. These reports are ignored build
@@ -495,7 +499,11 @@ GitHub Actions Ubuntu runner (linux/x64, AMD EPYC, 16 GB RAM, JDK 21,
 Node 20) so the nightly `perf-report` gate compares apples to apples.
 Local Mac runs will diverge from the Linux baseline; the comparator warns
 rather than fails on environment mismatch, so contributor numbers stay
-informational while CI remains the authoritative gate.
+informational while CI remains the authoritative gate. The same rule protects
+scheduled GitHub runs when hosted-runner CPU models rotate: only matching
+environment fingerprints, including CPU core count, can produce a blocking
+regression or confirmed improvement, and the noise band combines baseline and
+current-run variance.
 
 ## Local Artifacts
 
