@@ -229,6 +229,10 @@ Before publishing Maven Central or Gradle Plugin Portal artifacts:
    it to the Publisher API, and waits for the deployment to reach `PUBLISHED`.
    Public verification checks all four Maven coordinates; a partial set fails
    closed rather than attempting to republish an immutable version.
+   Gradle Plugin Portal recovery checks the exact
+   `plugins.gradle.org/plugin/io.github.beyondwin.fixthis.compose/X.Y.Z` page.
+   Do not use the Portal `/m2/` marker as the recovery signal because it can
+   proxy a Maven Central marker before the plugin listing is published.
    If the Maven upload succeeds but the wait is interrupted, download the
    `deployment-id-X.Y.Z` workflow artifact and resume without re-uploading:
 

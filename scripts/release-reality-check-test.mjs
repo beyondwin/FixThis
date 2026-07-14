@@ -11,6 +11,7 @@ import {
   defaultProbes,
   mcpRegistryVersionUrl,
   probeMcpRegistryVersion,
+  probeGradlePluginPortalVersion,
   probePomArtifact,
   readMcpServerName,
   renderMarkdownReport,
@@ -305,6 +306,20 @@ test("probePomArtifact maps HTTP existence to version missing or deferred", () =
   assert.equal(probePomArtifact("1.0.0", "https://example.test/missing.pom", () => "404 0"), "missing");
   assert.equal(probePomArtifact("1.0.0", "https://example.test/empty.pom", () => "200 0"), "missing");
   assert.equal(probePomArtifact("1.0.0", "https://example.test/unavailable.pom", () => null), null);
+});
+
+test("Gradle Plugin Portal reality probes the exact plugin version page", () => {
+  let requestedUrl = null;
+  const fetchStatus = (url) => {
+    requestedUrl = url;
+    return "200 17735";
+  };
+
+  assert.equal(probeGradlePluginPortalVersion("1.5.0", fetchStatus), "1.5.0");
+  assert.equal(requestedUrl, "https://plugins.gradle.org/plugin/io.github.beyondwin.fixthis.compose/1.5.0");
+  assert.equal(probeGradlePluginPortalVersion("1.5.0", () => "400 6176"), "missing");
+  assert.equal(probeGradlePluginPortalVersion("1.5.0", () => "404 0"), "missing");
+  assert.equal(probeGradlePluginPortalVersion("1.5.0", () => "503 0"), null);
 });
 
 test("markdown report renders every release surface", () => {

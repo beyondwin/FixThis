@@ -28,6 +28,12 @@ required before publishing any release.
 
 ## Unreleased
 
+### Fixed
+
+- Gradle Plugin Portal recovery now checks the exact plugin-version page rather
+  than the Portal Maven proxy, which can expose a Maven Central marker before
+  the plugin is actually published in the Portal.
+
 ## v1.5.0 — 2026-07-14
 
 ### Added

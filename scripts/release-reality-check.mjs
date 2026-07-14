@@ -146,6 +146,16 @@ export function probePomArtifact(version, url, fetchStatus = urlStatusAndSize) {
   return null;
 }
 
+export function probeGradlePluginPortalVersion(version, fetchStatus = urlStatusAndSize) {
+  const result = fetchStatus(gradlePluginPageUrl(version));
+  if (!result) return null;
+  const [status, rawSize] = String(result).trim().split(/\s+/);
+  const size = Number(rawSize || 0);
+  if (status === "200" && size > 0) return version;
+  if (status === "400" || status === "404" || (status === "200" && size === 0)) return "missing";
+  return null;
+}
+
 export function classifySurface({ name, expected, actual, reason = null }) {
   if (actual === expected) {
     return { name, status: "verified", expected, actual };
@@ -162,8 +172,8 @@ export function classifySurface({ name, expected, actual, reason = null }) {
   };
 }
 
-function gradlePluginMarkerPomUrl(version) {
-  return `https://plugins.gradle.org/m2/io/github/beyondwin/fixthis/compose/io.github.beyondwin.fixthis.compose.gradle.plugin/${version}/io.github.beyondwin.fixthis.compose.gradle.plugin-${version}.pom`;
+function gradlePluginPageUrl(version) {
+  return `https://plugins.gradle.org/plugin/io.github.beyondwin.fixthis.compose/${version}`;
 }
 
 function mavenCentralPomUrl(artifact, version) {
@@ -207,7 +217,7 @@ export function defaultProbes(root = repoRoot, dependencies = {}) {
     homebrew: () => execText("bash", ["-lc", "brew info --json=v2 beyondwin/tools/fixthis 2>/dev/null | node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d);process.stdin.on(\"end\",()=>{const j=JSON.parse(s);console.log(j.formulae?.[0]?.versions?.stable||\"\")})'"]) || null,
     npm: () => execText("npm", ["view", "@beyondwin/fixthis", "version"]) || null,
     mcpRegistry: (version) => probeMcpRegistryVersion(version, readMcpServerName(root), fetchJson),
-    gradlePluginPortal: (version) => probePomArtifact(version, gradlePluginMarkerPomUrl(version)),
+    gradlePluginPortal: (version) => probeGradlePluginPortalVersion(version),
     mavenCentralSidekick: (version) => probePomArtifact(version, mavenCentralPomUrl("fixthis-compose-sidekick", version)),
     mavenCentralCore: (version) => probePomArtifact(version, mavenCentralPomUrl("fixthis-compose-core", version)),
     mavenCentralPluginImplementation: (version) => probePomArtifact(version, mavenCentralPomUrl("fixthis-gradle-plugin", version)),
