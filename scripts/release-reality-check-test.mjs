@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 import {
   buildReleaseRealityReport,
   classifySurface,
@@ -13,6 +15,7 @@ import {
   readMcpServerName,
   renderMarkdownReport,
   runReleaseRealityCheck,
+  verifyGithubReleaseAssets,
   writeReports,
 } from "./release-reality-check.mjs";
 
@@ -114,11 +117,21 @@ test("default GitHub release probe prefers authenticated gh api before public cu
     execJson: (command, args) => {
       assert.equal(command, "gh");
       assert.deepEqual(args, ["api", "repos/beyondwin/FixThis/releases/tags/v1.0.0"]);
-      return { tag_name: "v1.0.0" };
+      return {
+        tag_name: "v1.0.0",
+        draft: false,
+        prerelease: false,
+        published_at: "2026-07-14T00:00:00Z",
+        assets: [
+          { name: "fixthis-cli-mcp-v1.0.0.tar.gz", size: 100 },
+          { name: "fixthis-cli-mcp-v1.0.0.tar.gz.sha256", size: 80 },
+        ],
+      };
     },
     fetchJson: () => {
       throw new Error("public GitHub API fallback should not be used when gh api succeeds");
     },
+    verifyGithubAssets: () => true,
   });
 
   assert.equal(probes.githubRelease("1.0.0"), "v1.0.0");
@@ -130,12 +143,94 @@ test("default GitHub release probe falls back to public API when gh api is unava
     execJson: () => null,
     fetchJson: (url) => {
       requestedUrl = url;
-      return { tag_name: "v1.0.0" };
+      return {
+        tag_name: "v1.0.0",
+        draft: false,
+        prerelease: false,
+        published_at: "2026-07-14T00:00:00Z",
+        assets: [
+          { name: "fixthis-cli-mcp-v1.0.0.tar.gz", size: 100 },
+          { name: "fixthis-cli-mcp-v1.0.0.tar.gz.sha256", size: 80 },
+        ],
+      };
     },
+    verifyGithubAssets: () => true,
   });
 
   assert.equal(probes.githubRelease("1.0.0"), "v1.0.0");
   assert.equal(requestedUrl, "https://api.github.com/repos/beyondwin/FixThis/releases/tags/v1.0.0");
+});
+
+test("GitHub release probe rejects drafts, prereleases, and missing installer assets", () => {
+  const release = (overrides = {}) => ({
+    tag_name: "v1.0.0",
+    draft: false,
+    prerelease: false,
+    published_at: "2026-07-14T00:00:00Z",
+    assets: [
+      { name: "fixthis-cli-mcp-v1.0.0.tar.gz", size: 100 },
+      { name: "fixthis-cli-mcp-v1.0.0.tar.gz.sha256", size: 80 },
+    ],
+    ...overrides,
+  });
+  const probe = (payload, verifyGithubAssets = () => true) => defaultProbes(undefined, {
+    execJson: () => payload,
+    fetchJson: () => {
+      throw new Error("authenticated response should be decisive");
+    },
+    verifyGithubAssets,
+  }).githubRelease("1.0.0");
+
+  assert.equal(probe(release({ draft: true })), "draft");
+  assert.equal(probe(release({ prerelease: true })), "prerelease");
+  assert.equal(probe(release({ assets: [{ name: "fixthis-cli-mcp-v1.0.0.tar.gz", size: 100 }] })), "missing-assets");
+  assert.equal(probe(release({ assets: [
+    { name: "fixthis-cli-mcp-v1.0.0.tar.gz", size: 0 },
+    { name: "fixthis-cli-mcp-v1.0.0.tar.gz.sha256", size: 80 },
+  ] })), "missing-assets");
+  assert.equal(probe(release(), () => false), "checksum-mismatch");
+});
+
+test("GitHub release asset verification hashes the downloaded archive", () => {
+  const root = mkdtempSync(join(tmpdir(), "fixthis-release-checksum-"));
+  try {
+    const archive = join(root, "release.tar.gz");
+    const checksum = join(root, "release.tar.gz.sha256");
+    writeFileSync(archive, "trusted release bytes");
+    const digest = createHash("sha256").update(readFileSync(archive)).digest("hex");
+    writeFileSync(checksum, `${digest}  release.tar.gz\n`);
+    const archiveAsset = { browser_download_url: pathToFileURL(archive).href };
+    const checksumAsset = { browser_download_url: pathToFileURL(checksum).href };
+
+    assert.equal(verifyGithubReleaseAssets(archiveAsset, checksumAsset), true);
+    writeFileSync(checksum, `${"0".repeat(64)}  release.tar.gz\n`);
+    assert.equal(verifyGithubReleaseAssets(archiveAsset, checksumAsset), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("release reality requires every Maven Central coordinate in the signed bundle", () => {
+  const report = runReleaseRealityCheck({
+    strict: true,
+    version: "1.0.0",
+    probes: {
+      gitTag: () => "v1.0.0",
+      githubRelease: () => "v1.0.0",
+      homebrew: () => "1.0.0",
+      npm: () => "1.0.0",
+      mcpRegistry: () => "1.0.0",
+      gradlePluginPortal: () => "1.0.0",
+      mavenCentralSidekick: () => "1.0.0",
+      mavenCentralCore: () => "1.0.0",
+      mavenCentralPluginImplementation: () => "missing",
+      mavenCentralPluginMarker: () => "1.0.0",
+    },
+  });
+
+  assert.equal(report.status, "fail");
+  assert.equal(report.surfaces.find((surface) => surface.name === "maven-central-plugin-implementation").status, "mismatch");
+  assert.equal(report.surfaces.find((surface) => surface.name === "maven-central-plugin-marker").status, "verified");
 });
 
 test("probeMcpRegistryVersion extracts version from registry response shapes", () => {

@@ -94,7 +94,7 @@ Before tagging:
 1. Move CHANGELOG `Unreleased` entries under a new dated heading:
 
    ```markdown
-   ## [0.2.0] - 2026-MM-DD
+   ## v0.2.0 — 2026-MM-DD
 
    ### Added
    - Release readiness documentation and validation.
@@ -218,10 +218,25 @@ Before publishing Maven Central or Gradle Plugin Portal artifacts:
 
    Wait for each workflow to succeed before starting the dependent next step;
    npm must be public before MCP Registry publication in the combined workflow.
+   Every publication workflow checks out and verifies the immutable release tag
+   before running repository code with registry credentials. The npm/MCP job
+   uses MCP publisher v1.8.0 with a pinned SHA-256 rather than a mutable latest
+   download. Per-channel concurrency groups serialize duplicate dispatches for
+   the same immutable version without cancelling a publication in progress.
    The Maven workflow builds a signed Central Portal bundle for
    `:fixthis-compose-core`, `:fixthis-compose-sidekick`,
    `:fixthis-gradle-plugin`, and the Gradle plugin marker publication, uploads
    it to the Publisher API, and waits for the deployment to reach `PUBLISHED`.
+   Public verification checks all four Maven coordinates; a partial set fails
+   closed rather than attempting to republish an immutable version.
+   If the Maven upload succeeds but the wait is interrupted, download the
+   `deployment-id-X.Y.Z` workflow artifact and resume without re-uploading:
+
+   ```bash
+   gh workflow run publish-maven-central.yml --ref main \
+     -f version="$tag" \
+     -f deployment_id="<Central deployment UUID>"
+   ```
 6. Verify from a clean external consumer project that:
 
    ```kotlin

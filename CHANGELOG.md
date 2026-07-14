@@ -22,8 +22,9 @@ independent of the package version. Wire-visible bridge changes follow the
 checklist in
 [`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md).
 
-Until the first `1.0.0` external release, breaking changes may land under
-minor / patch labels — see [release-readiness](docs/contributing/release-readiness.md).
+Breaking public contract changes require a major version bump. See
+[release-readiness](docs/contributing/release-readiness.md) for the evidence
+required before publishing any release.
 
 ## Unreleased
 
@@ -61,6 +62,11 @@ minor / patch labels — see [release-readiness](docs/contributing/release-readi
   the noise band and keep cross-environment comparisons advisory, preventing
   GitHub-hosted runner rotation and cold-build jitter from producing false
   blocking regressions.
+- Release workflows now execute only immutable verified tags, keep dispatch
+  inputs out of shell source, pin and checksum the MCP publisher, resume Maven
+  Central deployments safely, serialize duplicate version dispatches, and
+  require the published installer archive to match its SHA-256 sidecar before
+  the public release gate can pass.
 
 ## v1.4.1 — 2026-07-05
 

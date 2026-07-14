@@ -12,17 +12,26 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: publish-npm-mcp-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Publish npm package and MCP metadata
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      MCP_PUBLISHER_VERSION: "1.8.0"
+      MCP_PUBLISHER_SHA256_LINUX_AMD64: "1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: v${{ inputs.version }}
+          fetch-depth: 0
+          ref: refs/tags/v${{ inputs.version }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -31,10 +40,18 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Verify requested version
+        shell: bash
         working-directory: npm/fixthis
         run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+([-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error title=Invalid release version::$RELEASE_VERSION is not a supported SemVer release"
+            exit 2
+          fi
+          tag_commit="$(git -C ../.. rev-parse "refs/tags/v${RELEASE_VERSION}^{commit}")"
+          test "$(git -C ../.. rev-parse HEAD)" = "$tag_commit"
           test "$(node -p 'require("./package.json").name')" = "@beyondwin/fixthis"
-          test "$(node -p 'require("./package.json").version')" = "${{ inputs.version }}"
+          test "$(node -p 'require("./package.json").version')" = "$RELEASE_VERSION"
           test "$(node -p 'require("./package.json").mcpName')" = "io.github.beyondwin/fixthis"
 
       - name: Test npm wrapper and registry metadata
@@ -45,15 +62,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          published="$(
-            npm view "@beyondwin/fixthis@${{ inputs.version }}" version 2>/dev/null || true
+          response="$RUNNER_TEMP/npm-version.json"
+          status="$(
+            curl --silent --show-error --location \
+              --retry 3 --retry-all-errors \
+              --output "$response" \
+              --write-out "%{http_code}" \
+              "https://registry.npmjs.org/@beyondwin%2Ffixthis/$RELEASE_VERSION"
           )"
-          if [[ "$published" == "${{ inputs.version }}" ]]; then
-            echo "already_published=true" >> "$GITHUB_OUTPUT"
-            echo "@beyondwin/fixthis@${{ inputs.version }} is already public; continuing with MCP Registry publication."
-          else
-            echo "already_published=false" >> "$GITHUB_OUTPUT"
-          fi
+          case "$status" in
+            200)
+              published="$(jq -r '.version // empty' "$response")"
+              test "$published" = "$RELEASE_VERSION"
+              echo "already_published=true" >> "$GITHUB_OUTPUT"
+              echo "@beyondwin/fixthis@$RELEASE_VERSION is already public; continuing with MCP Registry publication."
+              ;;
+            404)
+              echo "already_published=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error title=npm registry check failed::HTTP $status while checking @beyondwin/fixthis@$RELEASE_VERSION"
+              exit 1
+              ;;
+          esac
 
       - name: Publish package to npm
         if: steps.npm-status.outputs.already_published != 'true'
@@ -63,8 +94,15 @@ jobs:
         run: npm publish --access public
 
       - name: Install mcp-publisher
+        shell: bash
         run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          set -euo pipefail
+          archive="$RUNNER_TEMP/mcp-publisher_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v$MCP_PUBLISHER_VERSION/mcp-publisher_linux_amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$MCP_PUBLISHER_SHA256_LINUX_AMD64" "$archive" | sha256sum --check
+          tar -xzf "$archive" mcp-publisher
 
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc

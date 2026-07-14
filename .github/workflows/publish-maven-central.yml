@@ -7,9 +7,17 @@ on:
         description: "Release version, for example v0.2.0"
         required: true
         type: string
+      deployment_id:
+        description: "Optional Central deployment UUID to resume after an upload or wait interruption"
+        required: false
+        type: string
 
 permissions:
   contents: read
+
+concurrency:
+  group: publish-maven-central-${{ inputs.version }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -21,12 +29,15 @@ jobs:
       MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
       SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+      RELEASE_TAG: ${{ inputs.version }}
+      RESUME_DEPLOYMENT_ID: ${{ inputs.deployment_id }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.version }}
+          fetch-depth: 0
+          ref: refs/tags/${{ inputs.version }}
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -48,23 +59,86 @@ jobs:
             fi
           done
 
+      - name: Verify immutable release tag and recovery input
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+[.][0-9]+[.][0-9]+([-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error title=Invalid release tag::$RELEASE_TAG is not a supported release tag"
+            exit 2
+          fi
+          tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          test "$(git rev-parse HEAD)" = "$tag_commit"
+          if [[ -n "$RESUME_DEPLOYMENT_ID" && ! "$RESUME_DEPLOYMENT_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "::error title=Invalid deployment ID::$RESUME_DEPLOYMENT_ID is not a Central deployment UUID"
+            exit 2
+          fi
+
       - name: Publish Maven artifacts
         id: bundle
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ inputs.version }}"
+          version="$RELEASE_TAG"
           version="${version#v}"
           bundle="$RUNNER_TEMP/fixthis-maven-central-$version.zip"
           REQUIRE_SIGNATURES=1 ./scripts/create-central-portal-bundle.sh "$version" "$RUNNER_TEMP/central-repo" "$bundle"
           echo "version=$version" >>"$GITHUB_OUTPUT"
           echo "bundle=$bundle" >>"$GITHUB_OUTPUT"
 
-      - name: Upload Maven Central deployment
-        id: upload
+      - name: Check whether Maven coordinates are already public
+        id: maven-status
         shell: bash
         run: |
           set -euo pipefail
+          version="${{ steps.bundle.outputs.version }}"
+          urls=(
+            "https://repo1.maven.org/maven2/io/github/beyondwin/fixthis-compose-core/$version/fixthis-compose-core-$version.pom"
+            "https://repo1.maven.org/maven2/io/github/beyondwin/fixthis-compose-sidekick/$version/fixthis-compose-sidekick-$version.pom"
+            "https://repo1.maven.org/maven2/io/github/beyondwin/fixthis-gradle-plugin/$version/fixthis-gradle-plugin-$version.pom"
+            "https://repo1.maven.org/maven2/io/github/beyondwin/fixthis/compose/io.github.beyondwin.fixthis.compose.gradle.plugin/$version/io.github.beyondwin.fixthis.compose.gradle.plugin-$version.pom"
+          )
+          published_count=0
+          missing_count=0
+          for url in "${urls[@]}"; do
+            status="$(
+              curl --silent --show-error --location --retry 3 --retry-all-errors \
+                --output /dev/null --write-out "%{http_code}" "$url"
+            )"
+            case "$status" in
+              200)
+                published_count=$((published_count + 1))
+                ;;
+              404)
+                missing_count=$((missing_count + 1))
+                ;;
+              *)
+                echo "::error title=Maven Central check failed::HTTP $status while checking $url"
+                exit 1
+                ;;
+            esac
+          done
+          if [[ "$published_count" -eq "${#urls[@]}" ]]; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "All FixThis $version Maven coordinates are already public; skipping immutable re-publication."
+          elif [[ "$missing_count" -eq "${#urls[@]}" ]]; then
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error title=Partial Maven Central publication detected::$published_count of ${#urls[@]} coordinates are public; refusing an immutable re-publication"
+            exit 1
+          fi
+
+      - name: Upload Maven Central deployment
+        id: upload
+        if: steps.maven-status.outputs.already_published != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$RESUME_DEPLOYMENT_ID" ]]; then
+            echo "deployment_id=$RESUME_DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+            echo "Resuming Maven Central deployment: $RESUME_DEPLOYMENT_ID"
+            exit 0
+          fi
           token="$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 -w0)"
           response="$RUNNER_TEMP/maven-central-upload-response.txt"
           status="$(
@@ -82,21 +156,45 @@ jobs:
             exit 1
           fi
           deployment_id="$(tr -d '\r\n' <"$response")"
+          if [[ ! "$deployment_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "::error title=Invalid deployment ID from Maven Central::Upload response was not a Central deployment UUID"
+            exit 1
+          fi
           echo "deployment_id=$deployment_id" >>"$GITHUB_OUTPUT"
           echo "Maven Central deployment: $deployment_id"
 
+      - name: Record Maven Central deployment ID
+        if: steps.maven-status.outputs.already_published != 'true'
+        env:
+          DEPLOYMENT_ID: ${{ steps.upload.outputs.deployment_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$DEPLOYMENT_ID" \
+            > "$RUNNER_TEMP/maven-central-deployment-${{ steps.bundle.outputs.version }}.txt"
+
+      - name: Upload Maven Central recovery artifact
+        if: steps.maven-status.outputs.already_published != 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: deployment-id-${{ steps.bundle.outputs.version }}
+          path: ${{ runner.temp }}/maven-central-deployment-${{ steps.bundle.outputs.version }}.txt
+          if-no-files-found: error
+
       - name: Wait for Maven Central publication
+        if: steps.maven-status.outputs.already_published != 'true'
+        env:
+          DEPLOYMENT_ID: ${{ steps.upload.outputs.deployment_id }}
         shell: bash
         run: |
           set -euo pipefail
           token="$(printf '%s:%s' "$MAVEN_CENTRAL_USERNAME" "$MAVEN_CENTRAL_PASSWORD" | base64 -w0)"
-          deployment_id="${{ steps.upload.outputs.deployment_id }}"
           for _ in {1..60}; do
             response="$(
               curl -fsSL \
                 -X POST \
                 -H "Authorization: Bearer $token" \
-                "https://central.sonatype.com/api/v1/publisher/status?id=$deployment_id"
+                "https://central.sonatype.com/api/v1/publisher/status?id=$DEPLOYMENT_ID"
             )"
             state="$(printf '%s' "$response" | jq -r '.deploymentState')"
             echo "Maven Central deployment state: $state"
@@ -118,5 +216,9 @@ jobs:
                 ;;
             esac
           done
-          echo "::error title=Maven Central publication timed out::Deployment $deployment_id did not publish in time"
+          echo "::error title=Maven Central publication timed out::Deployment $DEPLOYMENT_ID did not publish in time"
           exit 1
+
+      - name: Confirm coordinates already public
+        if: steps.maven-status.outputs.already_published == 'true'
+        run: echo "FixThis ${{ steps.bundle.outputs.version }} is already public on Maven Central."

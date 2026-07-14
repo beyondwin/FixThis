@@ -374,6 +374,12 @@ sidekick Bridge capability or bump Bridge protocol `1.3`.
 - [ ] `docs/releases/vX.Y.Z.md` exists and matches the changelog summary.
 - [ ] `docs/releases/unreleased.md` is reset for the next cycle in the
       release-prep commit before tagging.
+- [ ] Manual publication workflows resolve an immutable `refs/tags/vX.Y.Z`
+      commit before executing repository code with publication credentials.
+- [ ] Duplicate publication dispatches for the same channel and version are
+      serialized with `cancel-in-progress: false`.
+- [ ] MCP publisher version and SHA-256 are pinned in
+      `.github/workflows/publish-npm-mcp.yml`.
 - [ ] Connected smoke is run on a real device or unlocked emulator, or the
       release notes explicitly say it was not run.
 - [ ] Runtime Evidence Autopilot claims have fresh passing
@@ -384,6 +390,8 @@ sidekick Bridge capability or bump Bridge protocol `1.3`.
       notes explicitly say no desktop package is attached.
 - [ ] Release tarball checksum sidecar exists and both shell/npm installers
       verify SHA-256 before extraction.
+- [ ] GitHub Release is public, not a prerelease, and its downloaded CLI/MCP
+      archive matches the downloaded SHA-256 sidecar.
 - [ ] `npm run checks:observation -- --json` output captured for the release
       issue, and any non-ready scheduled gate is explicitly accepted.
 - [ ] Release/minify consumer fixture passed, or the release issue records why
