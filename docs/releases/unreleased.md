@@ -8,7 +8,12 @@ as release evidence.
 
 ## Highlights
 
-- No user-visible changes have been recorded after v1.5.0 yet.
+- **Accurate Gradle Plugin Portal recovery.** Release automation now verifies
+  the exact `io.github.beyondwin.fixthis.compose` version page instead of the
+  Portal `/m2/` proxy marker, which can appear before the plugin listing is
+  actually public. HTTP 400 and 404 responses remain the expected
+  not-yet-published signals; other unexpected responses defer the check rather
+  than triggering an unsafe duplicate publication attempt.
 
 ## Compatibility Notes
 

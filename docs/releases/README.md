@@ -10,8 +10,8 @@ Maven Central, and the Gradle Plugin Portal.
 
 ## Releases
 
-- [Unreleased changes](unreleased.md) - next-cycle changes after v1.5.0; no
-  user-visible entries yet.
+- [Unreleased changes](unreleased.md) - next-cycle changes after v1.5.0,
+  currently including a Gradle Plugin Portal publication-verification fix.
 - [v1.5.0](v1.5.0.md) — automatic bounded runtime diagnostics, the fixed-preset
   MCP collector, strict connected product-path proof, and evidence-integrity
   hardening.
