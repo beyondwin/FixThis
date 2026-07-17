@@ -26,7 +26,7 @@ verify behavior against source and reference docs.
   bridge/client implementation to move together.
 - The Android app does not host MCP or HTTP; desktop `fixthis-mcp` owns the
   local console, MCP tools, session store, and feedback queue.
-- Do not commit `.fixthis/`, `graphify-out/`, build outputs, generated fixture
+- Do not commit `.fixthis/`, build outputs, generated fixture
   workspaces, screenshots, or reports unless a maintained doc explicitly says a
   checked-in artifact is required.
 

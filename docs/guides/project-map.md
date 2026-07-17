@@ -67,8 +67,7 @@ The Android app does not host MCP or HTTP. The desktop `fixthis-mcp` process own
 - Do not commit `.fixthis/`; it contains local handoff sessions, screenshots,
   generated setup handoffs, smoke artifacts, and bounded runtime evidence under
   `.fixthis/runtime-evidence/<session-id>/<capture-id>/`.
-- Do not commit `graphify-out/`; Graphify is an agent navigation aid and its outputs are local artifacts.
-- Do not commit Android build outputs, local source-matching fixture workspaces, generated Graphify HTML/wiki output, or screenshots unless a maintained doc explicitly asks for a checked-in asset.
+- Do not commit Android build outputs, local source-matching fixture workspaces, or screenshots unless a maintained doc explicitly asks for a checked-in asset.
 - When changing code, run the focused checks for the touched module, then the broader check requested by `CONTRIBUTING.md` or the release workflow.
 - When changing docs that mention CLI commands or flags, run `bash scripts/check-docs-cli-surface.sh`.
 - Runtime evidence collection is a host CLI/MCP capability over ADB. It does
