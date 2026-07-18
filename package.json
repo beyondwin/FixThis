@@ -14,6 +14,7 @@
     "ci:local:test": "node --test scripts/verify-ci-local-test.mjs",
     "agent:route": "node scripts/agent-task-router.mjs",
     "agent:route:test": "node --test scripts/agent-task-router-test.mjs",
+    "docs:agent-guidance:test": "node --test scripts/agent-guidance-contract-test.mjs",
     "evidence": "node scripts/evidence-runner.mjs",
     "evidence:fast": "node scripts/evidence-runner.mjs --profile fast",
     "evidence:trust": "node scripts/evidence-runner.mjs --profile trust",

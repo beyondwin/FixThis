@@ -1,160 +1,56 @@
-# FixThis — Agent Notes
+# FixThis — Agent Operating Contract
 
-> **Agents:** read this file end-to-end. Sub-anchors may be skipped on a
-> first pass, but every top-level section is load-bearing for correct
-> tool use.
+FixThis is a debug-only Jetpack Compose sidekick. The Android app shows connection status; selection, annotation, evidence, and handoff happen in the local desktop console.
 
-FixThis adds a debug-only sidekick to Jetpack Compose Android apps and exposes
-captured UI context to AI coding agents over MCP. The Android app shows only a
-connection status pill; all annotation, selection, and handoff happen in a
-desktop browser console.
+## Read Order
 
-This file is the entry point for Codex / Claude Code / similar agents. It
-points to canonical docs rather than restating them — update those, not this.
+1. Read this file.
+2. Read [docs/index.md](docs/index.md) and [the project map](docs/guides/project-map.md).
+3. Run npm run agent:route -- --task console for an explicit route or npm run agent:route -- --changed --json once paths are known.
+4. Read only maintained references and first source files returned by the router.
+5. Treat docs/superpowers/*, docs/specs/*, and docs/plans/* as historical context unless current source or maintained docs point there.
 
-## Read Order For Agents
+Current implementation wins over docs; docs/reference/* wins over historical planning.
 
-1. Read this `AGENTS.md` for repository constraints and tool workflow.
-2. Read [`docs/index.md`](docs/index.md) to choose the maintained docs path for the task.
-3. Read [`docs/guides/project-map.md`](docs/guides/project-map.md) for module responsibilities, first files, validation commands, and artifact boundaries.
-4. Read the task-specific guide or reference contract before changing behavior.
-5. Use `docs/superpowers/*`, `docs/specs/*`, and `docs/plans/*` only as historical planning context unless a maintained guide, reference page, or source file explicitly points to them.
+## Start
 
-When documents disagree, prefer the current implementation and `docs/reference/*` over historical planning docs.
+- Run git status --short --branch, git log -5 --oneline --decorate, and git worktree list --porcelain before edits.
+- Preserve unrelated dirty changes and check whether another worktree owns the task.
+- Classify the request as explanation, diagnosis, implementation, review, release, connected proof, or feedback work.
+- Do not turn diagnosis or review into code changes without authorization.
 
-## Prerequisites
+## Change
 
-- JDK 21+
-- Android SDK with ADB (`adb devices` shows a connected device or emulator)
-- Node.js 20.0+ compatibility floor; use an upstream-supported Node 22 or 24
-  release for local development (see `CONTRIBUTING.md` § Prerequisites)
-- Target app is a **debug build** (`debugImplementation` only; release is not supported)
+- Make the smallest compatible change and follow router-returned maintained references.
+- Keep compose-core free of MCP, CLI, Android UI, browser DTO, and .fixthis dependencies.
+- Preserve persisted field names and coordinate bridge changes through docs/reference/bridge-protocol.md.
+- Use canonical generators; never hand-edit build outputs.
+- Never commit .fixthis, screenshots, reports, fixture workspaces, or personal agent state.
+- Do not modify ~/.codex or project .codex for repository work.
 
-## Quick Start
+## Verify
 
-```bash
-# Try the bundled sample app first.
-./scripts/bootstrap-mcp.sh --sample
+- Run focused checks first, then rerun the router against the final diff.
+- Run the returned broad gate and npm run android:proof -- --strict when required.
+- Record PASS, FAIL, DEFERRED, or SKIPPED; the last two require reason and residual risk.
+- Require fresh final-diff evidence before completion.
 
-# Or bootstrap MCP integration for your own debug app.
-./scripts/bootstrap-mcp.sh --package <applicationId>
+## Finish
 
-# In a published/installable CLI flow inside an Android app repo.
-brew install beyondwin/tools/fixthis
-# Or: npm install -g @beyondwin/fixthis
-fixthis init
-```
+- Re-read the final diff and run git diff --check.
+- Recheck branch, upstream, dirty state, and worktrees.
+- Report exact commands, results, report paths, residual risks, and local-versus-remote Git state.
+- Commit, merge, push, publish, resolve feedback, or stop processes only when requested.
 
-`--sample` uses the bundled sample package (`io.github.beyondwin.fixthis.sample`).
-`--package` is the Android applicationId of the app you are running FixThis
-against. The script writes Claude Code config to project-local
-`.claude/settings.json` and Codex config to `~/.codex/config.toml`. Pass
-`--target claude` / `--target codex` to limit targets, or `--dry-run` to
-preview. Restart your agent after the script finishes.
+## Product And Tool Boundaries
 
-`fixthis init` is the agent-first entry point once the CLI is installed. On
-macOS, the Homebrew tap is the shortest install path; npm is also available as
-`@beyondwin/fixthis`. On macOS/Linux without a package manager, use
-`scripts/install-fixthis.sh` from the GitHub Release package.
-`fixthis init` can detect a unique Android `applicationId` from Gradle build
-files and writes Claude Code / Codex MCP config by default. Manual setup, full
-CLI flags, and dry-run examples:
-[`docs/reference/cli.md`](docs/reference/cli.md).
-MCP bootstrap summary for agents: [`MCP.md`](MCP.md).
+- Debug builds and Jetpack Compose only; no release runtime, Views, Flutter, or remote service in V1.
+- Desktop fixthis-mcp owns HTTP, MCP, console state, and .fixthis; the Android app does not.
+- Runtime evidence is local, bounded, redacted, and optional.
+- Full tool signatures: [MCP tools](docs/reference/mcp-tools.md).
+- Canonical contributor gates: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Sample-to-agent flow: [README Quick Start](README.md#quick-start-sample-app-to-agent-handoff).
 
-For external Android repos, the intended agent-first sequence is:
+## Feedback Queue
 
-```bash
-fixthis install-agent --project-dir . --target all
-fixthis doctor --project-dir . --json
-```
-
-`./gradlew fixthisSetup` is a recovery or manual verification command when
-doctor reports missing generated metadata, not the primary README-first
-sequence.
-
-Pasteable instructions for another repo's `AGENTS.md` / `CLAUDE.md` live in
-[`docs/getting-started/agent-install-snippet.md`](docs/getting-started/agent-install-snippet.md).
-
-**Trying FixThis from scratch on the sample app?** Start at the README's
-[Quick Start](README.md#quick-start-sample-app-to-agent-handoff) for the
-human-driven flow (build → doctor → run → console → agent handoff).
-
-## Feedback Workflow
-
-1. Call `fixthis_open_feedback_console` — opens browser at `localhost:<port>`.
-2. Click **Start** on the connection card. FixThis launches the app and attaches.
-3. Navigate the app from the browser preview.
-4. Click **Annotate** to freeze the latest screen preview.
-5. Click a UI element or drag a visual area — creates a numbered pin and opens
-   its annotation detail.
-6. Type a comment.
-7. Repeat for additional feedback on this screen.
-8. **Save to MCP** persists written annotations as a local handoff. New
-   sessions use Auto runtime evidence by default; Manual and Off are available,
-   and **Copy Prompt** never starts collection.
-9. Call `fixthis_read_feedback` to read the queue, then
-   `fixthis_resolve_feedback` after making changes.
-
-First-run agent setup:
-[`docs/getting-started/connect-your-agent.md`](docs/getting-started/connect-your-agent.md).
-Deeper agent workflow notes:
-[`docs/guides/agents.md`](docs/guides/agents.md).
-
-## MCP Tools — Index
-
-| Tool | What it does |
-|------|--------------|
-| `fixthis_status` | ADB bridge + package + source-index check |
-| `fixthis_get_current_screen` | Inspect current Compose semantics and layout |
-| `fixthis_verify_ui_change` | Check expected text on screen |
-| `fixthis_open_feedback_console` | Open the local browser feedback console |
-| `fixthis_list_feedback_sessions` | List resumable feedback workspaces |
-| `fixthis_capture_screen` | Capture into the active feedback session |
-| `fixthis_navigate_app` | One debug-only tap, swipe, or back |
-| `fixthis_collect_runtime_evidence` | Collect one bounded local diagnostics preset |
-| `fixthis_capture_runtime_evidence` | Attach a compatible manual runtime-evidence summary |
-| `fixthis_list_feedback` | List feedback queue summaries |
-| `fixthis_read_feedback` | Read queue as JSON + compact Markdown |
-| `fixthis_claim_feedback` | Mark items in-progress (avoids duplicate work) |
-| `fixthis_resolve_feedback` | Mark resolved / needs-clarification / not-fixed |
-
-Full signatures and return shapes:
-[`docs/reference/mcp-tools.md`](docs/reference/mcp-tools.md).
-
-## Constraints — Read Before Making Changes
-
-- **Debug builds only.** Sidekick installs only via `debugImplementation`. Never target release.
-- **Jetpack Compose only.** No View-based or Flutter targets in V1.
-- **Local-first.** FixThis makes no external API calls. **Save to MCP** is local file persistence.
-- **Do not commit `.fixthis/`** — screenshots, session metadata, local artifacts.
-- **Do not rename persisted MCP JSON fields.** `items`, `screens`, `itemId`, `screenId`, `targetEvidence`, `targetReliability`, `sourceCandidates` are compatibility contracts — see [`docs/reference/output-schema.md`](docs/reference/output-schema.md).
-- **`:fixthis-compose-core` has no dependency on MCP, CLI, Android UI, or `.fixthis/` paths.** Outer modules translate at the boundary.
-- **Bridge protocol changes are coordinated.** See [`docs/reference/bridge-protocol.md`](docs/reference/bridge-protocol.md).
-
-## Diagnostics
-
-```bash
-fixthis doctor --package <applicationId>
-```
-
-Common issues: [`docs/guides/troubleshooting.md`](docs/guides/troubleshooting.md).
-
-## Build / Test
-
-Canonical commands and the local PR checklist live in
-[`CONTRIBUTING.md`](CONTRIBUTING.md). CI baseline mirroring them:
-`.github/workflows/ci.yml`.
-
-## Module Map
-
-```
-:app (sample/)            — validation sample app
-:fixthis-compose-core     — pure Kotlin domain
-:fixthis-compose-sidekick — debug Android runtime
-:fixthis-gradle-plugin    — source-index generation, debug DI
-:fixthis-cli              — desktop CLI
-:fixthis-mcp              — stdio MCP server + local HTTP feedback console
-```
-
-Architecture deep dive: [`docs/architecture/overview.md`](docs/architecture/overview.md).
+Read, claim, edit, verify, and resolve in that order. Claim before code changes to avoid duplicate work. Use [the agent guide](docs/guides/agents.md) for the maintained workflow.

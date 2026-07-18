@@ -77,7 +77,7 @@ export const ROUTES = Object.freeze([
       "docs/architecture/console-state-sync-design.md",
     ],
     sources: [
-      "fixthis-mcp/src/main/console/app.js",
+      "fixthis-mcp/src/main/console/consoleApp.js",
       "fixthis-mcp/src/main/console/events.js",
     ],
     focusedChecks: [
@@ -98,7 +98,7 @@ export const ROUTES = Object.freeze([
       "docs/getting-started/add-to-your-app.md",
     ],
     sources: [
-      "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/InstallAgentCommand.kt",
+      "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/SetupCommand.kt",
       "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/commands/DoctorCommand.kt",
     ],
     focusedChecks: [
@@ -214,6 +214,37 @@ export const ROUTES = Object.freeze([
     focusedChecks: [
       "./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon",
       "git diff --check",
+    ],
+    broadGate: SAFE_FALLBACK_COMMAND,
+    connectedProof: false,
+  },
+  {
+    id: "agent-guidance",
+    tasks: ["agent", "agent-guidance", "agent-kit"],
+    pathPrefixes: [
+      ".agents/",
+      ".codex-plugin/",
+      "AGENTS.md",
+      "fixthis-compose-core/AGENTS.md",
+      "fixthis-compose-sidekick/AGENTS.md",
+      "fixthis-mcp/AGENTS.md",
+      "scripts/AGENTS.md",
+      "scripts/agent-",
+    ],
+    docs: [
+      "AGENTS.md",
+      "docs/guides/project-map.md",
+      "docs/architecture/agent-code-compass.md",
+    ],
+    sources: [
+      "scripts/agent-route-registry.mjs",
+      "scripts/agent-task-router.mjs",
+      "scripts/agent-guidance-contract-test.mjs",
+    ],
+    focusedChecks: [
+      "npm run agent:route:test",
+      "npm run docs:agent-guidance:test",
+      "npm run plugin:contract:test",
     ],
     broadGate: SAFE_FALLBACK_COMMAND,
     connectedProof: false,
