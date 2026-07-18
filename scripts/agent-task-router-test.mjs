@@ -84,10 +84,17 @@ test("runtime evidence task and implementation paths select strict connected pro
     repositoryState: state,
   });
   assert.deepEqual(explicit.routes.map((route) => route.id), ["runtime-evidence"]);
-  assert.ok(explicit.focusedChecks.includes("npm run runtime-evidence:smoke:test"));
-  assert.ok(explicit.focusedChecks.includes("npm run runtime-evidence:smoke -- --strict"));
-  assert.ok(explicit.focusedChecks.includes(CONNECTED_PROOF_COMMAND));
+  assert.deepEqual(explicit.focusedChecks, [
+    "npm run runtime-evidence:smoke:test",
+    "npm run runtime-evidence:smoke -- --strict",
+  ]);
   assert.equal(explicit.connectedProof.required, true);
+  assert.equal(explicit.connectedProof.command, CONNECTED_PROOF_COMMAND);
+  assert.equal(
+    explicit.focusedChecks.filter((command) => command === CONNECTED_PROOF_COMMAND).length,
+    0,
+    "connected proof must run only through the dedicated connectedProof phase",
+  );
 
   for (const file of [
     "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/AndroidRuntimeEvidenceCollector.kt",

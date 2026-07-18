@@ -23,7 +23,6 @@ const nested = [
 ];
 const allowedNonNpmCommands = new Set([
   "./gradlew :fixthis-compose-core:test --no-daemon",
-  "./gradlew :fixthis-mcp:test --tests '*session*' --no-daemon",
   "./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon",
   "./gradlew :fixthis-mcp:test --tests '*Handoff*' --no-daemon",
   "node scripts/build-console-assets.mjs --check",
@@ -35,7 +34,7 @@ const allowedNonNpmCommands = new Set([
   "node scripts/check-release-readiness.mjs",
   "git diff --check",
   "node scripts/check-doc-consistency.mjs",
-  "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --no-daemon",
+  "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --tests '*FeedbackSessionService*' --no-daemon",
   "./gradlew :fixthis-compose-core:test --tests '*TargetEvidenceModelTest' --tests '*SourceCandidateSerializationTest' --no-daemon",
 ]);
 
@@ -133,15 +132,18 @@ test("high-risk routes retain canonical invariants", () => {
   );
   assert.ok(byId.handoff.docs.includes("docs/reference/output-schema.md"));
   assert.ok(byId.handoff.focusedChecks.includes("npm run handoff:eval:test"));
-  assert.ok(
-    byId["mcp-session"].focusedChecks.includes(
-      "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --no-daemon",
-    ),
+  assert.deepEqual(byId["mcp-session"].focusedChecks, [
+    "./gradlew :fixthis-compose-core:test --tests '*TargetEvidenceModelTest' --tests '*SourceCandidateSerializationTest' --no-daemon",
+    "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --tests '*FeedbackSessionService*' --no-daemon",
+    "./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon",
+  ]);
+  assert.equal(
+    new Set(byId["mcp-session"].focusedChecks).size,
+    byId["mcp-session"].focusedChecks.length,
   );
   assert.ok(
-    byId["mcp-session"].focusedChecks.includes(
-      "./gradlew :fixthis-compose-core:test --tests '*TargetEvidenceModelTest' --tests '*SourceCandidateSerializationTest' --no-daemon",
-    ),
+    byId["mcp-session"].focusedChecks.every((command) => !command.includes("'*session*'")),
+    "broad session wildcard must not overlap exact persistence/session checks",
   );
   const mcpGuidance = read("fixthis-mcp/AGENTS.md");
   for (const field of [
@@ -157,6 +159,7 @@ test("high-risk routes retain canonical invariants", () => {
   }
   assert.match(mcpGuidance, /backward decoding/i);
   assert.match(mcpGuidance, /FeedbackSessionStoreTest/);
+  assert.match(mcpGuidance, /FeedbackSessionService/);
   assert.match(mcpGuidance, /npm run handoff:eval:test/);
   assert.match(read("fixthis-compose-core/AGENTS.md"), /TargetEvidenceModelTest/);
   assert.match(read("fixthis-compose-core/AGENTS.md"), /SourceCandidateSerializationTest/);

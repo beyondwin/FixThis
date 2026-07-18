@@ -54,10 +54,9 @@ export const ROUTES = Object.freeze([
       "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/lifecycle/store/FeedbackSessionStore.kt",
     ],
     focusedChecks: [
-      "./gradlew :fixthis-mcp:test --tests '*session*' --no-daemon",
-      "./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon",
-      "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --no-daemon",
       "./gradlew :fixthis-compose-core:test --tests '*TargetEvidenceModelTest' --tests '*SourceCandidateSerializationTest' --no-daemon",
+      "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --tests '*FeedbackSessionService*' --no-daemon",
+      "./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon",
     ],
     broadGate: SAFE_FALLBACK_COMMAND,
     connectedProof: false,
@@ -153,7 +152,6 @@ export const ROUTES = Object.freeze([
     focusedChecks: [
       "npm run runtime-evidence:smoke:test",
       "npm run runtime-evidence:smoke -- --strict",
-      CONNECTED_PROOF_COMMAND,
     ],
     broadGate: SAFE_FALLBACK_COMMAND,
     connectedProof: true,
