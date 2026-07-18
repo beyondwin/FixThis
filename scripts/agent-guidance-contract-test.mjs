@@ -128,3 +128,42 @@ test("high-risk routes retain canonical invariants", () => {
     ["docs"],
   );
 });
+
+const repoSkills = [
+  ".agents/skills/fixthis-repository-change/SKILL.md",
+  ".agents/skills/fixthis-release-maintenance/SKILL.md",
+];
+
+test("repo skills expose metadata and canonical routing", () => {
+  for (const path of repoSkills) {
+    const body = read(path);
+    assert.match(
+      body,
+      /^---\nname: [a-z0-9-]+\ndescription: .+\n---\n/,
+    );
+    assert.match(body, /^description: Use when\b/m);
+    assert.match(body, /npm run agent:route/);
+    assert.doesNotMatch(
+      body,
+      /fixthis install-agent --project-dir \. --target all/,
+    );
+    assert.doesNotMatch(body, /modify .*~\/\.codex|edit .*~\/\.codex/i);
+  }
+});
+
+test("release skill separates reality proof and state changes", () => {
+  const body = read(
+    ".agents/skills/fixthis-release-maintenance/SKILL.md",
+  );
+  for (const command of [
+    "npm run release:reality",
+    "npm run evidence:release",
+    "npm run release:check",
+  ]) {
+    assert.ok(body.includes(command), "release skill missing " + command);
+  }
+  assert.match(
+    body,
+    /Tag, publish, push, or edit a downstream repository only when the user explicitly requests/,
+  );
+});
