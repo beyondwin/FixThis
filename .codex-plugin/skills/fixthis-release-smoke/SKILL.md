@@ -5,17 +5,19 @@ description: Run FixThis release and trust-loop smoke checks.
 
 # FixThis Release Smoke
 
-Use when a maintainer asks to validate FixThis release readiness or trust-loop evidence.
+Use only from a FixThis source checkout when a maintainer asks to validate release readiness or public release reality.
 
 Rules:
-- FixThis is debug-only and Jetpack Compose-only.
+- FixThis remains debug-only and Jetpack Compose-only.
 - Do not commit `.fixthis/`.
-- Separate strict connected Android proof from non-strict deferred evidence.
-- Do not claim connected runtime proof passed unless the command actually passed.
-- Use `docs/contributing/release-readiness.md` for the canonical release checklist.
+- Separate repository checks, connected Android proof, and live registry reality.
+- DEFERRED and SKIPPED are not PASS.
+- Do not tag, publish, push, or edit a downstream repository unless explicitly requested.
+- Use docs/contributing/release-readiness.md as the maintained release contract.
 
 Workflow:
-1. Run `npm run evidence:trust`.
-2. Run `npm run runtime-evidence:smoke`.
-3. For strict local release proof, run `npm run runtime-evidence:smoke -- --strict` and the existing strict trust commands required by `docs/contributing/release-readiness.md`.
-4. Summarize pass, deferred, and fail results separately.
+1. Run npm run release:reality and record live/public evidence separately.
+2. Run npm run evidence:release for the repository evidence profile.
+3. Run npm run android:proof -- --strict --continue when connected proof is required.
+4. Run npm run release:check before a release PR or tag.
+5. Report PASS, FAIL, DEFERRED, and SKIPPED separately with reasons and residual risk.
