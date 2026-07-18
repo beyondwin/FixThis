@@ -26,7 +26,8 @@ FixThis already has unusually strong agent-facing material:
   `docs/architecture/agent-code-compass.md` for source and validation routing;
 - focused, changed-only, pre-push, full, release, and connected-device gates;
 - architecture boundary tests and release-reality checks;
-- distributable end-user workflows under `.codex-plugin/skills/`;
+- installable workflows under `.codex-plugin/skills/`, including external-app
+  integration skills and one FixThis-maintainer release smoke;
 - contract tests for documentation links and selected plugin wording.
 
 The gap is not a lack of documentation. The gap is that an agent must infer
@@ -42,9 +43,9 @@ The live audit found concrete examples:
   worktree preflight even though concurrent worktrees are common in this repo;
 - `PASS`, `DEFERRED`, `SKIPPED`, and environmental failure are described in
   several places but are not one reusable completion contract;
-- `.codex-plugin` end-user skills and prospective repository-maintainer skills
-  have different audiences, but the distinction is not encoded in repository
-  structure or tests;
+- `.codex-plugin` installable skills and prospective automatically discovered
+  repository-maintainer skills have different activation and audience rules,
+  but that distinction is not encoded in tests;
 - the available verification matrix is rich enough that an agent can run too
   little, run an unnecessarily expensive suite, or cite stale earlier output.
 
@@ -193,7 +194,10 @@ lines.
 
 Create repo-discovered skills under `.agents/skills/`. They are for working on
 the FixThis repository and must remain distinct from `.codex-plugin/skills/`,
-which are product workflows distributed to FixThis users.
+which are installable workflows. The plugin's install, feedback, and evidence
+skills target external Android apps; its existing release-smoke skill is the
+explicit maintainer-only exception and must say that it runs from a FixThis
+source checkout.
 
 #### `fixthis-repository-change`
 
@@ -300,7 +304,9 @@ Tests must verify:
   console bundle checks, persisted schema checks, and release-reality checks;
 - `.codex-plugin/skills/fixthis-release-smoke` names the current release and
   connected-proof entry points;
-- product plugin skills never import repository-only maintainer procedures;
+- the plugin's external-app integration skills never import repository-only
+  maintainer procedures, while `fixthis-release-smoke` declares its maintainer
+  audience and uses only canonical FixThis checkout commands;
 - repo maintainer skills never instruct users of an external Android project to
   run FixThis's internal Gradle or release matrix;
 - root guidance stays at or below 130 physical lines and each first-pass
@@ -346,7 +352,7 @@ Avoid scraping free-form prose as the only source of command truth.
 | Connected device reported as proof without product path | Canonical strict `android:proof` requirement and explicit status taxonomy. |
 | Existing local server or emulator disrupted | No kill/restart action without scoped ownership or explicit user request. |
 | Local commit confused with remote publication | Finish contract reports local, upstream, tag, registry, and downstream state separately. |
-| End-user plugin skill confused with maintainer skill | Separate directories, audiences, wording rules, and cross-boundary tests. |
+| Installable plugin skill confused with auto-discovered repo skill | Separate activation rules, explicit per-skill audiences, and cross-boundary tests. |
 | New command silently drifts from docs and skills | Shared route registry and semantic contract tests. |
 | Agent context bloats over time | Root budget, narrow nested files, and progressive skill disclosure. |
 | Expensive full suite run too early | Focused-to-broad ordering; full release gate reserved for matching risk. |
@@ -409,8 +415,8 @@ specific unenforced failure remains.
 - Completion reports never equate deferred or skipped Android proof with pass.
 - The root `AGENTS.md` is at most 130 physical lines and remains operational
   while maintained product tutorials stay discoverable.
-- Repo maintainer skills and distributed end-user plugin skills cannot silently
-  cross their audience boundary.
+- Repo maintainer skills and installable plugin skills cannot silently cross
+  their declared per-skill audience boundary.
 - No implementation file under `~/.codex` or project `.codex/` is created or
   modified.
 
@@ -429,12 +435,14 @@ but they introduce trust, host-version, and Codex-specific operational
 dependencies before the portable repository layer is proven. They are deferred,
 not rejected.
 
-### Put Maintainer Workflows In `.codex-plugin`
+### Put All Maintainer Workflows In `.codex-plugin`
 
-The plugin is distributed to users integrating FixThis into other Android
-projects. Shipping FixThis repository release and architecture procedures there
-would confuse audiences and expose irrelevant commands. Repository workflows
-belong under `.agents/skills`; product workflows remain in `.codex-plugin`.
+The installable plugin already carries a narrow release-smoke workflow for
+FixThis maintainers, but making every repository workflow plugin-dependent
+would prevent automatic discovery in a fresh source checkout and would expose
+architecture and contribution procedures to external-app users. Broad repo
+workflows belong under `.agents/skills`; the existing plugin release skill stays
+narrow, explicitly maintainer-only, and semantically checked.
 
 ## Decision
 
