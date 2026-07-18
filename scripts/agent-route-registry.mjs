@@ -255,7 +255,6 @@ export const ROUTES = Object.freeze([
     pathPrefixes: [
       "docs/",
       "README.md",
-      "AGENTS.md",
       "CLAUDE.md",
       "CONTRIBUTING.md",
       ".codex-plugin/",
@@ -284,9 +283,11 @@ export function orderedUnique(values) {
 }
 
 function routeMatchesFile(route, file) {
-  const nestedGuidance = file.endsWith("/AGENTS.md");
-  if (nestedGuidance && !["agent-guidance", "docs"].includes(route.id)) {
-    return false;
+  const guidancePath = file === "AGENTS.md" || file.endsWith("/AGENTS.md");
+  if (guidancePath) {
+    return route.id === "agent-guidance" && route.pathPrefixes.some(
+      (prefix) => file.startsWith(prefix),
+    );
   }
   return route.pathPrefixes.some((prefix) => file.startsWith(prefix));
 }

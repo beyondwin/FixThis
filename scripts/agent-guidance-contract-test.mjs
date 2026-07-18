@@ -10,7 +10,10 @@ import {
 
 const root = resolve(import.meta.dirname, "..");
 const read = (path) => readFileSync(resolve(root, path), "utf8");
-const lineCount = (text) => text.split("\n").length;
+const lineCount = (text) => {
+  const lines = text.split("\n");
+  return lines.at(-1) === "" ? lines.length - 1 : lines.length;
+};
 const nested = [
   "fixthis-compose-core/AGENTS.md",
   "fixthis-compose-sidekick/AGENTS.md",
@@ -36,6 +39,11 @@ const allowedNonNpmCommands = new Set([
 function npmScriptsIn(text) {
   return [...text.matchAll(/npm run ([\w:-]+)/g)].map((match) => match[1]);
 }
+
+test("physical line count ignores a terminal newline", () => {
+  assert.equal(lineCount("first\nsecond\n"), 2);
+  assert.equal(lineCount("first\n\nsecond"), 3);
+});
 
 test("root has required phases and stays within budget", () => {
   const body = read("AGENTS.md");
@@ -103,8 +111,20 @@ test("high-risk routes retain canonical invariants", () => {
   assert.equal(byId["release-docs"].connectedProof, false);
   assert.deepEqual(
     selectRoutes({
+      changedFiles: ["AGENTS.md"],
+    }).map((route) => route.id),
+    ["agent-guidance"],
+  );
+  assert.deepEqual(
+    selectRoutes({
       changedFiles: ["fixthis-compose-core/AGENTS.md"],
     }).map((route) => route.id),
     ["agent-guidance"],
+  );
+  assert.deepEqual(
+    selectRoutes({
+      changedFiles: ["README.md"],
+    }).map((route) => route.id),
+    ["docs"],
   );
 });
