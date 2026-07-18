@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 import {
   CONNECTED_PROOF_COMMAND,
+  RELEASE_MAINTAINER_COMMANDS,
   ROUTES,
   selectRoutes,
 } from "./agent-route-registry.mjs";
@@ -34,7 +35,14 @@ const allowedNonNpmCommands = new Set([
   "node scripts/check-release-readiness.mjs",
   "git diff --check",
   "node scripts/check-doc-consistency.mjs",
+  "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --no-daemon",
+  "./gradlew :fixthis-compose-core:test --tests '*TargetEvidenceModelTest' --tests '*SourceCandidateSerializationTest' --no-daemon",
 ]);
+
+function maintainedSourcePaths(text) {
+  return [...text.matchAll(/`((?:fixthis-[^` ]+|scripts\/[^` ]+)\.(?:kt|js|mjs|sh))`/g)]
+    .map((match) => match[1]);
+}
 
 function npmScriptsIn(text) {
   return [...text.matchAll(/npm run ([\w:-]+)/g)].map((match) => match[1]);
@@ -87,6 +95,23 @@ test("route docs sources and npm scripts resolve", () => {
   }
 });
 
+test("maintained source-file tables resolve and retain registry entry points", () => {
+  const maintainedDocs = [
+    read("docs/architecture/agent-code-compass.md"),
+    read("docs/guides/project-map.md"),
+  ];
+  const tableSources = new Set(maintainedDocs.flatMap(maintainedSourcePaths));
+  for (const path of tableSources) {
+    assert.ok(existsSync(resolve(root, path)), "maintained table missing " + path);
+  }
+  for (const routeId of ["console", "cli-setup", "runtime-evidence", "agent-guidance"]) {
+    const route = ROUTES.find((candidate) => candidate.id === routeId);
+    for (const path of route.sources) {
+      assert.ok(tableSources.has(path), routeId + " source absent from maintained tables: " + path);
+    }
+  }
+});
+
 test("guidance npm commands exist in package scripts", () => {
   const pkg = JSON.parse(read("package.json"));
   const bodies = [read("AGENTS.md"), ...nested.map(read)];
@@ -107,6 +132,34 @@ test("high-risk routes retain canonical invariants", () => {
     ),
   );
   assert.ok(byId.handoff.docs.includes("docs/reference/output-schema.md"));
+  assert.ok(byId.handoff.focusedChecks.includes("npm run handoff:eval:test"));
+  assert.ok(
+    byId["mcp-session"].focusedChecks.includes(
+      "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --no-daemon",
+    ),
+  );
+  assert.ok(
+    byId["mcp-session"].focusedChecks.includes(
+      "./gradlew :fixthis-compose-core:test --tests '*TargetEvidenceModelTest' --tests '*SourceCandidateSerializationTest' --no-daemon",
+    ),
+  );
+  const mcpGuidance = read("fixthis-mcp/AGENTS.md");
+  for (const field of [
+    "items",
+    "screens",
+    "itemId",
+    "screenId",
+    "targetEvidence",
+    "targetReliability",
+    "sourceCandidates",
+  ]) {
+    assert.match(mcpGuidance, new RegExp("`" + field + "`"));
+  }
+  assert.match(mcpGuidance, /backward decoding/i);
+  assert.match(mcpGuidance, /FeedbackSessionStoreTest/);
+  assert.match(mcpGuidance, /npm run handoff:eval:test/);
+  assert.match(read("fixthis-compose-core/AGENTS.md"), /TargetEvidenceModelTest/);
+  assert.match(read("fixthis-compose-core/AGENTS.md"), /SourceCandidateSerializationTest/);
   assert.ok(byId.release.focusedChecks.includes("npm run release:reality"));
   assert.equal(byId["release-docs"].connectedProof, false);
   assert.deepEqual(
@@ -217,11 +270,7 @@ test("release skill separates reality proof and state changes", () => {
   const body = read(
     ".agents/skills/fixthis-release-maintenance/SKILL.md",
   );
-  for (const command of [
-    "npm run release:reality",
-    "npm run evidence:release",
-    "npm run release:check",
-  ]) {
+  for (const command of RELEASE_MAINTAINER_COMMANDS) {
     assert.ok(body.includes(command), "release skill missing " + command);
   }
   assert.match(

@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 import {
   CONNECTED_PROOF_COMMAND,
   SAFE_FALLBACK_COMMAND,
+  isKnownTask,
   orderedUnique,
   selectRoutes,
 } from "./agent-route-registry.mjs";
@@ -121,6 +122,12 @@ export function buildAgentRouteReport({
   repositoryState,
   preflightWarnings = [],
 }) {
+  if (!isKnownTask(task)) {
+    throw new Error(
+      `Unknown task "${task}". Run npm run agent:route -- --task <known-task> --json; ` +
+      "task names are defined in scripts/agent-route-registry.mjs.",
+    );
+  }
   const routes = selectRoutes({ task, changedFiles });
   const focusedChecks = orderedUnique(
     routes.flatMap((route) => route.focusedChecks),
@@ -200,7 +207,7 @@ export function renderAgentRouteMarkdown(report) {
     "",
     "| Command | Status | Evidence | Reason | Residual risk |",
     "| --- | --- | --- | --- | --- |",
-    "| npm run agent:route:test | PASS | node:test reports 5 pass, 0 fail |  | None |",
+    "| Recommended checks | SKIPPED | NOT RUN: the router is read-only and executes no verification. | Run the listed checks before completion. | Verification pending |",
     "",
     "Allowed status: PASS | FAIL | DEFERRED | SKIPPED",
   );

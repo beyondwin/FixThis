@@ -1,5 +1,24 @@
 export const CONNECTED_PROOF_COMMAND = "npm run android:proof -- --strict";
 export const SAFE_FALLBACK_COMMAND = "npm run ci:local:changed";
+export const RELEASE_FOCUSED_CHECKS = Object.freeze([
+  "npm run release:reality",
+  "npm run evidence:release",
+]);
+export const RELEASE_BROAD_GATE = "npm run release:check";
+export const RELEASE_MAINTAINER_COMMANDS = Object.freeze([
+  ...RELEASE_FOCUSED_CHECKS,
+  CONNECTED_PROOF_COMMAND + " --continue",
+  RELEASE_BROAD_GATE,
+]);
+export const REPOSITORY_ONLY_COMMAND_PREFIXES = Object.freeze([
+  "npm run release:reality",
+  "npm run evidence:release",
+  "npm run release:check",
+  CONNECTED_PROOF_COMMAND,
+  "npm run agent:route",
+  "npm run ci:local",
+  "./gradlew :fixthis",
+]);
 
 export const ROUTES = Object.freeze([
   {
@@ -37,6 +56,8 @@ export const ROUTES = Object.freeze([
     focusedChecks: [
       "./gradlew :fixthis-mcp:test --tests '*session*' --no-daemon",
       "./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon",
+      "./gradlew :fixthis-mcp:test --tests '*FeedbackSessionStoreTest' --no-daemon",
+      "./gradlew :fixthis-compose-core:test --tests '*TargetEvidenceModelTest' --tests '*SourceCandidateSerializationTest' --no-daemon",
     ],
     broadGate: SAFE_FALLBACK_COMMAND,
     connectedProof: false,
@@ -108,6 +129,34 @@ export const ROUTES = Object.freeze([
     ],
     broadGate: SAFE_FALLBACK_COMMAND,
     connectedProof: false,
+  },
+  {
+    id: "runtime-evidence",
+    tasks: ["runtime-evidence", "runtime-proof", "diagnostics"],
+    pathPrefixes: [
+      "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/",
+      "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/",
+      "fixthis-mcp/src/main/console/runtimeEvidence",
+      "scripts/runtime-evidence-",
+      "scripts/android-proof-",
+    ],
+    docs: [
+      "docs/reference/mcp-tools.md",
+      "docs/reference/output-schema.md",
+      "docs/reference/privacy.md",
+    ],
+    sources: [
+      "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/AndroidRuntimeEvidenceCollector.kt",
+      "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceCaptureCoordinator.kt",
+      "fixthis-mcp/src/main/console/runtimeEvidence.js",
+    ],
+    focusedChecks: [
+      "npm run runtime-evidence:smoke:test",
+      "npm run runtime-evidence:smoke -- --strict",
+      CONNECTED_PROOF_COMMAND,
+    ],
+    broadGate: SAFE_FALLBACK_COMMAND,
+    connectedProof: true,
   },
   {
     id: "android-runtime",
@@ -189,11 +238,8 @@ export const ROUTES = Object.freeze([
       "scripts/release-reality-check.mjs",
       "scripts/release-gate.mjs",
     ],
-    focusedChecks: [
-      "npm run release:reality",
-      "npm run evidence:release",
-    ],
-    broadGate: "npm run release:check",
+    focusedChecks: RELEASE_FOCUSED_CHECKS,
+    broadGate: RELEASE_BROAD_GATE,
     connectedProof: true,
   },
   {
@@ -230,6 +276,10 @@ export const ROUTES = Object.freeze([
       "fixthis-mcp/AGENTS.md",
       "scripts/AGENTS.md",
       "scripts/agent-",
+      "scripts/verify-ci-local",
+      "scripts/fixthis-plugin-contract-test.mjs",
+      ".github/workflows/ci.yml",
+      "package.json",
     ],
     docs: [
       "AGENTS.md",
@@ -300,5 +350,12 @@ export function selectRoutes({ task = null, changedFiles = [] } = {}) {
   return ROUTES.filter((route) =>
     (normalizedTask && route.tasks.includes(normalizedTask)) ||
     normalizedFiles.some((file) => routeMatchesFile(route, file)),
+  );
+}
+
+export function isKnownTask(task) {
+  const normalizedTask = task?.trim().toLowerCase() || null;
+  return normalizedTask === null || ROUTES.some(
+    (route) => route.tasks.includes(normalizedTask),
   );
 }

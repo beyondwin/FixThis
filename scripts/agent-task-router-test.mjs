@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import {
   buildAgentRouteReport,
@@ -74,6 +75,58 @@ test("android and release require canonical connected proof", () => {
     assert.equal(report.connectedProof.command, CONNECTED_PROOF_COMMAND);
     assert.match(report.connectedProof.reason, new RegExp(task === "release" ? "release" : "android-runtime"));
   }
+});
+
+test("runtime evidence task and implementation paths select strict connected proof", () => {
+  const explicit = buildAgentRouteReport({
+    task: "runtime-evidence",
+    changedFiles: [],
+    repositoryState: state,
+  });
+  assert.deepEqual(explicit.routes.map((route) => route.id), ["runtime-evidence"]);
+  assert.ok(explicit.focusedChecks.includes("npm run runtime-evidence:smoke:test"));
+  assert.ok(explicit.focusedChecks.includes("npm run runtime-evidence:smoke -- --strict"));
+  assert.ok(explicit.focusedChecks.includes(CONNECTED_PROOF_COMMAND));
+  assert.equal(explicit.connectedProof.required, true);
+
+  for (const file of [
+    "fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/AndroidRuntimeEvidenceCollector.kt",
+    "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceCaptureCoordinator.kt",
+    "fixthis-mcp/src/main/console/runtimeEvidence.js",
+  ]) {
+    const report = buildAgentRouteReport({
+      changedFiles: [file],
+      repositoryState: state,
+    });
+    assert.ok(report.routes.some((route) => route.id === "runtime-evidence"), file);
+    assert.equal(report.connectedProof.required, true, file);
+  }
+
+  const releaseDocs = buildAgentRouteReport({
+    task: "release-docs",
+    changedFiles: [],
+    repositoryState: state,
+  });
+  assert.equal(releaseDocs.connectedProof.required, false);
+});
+
+test("unknown explicit task fails instead of returning an empty successful report", () => {
+  assert.throws(
+    () => buildAgentRouteReport({
+      task: "future-task",
+      changedFiles: [],
+      repositoryState: state,
+    }),
+    /Unknown task "future-task".*npm run agent:route -- --task/i,
+  );
+  const cli = spawnSync(
+    process.execPath,
+    ["scripts/agent-task-router.mjs", "--task", "future-task", "--json"],
+    { encoding: "utf8" },
+  );
+  assert.equal(cli.status, 2);
+  assert.equal(cli.stdout, "");
+  assert.match(cli.stderr, /Unknown task "future-task"/);
 });
 
 test("parseArgs accepts task base changed and json", () => {
@@ -154,4 +207,24 @@ test("markdown exposes explicit completion evidence states", () => {
   const markdown = renderAgentRouteMarkdown(report);
   assert.match(markdown, /PASS .* FAIL .* DEFERRED .* SKIPPED/);
   assert.match(markdown, /Residual risk/);
+  assert.match(markdown, /NOT RUN|SKIPPED/);
+  assert.doesNotMatch(markdown, /node:test reports \d+ pass/);
+  assert.doesNotMatch(markdown, /\| npm run agent:route:test \| PASS \|/);
+  assert.doesNotMatch(markdown, /\|\s*PASS\s*\|/);
+});
+
+test("agent kit integration surfaces use the narrow guidance route", () => {
+  for (const file of [
+    "scripts/verify-ci-local.sh",
+    "scripts/verify-ci-local-test.mjs",
+    "scripts/fixthis-plugin-contract-test.mjs",
+    ".github/workflows/ci.yml",
+    "package.json",
+  ]) {
+    assert.deepEqual(
+      selectRoutes({ changedFiles: [file] }).map((route) => route.id),
+      ["agent-guidance"],
+      file,
+    );
+  }
 });

@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { CONNECTED_PROOF_COMMAND } from './agent-route-registry.mjs';
+import {
+  RELEASE_MAINTAINER_COMMANDS,
+  REPOSITORY_ONLY_COMMAND_PREFIXES,
+} from './agent-route-registry.mjs';
 
 const pluginRoot = '.codex-plugin';
 const requiredSkills = [
@@ -49,12 +52,7 @@ test('release smoke declares checkout audience and canonical commands', () => {
     join(pluginRoot, 'skills', 'fixthis-release-smoke', 'SKILL.md'),
   );
   assert.match(body, /FixThis source checkout/);
-  for (const command of [
-    'npm run release:reality',
-    'npm run evidence:release',
-    CONNECTED_PROOF_COMMAND + ' --continue',
-    'npm run release:check',
-  ]) {
+  for (const command of RELEASE_MAINTAINER_COMMANDS) {
     assert.ok(body.includes(command), 'release smoke missing ' + command);
   }
 });
@@ -62,9 +60,31 @@ test('release smoke declares checkout audience and canonical commands', () => {
 test('external app skills exclude repository-only gates', () => {
   for (const skill of externalAppSkills) {
     const body = read(join(pluginRoot, 'skills', skill, 'SKILL.md'));
-    assert.doesNotMatch(
-      body,
-      /npm run (?:ci:local|release:check|android:proof)|\.\/gradlew :fixthis/,
+    for (const command of REPOSITORY_ONLY_COMMAND_PREFIXES) {
+      assert.ok(!body.includes(command), `${skill} contains repository-only gate ${command}`);
+    }
+  }
+});
+
+test('external app policy blocks all repository gates without blocking valid workflows', () => {
+  const valid = [
+    'fixthis install-agent --project-dir . --target all',
+    'fixthis doctor --project-dir . --json',
+    './gradlew fixthisSetup',
+  ].join('\n');
+  for (const command of REPOSITORY_ONLY_COMMAND_PREFIXES) {
+    assert.ok(!valid.includes(command), 'valid external workflow blocked by ' + command);
+  }
+  for (const command of [
+    'npm run release:reality',
+    'npm run evidence:release',
+    'npm run release:check',
+    'npm run android:proof -- --strict',
+    'npm run agent:route',
+  ]) {
+    assert.ok(
+      REPOSITORY_ONLY_COMMAND_PREFIXES.some((prefix) => command.startsWith(prefix)),
+      'repository-only gate is not covered: ' + command,
     );
   }
 });
