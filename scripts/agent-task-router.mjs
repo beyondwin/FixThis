@@ -45,7 +45,12 @@ export function collectChangedFiles({
   let target = base || upstream;
   if (!target) {
     const parent = runGit(["rev-parse", "--verify", "HEAD^"], cwd);
-    target = parent.status === 0 ? "HEAD^" : "HEAD";
+    if (parent.status === 0) {
+      target = "HEAD^";
+    } else {
+      target = "HEAD";
+      warnings.push("Git parent revision is unavailable; using HEAD as the change base.");
+    }
   }
   let mergeBase = target;
   if (target !== "HEAD" && target !== "HEAD^") {
@@ -126,11 +131,11 @@ export function buildAgentRouteReport({
     ),
   );
   const connectedRoutes = routes.filter((route) => route.connectedProof);
-  const broadGate = routes.some(
-    (route) => route.broadGate === "npm run release:check",
-  )
-    ? "npm run release:check"
-    : routes.length > 0 || unmatched.length > 0 || preflightWarnings.length > 0
+  const broadGate = preflightWarnings.length > 0
+    ? SAFE_FALLBACK_COMMAND
+    : routes.some((route) => route.broadGate === "npm run release:check")
+      ? "npm run release:check"
+      : routes.length > 0 || unmatched.length > 0
       ? SAFE_FALLBACK_COMMAND
       : null;
   return {

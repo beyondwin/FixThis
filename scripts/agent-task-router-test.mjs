@@ -53,6 +53,16 @@ test("Git preflight warnings force the safe fallback", () => {
   assert.deepEqual(report.warnings, ["Git diff is unavailable."]);
 });
 
+test("Git preflight warnings override the release gate", () => {
+  const report = buildAgentRouteReport({
+    task: "release",
+    changedFiles: [],
+    repositoryState: state,
+    preflightWarnings: ["Git diff is unavailable."],
+  });
+  assert.equal(report.broadGate, SAFE_FALLBACK_COMMAND);
+});
+
 test("android and release require canonical connected proof", () => {
   for (const task of ["android-runtime", "release"]) {
     const report = buildAgentRouteReport({
@@ -111,6 +121,28 @@ test("changed files union committed staged and working paths", () => {
     changedFiles: ["AGENTS.md", "scripts/agent-task-router.mjs"],
     warnings: [],
   });
+});
+
+test("missing parent revision returns a preflight warning", () => {
+  const outputs = new Map([
+    ["rev-parse --verify HEAD^", { status: 128, stdout: "", stderr: "no parent" }],
+    ["diff --name-only HEAD..HEAD", { status: 0, stdout: "", stderr: "" }],
+    ["diff --name-only --cached", { status: 0, stdout: "", stderr: "" }],
+    ["diff --name-only", { status: 0, stdout: "", stderr: "" }],
+  ]);
+  const changes = collectChangedFiles({
+    runGit: (args) => outputs.get(args.join(" ")),
+  });
+  const report = buildAgentRouteReport({
+    task: "release",
+    changedFiles: changes.changedFiles,
+    repositoryState: state,
+    preflightWarnings: changes.warnings,
+  });
+  assert.deepEqual(changes.warnings, [
+    "Git parent revision is unavailable; using HEAD as the change base.",
+  ]);
+  assert.equal(report.broadGate, SAFE_FALLBACK_COMMAND);
 });
 
 test("markdown exposes explicit completion evidence states", () => {
