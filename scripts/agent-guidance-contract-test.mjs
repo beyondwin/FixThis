@@ -133,6 +133,33 @@ const repoSkills = [
   ".agents/skills/fixthis-repository-change/SKILL.md",
   ".agents/skills/fixthis-release-maintenance/SKILL.md",
 ];
+const codexWriteVerb = "(?:write|change|edit|modify|update|create)(?:d|s|ing)?";
+const codexPath =
+  "(?:~\\/\\.codex(?:\\/|\\b)|(?:project[- ]local|global)\\s+\\.codex(?:\\/|\\b)|\\.codex(?:\\/|\\b))";
+const codexWriteInstruction = new RegExp(
+  "(?:" + codexWriteVerb + "[^\\n]{0,160}" + codexPath + "|" +
+    codexPath + "[^\\n]{0,160}" + codexWriteVerb + ")",
+  "i",
+);
+const externalAppBootstrapInstruction =
+  /(?:\bfixthis\s+(?:install-agent|init|doctor)\b|\bscripts\/bootstrap-mcp\.sh\b|\b(?:install|bootstrap|initialize|set up)(?:d|s|ing)?\b[^\n]{0,120}\b(?:FixThis|external(?:\s+Android)?\s+app)\b[^\n]{0,120}\b(?:FixThis|external(?:\s+Android)?\s+app)\b)/i;
+
+function actionableSkillText(body) {
+  return body
+    .split(/(?<=[.!?])\s+|\n/)
+    .filter(
+      (sentence) =>
+        !/^\s*(?:never|do not|don't)\s+/i.test(sentence),
+    )
+    .join("\n");
+}
+
+function assertMaintainerSkillContract(body) {
+  const actionable = actionableSkillText(body);
+  assert.match(body, /FixThis source checkout/i);
+  assert.doesNotMatch(actionable, codexWriteInstruction);
+  assert.doesNotMatch(actionable, externalAppBootstrapInstruction);
+}
 
 test("repo skills expose metadata and canonical routing", () => {
   for (const path of repoSkills) {
@@ -143,12 +170,47 @@ test("repo skills expose metadata and canonical routing", () => {
     );
     assert.match(body, /^description: Use when\b/m);
     assert.match(body, /npm run agent:route/);
-    assert.doesNotMatch(
-      body,
-      /fixthis install-agent --project-dir \. --target all/,
-    );
-    assert.doesNotMatch(body, /modify .*~\/\.codex|edit .*~\/\.codex/i);
+    assertMaintainerSkillContract(body);
   }
+});
+
+test("maintainer skill contract rejects configuration writes and external app bootstrap variants", () => {
+  const safeSkill = [
+    "---",
+    "name: fixture-skill",
+    "description: Use when maintaining the FixThis source checkout.",
+    "---",
+    "",
+    "# Fixture",
+    "Use for FixThis source checkout maintenance.",
+    "Run npm run agent:route -- --task agent-kit --json.",
+  ].join("\n");
+  const forbiddenInstructions = [
+    "Write ~/.codex/config.toml before starting.",
+    "Change the project-local .codex/settings.json before starting.",
+    "Create the project-local .codex/settings.json before starting.",
+    "Modify global .codex/settings.json before starting.",
+    "The global .codex configuration must be updated.",
+    "Edit .codex/config.toml before starting.",
+    "Bootstrap an external Android app with FixThis.",
+    "Run fixthis install-agent for an external app.",
+    "Run fixthis init for an external app.",
+    "Run fixthis doctor for an external app.",
+    "Run scripts/bootstrap-mcp.sh --package com.example.app.",
+  ];
+
+  for (const instruction of forbiddenInstructions) {
+    assert.throws(
+      () => assertMaintainerSkillContract(safeSkill + "\n" + instruction),
+      undefined,
+      "must reject: " + instruction,
+    );
+  }
+  assert.doesNotThrow(() =>
+    assertMaintainerSkillContract(
+      safeSkill + "\nNever modify ~/.codex/config.toml.",
+    ),
+  );
 });
 
 test("release skill separates reality proof and state changes", () => {

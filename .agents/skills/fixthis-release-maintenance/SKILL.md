@@ -1,11 +1,11 @@
 ---
 name: fixthis-release-maintenance
-description: Use when auditing or executing FixThis release, publication, compatibility, or public-install work from the source checkout.
+description: Use when auditing or executing FixThis release, publication, compatibility, or public-install work from the FixThis source checkout.
 ---
 
 # FixThis Release Maintenance
 
-Use only for FixThis release work. Keep repository proof, connected Android proof, Git state, and public registry reality separate.
+Use only for FixThis source checkout release work. Keep repository proof, connected Android proof, Git state, and public registry reality separate.
 
 1. Read `docs/contributing/release-readiness.md`, `docs/contributing/release-process.md`, and `CONTRIBUTING.md`.
 2. Run `npm run agent:route -- --task release --json`.

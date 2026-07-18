@@ -1,11 +1,11 @@
 ---
 name: fixthis-repository-change
-description: Use when implementing, diagnosing, reviewing, or verifying source, test, docs, architecture, console, CLI, sidekick, or Gradle-plugin work inside the FixThis repository.
+description: Use when implementing, diagnosing, reviewing, or verifying source, test, docs, architecture, console, CLI, sidekick, or Gradle-plugin work inside the FixThis source checkout.
 ---
 
 # FixThis Repository Change
 
-Use for work in this checkout. Do not use for installing FixThis into an external app.
+Use for FixThis source checkout work. Do not use for installing FixThis into an external app.
 
 1. Read root AGENTS.md and run its Git/worktree preflight.
 2. Choose a matching task id from `scripts/agent-route-registry.mjs`; for console work run `npm run agent:route -- --task console --json`. Once paths are known use `npm run agent:route -- --changed --base origin/main`.
