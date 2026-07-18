@@ -15,7 +15,7 @@ pitch, scope, and sample-to-agent Quick Start.
 | Try FixThis without changing your app | [Quick Start - sample app](getting-started/try-the-sample.md) | [Feedback console tour](guides/feedback-console-tour.md) |
 | Add FixThis to an external Compose app | [Add FixThis to your app](getting-started/add-to-your-app.md) | [CLI reference](reference/cli.md), [Agent setup schema](reference/agent-setup-schema.md) |
 | Connect Claude Code, Codex, Cursor, or ChatGPT | [Connect your AI agent](getting-started/connect-your-agent.md) | [Working with AI agents](guides/agents.md), [MCP tools reference](reference/mcp-tools.md) |
-| Work inside this repository as an agent | [Project map](guides/project-map.md) | [AGENTS.md](../AGENTS.md), task-specific reference docs |
+| Work inside this repository as an agent | [AGENTS.md](../AGENTS.md), [Project map](guides/project-map.md) | Run `npm run agent:route -- --task console` for an explicit route or `--changed --json` once paths are known, then read the returned maintained references |
 | Maintain FixThis architecture or tooling | [Project map](guides/project-map.md) | [Architecture overview](architecture/overview.md), [Fullstack/tooling handover](guides/fullstack-tooling-handover.md) |
 | Change a compatibility contract | [Reference contracts](#reference-contracts) | The implementation files named by [Project map](guides/project-map.md) |
 | Prepare or audit a release | [Release readiness checklist](contributing/release-readiness.md) | [Release process](contributing/release-process.md), [Contributing guide](../CONTRIBUTING.md) |

@@ -132,6 +132,9 @@ esac
 
 if [[ "$MODE" == "prepush" ]]; then
     run_step "node scripts/check-doc-consistency.mjs"
+    run_step "npm run agent:route:test"
+    run_step "npm run docs:agent-guidance:test"
+    run_step "npm run plugin:contract:test"
     run_step "npm run detekt:baseline:check"
     run_step "node scripts/build-console-assets.mjs --check"
     run_step "bash scripts/check-surface-zindex.sh"
@@ -139,6 +142,9 @@ if [[ "$MODE" == "prepush" ]]; then
     run_step "npm run console:test:fast"
 else
     run_step "node scripts/check-doc-consistency.mjs"
+    run_step "npm run agent:route:test"
+    run_step "npm run docs:agent-guidance:test"
+    run_step "npm run plugin:contract:test"
     run_step "node scripts/check-release-readiness.mjs"
     run_step "npm run release:v06:evidence:test"
     run_step "npm run docs:agent-bootstrap:test"

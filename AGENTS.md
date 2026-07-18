@@ -22,7 +22,7 @@ Current implementation wins over docs; docs/reference/* wins over historical pla
 ## Change
 
 - Make the smallest compatible change and follow router-returned maintained references.
-- Keep compose-core free of MCP, CLI, Android UI, browser DTO, and .fixthis dependencies.
+- Keep compose-core free of MCP, CLI, Android UI, browser DTO, and local artifact-path dependencies.
 - Preserve persisted field names and coordinate bridge changes through docs/reference/bridge-protocol.md.
 - Use canonical generators; never hand-edit build outputs.
 - Never commit .fixthis, screenshots, reports, fixture workspaces, or personal agent state.

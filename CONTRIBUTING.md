@@ -122,6 +122,22 @@ bash scripts/check-docs-cli-surface.sh
 
 The script invokes the installed CLI (building `:fixthis-cli:installDist` first if needed), then scans the five DX docs for `fixthis <subcommand>` and `fixthis <subcommand> --flag` references. Each subcommand must appear in `fixthis --help`, and each flag must appear in the corresponding `fixthis <subcommand> --help`. The same check runs in CI via `.github/workflows/docs-cli-surface.yml` on PRs that touch the docs or the CLI module.
 
+### Repository Agent Kit
+
+The repository Agent Kit is checked-in guidance and read-only routing; it does not modify personal or project Codex configuration.
+
+```bash
+npm run agent:route -- --task console --json
+npm run agent:route -- --changed --base origin/main
+npm run agent:route:test
+npm run docs:agent-guidance:test
+npm run plugin:contract:test
+```
+
+The router prints maintained docs, first source files, focused checks, broad gates, and connected-proof requirements; it never executes them. Unknown paths warn and fall back to `npm run ci:local:changed`. Contract tests enforce the root 130-line budget, nested 60-line budgets, canonical commands, and skill audiences.
+
+After editing `AGENTS.md`, a nested `AGENTS.md`, `.agents/skills`, `.codex-plugin/skills`, or `scripts/agent-*`, run all three focused test commands above.
+
 ## Required Local Checks
 
 The root build enables the local Gradle build cache by default. Configuration

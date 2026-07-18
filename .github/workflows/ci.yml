@@ -38,6 +38,15 @@ jobs:
       - name: Doc consistency check
         run: node scripts/check-doc-consistency.mjs
 
+      - name: Run agent task router tests
+        run: npm run agent:route:test
+
+      - name: Run agent guidance contract tests
+        run: npm run docs:agent-guidance:test
+
+      - name: Run installable plugin contract tests
+        run: npm run plugin:contract:test
+
       - name: Check release readiness docs
         run: node scripts/check-release-readiness.mjs
 

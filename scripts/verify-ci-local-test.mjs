@@ -31,6 +31,9 @@ test("--fast lists the quick CI mirror without Gradle", () => {
   const commands = commandLines(result.stdout);
   assert.deepEqual(commands, [
     "node scripts/check-doc-consistency.mjs",
+    "npm run agent:route:test",
+    "npm run docs:agent-guidance:test",
+    "npm run plugin:contract:test",
     "node scripts/check-release-readiness.mjs",
     "npm run release:v06:evidence:test",
     "npm run docs:agent-bootstrap:test",
@@ -60,6 +63,9 @@ test("--prepush lists only formatting-adjacent and fast hygiene checks", () => {
   const commands = commandLines(result.stdout);
   assert.deepEqual(commands, [
     "node scripts/check-doc-consistency.mjs",
+    "npm run agent:route:test",
+    "npm run docs:agent-guidance:test",
+    "npm run plugin:contract:test",
     "npm run detekt:baseline:check",
     "node scripts/build-console-assets.mjs --check",
     "bash scripts/check-surface-zindex.sh",
@@ -69,6 +75,20 @@ test("--prepush lists only formatting-adjacent and fast hygiene checks", () => {
     "node scripts/check-whitespace.mjs diff --cached --check",
     "node scripts/check-whitespace.mjs diff --check",
   ]);
+});
+
+test("every local mode includes agent semantic contracts", () => {
+  for (const mode of ["--prepush", "--fast", "--changed-only", "--full"]) {
+    const result = runVerify([mode, "--list"], {
+      FIXTHIS_VERIFY_BASE: "HEAD",
+      FIXTHIS_VERIFY_CHANGED_FILES: "AGENTS.md\n",
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const commands = commandLines(result.stdout);
+    assert.ok(commands.includes("npm run agent:route:test"));
+    assert.ok(commands.includes("npm run docs:agent-guidance:test"));
+    assert.ok(commands.includes("npm run plugin:contract:test"));
+  }
 });
 
 test("--prepush does not add Gradle checks even for Kotlin or Gradle changes", () => {

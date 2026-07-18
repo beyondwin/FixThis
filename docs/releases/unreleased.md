@@ -8,6 +8,7 @@ as release evidence.
 
 ## Highlights
 
+- **Repository Agent Kit.** Added a read-only task and verification router, scoped AGENTS.md guidance, repo-discovered maintainer skills, and semantic drift gates for commands, line budgets, connected-proof requirements, and installable-plugin audiences.
 - **Accurate Gradle Plugin Portal recovery.** Release automation now verifies
   the exact `io.github.beyondwin.fixthis.compose` version page instead of the
   Portal `/m2/` proxy marker, which can appear before the plugin listing is
