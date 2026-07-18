@@ -12,6 +12,8 @@
     "ci:local:fast": "bash scripts/verify-ci-local.sh --fast",
     "ci:local:changed": "bash scripts/verify-ci-local.sh --changed-only",
     "ci:local:test": "node --test scripts/verify-ci-local-test.mjs",
+    "agent:route": "node scripts/agent-task-router.mjs",
+    "agent:route:test": "node --test scripts/agent-task-router-test.mjs",
     "evidence": "node scripts/evidence-runner.mjs",
     "evidence:fast": "node scripts/evidence-runner.mjs --profile fast",
     "evidence:trust": "node scripts/evidence-runner.mjs --profile trust",
