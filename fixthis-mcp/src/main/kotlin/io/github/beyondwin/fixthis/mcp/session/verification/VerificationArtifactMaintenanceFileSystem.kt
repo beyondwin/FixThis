@@ -22,7 +22,7 @@ internal class VerificationArtifactMaintenanceFileSystem(
         return access.withProjectDirectory(listOf(".fixthis", "feedback-sessions")) { feedback ->
             access.entryNames(feedback).mapNotNull { name ->
                 runCatching {
-                    VerificationArtifactNaming.validateSegment(name, "sessionId")
+                    VerificationArtifactNaming.validateSessionId(name)
                     val attributes = access.attributes(feedback, name)
                     name.takeIf { attributes.isDirectory && !attributes.isSymbolicLink }
                 }.getOrNull()

@@ -25,7 +25,7 @@ internal class VerificationArtifactDirectoryAccess(
     }
 
     fun ensureVerificationRoot(sessionId: String) {
-        VerificationArtifactNaming.validateSegment(sessionId, "sessionId")
+        VerificationArtifactNaming.validateSessionId(sessionId)
         withProjectDirectory(emptyList()) { root ->
             ensureDescendant(
                 root,

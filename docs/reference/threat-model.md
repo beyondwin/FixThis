@@ -93,7 +93,9 @@ just because it came from upstream.
 - **Attackers with arbitrary code execution as the developer's user on the
   host.** Such an attacker already owns the MCP process, the console assets,
   and the `.fixthis/` directory; no application-layer guard meaningfully
-  mitigates them.
+  mitigates them. Verification-artifact filesystem locks coordinate
+  cooperating FixThis processes; they do not claim to stop a same-user process
+  that ignores the lock protocol and deliberately races path replacement.
 
 ## Mitigations today
 
@@ -112,6 +114,7 @@ Paths are repository-root relative.
 | App ↔ bridge | Transport is an abstract-namespace `LocalSocket` (app-sandbox scoped, reachable via `adb run-as`) | `fixthis-compose-sidekick/src/main/kotlin/io/github/beyondwin/fixthis/compose/sidekick/bridge/BridgeServer.kt` |
 | Device ↔ host evidence collector | Four MCP presets map to fixed logcat/memory/frame collectors; MCP arguments cannot supply shell commands | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/tools/RuntimeEvidenceToolOperations.kt`, `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/RuntimeEvidenceCommandPlanner.kt` |
 | Host evidence collector ↔ local artifacts | Output is redacted before durable write, per-file/bundle/project quotas are enforced, and commits use guarded non-symlink paths plus atomic directory rename | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceRedactor.kt`, `RuntimeEvidenceArtifactStore.kt`, `RuntimeEvidenceArtifactQuotaGuard.kt` |
+| Verification workflow ↔ local artifacts | Same-JVM operations serialize by canonical project root, cooperating processes hold root and receipt file locks, path identity is revalidated inside the lock before mutation, and receipt directories use atomic-move-first promotion | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/verification/VerificationArtifactOperationLocks.kt`, `VerificationArtifactDirectoryAccess.kt`, `VerificationArtifactFileOperations.kt` |
 | Runtime evidence ↔ feedback item | Device/install/package/session/item/screen drift rejects linkage; PID or fingerprint drift is retained only as partial warning evidence | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceCaptureSupport.kt`, `RuntimeEvidenceCaptureCoordinator.kt` |
 | Local artifacts ↔ MCP/Markdown | Raw collector bodies remain in ignored files; session JSON, MCP results, and compact handoffs expose bounded summaries and metadata only | `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceSummarizer.kt`, `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/handoff/CompactHandoffRenderer.kt` |
 | Build-time | Debug-only manifest: sidekick startup provider is only merged into debug builds | `fixthis-compose-sidekick/src/debug/AndroidManifest.xml` |

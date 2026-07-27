@@ -8,7 +8,6 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.OpenOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 
 internal class VerificationArtifactFileOperations(
@@ -76,8 +75,10 @@ internal class VerificationArtifactFileOperations(
             access.assertBound(parent)
         }
         try {
-            Files.move(source, target, StandardCopyOption.ATOMIC_MOVE)
+            hooks.atomicDirectoryMove(source, target)
         } catch (_: AtomicMoveNotSupportedException) {
+            hooks.beforeAtomicMoveFallback(source, target)
+            access.assertBound(parent)
             if (parent.stream != null) {
                 parent.stream.move(Path.of(sourceName), parent.stream, Path.of(targetName))
             } else {

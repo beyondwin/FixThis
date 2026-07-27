@@ -8,9 +8,20 @@ import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerificationArtifactData
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactStoreHooks
 import java.io.File
+import java.nio.channels.FileChannel
+import java.nio.channels.OverlappingFileLockException
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.OpenOption
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -51,6 +62,26 @@ class FeedbackVerificationArtifactStoreTest {
             assertEquals(PNG_BYTES.toList(), finalFile.readBytes().toList())
             assertEquals(listOf("after.png"), finalFile.parentFile.list().orEmpty().sorted())
             assertFalse(prepared.temporaryDirectory.exists())
+        }
+    }
+
+    @Test
+    fun discardAfterSuccessfulPromotionPreservesFinalArtifact() {
+        withFixture { root, store, session ->
+            val prepared = store.prepare(
+                session,
+                "receipt-1",
+                SnapshotScreenshotDto(
+                    desktopFullPath = pngFile(root, "capture/source.png").absolutePath,
+                ),
+            )
+            val promoted = store.promote(prepared)
+
+            store.discard(prepared)
+
+            val finalFile = File(promoted?.desktopFullPath.orEmpty())
+            assertTrue(finalFile.isFile)
+            assertEquals(PNG_BYTES.toList(), finalFile.readBytes().toList())
         }
     }
 
@@ -104,6 +135,26 @@ class FeedbackVerificationArtifactStoreTest {
             } finally {
                 outsideRoot.deleteRecursively()
             }
+        }
+    }
+
+    @Test
+    fun rejectsSessionAndReceiptIdsInReservedArtifactNamespaces() {
+        withFixture { root, store, session ->
+            val token = "0123456789abcdef0123456789abcdef"
+            listOf(".x.reserve", ".x.tmp-$token").forEach { receiptId ->
+                assertFailsWith<FeedbackVerificationArtifactException> {
+                    store.prepare(session, receiptId, null)
+                }
+            }
+            listOf(".x.reserve", ".x.tmp-$token").forEach { sessionId ->
+                assertFailsWith<FeedbackVerificationArtifactException> {
+                    store.prepare(session.copy(sessionId = sessionId), "receipt-1", null)
+                }
+            }
+
+            assertFalse(root.resolve(".fixthis/feedback-sessions/.x.reserve").exists())
+            assertFalse(root.resolve(".fixthis/feedback-sessions/.x.tmp-$token").exists())
         }
     }
 
@@ -632,6 +683,107 @@ class FeedbackVerificationArtifactStoreTest {
     }
 
     @Test
+    fun canonicalRootAndReceiptLocksSerializeStoresAndHoldOsFileLocks() {
+        val root = Files.createTempDirectory("fixthis-verification-operation-lock").toFile().canonicalFile
+        val firstEntered = CountDownLatch(1)
+        val releaseFirst = CountDownLatch(1)
+        val secondEntered = CountDownLatch(1)
+        val rootLockPath = AtomicReference<Path>()
+        val receiptLockPath = AtomicReference<Path>()
+        val firstPrepared = AtomicReference<PreparedVerificationArtifact>()
+        val secondPrepared = AtomicReference<PreparedVerificationArtifact>()
+        val failures = Collections.synchronizedList(mutableListOf<Throwable>())
+        val firstStore = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                insideOperationLocks = { rootLock, receiptLock ->
+                    rootLockPath.set(rootLock)
+                    receiptLockPath.set(checkNotNull(receiptLock))
+                    firstEntered.countDown()
+                    check(releaseFirst.await(5, TimeUnit.SECONDS))
+                },
+            ),
+        )
+        val secondStore = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                insideOperationLocks = { _, _ -> secondEntered.countDown() },
+            ),
+        )
+        try {
+            val first = thread(name = "verification-lock-first") {
+                runCatching {
+                    firstPrepared.set(firstStore.prepare(session(root), "receipt-a", null))
+                }.exceptionOrNull()?.let(failures::add)
+            }
+            assertTrue(firstEntered.await(5, TimeUnit.SECONDS))
+            val second = thread(name = "verification-lock-second") {
+                runCatching {
+                    secondPrepared.set(secondStore.prepare(session(root), "receipt-b", null))
+                }.exceptionOrNull()?.let(failures::add)
+            }
+
+            assertFalse(secondEntered.await(300, TimeUnit.MILLISECONDS))
+            assertFalse(canAcquireFileLock(rootLockPath.get()))
+            assertFalse(canAcquireFileLock(receiptLockPath.get()))
+
+            releaseFirst.countDown()
+            first.join(10_000)
+            second.join(10_000)
+            assertFalse(first.isAlive)
+            assertFalse(second.isAlive)
+            assertTrue(secondEntered.await(1, TimeUnit.SECONDS))
+            assertEquals(emptyList(), failures)
+            firstStore.discard(firstPrepared.get())
+            secondStore.discard(secondPrepared.get())
+        } finally {
+            releaseFirst.countDown()
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun atomicMoveFallbackRevalidatesAfterFallbackHookBeforeMoving() {
+        val root = Files.createTempDirectory("fixthis-verification-atomic-fallback").toFile().canonicalFile
+        val outside = Files.createTempDirectory("fixthis-verification-atomic-fallback-outside").toFile().canonicalFile
+        val verification = root.resolve(".fixthis/feedback-sessions/session-1/verification")
+        val displaced = verification.parentFile.resolve("verification-displaced")
+        var fallbackReached = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                atomicDirectoryMove = { source, target ->
+                    throw AtomicMoveNotSupportedException(source.toString(), target.toString(), "forced")
+                },
+                beforeAtomicMoveFallback = { _, _ ->
+                    Files.move(verification.toPath(), displaced.toPath())
+                    Files.createSymbolicLink(verification.toPath(), outside.toPath())
+                    fallbackReached = true
+                },
+                rootDirectoryStreamFactory = ::nonSecureDirectoryStream,
+            ),
+        )
+        val prepared = store.prepare(
+            session(root),
+            "receipt-1",
+            SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+        )
+        try {
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.promote(prepared)
+            }
+
+            assertTrue(fallbackReached)
+            assertFalse(outside.resolve("receipt-1").exists())
+            assertTrue(outside.listFiles().orEmpty().isEmpty())
+        } finally {
+            if (Files.isSymbolicLink(verification.toPath())) Files.delete(verification.toPath())
+            root.deleteRecursively()
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
     fun cleanupRemovesIncompleteAndOrphansWhileReferencedReceiptsSurvive() {
         withFixture { root, store, _ ->
             val verificationRoot = root.resolve(
@@ -683,6 +835,24 @@ class FeedbackVerificationArtifactStoreTest {
         }
     }
 
+    @Test
+    fun cleanupPreservesReferencedDottedReceiptOutsideReservedNamespaces() {
+        withFixture { root, store, _ ->
+            val dotted = receiptDirectory(root, "session-1", "x.reserve").apply {
+                mkdirs()
+                resolve("after.png").writeBytes(PNG_BYTES)
+            }
+
+            assertEquals(0, store.cleanupIncomplete())
+            assertEquals(
+                0,
+                store.cleanupOrphans(mapOf("session-1" to setOf("x.reserve"))),
+            )
+
+            assertTrue(dotted.resolve("after.png").isFile)
+        }
+    }
+
     private fun withFixture(
         block: (File, FeedbackVerificationArtifactStore, SessionDto) -> Unit,
     ) {
@@ -725,6 +895,20 @@ class FeedbackVerificationArtifactStoreTest {
             override fun iterator(): MutableIterator<Path> = delegate.iterator()
 
             override fun close() = delegate.close()
+        }
+    }
+
+    private fun canAcquireFileLock(path: Path): Boolean {
+        val options: Set<OpenOption> = setOf(
+            StandardOpenOption.WRITE,
+            LinkOption.NOFOLLOW_LINKS,
+        )
+        return FileChannel.open(path, options).use { channel ->
+            try {
+                channel.tryLock()?.use { true } ?: false
+            } catch (_: OverlappingFileLockException) {
+                false
+            }
         }
     }
 

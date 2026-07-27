@@ -26,18 +26,8 @@ internal class PreparedVerificationArtifact private constructor(
     internal val finalDirectory: File get() = data.finalDirectory
     internal val stagedFile: File? get() = data.stagedFile
     internal val sourceMetadata: SnapshotScreenshotDto? get() = data.sourceMetadata
-    private var promoted = false
 
     fun belongsTo(capability: Any): Boolean = storeCapability === capability
-
-    fun markPromoted(capability: Any) {
-        artifactRequire(belongsTo(capability)) {
-            "Verification artifact preparation belongs to another store"
-        }
-        promoted = true
-    }
-
-    fun canDeleteFinal(capability: Any): Boolean = belongsTo(capability) && promoted
 
     fun withStagedFile(
         stagedFile: File?,
@@ -71,6 +61,7 @@ internal class FeedbackVerificationArtifactStore(
 ) {
     private val storeCapability = Any()
     private val paths = VerificationArtifactPaths(projectRoot)
+    private val operationLocks = VerificationArtifactOperationLocks(paths, hooks)
     private val fileSystem = VerificationArtifactSecureFileSystem(paths, hooks)
     private val maintenance = VerificationArtifactMaintenanceFileSystem(
         paths,
@@ -82,9 +73,9 @@ internal class FeedbackVerificationArtifactStore(
         session: SessionDto,
         receiptId: String,
         source: SnapshotScreenshotDto?,
-    ): PreparedVerificationArtifact {
+    ): PreparedVerificationArtifact = operationLocks.withReceiptLock(session.sessionId, receiptId) {
         requireSession(session)
-        VerificationArtifactNaming.validateSegment(receiptId, "receiptId")
+        VerificationArtifactNaming.validateReceiptId(receiptId)
         val ownershipToken = temporaryId()
         VerificationArtifactNaming.validateToken(ownershipToken)
         val preparedWithoutSource = PreparedVerificationArtifact.issue(
@@ -103,7 +94,7 @@ internal class FeedbackVerificationArtifactStore(
                 sourceMetadata = null,
             ),
         )
-        return try {
+        try {
             fileSystem.reserve(session.sessionId, receiptId, ownershipToken)
             val sourceFile = sourceFileOrNull(source)
             val stagedFile = sourceFile?.let {
@@ -126,67 +117,84 @@ internal class FeedbackVerificationArtifactStore(
         }
     }
 
-    fun promote(prepared: PreparedVerificationArtifact): SnapshotScreenshotDto? = try {
-        requirePreparedArtifact(prepared)
-        fileSystem.promote(prepared)
-        prepared.markPromoted(storeCapability)
-        fileSystem.completePromotion(prepared)
-        prepared.sourceMetadata?.copy(
-            fullPath = null,
-            cropPath = null,
-            desktopFullPath = prepared.finalDirectory
-                .resolve(VerificationArtifactNaming.AFTER_SCREENSHOT)
-                .canonicalPath,
-            desktopCropPath = null,
-        )
-    } catch (failure: Exception) {
-        if (prepared.belongsTo(storeCapability)) {
-            runCatching {
-                fileSystem.deletePrepared(
-                    prepared,
-                    includeFinal = prepared.canDeleteFinal(storeCapability),
-                )
+    fun promote(
+        prepared: PreparedVerificationArtifact,
+    ): SnapshotScreenshotDto? = operationLocks.withReceiptLock(prepared.sessionId, prepared.receiptId) {
+        var finalRollbackAuthorized = false
+        try {
+            requirePreparedArtifact(prepared)
+            fileSystem.promote(prepared) {
+                finalRollbackAuthorized = true
             }
+            fileSystem.completePromotion(prepared)
+            finalRollbackAuthorized = false
+            prepared.sourceMetadata?.copy(
+                fullPath = null,
+                cropPath = null,
+                desktopFullPath = prepared.finalDirectory
+                    .resolve(VerificationArtifactNaming.AFTER_SCREENSHOT)
+                    .canonicalPath,
+                desktopCropPath = null,
+            )
+        } catch (failure: Exception) {
+            if (prepared.belongsTo(storeCapability)) {
+                runCatching {
+                    fileSystem.deletePrepared(
+                        prepared,
+                        includeFinal = finalRollbackAuthorized,
+                    )
+                }
+            }
+            throw artifactFailure("promote", prepared.receiptId, failure)
         }
-        throw artifactFailure("promote", prepared.receiptId, failure)
     }
 
-    fun discard(prepared: PreparedVerificationArtifact) {
+    fun discard(prepared: PreparedVerificationArtifact) = operationLocks.withReceiptLock(
+        prepared.sessionId,
+        prepared.receiptId,
+    ) {
         try {
             requirePreparedArtifact(prepared)
             fileSystem.deletePrepared(
                 prepared,
-                includeFinal = prepared.canDeleteFinal(storeCapability),
+                includeFinal = false,
             )
         } catch (failure: Exception) {
             throw artifactFailure("discard", prepared.receiptId, failure)
         }
     }
 
-    fun deleteReceiptArtifact(session: SessionDto, receiptId: String) {
+    fun deleteReceiptArtifact(session: SessionDto, receiptId: String) = operationLocks.withReceiptLock(
+        session.sessionId,
+        receiptId,
+    ) {
         try {
             requireSession(session)
-            VerificationArtifactNaming.validateSegment(receiptId, "receiptId")
+            VerificationArtifactNaming.validateReceiptId(receiptId)
             maintenance.deleteReceipt(session.sessionId, receiptId)
         } catch (failure: Exception) {
             throw artifactFailure("delete", receiptId, failure)
         }
     }
 
-    fun cleanupIncomplete(): Int = try {
-        cleaner.cleanupIncomplete()
-    } catch (failure: Exception) {
-        throw artifactFailure("clean incomplete", "all", failure)
+    fun cleanupIncomplete(): Int = operationLocks.withRootLock {
+        try {
+            cleaner.cleanupIncomplete()
+        } catch (failure: Exception) {
+            throw artifactFailure("clean incomplete", "all", failure)
+        }
     }
 
-    fun cleanupOrphans(referencesBySession: Map<String, Set<String>>): Int = try {
-        cleaner.cleanupOrphans(referencesBySession)
-    } catch (failure: Exception) {
-        throw artifactFailure("clean orphan", "all", failure)
+    fun cleanupOrphans(referencesBySession: Map<String, Set<String>>): Int = operationLocks.withRootLock {
+        try {
+            cleaner.cleanupOrphans(referencesBySession)
+        } catch (failure: Exception) {
+            throw artifactFailure("clean orphan", "all", failure)
+        }
     }
 
     private fun requireSession(session: SessionDto) {
-        VerificationArtifactNaming.validateSegment(session.sessionId, "sessionId")
+        VerificationArtifactNaming.validateSessionId(session.sessionId)
         artifactRequire(File(session.projectRoot).canonicalFile == paths.projectRoot) {
             "Session project root does not match the verification artifact store"
         }
@@ -196,8 +204,8 @@ internal class FeedbackVerificationArtifactStore(
         artifactRequire(prepared.belongsTo(storeCapability)) {
             "Verification artifact preparation belongs to another store"
         }
-        VerificationArtifactNaming.validateSegment(prepared.sessionId, "sessionId")
-        VerificationArtifactNaming.validateSegment(prepared.receiptId, "receiptId")
+        VerificationArtifactNaming.validateSessionId(prepared.sessionId)
+        VerificationArtifactNaming.validateReceiptId(prepared.receiptId)
         VerificationArtifactNaming.validateToken(prepared.ownershipToken)
         val expectedTemporary = paths.temporaryDirectory(
             prepared.sessionId,

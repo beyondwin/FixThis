@@ -13,6 +13,15 @@ internal data class VerificationArtifactStoreHooks(
     val beforeFallbackDirectoryCreate: (java.nio.file.Path) -> Unit = {},
     val beforeFallbackDelete: (java.nio.file.Path) -> Unit = {},
     val beforeFallbackMove: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
+    val beforeAtomicMoveFallback: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
+    val atomicDirectoryMove: (java.nio.file.Path, java.nio.file.Path) -> Unit = { source, target ->
+        java.nio.file.Files.move(
+            source,
+            target,
+            java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+        )
+    },
+    val insideOperationLocks: (java.nio.file.Path, java.nio.file.Path?) -> Unit = { _, _ -> },
     val rootDirectoryStreamFactory: (java.nio.file.Path) -> java.nio.file.DirectoryStream<java.nio.file.Path> = {
         java.nio.file.Files.newDirectoryStream(it)
     },
@@ -45,24 +54,37 @@ internal object VerificationArtifactNaming {
         }
     }
 
+    fun validateSessionId(value: String) {
+        validateArtifactId(value, "sessionId")
+    }
+
+    fun validateReceiptId(value: String) {
+        validateArtifactId(value, "receiptId")
+    }
+
     fun temporaryName(receiptId: String, ownershipToken: String): String {
-        validateSegment(receiptId, "receiptId")
+        validateReceiptId(receiptId)
         validateToken(ownershipToken)
         return ".$receiptId.tmp-$ownershipToken"
     }
 
     fun reservationName(receiptId: String): String {
-        validateSegment(receiptId, "receiptId")
+        validateReceiptId(receiptId)
         return ".$receiptId.reserve"
     }
 
     fun isTemporaryName(name: String): Boolean = temporary.matches(name)
 
-    fun isTemporaryNameFor(name: String, receiptId: String, ownershipToken: String): Boolean = name == temporaryName(receiptId, ownershipToken)
-
     fun isReservationName(name: String): Boolean = reservation.matches(name)
 
     fun receiptIdFromReservation(name: String): String? = reservation.matchEntire(name)?.groupValues?.get(1)
+
+    private fun validateArtifactId(value: String, label: String) {
+        validateSegment(value, label)
+        artifactRequire(!isTemporaryName(value) && !isReservationName(value)) {
+            "$label uses a reserved verification artifact namespace"
+        }
+    }
 }
 
 internal class VerificationArtifactPaths(projectRoot: File) {

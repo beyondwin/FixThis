@@ -78,10 +78,12 @@ internal class VerificationArtifactSecureFileSystem(
             .resolve(VerificationArtifactNaming.AFTER_SCREENSHOT)
     }
 
-    fun promote(prepared: PreparedVerificationArtifact) {
+    fun promote(
+        prepared: PreparedVerificationArtifact,
+        onMoved: () -> Unit,
+    ) {
         artifactRequire(
-            VerificationArtifactNaming.isTemporaryNameFor(
-                prepared.temporaryDirectory.name,
+            prepared.temporaryDirectory.name == VerificationArtifactNaming.temporaryName(
                 prepared.receiptId,
                 prepared.ownershipToken,
             ),
@@ -103,6 +105,7 @@ internal class VerificationArtifactSecureFileSystem(
                 prepared.temporaryDirectory.name,
                 prepared.receiptId,
             )
+            onMoved()
             access.withChildDirectory(verification, prepared.receiptId) { final ->
                 access.assertBound(final)
             }

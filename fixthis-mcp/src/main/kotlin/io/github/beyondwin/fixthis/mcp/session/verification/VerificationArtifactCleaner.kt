@@ -20,8 +20,8 @@ internal class VerificationArtifactCleaner(
 
     fun cleanupOrphans(referencesBySession: Map<String, Set<String>>): Int {
         referencesBySession.forEach { (sessionId, receiptIds) ->
-            VerificationArtifactNaming.validateSegment(sessionId, "sessionId")
-            receiptIds.forEach { VerificationArtifactNaming.validateSegment(it, "receiptId") }
+            VerificationArtifactNaming.validateSessionId(sessionId)
+            receiptIds.forEach(VerificationArtifactNaming::validateReceiptId)
         }
         var deleted = 0
         fileSystem.sessionIds().forEach { sessionId ->
