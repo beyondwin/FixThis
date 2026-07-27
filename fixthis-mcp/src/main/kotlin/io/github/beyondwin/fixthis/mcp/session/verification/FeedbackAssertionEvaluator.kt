@@ -27,14 +27,15 @@ internal class FeedbackAssertionEvaluator {
                 it.stateDescription?.let(::add)
             }
         }.orEmpty()
-        val passed = correspondencePresent && when (assertion.kind) {
-            FeedbackVerificationAssertionKind.TEXT_PRESENT ->
-                matchesRole && targetStrings.any { it.contains(assertion.value.orEmpty(), ignoreCase = false) }
-            FeedbackVerificationAssertionKind.TEXT_ABSENT ->
-                matchesRole && targetStrings.none { it.contains(assertion.value.orEmpty(), ignoreCase = false) }
-            FeedbackVerificationAssertionKind.TARGET_PRESENT ->
-                matchesRole
-        }
+        val passed = correspondencePresent &&
+            when (assertion.kind) {
+                FeedbackVerificationAssertionKind.TEXT_PRESENT ->
+                    matchesRole && targetStrings.any { it.contains(assertion.value.orEmpty(), ignoreCase = false) }
+                FeedbackVerificationAssertionKind.TEXT_ABSENT ->
+                    matchesRole && targetStrings.none { it.contains(assertion.value.orEmpty(), ignoreCase = false) }
+                FeedbackVerificationAssertionKind.TARGET_PRESENT ->
+                    matchesRole
+            }
         val outcome = if (passed) {
             FeedbackVerificationCheckOutcome.PASSED
         } else {

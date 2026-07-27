@@ -102,8 +102,7 @@ internal class FeedbackVerificationRequestValidator {
         require(condition) { "$prefix $detail" }
     }
 
-    private fun verificationError(prefix: String, detail: String): Nothing =
-        throw IllegalArgumentException("$prefix $detail")
+    private fun verificationError(prefix: String, detail: String): Nothing = throw IllegalArgumentException("$prefix $detail")
 
     private companion object {
         const val MAX_ASSERTIONS = 8

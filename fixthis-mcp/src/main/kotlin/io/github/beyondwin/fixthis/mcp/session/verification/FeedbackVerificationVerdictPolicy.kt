@@ -18,16 +18,14 @@ internal class FeedbackVerificationVerdictPolicy {
         else -> FeedbackVerificationVerdict.PASS
     }
 
-    fun boundedChecks(checks: List<FeedbackVerificationCheckDto>): List<FeedbackVerificationCheckDto> =
-        boundFeedbackVerificationChecks(checks)
+    fun boundedChecks(checks: List<FeedbackVerificationCheckDto>): List<FeedbackVerificationCheckDto> = boundFeedbackVerificationChecks(checks)
 
-    private fun hasRequiredPassEvidence(checks: List<FeedbackVerificationCheckDto>): Boolean =
-        RequiredPassEvidence.entries.all { evidence ->
-            checks.any { check ->
-                check.outcome == FeedbackVerificationCheckOutcome.PASSED &&
-                    check.kind in evidence.acceptedKinds
-            }
+    private fun hasRequiredPassEvidence(checks: List<FeedbackVerificationCheckDto>): Boolean = RequiredPassEvidence.entries.all { evidence ->
+        checks.any { check ->
+            check.outcome == FeedbackVerificationCheckOutcome.PASSED &&
+                check.kind in evidence.acceptedKinds
         }
+    }
 
     private enum class RequiredPassEvidence(
         val acceptedKinds: Set<String>,

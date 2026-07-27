@@ -117,13 +117,12 @@ internal class FeedbackTargetCorrespondenceEvaluator {
             )
     }
 
-    private fun matchedResult(best: ScoredCandidate): FeedbackTargetCorrespondenceResult =
-        FeedbackTargetCorrespondenceResult(
-            confidence = best.match.confidence,
-            matchedNode = best.node,
-            reasons = listOf(best.match.reason),
-            summary = best.node.toBoundedSummary(best.match.confidence),
-        )
+    private fun matchedResult(best: ScoredCandidate): FeedbackTargetCorrespondenceResult = FeedbackTargetCorrespondenceResult(
+        confidence = best.match.confidence,
+        matchedNode = best.node,
+        reasons = listOf(best.match.reason),
+        summary = best.node.toBoundedSummary(best.match.confidence),
+    )
 
     private fun scoreCandidate(
         context: CorrespondenceContext,
@@ -234,14 +233,11 @@ internal class FeedbackTargetCorrespondenceEvaluator {
 
         private fun isIdentityHintMatch(): Boolean = identityHintMatches && roleCompatible
 
-        private fun isSemanticSpatialMatch(): Boolean =
-            roleCompatible && semanticOverlap && spatiallyCompatible
+        private fun isSemanticSpatialMatch(): Boolean = roleCompatible && semanticOverlap && spatiallyCompatible
 
-        private fun isNearbySpatialMatch(): Boolean =
-            roleCompatible && spatiallyCompatible && nearbyContextOverlap
+        private fun isNearbySpatialMatch(): Boolean = roleCompatible && spatiallyCompatible && nearbyContextOverlap
 
-        private fun isLowConfidenceMatch(): Boolean =
-            roleCompatible && (semanticOverlap || spatiallyCompatible)
+        private fun isLowConfidenceMatch(): Boolean = roleCompatible && (semanticOverlap || spatiallyCompatible)
     }
 
     private data class MatchResult(
