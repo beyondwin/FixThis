@@ -114,7 +114,6 @@ class FeedbackConsoleServer private constructor(
 
     fun start(): String = synchronized(lock) {
         server?.let { return@synchronized url }
-        sessionUpdateSubscription = lifecycle.sessionUpdateSubscriptionFactory?.invoke()
         val requestExecutor = consoleHttpExecutor()
         HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
             .also { httpServer ->
@@ -125,6 +124,7 @@ class FeedbackConsoleServer private constructor(
                 server = httpServer
             }
         lifecycle.assetsWatcher?.start()
+        sessionUpdateSubscription = lifecycle.sessionUpdateSubscriptionFactory?.invoke()
         url
     }
 

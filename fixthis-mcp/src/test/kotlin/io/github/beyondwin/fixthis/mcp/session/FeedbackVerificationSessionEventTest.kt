@@ -27,6 +27,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import java.io.File
 import java.io.IOException
+import java.net.InetAddress
+import java.net.ServerSocket
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -75,6 +77,46 @@ class FeedbackVerificationSessionEventTest {
                     .getValue("updatedAtEpochMillis").jsonPrimitive.long,
             )
         }
+    }
+
+    @Test
+    fun bindFailureDoesNotLeakReceiptNotificationsAcrossRetryOrStop() = withFixture { fixture ->
+        val eventBus = ConsoleEventBus(clock = { 3_000L })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = fixture.store,
+            projectRoot = fixture.session.projectRoot,
+            defaultPackageName = fixture.session.packageName,
+        )
+        val occupiedPort = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
+        val server = FeedbackConsoleServer(service, port = occupiedPort.localPort, eventBus = eventBus)
+        occupiedPort.use {
+            assertFailsWith<IOException> { server.start() }
+        }
+
+        try {
+            server.start()
+            val context = fixture.captureContext()
+            fixture.store.attachVerificationReceipt(context, receiptFixture(context))
+
+            assertEquals(
+                listOf("session-updated", "sessions-updated"),
+                eventBus.eventsAfter(0L).events.map { it.name },
+            )
+        } finally {
+            server.stop()
+        }
+
+        val contextAfterStop = fixture.captureContext()
+        fixture.store.attachVerificationReceipt(
+            contextAfterStop,
+            receiptFixture(contextAfterStop, receiptId = "receipt-after-stop"),
+        )
+
+        assertEquals(
+            listOf("session-updated", "sessions-updated"),
+            eventBus.eventsAfter(0L).events.map { it.name },
+        )
     }
 
     @Test
