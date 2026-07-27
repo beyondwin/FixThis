@@ -4,34 +4,57 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.util.Collections
 
 @Serializable
 enum class FeedbackVerificationVerdict {
-    @SerialName("pass") PASS,
-    @SerialName("warn") WARN,
-    @SerialName("fail") FAIL,
+    @SerialName("pass")
+    PASS,
+
+    @SerialName("warn")
+    WARN,
+
+    @SerialName("fail")
+    FAIL,
 }
 
 @Serializable
 enum class FeedbackVerificationAssertionKind {
-    @SerialName("text_present") TEXT_PRESENT,
-    @SerialName("text_absent") TEXT_ABSENT,
-    @SerialName("target_present") TARGET_PRESENT,
+    @SerialName("text_present")
+    TEXT_PRESENT,
+
+    @SerialName("text_absent")
+    TEXT_ABSENT,
+
+    @SerialName("target_present")
+    TARGET_PRESENT,
 }
 
 @Serializable
 enum class FeedbackVerificationCheckOutcome {
-    @SerialName("passed") PASSED,
-    @SerialName("warning") WARNING,
-    @SerialName("failed") FAILED,
+    @SerialName("passed")
+    PASSED,
+
+    @SerialName("warning")
+    WARNING,
+
+    @SerialName("failed")
+    FAILED,
 }
 
 @Serializable
 enum class FeedbackTargetCorrespondence {
-    @SerialName("high") HIGH,
-    @SerialName("medium") MEDIUM,
-    @SerialName("low") LOW,
-    @SerialName("none") NONE,
+    @SerialName("high")
+    HIGH,
+
+    @SerialName("medium")
+    MEDIUM,
+
+    @SerialName("low")
+    LOW,
+
+    @SerialName("none")
+    NONE,
 }
 
 @Serializable
@@ -55,12 +78,14 @@ data class FeedbackVerificationCheckDto(
 )
 
 internal fun boundFeedbackVerificationChecks(
-    checks: List<FeedbackVerificationCheckDto>,
-): List<FeedbackVerificationCheckDto> = checks
-    .take(MAX_VERIFICATION_CHECKS)
-    .map { check ->
-        check.copy(message = check.message.take(MAX_VERIFICATION_MESSAGE_LENGTH))
-    }
+    checks: Collection<FeedbackVerificationCheckDto>,
+): List<FeedbackVerificationCheckDto> = Collections.unmodifiableList(
+    checks
+        .take(MAX_VERIFICATION_CHECKS)
+        .map { check ->
+            check.copy(message = check.message.take(MAX_VERIFICATION_MESSAGE_LENGTH))
+        },
+)
 
 @Serializable
 data class MatchedTargetSummaryDto(
@@ -79,7 +104,8 @@ data class FeedbackVerificationReceiptDto(
     val baselineScreenId: String,
     val createdAtEpochMillis: Long,
     val verdict: FeedbackVerificationVerdict,
-    var checks: List<FeedbackVerificationCheckDto>,
+    @SerialName("checks")
+    private var persistedChecks: List<FeedbackVerificationCheckDto>,
     val assertions: List<FeedbackVerificationAssertionDto>,
     val currentActivity: String? = null,
     val currentScreenFingerprint: String? = null,
@@ -87,9 +113,43 @@ data class FeedbackVerificationReceiptDto(
     val afterScreenshot: SnapshotScreenshotDto? = null,
     val matchedTargetSummary: MatchedTargetSummaryDto? = null,
 ) {
+    val checks: List<FeedbackVerificationCheckDto>
+        get() = persistedChecks
+
     init {
-        checks = boundFeedbackVerificationChecks(checks)
+        persistedChecks = boundFeedbackVerificationChecks(persistedChecks)
     }
+
+    @Suppress("LongParameterList")
+    constructor(
+        receiptId: String,
+        itemId: String,
+        baselineScreenId: String,
+        createdAtEpochMillis: Long,
+        verdict: FeedbackVerificationVerdict,
+        checks: Collection<FeedbackVerificationCheckDto>,
+        assertions: List<FeedbackVerificationAssertionDto>,
+        currentActivity: String? = null,
+        currentScreenFingerprint: String? = null,
+        installedAtEpochMillis: Long? = null,
+        afterScreenshot: SnapshotScreenshotDto? = null,
+        matchedTargetSummary: MatchedTargetSummaryDto? = null,
+    ) : this(
+        receiptId = receiptId,
+        itemId = itemId,
+        baselineScreenId = baselineScreenId,
+        createdAtEpochMillis = createdAtEpochMillis,
+        verdict = verdict,
+        persistedChecks = checks.toList(),
+        assertions = assertions,
+        currentActivity = currentActivity,
+        currentScreenFingerprint = currentScreenFingerprint,
+        installedAtEpochMillis = installedAtEpochMillis,
+        afterScreenshot = afterScreenshot,
+        matchedTargetSummary = matchedTargetSummary,
+    )
+
+    fun copy(checks: Collection<FeedbackVerificationCheckDto>): FeedbackVerificationReceiptDto = copy(persistedChecks = checks.toList())
 }
 
 data class FeedbackVerificationRequest(

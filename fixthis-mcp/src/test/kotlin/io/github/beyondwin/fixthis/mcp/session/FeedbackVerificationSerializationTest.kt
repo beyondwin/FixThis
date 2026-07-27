@@ -14,6 +14,8 @@ import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.MatchedTargetSummaryDto
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -67,6 +69,43 @@ class FeedbackVerificationSerializationTest {
         assertEquals(16, receipt.checks.size)
         assertTrue(receipt.checks.all { it.message.length == 512 })
         assertEquals(receipt, decoded)
+    }
+
+    @Test
+    fun receiptChecksHaveNoPublicMutationBypassAndCopyRebounds() {
+        val receipt = receiptFixture(
+            verdict = FeedbackVerificationVerdict.WARN,
+            assertions = emptyList(),
+        )
+        val oversized = List(20) { index ->
+            FeedbackVerificationCheckDto(
+                kind = "CHECK_$index",
+                outcome = FeedbackVerificationCheckOutcome.WARNING,
+                message = "m".repeat(600),
+            )
+        }
+        val publicSetter = FeedbackVerificationReceiptDto::class.java.methods
+            .singleOrNull { it.name == "setChecks" }
+        publicSetter?.invoke(receipt, oversized)
+        val mutatedJson = fixThisJson.encodeToString(receipt)
+
+        assertNull(publicSetter)
+        assertTrue(
+            fixThisJson.parseToJsonElement(mutatedJson).jsonObject
+                .getValue("checks")
+                .jsonArray
+                .size <= 16,
+        )
+
+        val copied = receipt.copy(checks = oversized)
+        val copiedJson = fixThisJson.encodeToString(copied)
+
+        assertEquals(16, copied.checks.size)
+        assertTrue(copied.checks.all { it.message.length == 512 })
+        assertEquals(
+            16,
+            fixThisJson.parseToJsonElement(copiedJson).jsonObject.getValue("checks").jsonArray.size,
+        )
     }
 
     private fun receiptFixture(
