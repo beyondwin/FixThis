@@ -11,6 +11,7 @@ import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -24,6 +25,7 @@ data class SessionDto(
     val updatedAtEpochMillis: Long,
     val screens: List<SnapshotDto> = emptyList(),
     val items: List<AnnotationDto> = emptyList(),
+    val verificationReceipts: List<FeedbackVerificationReceiptDto> = emptyList(),
     val runtimeEvidence: List<RuntimeEvidenceAttachment> = emptyList(),
     val runtimeEvidencePolicy: RuntimeEvidencePolicy = RuntimeEvidencePolicy.MANUAL,
     val handoffBatches: List<FeedbackHandoffBatch> = emptyList(),
@@ -116,6 +118,7 @@ data class AnnotationDto(
     val lastHandedOffAtEpochMillis: Long? = null,
     val status: AnnotationStatusDto = AnnotationStatusDto.OPEN,
     val agentSummary: String? = null,
+    val resolutionVerificationReceiptId: String? = null,
     val targetEvidence: TargetEvidence? = null,
     val targetReliability: TargetReliability? = null,
     val runtimeEvidenceIds: List<String> = emptyList(),
