@@ -123,6 +123,86 @@ class FeedbackVerificationSerializationTest {
         assertTrue(receipt.toString().contains("persistedChecks=").not())
     }
 
+    @Test
+    @Suppress("LongMethod", "DestructuringDeclarationWithTooManyEntries")
+    fun receiptPreservesFormerDataClassComponentSurface() {
+        val receipt = receiptFixture(
+            verdict = FeedbackVerificationVerdict.PASS,
+            assertions = emptyList(),
+        )
+
+        val receiptId: String = receipt.component1()
+        val itemId: String = receipt.component2()
+        val baselineScreenId: String = receipt.component3()
+        val createdAtEpochMillis: Long = receipt.component4()
+        val verdict: FeedbackVerificationVerdict = receipt.component5()
+        val checks: List<FeedbackVerificationCheckDto> = receipt.component6()
+        val assertions: List<FeedbackVerificationAssertionDto> = receipt.component7()
+        val currentActivity: String? = receipt.component8()
+        val currentScreenFingerprint: String? = receipt.component9()
+        val installedAtEpochMillis: Long? = receipt.component10()
+        val afterScreenshot: SnapshotScreenshotDto? = receipt.component11()
+        val matchedTargetSummary: MatchedTargetSummaryDto? = receipt.component12()
+
+        val (
+            destructuredReceiptId,
+            destructuredItemId,
+            destructuredBaselineScreenId,
+            destructuredCreatedAtEpochMillis,
+            destructuredVerdict,
+            destructuredChecks,
+            destructuredAssertions,
+            destructuredCurrentActivity,
+            destructuredCurrentScreenFingerprint,
+            destructuredInstalledAtEpochMillis,
+            destructuredAfterScreenshot,
+            destructuredMatchedTargetSummary,
+        ) = receipt
+
+        assertEquals("receipt-1", receiptId)
+        assertEquals("item-1", itemId)
+        assertEquals("screen-1", baselineScreenId)
+        assertEquals(1_700_000_000_000L, createdAtEpochMillis)
+        assertEquals(FeedbackVerificationVerdict.PASS, verdict)
+        assertEquals(listOf("assertion"), checks.map { it.kind })
+        assertTrue(assertions.isEmpty())
+        assertEquals("io.github.beyondwin.fixthis.sample.MainActivity", currentActivity)
+        assertEquals("screen-fingerprint", currentScreenFingerprint)
+        assertEquals(1_699_999_999_000L, installedAtEpochMillis)
+        assertEquals(1080, afterScreenshot?.width)
+        assertEquals("node-1", matchedTargetSummary?.nodeUid)
+        assertEquals(
+            listOf(
+                receiptId,
+                itemId,
+                baselineScreenId,
+                createdAtEpochMillis,
+                verdict,
+                checks,
+                assertions,
+                currentActivity,
+                currentScreenFingerprint,
+                installedAtEpochMillis,
+                afterScreenshot,
+                matchedTargetSummary,
+            ),
+            listOf(
+                destructuredReceiptId,
+                destructuredItemId,
+                destructuredBaselineScreenId,
+                destructuredCreatedAtEpochMillis,
+                destructuredVerdict,
+                destructuredChecks,
+                destructuredAssertions,
+                destructuredCurrentActivity,
+                destructuredCurrentScreenFingerprint,
+                destructuredInstalledAtEpochMillis,
+                destructuredAfterScreenshot,
+                destructuredMatchedTargetSummary,
+            ),
+        )
+    }
+
     private fun receiptFixture(
         verdict: FeedbackVerificationVerdict,
         assertions: List<FeedbackVerificationAssertionDto>,

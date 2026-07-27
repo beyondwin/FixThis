@@ -98,7 +98,7 @@ data class MatchedTargetSummaryDto(
 )
 
 @Serializable
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 class FeedbackVerificationReceiptDto(
     val receiptId: String,
     val itemId: String,
@@ -178,6 +178,30 @@ class FeedbackVerificationReceiptDto(
         afterScreenshot = afterScreenshot,
         matchedTargetSummary = matchedTargetSummary,
     )
+
+    operator fun component1(): String = receiptId
+
+    operator fun component2(): String = itemId
+
+    operator fun component3(): String = baselineScreenId
+
+    operator fun component4(): Long = createdAtEpochMillis
+
+    operator fun component5(): FeedbackVerificationVerdict = verdict
+
+    operator fun component6(): List<FeedbackVerificationCheckDto> = checks
+
+    operator fun component7(): List<FeedbackVerificationAssertionDto> = assertions
+
+    operator fun component8(): String? = currentActivity
+
+    operator fun component9(): String? = currentScreenFingerprint
+
+    operator fun component10(): Long? = installedAtEpochMillis
+
+    operator fun component11(): SnapshotScreenshotDto? = afterScreenshot
+
+    operator fun component12(): MatchedTargetSummaryDto? = matchedTargetSummary
 
     @Suppress("ComplexCondition")
     override fun equals(other: Any?): Boolean = other is FeedbackVerificationReceiptDto &&
