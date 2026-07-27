@@ -74,7 +74,7 @@ class FeedbackVerificationSerializationTest {
     @Test
     fun receiptChecksHaveNoPublicMutationBypassAndCopyRebounds() {
         val receipt = receiptFixture(
-            verdict = FeedbackVerificationVerdict.WARN,
+            verdict = FeedbackVerificationVerdict.PASS,
             assertions = emptyList(),
         )
         val oversized = List(20) { index ->
@@ -97,15 +97,30 @@ class FeedbackVerificationSerializationTest {
                 .size <= 16,
         )
 
-        val copied = receipt.copy(checks = oversized)
+        val copied = receipt.copy(
+            verdict = FeedbackVerificationVerdict.WARN,
+            checks = oversized,
+            currentActivity = "changed",
+        )
         val copiedJson = fixThisJson.encodeToString(copied)
 
+        assertEquals(FeedbackVerificationVerdict.WARN, copied.verdict)
+        assertEquals("changed", copied.currentActivity)
+        assertEquals(receipt.receiptId, copied.receiptId)
+        assertEquals(receipt.itemId, copied.itemId)
         assertEquals(16, copied.checks.size)
         assertTrue(copied.checks.all { it.message.length == 512 })
         assertEquals(
             16,
             fixThisJson.parseToJsonElement(copiedJson).jsonObject.getValue("checks").jsonArray.size,
         )
+
+        val equalCopy = receipt.copy()
+        assertEquals(receipt, equalCopy)
+        assertEquals(receipt.hashCode(), equalCopy.hashCode())
+        assertEquals(receipt.toString(), equalCopy.toString())
+        assertTrue(receipt.toString().contains("checks="))
+        assertTrue(receipt.toString().contains("persistedChecks=").not())
     }
 
     private fun receiptFixture(

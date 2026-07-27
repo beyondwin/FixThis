@@ -98,7 +98,8 @@ data class MatchedTargetSummaryDto(
 )
 
 @Serializable
-data class FeedbackVerificationReceiptDto(
+@Suppress("LongParameterList")
+class FeedbackVerificationReceiptDto(
     val receiptId: String,
     val itemId: String,
     val baselineScreenId: String,
@@ -149,7 +150,79 @@ data class FeedbackVerificationReceiptDto(
         matchedTargetSummary = matchedTargetSummary,
     )
 
-    fun copy(checks: Collection<FeedbackVerificationCheckDto>): FeedbackVerificationReceiptDto = copy(persistedChecks = checks.toList())
+    @Suppress("LongParameterList")
+    fun copy(
+        receiptId: String = this.receiptId,
+        itemId: String = this.itemId,
+        baselineScreenId: String = this.baselineScreenId,
+        createdAtEpochMillis: Long = this.createdAtEpochMillis,
+        verdict: FeedbackVerificationVerdict = this.verdict,
+        checks: Collection<FeedbackVerificationCheckDto> = this.checks,
+        assertions: List<FeedbackVerificationAssertionDto> = this.assertions,
+        currentActivity: String? = this.currentActivity,
+        currentScreenFingerprint: String? = this.currentScreenFingerprint,
+        installedAtEpochMillis: Long? = this.installedAtEpochMillis,
+        afterScreenshot: SnapshotScreenshotDto? = this.afterScreenshot,
+        matchedTargetSummary: MatchedTargetSummaryDto? = this.matchedTargetSummary,
+    ): FeedbackVerificationReceiptDto = FeedbackVerificationReceiptDto(
+        receiptId = receiptId,
+        itemId = itemId,
+        baselineScreenId = baselineScreenId,
+        createdAtEpochMillis = createdAtEpochMillis,
+        verdict = verdict,
+        checks = checks,
+        assertions = assertions,
+        currentActivity = currentActivity,
+        currentScreenFingerprint = currentScreenFingerprint,
+        installedAtEpochMillis = installedAtEpochMillis,
+        afterScreenshot = afterScreenshot,
+        matchedTargetSummary = matchedTargetSummary,
+    )
+
+    @Suppress("ComplexCondition")
+    override fun equals(other: Any?): Boolean = other is FeedbackVerificationReceiptDto &&
+        receiptId == other.receiptId &&
+        itemId == other.itemId &&
+        baselineScreenId == other.baselineScreenId &&
+        createdAtEpochMillis == other.createdAtEpochMillis &&
+        verdict == other.verdict &&
+        checks == other.checks &&
+        assertions == other.assertions &&
+        currentActivity == other.currentActivity &&
+        currentScreenFingerprint == other.currentScreenFingerprint &&
+        installedAtEpochMillis == other.installedAtEpochMillis &&
+        afterScreenshot == other.afterScreenshot &&
+        matchedTargetSummary == other.matchedTargetSummary
+
+    override fun hashCode(): Int {
+        var result = receiptId.hashCode()
+        result = 31 * result + itemId.hashCode()
+        result = 31 * result + baselineScreenId.hashCode()
+        result = 31 * result + createdAtEpochMillis.hashCode()
+        result = 31 * result + verdict.hashCode()
+        result = 31 * result + checks.hashCode()
+        result = 31 * result + assertions.hashCode()
+        result = 31 * result + (currentActivity?.hashCode() ?: 0)
+        result = 31 * result + (currentScreenFingerprint?.hashCode() ?: 0)
+        result = 31 * result + (installedAtEpochMillis?.hashCode() ?: 0)
+        result = 31 * result + (afterScreenshot?.hashCode() ?: 0)
+        result = 31 * result + (matchedTargetSummary?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun toString(): String = "FeedbackVerificationReceiptDto(" +
+        "receiptId=$receiptId, " +
+        "itemId=$itemId, " +
+        "baselineScreenId=$baselineScreenId, " +
+        "createdAtEpochMillis=$createdAtEpochMillis, " +
+        "verdict=$verdict, " +
+        "checks=$checks, " +
+        "assertions=$assertions, " +
+        "currentActivity=$currentActivity, " +
+        "currentScreenFingerprint=$currentScreenFingerprint, " +
+        "installedAtEpochMillis=$installedAtEpochMillis, " +
+        "afterScreenshot=$afterScreenshot, " +
+        "matchedTargetSummary=$matchedTargetSummary)"
 }
 
 data class FeedbackVerificationRequest(
