@@ -133,6 +133,8 @@ class FeedbackSessionStore(
         receipt: FeedbackVerificationReceiptDto,
     ): SessionDto = delegate.verificationReceiptMutations.attach(context, receipt)
 
+    internal fun subscribeVerificationReceiptUpdates(listener: (SessionDto) -> Unit): AutoCloseable = delegate.verificationReceiptMutations.subscribeSessionUpdates(listener)
+
     fun updateDraftItem(
         sessionId: String,
         itemId: String,

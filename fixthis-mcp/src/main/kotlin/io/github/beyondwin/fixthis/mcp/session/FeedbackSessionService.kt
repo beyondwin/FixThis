@@ -175,6 +175,8 @@ class FeedbackSessionService(
 
     fun closeSession(sessionId: String): SessionDto = materialize(registry.closeSession(sessionId))
 
+    internal fun subscribeVerificationReceiptUpdates(listener: (SessionDto) -> Unit): AutoCloseable = store.subscribeVerificationReceiptUpdates(listener)
+
     suspend fun refreshSourceEvidenceForHandoff(session: SessionDto): SessionDto {
         val screenById = session.screens.associateBy { it.screenId }
         val sourceScreen = session.screens.firstOrNull { it.sourceIndexAvailable }

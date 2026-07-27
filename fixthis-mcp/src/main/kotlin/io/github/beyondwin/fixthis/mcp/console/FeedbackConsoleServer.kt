@@ -32,12 +32,17 @@ private data class FeedbackConsoleServerConfig(
         consoleAssetsDir?.let { ConsoleAssetsWatcher(it, eventBus) }
 }
 
+private data class FeedbackConsoleServerLifecycle(
+    val assetsWatcher: ConsoleAssetsWatcher?,
+    val sessionUpdateSubscriptionFactory: (() -> AutoCloseable)?,
+)
+
 class FeedbackConsoleServer private constructor(
     private val host: String,
     private val port: Int,
     private val consoleToken: String,
     private val routeTable: ConsoleRouteTable,
-    private val assetsWatcher: ConsoleAssetsWatcher?,
+    private val lifecycle: FeedbackConsoleServerLifecycle,
     private val diagnosticsSink: (String) -> Unit,
 ) {
     constructor(
@@ -66,7 +71,14 @@ class FeedbackConsoleServer private constructor(
         port = config.port,
         consoleToken = config.consoleToken,
         routeTable = consoleRouteTable(config),
-        assetsWatcher = config.assetsWatcher,
+        lifecycle = FeedbackConsoleServerLifecycle(
+            assetsWatcher = config.assetsWatcher,
+            sessionUpdateSubscriptionFactory = {
+                config.service.subscribeVerificationReceiptUpdates { session ->
+                    config.eventBus.emitSessionUpdated(session)
+                }
+            },
+        ),
         diagnosticsSink = diagnosticsSink,
     )
 
@@ -80,13 +92,17 @@ class FeedbackConsoleServer private constructor(
         port = port,
         consoleToken = UUID.randomUUID().toString(),
         routeTable = ConsoleRouteTable(routes),
-        assetsWatcher = null,
+        lifecycle = FeedbackConsoleServerLifecycle(
+            assetsWatcher = null,
+            sessionUpdateSubscriptionFactory = null,
+        ),
         diagnosticsSink = diagnosticsSink,
     )
 
     private val lock = Any()
     private var server: HttpServer? = null
     private var executor: ExecutorService? = null
+    private var sessionUpdateSubscription: AutoCloseable? = null
 
     internal val originUrl: String
         get() = "http://${host.toUrlHost()}:${runningServer().address.port}"
@@ -98,6 +114,7 @@ class FeedbackConsoleServer private constructor(
 
     fun start(): String = synchronized(lock) {
         server?.let { return@synchronized url }
+        sessionUpdateSubscription = lifecycle.sessionUpdateSubscriptionFactory?.invoke()
         val requestExecutor = consoleHttpExecutor()
         HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
             .also { httpServer ->
@@ -107,17 +124,19 @@ class FeedbackConsoleServer private constructor(
                 executor = requestExecutor
                 server = httpServer
             }
-        assetsWatcher?.start()
+        lifecycle.assetsWatcher?.start()
         url
     }
 
     fun stop() {
         synchronized(lock) {
-            assetsWatcher?.stop()
+            lifecycle.assetsWatcher?.stop()
             server?.stop(0)
             server = null
             executor?.shutdownNow()
             executor = null
+            sessionUpdateSubscription?.close()
+            sessionUpdateSubscription = null
         }
     }
 

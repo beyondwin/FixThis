@@ -13,6 +13,7 @@ import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationRequestValidator
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationStartContext
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -26,6 +27,13 @@ internal class VerificationReceiptStoreMutations(
     private val compactionCoordinator: SessionCompactionCoordinator,
     private val requestValidator: FeedbackVerificationRequestValidator = FeedbackVerificationRequestValidator(),
 ) {
+    private val sessionUpdatedListeners = CopyOnWriteArrayList<(SessionDto) -> Unit>()
+
+    fun subscribeSessionUpdates(listener: (SessionDto) -> Unit): AutoCloseable {
+        sessionUpdatedListeners += listener
+        return AutoCloseable { sessionUpdatedListeners -= listener }
+    }
+
     fun captureContext(
         sessionId: String,
         itemId: String,
@@ -59,6 +67,7 @@ internal class VerificationReceiptStoreMutations(
             stateStore.commit(session, next)
         }
         compactionCoordinator.compactAfterMutation(context.sessionId)
+        sessionUpdatedListeners.forEach { listener -> runCatching { listener(updated) } }
         return updated
     }
 

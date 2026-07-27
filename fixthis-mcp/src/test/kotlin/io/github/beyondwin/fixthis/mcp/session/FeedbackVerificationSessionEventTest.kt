@@ -1,6 +1,8 @@
 package io.github.beyondwin.fixthis.mcp.session
 
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.console.FeedbackConsoleServer
+import io.github.beyondwin.fixthis.mcp.console.events.ConsoleEventBus
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
@@ -19,8 +21,10 @@ import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationStartContext
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationVerdict
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -43,6 +47,34 @@ class FeedbackVerificationSessionEventTest {
         assertEquals(fixture.session.sessionId, event.payload.getValue("sessionId").jsonPrimitive.content)
         assertEquals("receipt-1", event.payload.getValue("receipt").jsonObject.getValue("receiptId").jsonPrimitive.content)
         assertEquals(listOf(receipt), fixture.reopen().getSession(fixture.session.sessionId).verificationReceipts)
+    }
+
+    @Test
+    fun feedbackVerifiedCommitEmitsSessionAndSummaryEvents() = withFixture { fixture ->
+        withConsoleNotifications(fixture) { eventBus ->
+            val context = fixture.captureContext()
+            val receipt = receiptFixture(context)
+
+            fixture.store.attachVerificationReceipt(context, receipt)
+
+            val events = eventBus.eventsAfter(0L).events
+            assertEquals(listOf("session-updated", "sessions-updated"), events.map { it.name })
+            val sessionEvent = events[0].data
+            assertEquals(fixture.session.sessionId, sessionEvent.getValue("sessionId").jsonPrimitive.content)
+            assertEquals(
+                "receipt-1",
+                sessionEvent.getValue("session").jsonObject
+                    .getValue("verificationReceipts").jsonArray.single().jsonObject
+                    .getValue("receiptId").jsonPrimitive.content,
+            )
+            val summaryEvent = events[1].data
+            assertEquals(fixture.session.sessionId, summaryEvent.getValue("sessionId").jsonPrimitive.content)
+            assertEquals(
+                fixture.store.getSession(fixture.session.sessionId).updatedAtEpochMillis,
+                summaryEvent.getValue("summary").jsonObject
+                    .getValue("updatedAtEpochMillis").jsonPrimitive.long,
+            )
+        }
     }
 
     @Test
@@ -71,17 +103,37 @@ class FeedbackVerificationSessionEventTest {
         withFixture(onWriteHook = {
             if (failWrites) throw IOException("event disk full")
         }) { fixture ->
-            val context = fixture.captureContext()
-            val before = fixture.store.getSession(fixture.session.sessionId)
-            val eventCount = fixture.events().size
-            failWrites = true
+            withConsoleNotifications(fixture) { eventBus ->
+                val context = fixture.captureContext()
+                val before = fixture.store.getSession(fixture.session.sessionId)
+                val eventCount = fixture.events().size
+                failWrites = true
 
-            assertFailsWith<EventLogException> {
+                assertFailsWith<EventLogException> {
+                    fixture.store.attachVerificationReceipt(context, receiptFixture(context))
+                }
+
+                assertEquals(before, fixture.store.getSession(fixture.session.sessionId))
+                assertEquals(eventCount, fixture.events().size)
+                assertTrue(eventBus.eventsAfter(0L).events.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun receiptStateCommitFailureEmitsNoSessionNotifications() = withFixture { fixture ->
+        withConsoleNotifications(fixture) { eventBus ->
+            val context = fixture.captureContext()
+            val sessionFile = fixture.paths.sessionFile(fixture.session.sessionId)
+            assertTrue(sessionFile.delete())
+            assertTrue(sessionFile.mkdir())
+
+            assertFailsWith<FeedbackSessionException> {
                 fixture.store.attachVerificationReceipt(context, receiptFixture(context))
             }
 
-            assertEquals(before, fixture.store.getSession(fixture.session.sessionId))
-            assertEquals(eventCount, fixture.events().size)
+            assertEquals(1, fixture.events().count { it.type == "feedbackVerified" })
+            assertTrue(eventBus.eventsAfter(0L).events.isEmpty())
         }
     }
 
@@ -126,6 +178,26 @@ class FeedbackVerificationSessionEventTest {
             block(Fixture.create(root, onWriteHook))
         } finally {
             root.deleteRecursively()
+        }
+    }
+
+    private fun withConsoleNotifications(
+        fixture: Fixture,
+        block: (ConsoleEventBus) -> Unit,
+    ) {
+        val eventBus = ConsoleEventBus(clock = { 3_000L })
+        val service = FeedbackSessionService(
+            bridge = FakeFixThisBridge(),
+            store = fixture.store,
+            projectRoot = fixture.session.projectRoot,
+            defaultPackageName = fixture.session.packageName,
+        )
+        val server = FeedbackConsoleServer(service, eventBus = eventBus)
+        try {
+            server.start()
+            block(eventBus)
+        } finally {
+            server.stop()
         }
     }
 
