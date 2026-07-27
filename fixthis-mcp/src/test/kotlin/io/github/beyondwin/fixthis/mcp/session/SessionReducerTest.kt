@@ -10,6 +10,8 @@ import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionMutation
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.SessionReducer
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -83,6 +85,24 @@ class SessionReducerTest {
         assertEquals(400L, updated.updatedAtEpochMillis)
     }
 
+    @Test
+    fun attachVerificationReceiptKeepsReceiptIdsUnique() {
+        val original = receipt("receipt-1", createdAt = 200L)
+        val replacement = receipt("receipt-1", createdAt = 300L)
+        val session = SessionReducer.reduce(
+            baseSession(),
+            SessionMutation.AttachVerificationReceipt(original, now = 200L),
+        )
+
+        val updated = SessionReducer.reduce(
+            session,
+            SessionMutation.AttachVerificationReceipt(replacement, now = 300L),
+        )
+
+        assertEquals(listOf(replacement), updated.verificationReceipts)
+        assertEquals(300L, updated.updatedAtEpochMillis)
+    }
+
     private fun baseSession(): SessionDto = SessionDto(
         sessionId = "session-1",
         packageName = "io.github.beyondwin.fixthis.sample",
@@ -112,5 +132,15 @@ class SessionReducerTest {
         createdAtEpochMillis = 100L,
         itemIds = itemIds,
         markdownSnapshot = null,
+    )
+
+    private fun receipt(id: String, createdAt: Long): FeedbackVerificationReceiptDto = FeedbackVerificationReceiptDto(
+        receiptId = id,
+        itemId = "item-1",
+        baselineScreenId = "screen-1",
+        createdAtEpochMillis = createdAt,
+        verdict = FeedbackVerificationVerdict.PASS,
+        checks = emptyList(),
+        assertions = emptyList(),
     )
 }

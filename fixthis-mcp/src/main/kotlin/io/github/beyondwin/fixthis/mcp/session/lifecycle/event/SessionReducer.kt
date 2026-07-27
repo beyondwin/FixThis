@@ -40,6 +40,11 @@ object SessionReducer {
             runtimeEvidencePolicy = mutation.policy,
             updatedAtEpochMillis = mutation.now,
         )
+        is SessionMutation.AttachVerificationReceipt -> session.copy(
+            verificationReceipts = session.verificationReceipts
+                .filterNot { it.receiptId == mutation.receipt.receiptId } + mutation.receipt,
+            updatedAtEpochMillis = mutation.now,
+        )
     }
 
     private fun deleteScreen(session: SessionDto, screenId: String, now: Long): SessionDto {

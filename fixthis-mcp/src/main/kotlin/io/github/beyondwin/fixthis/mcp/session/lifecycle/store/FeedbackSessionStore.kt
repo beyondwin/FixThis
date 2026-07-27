@@ -13,6 +13,9 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.EventLog
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationStartContext
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
 
@@ -110,6 +113,25 @@ class FeedbackSessionStore(
     ): AnnotationDto = delegate.updateItemStatus(sessionId, itemId, status, agentSummary)
 
     fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = delegate.claimFeedback(sessionId, itemId, agentNote)
+
+    internal fun captureVerificationContext(
+        sessionId: String,
+        itemId: String,
+        assertions: List<FeedbackVerificationAssertionDto>,
+    ): FeedbackVerificationStartContext = delegate.verificationReceiptMutations.captureContext(
+        sessionId,
+        itemId,
+        assertions,
+    )
+
+    internal fun validateVerificationContext(context: FeedbackVerificationStartContext) {
+        delegate.verificationReceiptMutations.validateContext(context)
+    }
+
+    internal fun attachVerificationReceipt(
+        context: FeedbackVerificationStartContext,
+        receipt: FeedbackVerificationReceiptDto,
+    ): SessionDto = delegate.verificationReceiptMutations.attach(context, receipt)
 
     fun updateDraftItem(
         sessionId: String,

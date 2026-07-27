@@ -6,6 +6,7 @@ import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackHandoffBatch
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidencePolicy
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceStatus
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
 
 sealed interface SessionMutation {
     data class AddScreen(val screen: SnapshotDto, val now: Long) : SessionMutation
@@ -33,6 +34,10 @@ sealed interface SessionMutation {
     ) : SessionMutation
     data class UpdateRuntimeEvidencePolicy(
         val policy: RuntimeEvidencePolicy,
+        val now: Long,
+    ) : SessionMutation
+    data class AttachVerificationReceipt(
+        val receipt: FeedbackVerificationReceiptDto,
         val now: Long,
     ) : SessionMutation
 }

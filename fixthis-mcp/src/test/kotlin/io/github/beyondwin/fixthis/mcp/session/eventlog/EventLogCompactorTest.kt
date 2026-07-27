@@ -15,6 +15,10 @@ import io.github.beyondwin.fixthis.mcp.session.lifecycle.event.eventlog.SessionE
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPaths
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionPersistence
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionKind
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationVerdict
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.io.File
@@ -163,6 +167,60 @@ class EventLogCompactorTest {
             assertTrue(active.size <= 3)
             assertTrue(File(paths.eventLogDirectory(session.sessionId), "checkpoint.json").isFile)
             assertTrue(File(paths.eventLogDirectory(session.sessionId), "archive").isDirectory)
+        } finally {
+            projectRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun checkpointPreservesReceiptsAndResolutionLinks() {
+        val projectRoot = Files.createTempDirectory("compactor-verification-receipt").toFile()
+        try {
+            val paths = FeedbackSessionPaths(projectRoot)
+            val persistence = FeedbackSessionPersistence(paths)
+            var now = 1_715_500_000_000L
+            val store = FeedbackSessionStore(
+                clock = { ++now },
+                idGenerator = idGenerator(),
+                persistence = persistence,
+                eventLogWriterProvider = fastEventWriterFor(paths),
+                eventLogReaderProvider = eventReaderFor(paths),
+            )
+            val session = store.openSession("com.test", projectRoot.absolutePath)
+            val screen = store.addScreen(session.sessionId, makeScreen())
+            val item = store.addItem(session.sessionId, makeDraftItem(screen.screenId, 1))
+            store.sendDraftToAgent(session.sessionId, markdownSnapshot = "handoff")
+            store.claimFeedback(session.sessionId, item.itemId, "working")
+            val assertions = listOf(
+                FeedbackVerificationAssertionDto(FeedbackVerificationAssertionKind.TARGET_PRESENT),
+            )
+            val context = store.captureVerificationContext(session.sessionId, item.itemId, assertions)
+            val receipt = FeedbackVerificationReceiptDto(
+                receiptId = "receipt-1",
+                itemId = item.itemId,
+                baselineScreenId = screen.screenId,
+                createdAtEpochMillis = ++now,
+                verdict = FeedbackVerificationVerdict.PASS,
+                checks = emptyList(),
+                assertions = assertions,
+            )
+            val attached = store.attachVerificationReceipt(context, receipt)
+            linkResolution(store, attached, item.itemId, receipt.receiptId)
+            EventLogCompactor(
+                paths.eventLogDirectory(session.sessionId),
+                snapshotProvider = { store.getSession(session.sessionId) },
+                snapshotWriter = { persistence.save(it) },
+                clock = { ++now },
+            ).runOnce(threshold = 0)
+            val replayed = FeedbackSessionStore(
+                clock = { ++now },
+                idGenerator = idGenerator(),
+                persistence = persistence,
+                eventLogWriterProvider = eventWriterFor(paths),
+                eventLogReaderProvider = eventReaderFor(paths),
+            ).getSession(session.sessionId)
+            assertEquals("receipt-1", replayed.items.single().resolutionVerificationReceiptId)
+            assertEquals("receipt-1", replayed.verificationReceipts.single().receiptId)
         } finally {
             projectRoot.deleteRecursively()
         }
@@ -330,5 +388,24 @@ class EventLogCompactorTest {
         } finally {
             dir.deleteRecursively()
         }
+    }
+
+    private fun linkResolution(
+        store: FeedbackSessionStore,
+        session: SessionDto,
+        itemId: String,
+        receiptId: String,
+    ) {
+        store.replaceSessionForDomain(
+            session.copy(
+                items = session.items.map { current ->
+                    if (current.itemId == itemId) {
+                        current.copy(resolutionVerificationReceiptId = receiptId)
+                    } else {
+                        current
+                    }
+                },
+            ),
+        )
     }
 }

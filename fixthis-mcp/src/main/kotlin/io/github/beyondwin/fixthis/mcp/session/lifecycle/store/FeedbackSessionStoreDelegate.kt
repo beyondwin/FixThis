@@ -78,6 +78,7 @@ internal class FeedbackSessionStoreDelegate(
     private val mutations = SessionMutationService(clock, idGenerator)
     private val artifactJanitor = SessionArtifactJanitor(persistence)
     private val runtimeEvidenceMutations = RuntimeEvidenceStoreMutations(lock, clock, store, journal, compactionCoordinator)
+    val verificationReceiptMutations = VerificationReceiptStoreMutations(lock, clock, store, journal, compactionCoordinator)
 
     init {
         // Replay must finish before runtime-evidence orphan reconciliation.

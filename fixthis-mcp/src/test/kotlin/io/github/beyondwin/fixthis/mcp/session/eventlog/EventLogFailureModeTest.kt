@@ -59,10 +59,12 @@ class EventLogFailureModeTest {
         val dir = Files.createTempDirectory("evtlog-rename-fail").toFile()
         try {
             val event = makeEvent(1L)
-            // Pre-create the final file name as a directory so renameTo returns false
+            // A non-empty directory is a portable rename blocker. An unchecked empty
+            // directory fixture can disappear or be replaced on some filesystems.
             val finalName = "%013d-%010d.jsonl".format(event.epochMillis, event.sequenceNumber)
             val blocker = File(dir, finalName)
-            blocker.mkdir()
+            assertTrue(blocker.mkdir(), "Expected rename blocker directory to be created")
+            File(blocker, "occupied").writeText("block atomic rename")
 
             val writer = EventLogWriter(directory = dir)
 

@@ -170,14 +170,13 @@ class SessionReplayEngine(
         shell: SessionDto,
         checkpoint: EventLogCheckpoint?,
     ): SessionDto = if (checkpoint == null) {
-        // Legacy/full-log replay: mutable session state comes entirely from events.
         shell.copy(
             screens = emptyList(),
             items = emptyList(),
+            verificationReceipts = emptyList(),
             handoffBatches = emptyList(),
         )
     } else {
-        // Checkpoint replay: session.json is already the compacted-through snapshot.
         shell
     }
 
@@ -212,6 +211,7 @@ class SessionReplayEngine(
                 applyReplaceItems(session, event)
             "runtimeEvidenceCaptured", "runtimeEvidencePolicyUpdated" ->
                 RuntimeEvidenceEventReplayer.apply(session, event)
+            "feedbackVerified" -> VerificationReceiptEventReplayer.apply(session, event)
             else -> null // Unknown event type — skip
         }
     } catch (e: Exception) {
