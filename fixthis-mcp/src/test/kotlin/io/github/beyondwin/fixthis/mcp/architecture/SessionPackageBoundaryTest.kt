@@ -70,6 +70,11 @@ class SessionPackageBoundaryTest {
             forbiddenGroups = listOf("handoff", "preview", "target"),
             reason = "connection recovery must not depend on handoff rendering, preview capture, or target evidence",
         ),
+        BoundaryRule(
+            sourceGroup = "verification",
+            forbiddenGroups = listOf("lifecycle\\.store"),
+            reason = "verification policy and artifacts must not depend back on lifecycle storage",
+        ),
     )
 
     @Test
