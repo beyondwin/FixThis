@@ -227,6 +227,44 @@ class FeedbackVerificationArtifactStoreTest {
     }
 
     @Test
+    fun failureDuringResultConstructionAfterReservationCompletionRollsBackOwnedEntries() {
+        val root = Files.createTempDirectory("fixthis-verification-result-failure").toFile()
+        var resultConstructionReached = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                beforePromotionResultConstruction = { finalDirectory ->
+                    val reservation = finalDirectory.parent.resolve(".${finalDirectory.fileName}.reserve")
+                    assertTrue(Files.isDirectory(finalDirectory, LinkOption.NOFOLLOW_LINKS))
+                    assertTrue(Files.isRegularFile(finalDirectory.resolve("after.png"), LinkOption.NOFOLLOW_LINKS))
+                    assertFalse(Files.exists(reservation, LinkOption.NOFOLLOW_LINKS))
+                    resultConstructionReached = true
+                    throw FeedbackVerificationArtifactException("forced result construction failure")
+                },
+            ),
+        )
+        try {
+            val prepared = store.prepare(
+                session(root),
+                "receipt-1",
+                SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+            )
+            val reservation = prepared.finalDirectory.parentFile.resolve(".receipt-1.reserve")
+
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.promote(prepared)
+            }
+
+            assertTrue(resultConstructionReached)
+            assertFalse(prepared.finalDirectory.exists())
+            assertFalse(prepared.temporaryDirectory.exists())
+            assertFalse(reservation.exists())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun discardAndReceiptDeletionUnlinkOnlyTheirExactEntries() {
         withFixture { root, store, session ->
             val prepared = store.prepare(session, "receipt-temp", null)

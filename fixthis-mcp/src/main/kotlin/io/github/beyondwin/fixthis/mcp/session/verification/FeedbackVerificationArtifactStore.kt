@@ -57,7 +57,7 @@ internal class FeedbackVerificationArtifactStore(
     private val temporaryId: () -> String = {
         UUID.randomUUID().toString().replace("-", "")
     },
-    hooks: VerificationArtifactStoreHooks = VerificationArtifactStoreHooks(),
+    private val hooks: VerificationArtifactStoreHooks = VerificationArtifactStoreHooks(),
 ) {
     private val storeCapability = Any()
     private val paths = VerificationArtifactPaths(projectRoot)
@@ -127,15 +127,19 @@ internal class FeedbackVerificationArtifactStore(
                 finalRollbackAuthorized = true
             }
             fileSystem.completePromotion(prepared)
+            val promoted = prepared.sourceMetadata?.let { sourceMetadata ->
+                hooks.beforePromotionResultConstruction(prepared.finalDirectory.toPath())
+                sourceMetadata.copy(
+                    fullPath = null,
+                    cropPath = null,
+                    desktopFullPath = prepared.finalDirectory
+                        .resolve(VerificationArtifactNaming.AFTER_SCREENSHOT)
+                        .canonicalPath,
+                    desktopCropPath = null,
+                )
+            }
             finalRollbackAuthorized = false
-            prepared.sourceMetadata?.copy(
-                fullPath = null,
-                cropPath = null,
-                desktopFullPath = prepared.finalDirectory
-                    .resolve(VerificationArtifactNaming.AFTER_SCREENSHOT)
-                    .canonicalPath,
-                desktopCropPath = null,
-            )
+            promoted
         } catch (failure: Exception) {
             if (prepared.belongsTo(storeCapability)) {
                 runCatching {

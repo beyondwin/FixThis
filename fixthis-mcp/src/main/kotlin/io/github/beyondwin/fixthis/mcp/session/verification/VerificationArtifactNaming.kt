@@ -15,6 +15,7 @@ internal data class VerificationArtifactStoreHooks(
     val beforeFallbackMove: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
     val beforeAtomicMoveFallback: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
     val afterDirectoryMoveBeforeValidation: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
+    val beforePromotionResultConstruction: (java.nio.file.Path) -> Unit = {},
     val atomicDirectoryMove: (java.nio.file.Path, java.nio.file.Path) -> Unit = { source, target ->
         java.nio.file.Files.move(
             source,
