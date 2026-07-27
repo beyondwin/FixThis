@@ -1,12 +1,9 @@
 package io.github.beyondwin.fixthis.mcp.session.verification
 
-import java.nio.channels.FileChannel
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.LinkOption
-import java.nio.file.OpenOption
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
@@ -86,18 +83,7 @@ internal class VerificationArtifactOperationLocks(
     private fun <T> withFileLock(
         path: Path,
         block: (Path) -> T,
-    ): T {
-        val options: Set<OpenOption> = setOf(
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE,
-            LinkOption.NOFOLLOW_LINKS,
-        )
-        return FileChannel.open(path, options).use { channel ->
-            channel.lock().use {
-                block(path)
-            }
-        }
-    }
+    ): T = VerificationArtifactReentrantFileLocks.withLock(path, block)
 
     private fun receiptLockName(sessionId: String, receiptId: String): String {
         val digest = MessageDigest.getInstance("SHA-256")

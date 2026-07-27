@@ -104,8 +104,8 @@ internal class VerificationArtifactSecureFileSystem(
                 verification,
                 prepared.temporaryDirectory.name,
                 prepared.receiptId,
+                onMoved,
             )
-            onMoved()
             access.withChildDirectory(verification, prepared.receiptId) { final ->
                 access.assertBound(final)
             }

@@ -6,6 +6,8 @@ import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationArtifactStore
 import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerificationArtifact
 import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerificationArtifactData
+import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactOperationLocks
+import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactPaths
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactStoreHooks
 import java.io.File
 import java.nio.channels.FileChannel
@@ -212,6 +214,16 @@ class FeedbackVerificationArtifactStoreTest {
             assertTrue(outsideSentinel.isFile)
             Files.delete(prepared.finalDirectory.toPath())
         }
+    }
+
+    @Test
+    fun failureAfterSuccessfulAtomicMoveRollsBackFinalTemporaryAndReservationEntries() {
+        assertPostMoveFailureRollsBackOwnedEntries(forceAtomicFallback = false)
+    }
+
+    @Test
+    fun failureAfterSuccessfulFallbackMoveRollsBackFinalTemporaryAndReservationEntries() {
+        assertPostMoveFailureRollsBackOwnedEntries(forceAtomicFallback = true)
     }
 
     @Test
@@ -743,6 +755,80 @@ class FeedbackVerificationArtifactStoreTest {
     }
 
     @Test
+    fun rootLockCanReenterReceiptLockAndReleasesEachFileAtItsOutermostScope() {
+        val root = Files.createTempDirectory("fixthis-verification-root-reentry").toFile().canonicalFile
+        val observedLocks = mutableListOf<Pair<Path, Path?>>()
+        val locks = VerificationArtifactOperationLocks(
+            VerificationArtifactPaths(root),
+            VerificationArtifactStoreHooks(
+                insideOperationLocks = { rootLock, receiptLock ->
+                    observedLocks += rootLock to receiptLock
+                },
+            ),
+        )
+        lateinit var rootLock: Path
+        lateinit var receiptLock: Path
+        try {
+            locks.withRootLock {
+                rootLock = observedLocks.last().first
+                assertFalse(canAcquireFileLock(rootLock))
+
+                locks.withReceiptLock("session-1", "receipt-1") {
+                    val nested = observedLocks.last()
+                    assertEquals(rootLock, nested.first)
+                    receiptLock = checkNotNull(nested.second)
+                    assertFalse(canAcquireFileLock(rootLock))
+                    assertFalse(canAcquireFileLock(receiptLock))
+                }
+
+                assertFalse(canAcquireFileLock(rootLock))
+                assertTrue(canAcquireFileLock(receiptLock))
+            }
+
+            assertTrue(canAcquireFileLock(rootLock))
+            assertTrue(canAcquireFileLock(receiptLock))
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun sameReceiptLockCanReenterAndReleasesFilesOnlyAfterOuterScope() {
+        val root = Files.createTempDirectory("fixthis-verification-receipt-reentry").toFile().canonicalFile
+        val observedLocks = mutableListOf<Pair<Path, Path?>>()
+        val locks = VerificationArtifactOperationLocks(
+            VerificationArtifactPaths(root),
+            VerificationArtifactStoreHooks(
+                insideOperationLocks = { rootLock, receiptLock ->
+                    observedLocks += rootLock to receiptLock
+                },
+            ),
+        )
+        lateinit var rootLock: Path
+        lateinit var receiptLock: Path
+        try {
+            locks.withReceiptLock("session-1", "receipt-1") {
+                rootLock = observedLocks.last().first
+                receiptLock = checkNotNull(observedLocks.last().second)
+
+                locks.withReceiptLock("session-1", "receipt-1") {
+                    assertEquals(rootLock to receiptLock, observedLocks.last())
+                    assertFalse(canAcquireFileLock(rootLock))
+                    assertFalse(canAcquireFileLock(receiptLock))
+                }
+
+                assertFalse(canAcquireFileLock(rootLock))
+                assertFalse(canAcquireFileLock(receiptLock))
+            }
+
+            assertTrue(canAcquireFileLock(rootLock))
+            assertTrue(canAcquireFileLock(receiptLock))
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun atomicMoveFallbackRevalidatesAfterFallbackHookBeforeMoving() {
         val root = Files.createTempDirectory("fixthis-verification-atomic-fallback").toFile().canonicalFile
         val outside = Files.createTempDirectory("fixthis-verification-atomic-fallback-outside").toFile().canonicalFile
@@ -867,6 +953,51 @@ class FeedbackVerificationArtifactStoreTest {
                 updatedAtEpochMillis = 2L,
             )
             block(root, store, session)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    private fun assertPostMoveFailureRollsBackOwnedEntries(forceAtomicFallback: Boolean) {
+        val root = Files.createTempDirectory("fixthis-verification-post-move-failure").toFile()
+        var moveCompleted = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                atomicDirectoryMove = { source, target ->
+                    if (forceAtomicFallback) {
+                        throw AtomicMoveNotSupportedException(
+                            source.toString(),
+                            target.toString(),
+                            "forced",
+                        )
+                    }
+                    Files.move(source, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+                },
+                afterDirectoryMoveBeforeValidation = { source, target ->
+                    assertFalse(Files.exists(source, LinkOption.NOFOLLOW_LINKS))
+                    assertTrue(Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS))
+                    moveCompleted = true
+                    throw FeedbackVerificationArtifactException("forced post-move failure")
+                },
+            ),
+        )
+        try {
+            val prepared = store.prepare(
+                session(root),
+                "receipt-1",
+                SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+            )
+            val reservation = prepared.finalDirectory.parentFile.resolve(".receipt-1.reserve")
+
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.promote(prepared)
+            }
+
+            assertTrue(moveCompleted)
+            assertFalse(prepared.finalDirectory.exists())
+            assertFalse(prepared.temporaryDirectory.exists())
+            assertFalse(reservation.exists())
         } finally {
             root.deleteRecursively()
         }

@@ -66,6 +66,7 @@ internal class VerificationArtifactFileOperations(
         parent: VerificationDirectoryHandle,
         sourceName: String,
         targetName: String,
+        onMoved: () -> Unit,
     ) {
         access.assertBound(parent)
         val source = parent.absolute.resolve(sourceName)
@@ -85,6 +86,8 @@ internal class VerificationArtifactFileOperations(
                 Files.move(source, target)
             }
         }
+        onMoved()
+        hooks.afterDirectoryMoveBeforeValidation(source, target)
         access.assertBound(parent)
     }
 
@@ -193,18 +196,13 @@ private fun writeFully(channel: SeekableByteChannel, buffer: ByteBuffer) {
     while (buffer.hasRemaining()) channel.write(buffer)
 }
 
-private fun forceChannel(channel: SeekableByteChannel) {
-    val fileChannel = channel as? FileChannel
-        ?: throw FeedbackVerificationArtifactException(
-            "Verification artifacts require a force-capable file channel",
-        )
-    fileChannel.force(true)
-}
+private fun forceChannel(channel: SeekableByteChannel) = (
+    channel as? FileChannel
+        ?: throw FeedbackVerificationArtifactException("Verification artifacts require a force-capable file channel")
+    )
+    .force(true)
 
-private fun verificationReadOptions(): Set<OpenOption> = setOf(
-    StandardOpenOption.READ,
-    LinkOption.NOFOLLOW_LINKS,
-)
+private fun verificationReadOptions(): Set<OpenOption> = setOf(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)
 
 private fun verificationWriteOptions(): Set<OpenOption> = setOf(
     StandardOpenOption.CREATE_NEW,
