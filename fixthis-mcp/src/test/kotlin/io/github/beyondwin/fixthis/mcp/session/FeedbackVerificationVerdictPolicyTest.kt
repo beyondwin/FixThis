@@ -1,6 +1,12 @@
 package io.github.beyondwin.fixthis.mcp.session
 
+import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
+import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
+import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackAssertionEvaluation
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackAssertionEvaluator
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackTargetCorrespondenceEvaluator
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionDto
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionKind
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationCheckDto
@@ -9,7 +15,6 @@ import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationVerdictPolicy
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class FeedbackVerificationVerdictPolicyTest {
     private val policy = FeedbackVerificationVerdictPolicy()
@@ -31,6 +36,10 @@ class FeedbackVerificationVerdictPolicyTest {
         assertEquals(
             FeedbackVerificationVerdict.PASS,
             policy.decide(passChecks(), passedAssertions()),
+        )
+        assertEquals(
+            FeedbackVerificationVerdict.PASS,
+            policy.decide(contextPassChecks() + passed("TARGET_MEDIUM"), passedAssertions()),
         )
     }
 
@@ -54,23 +63,71 @@ class FeedbackVerificationVerdictPolicyTest {
     }
 
     @Test
-    fun finalChecksAreLimitedAndMessagesAreTruncated() {
-        val bounded = policy.boundedChecks(
-            List(20) { index ->
-                passed("CHECK_$index", message = "m".repeat(600))
-            },
+    fun missingMandatoryPositiveChecksCannotPass() {
+        assertEquals(
+            FeedbackVerificationVerdict.WARN,
+            policy.decide(emptyList(), passedAssertions()),
         )
-
-        assertEquals(16, bounded.size)
-        assertTrue(bounded.all { it.message.length == 512 })
-        assertEquals("CHECK_0", bounded.first().kind)
-        assertEquals("CHECK_15", bounded.last().kind)
+        passChecks().indices.forEach { missingIndex ->
+            assertEquals(
+                FeedbackVerificationVerdict.WARN,
+                policy.decide(passChecks().filterIndexed { index, _ -> index != missingIndex }, passedAssertions()),
+            )
+        }
     }
 
-    private fun passChecks() = listOf(
+    @Test
+    fun lowTargetEvidenceCannotPass() {
+        assertEquals(
+            FeedbackVerificationVerdict.WARN,
+            policy.decide(
+                contextPassChecks() + passed("TARGET_LOW_CONFIDENCE"),
+                passedAssertions(),
+            ),
+        )
+    }
+
+    @Test
+    fun visualAreaTargetPresentCannotProduceFalsePass() {
+        val areaItem = AnnotationDto(
+            itemId = "item-1",
+            screenId = "screen-1",
+            createdAtEpochMillis = 1L,
+            updatedAtEpochMillis = 2L,
+            target = AnnotationTargetDto.Area(FixThisRect(0f, 0f, 100f, 100f)),
+            comment = "Fix spacing",
+        )
+        val correspondence = FeedbackTargetCorrespondenceEvaluator().evaluate(
+            areaItem,
+            SnapshotDto(
+                screenId = "current",
+                capturedAtEpochMillis = 3L,
+                displayName = "Checkout",
+            ),
+        )
+        val assertions = FeedbackAssertionEvaluator().evaluate(
+            listOf(
+                FeedbackVerificationAssertionDto(
+                    kind = FeedbackVerificationAssertionKind.TARGET_PRESENT,
+                ),
+            ),
+            correspondence,
+        )
+
+        assertEquals(FeedbackVerificationCheckOutcome.PASSED, assertions.single().outcome)
+        assertEquals(
+            FeedbackVerificationVerdict.WARN,
+            policy.decide(contextPassChecks(), assertions),
+        )
+    }
+
+    private fun contextPassChecks() = listOf(
         passed("APP_AVAILABLE"),
         passed("SOURCE_INSTALL_FRESH"),
         passed("SCREEN_CONTEXT_MATCH"),
+    )
+
+    private fun passChecks() = contextPassChecks() + listOf(
         passed("TARGET_HIGH"),
     )
 
@@ -84,10 +141,10 @@ class FeedbackVerificationVerdictPolicyTest {
         ),
     )
 
-    private fun passed(kind: String, message: String = kind) = FeedbackVerificationCheckDto(
+    private fun passed(kind: String) = FeedbackVerificationCheckDto(
         kind = kind,
         outcome = FeedbackVerificationCheckOutcome.PASSED,
-        message = message,
+        message = kind,
     )
 
     private fun warning(kind: String) = FeedbackVerificationCheckDto(

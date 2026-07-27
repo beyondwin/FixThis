@@ -11,19 +11,30 @@ internal class FeedbackVerificationVerdictPolicy {
 
         checks.any { it.outcome == FeedbackVerificationCheckOutcome.WARNING } ||
             assertions.any { it.outcome == FeedbackVerificationCheckOutcome.WARNING } ||
-            assertions.isEmpty() ->
+            assertions.isEmpty() ||
+            !hasRequiredPassEvidence(checks) ->
             FeedbackVerificationVerdict.WARN
 
         else -> FeedbackVerificationVerdict.PASS
     }
 
     fun boundedChecks(checks: List<FeedbackVerificationCheckDto>): List<FeedbackVerificationCheckDto> =
-        checks.take(MAX_CHECKS).map { check ->
-            check.copy(message = check.message.take(MAX_MESSAGE_LENGTH))
+        boundFeedbackVerificationChecks(checks)
+
+    private fun hasRequiredPassEvidence(checks: List<FeedbackVerificationCheckDto>): Boolean =
+        RequiredPassEvidence.entries.all { evidence ->
+            checks.any { check ->
+                check.outcome == FeedbackVerificationCheckOutcome.PASSED &&
+                    check.kind in evidence.acceptedKinds
+            }
         }
 
-    private companion object {
-        const val MAX_CHECKS = 16
-        const val MAX_MESSAGE_LENGTH = 512
+    private enum class RequiredPassEvidence(
+        val acceptedKinds: Set<String>,
+    ) {
+        EXPECTED_PACKAGE_REACHABLE(setOf("APP_AVAILABLE")),
+        INSTALL_FRESH(setOf("SOURCE_INSTALL_FRESH")),
+        SCREEN_COMPATIBLE(setOf("SCREEN_CONTEXT_MATCH")),
+        TARGET_CORRESPONDS(setOf("TARGET_HIGH", "TARGET_MEDIUM")),
     }
 }

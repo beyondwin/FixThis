@@ -47,22 +47,45 @@ class FeedbackVerificationSerializationTest {
         assertEquals(receipt, decoded)
     }
 
+    @Test
+    fun receiptConstructionAndSerializationEnforceCheckBudgets() {
+        val receipt = receiptFixture(
+            verdict = FeedbackVerificationVerdict.WARN,
+            assertions = emptyList(),
+            checks = List(20) { index ->
+                FeedbackVerificationCheckDto(
+                    kind = "CHECK_$index",
+                    outcome = FeedbackVerificationCheckOutcome.WARNING,
+                    message = "m".repeat(600),
+                )
+            },
+        )
+        val decoded = fixThisJson.decodeFromString<FeedbackVerificationReceiptDto>(
+            fixThisJson.encodeToString(receipt),
+        )
+
+        assertEquals(16, receipt.checks.size)
+        assertTrue(receipt.checks.all { it.message.length == 512 })
+        assertEquals(receipt, decoded)
+    }
+
     private fun receiptFixture(
         verdict: FeedbackVerificationVerdict,
         assertions: List<FeedbackVerificationAssertionDto>,
-    ) = FeedbackVerificationReceiptDto(
-        receiptId = "receipt-1",
-        itemId = "item-1",
-        baselineScreenId = "screen-1",
-        createdAtEpochMillis = 1_700_000_000_000L,
-        verdict = verdict,
-        checks = listOf(
+        checks: List<FeedbackVerificationCheckDto> = listOf(
             FeedbackVerificationCheckDto(
                 kind = "assertion",
                 outcome = FeedbackVerificationCheckOutcome.PASSED,
                 message = "Text is present",
             ),
         ),
+    ) = FeedbackVerificationReceiptDto(
+        receiptId = "receipt-1",
+        itemId = "item-1",
+        baselineScreenId = "screen-1",
+        createdAtEpochMillis = 1_700_000_000_000L,
+        verdict = verdict,
+        checks = checks,
         assertions = assertions,
         currentActivity = "io.github.beyondwin.fixthis.sample.MainActivity",
         currentScreenFingerprint = "screen-fingerprint",

@@ -57,6 +57,116 @@ class FeedbackTargetCorrespondenceEvaluatorTest {
     }
 
     @Test
+    fun roleIncompatibleStableTagAndIdentityCandidatesDoNotMatch() {
+        val tagged = evaluator.evaluate(
+            itemWithTag("pay"),
+            screenWith(node(uid = "wrong-role-tag", role = "Text", testTag = "pay")),
+        )
+        val identityItem = itemWithRoleText("Button", "Pay now").copy(
+            targetEvidence = TargetEvidence(
+                identityHint = IdentityHint(
+                    composableNameHint = "CheckoutButton",
+                    variantHint = "primary",
+                ),
+            ),
+        )
+        val identity = evaluator.evaluate(
+            identityItem,
+            screenWith(
+                node(
+                    uid = "wrong-role-identity",
+                    role = "Text",
+                    testTag = "comp:CheckoutButton:primary",
+                ),
+            ),
+        )
+
+        assertEquals(FeedbackTargetCorrespondence.NONE, tagged.confidence)
+        assertEquals(FeedbackTargetCorrespondence.NONE, identity.confidence)
+    }
+
+    @Test
+    fun mergedAndUnmergedNodesDeduplicateByRootTreeAndUid() {
+        val baseline = node(uid = "baseline", role = "Button", testTag = "pay")
+        val duplicateFirst = node(uid = "same", role = "Text", testTag = "pay")
+        val duplicateSecond = node(uid = "same", role = "Button", testTag = "pay")
+        val mergedOnly = SnapshotDto(
+            screenId = "merged-only",
+            capturedAtEpochMillis = 3L,
+            displayName = "Checkout",
+            roots = listOf(
+                SnapshotRootDto(
+                    rootIndex = 0,
+                    boundsInWindow = FixThisRect(0f, 0f, 500f, 500f),
+                    mergedNodes = listOf(duplicateFirst, duplicateSecond),
+                ),
+            ),
+        )
+        val withDistinctUnmerged = mergedOnly.copy(
+            roots = listOf(
+                mergedOnly.roots.single().copy(
+                    unmergedNodes = listOf(duplicateSecond.copy(treeKind = TreeKind.UNMERGED)),
+                ),
+            ),
+        )
+
+        assertEquals(FeedbackTargetCorrespondence.NONE, evaluator.evaluate(item(baseline), mergedOnly).confidence)
+        assertEquals(
+            FeedbackTargetCorrespondence.HIGH,
+            evaluator.evaluate(item(baseline), withDistinctUnmerged).confidence,
+        )
+    }
+
+    @Test
+    fun nearbyContextWithRoleAndSpatialMatchIsMedium() {
+        val baseline = node(uid = "baseline", role = "Button")
+        val item = item(baseline).copy(
+            nearbyNodes = listOf(node(uid = "baseline-context", text = listOf("Checkout total"))),
+        )
+        val current = screenWith(
+            node(uid = "current", role = "Button"),
+            node(
+                uid = "current-context",
+                text = listOf("Checkout total"),
+                bounds = FixThisRect(115f, 10f, 215f, 60f),
+            ),
+        )
+
+        assertEquals(FeedbackTargetCorrespondence.MEDIUM, evaluator.evaluate(item, current).confidence)
+    }
+
+    @Test
+    fun partialEvidenceIsLowAndIncompatibleEvidenceIsNone() {
+        val baseline = node(
+            uid = "baseline",
+            role = "Button",
+            text = listOf("Pay now"),
+            bounds = FixThisRect(0f, 0f, 100f, 50f),
+        )
+        val farSemanticMatch = node(
+            uid = "far-match",
+            role = "Button",
+            text = listOf("Pay now"),
+            bounds = FixThisRect(300f, 300f, 400f, 350f),
+        )
+        val incompatible = node(
+            uid = "incompatible",
+            role = "Text",
+            text = listOf("Other"),
+            bounds = FixThisRect(300f, 300f, 400f, 350f),
+        )
+
+        assertEquals(
+            FeedbackTargetCorrespondence.LOW,
+            evaluator.evaluate(item(baseline), screenWith(farSemanticMatch)).confidence,
+        )
+        assertEquals(
+            FeedbackTargetCorrespondence.NONE,
+            evaluator.evaluate(item(baseline), screenWith(incompatible)).confidence,
+        )
+    }
+
+    @Test
     fun deterministicTieBreakUsesSemanticCountThenIouThenLexicalUid() {
         val baseline = node(
             uid = "baseline",

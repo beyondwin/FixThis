@@ -54,6 +54,14 @@ data class FeedbackVerificationCheckDto(
     val message: String,
 )
 
+internal fun boundFeedbackVerificationChecks(
+    checks: List<FeedbackVerificationCheckDto>,
+): List<FeedbackVerificationCheckDto> = checks
+    .take(MAX_VERIFICATION_CHECKS)
+    .map { check ->
+        check.copy(message = check.message.take(MAX_VERIFICATION_MESSAGE_LENGTH))
+    }
+
 @Serializable
 data class MatchedTargetSummaryDto(
     val confidence: FeedbackTargetCorrespondence,
@@ -71,17 +79,24 @@ data class FeedbackVerificationReceiptDto(
     val baselineScreenId: String,
     val createdAtEpochMillis: Long,
     val verdict: FeedbackVerificationVerdict,
-    val checks: List<FeedbackVerificationCheckDto>,
+    var checks: List<FeedbackVerificationCheckDto>,
     val assertions: List<FeedbackVerificationAssertionDto>,
     val currentActivity: String? = null,
     val currentScreenFingerprint: String? = null,
     val installedAtEpochMillis: Long? = null,
     val afterScreenshot: SnapshotScreenshotDto? = null,
     val matchedTargetSummary: MatchedTargetSummaryDto? = null,
-)
+) {
+    init {
+        checks = boundFeedbackVerificationChecks(checks)
+    }
+}
 
 data class FeedbackVerificationRequest(
     val sessionId: String,
     val itemId: String,
     val assertions: List<FeedbackVerificationAssertionDto>,
 )
+
+private const val MAX_VERIFICATION_CHECKS = 16
+private const val MAX_VERIFICATION_MESSAGE_LENGTH = 512
