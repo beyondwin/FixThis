@@ -1,15 +1,14 @@
 package io.github.beyondwin.fixthis.mcp.session.verification
 
 internal class VerificationArtifactCleaner(
-    private val fileSystem: VerificationArtifactSecureFileSystem,
+    private val fileSystem: VerificationArtifactMaintenanceFileSystem,
 ) {
     fun cleanupIncomplete(): Int {
         var deleted = 0
         fileSystem.sessionIds().forEach { sessionId ->
             fileSystem.entries(sessionId).forEach { entry ->
                 val incomplete = VerificationArtifactNaming.isTemporaryName(entry.name) ||
-                    VerificationArtifactNaming.isReservationName(entry.name) ||
-                    entry.directory && fileSystem.hasOwnerMarker(sessionId, entry.name)
+                    VerificationArtifactNaming.isReservationName(entry.name)
                 if (incomplete) {
                     fileSystem.deleteEntry(sessionId, entry.name)
                     deleted += 1

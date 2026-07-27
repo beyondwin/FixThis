@@ -5,9 +5,12 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationArtifactException
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationArtifactStore
 import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerificationArtifact
+import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerificationArtifactData
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactStoreHooks
 import java.io.File
+import java.nio.file.DirectoryStream
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -15,6 +18,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@Suppress("LargeClass")
 class FeedbackVerificationArtifactStoreTest {
     @Test
     fun promotesExactlyOnePngIntoReceiptDirectoryAndSanitizesHostPaths() {
@@ -197,14 +201,17 @@ class FeedbackVerificationArtifactStoreTest {
                 mkdirs()
                 resolve("keep.txt").writeText("keep")
             }
-            val malformed = PreparedVerificationArtifact(
-                sessionId = "session-1",
-                receiptId = "receipt-1",
-                ownershipToken = "0123456789abcdef0123456789abcdef",
-                temporaryDirectory = unrelatedTemporary,
-                finalDirectory = unrelatedFinal,
-                stagedFile = null,
-                sourceMetadata = null,
+            val malformed = PreparedVerificationArtifact.issue(
+                storeCapability = Any(),
+                data = PreparedVerificationArtifactData(
+                    sessionId = "session-1",
+                    receiptId = "receipt-1",
+                    ownershipToken = "0123456789abcdef0123456789abcdef",
+                    temporaryDirectory = unrelatedTemporary,
+                    finalDirectory = unrelatedFinal,
+                    stagedFile = null,
+                    sourceMetadata = null,
+                ),
             )
 
             assertFailsWith<FeedbackVerificationArtifactException> {
@@ -239,23 +246,29 @@ class FeedbackVerificationArtifactStoreTest {
             val screenshot = SnapshotScreenshotDto(desktopFullPath = sourcePng.absolutePath)
             val first = firstStore.prepare(session, "receipt-1", screenshot)
             val firstResult = firstStore.promote(first)
-            val secondToken = "fedcba9876543210fedcba9876543210"
-            val secondTemporary = first.temporaryDirectory.parentFile
-                .resolve(".receipt-1.tmp-$secondToken")
-                .apply {
-                    mkdirs()
-                    resolve(".owner-$secondToken").writeText(secondToken)
-                    resolve("after.png").writeBytes(PNG_BYTES)
-                }
-            val second = PreparedVerificationArtifact(
-                sessionId = session.sessionId,
-                receiptId = "receipt-1",
-                ownershipToken = secondToken,
-                temporaryDirectory = secondTemporary,
-                finalDirectory = receiptDirectory(root.canonicalFile, session.sessionId, "receipt-1"),
-                stagedFile = secondTemporary.resolve("after.png"),
-                sourceMetadata = screenshot,
-            )
+            val second = secondStore.prepare(session, "receipt-1", screenshot)
+
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                secondStore.promote(second)
+            }
+
+            val promoted = File(firstResult?.desktopFullPath.orEmpty())
+            assertTrue(promoted.isFile)
+            assertEquals(PNG_BYTES.toList(), promoted.readBytes().toList())
+        }
+    }
+
+    @Test
+    fun forgedOwnerMarkerCannotAuthorizeCollisionRollbackOfAnotherArtifact() {
+        withFixture { root, firstStore, session ->
+            val sourcePng = pngFile(root, "capture/source.png")
+            val screenshot = SnapshotScreenshotDto(desktopFullPath = sourcePng.absolutePath)
+            val first = firstStore.prepare(session, "receipt-1", screenshot)
+            val firstResult = firstStore.promote(first)
+            val secondStore = FeedbackVerificationArtifactStore(root)
+            val second = secondStore.prepare(session, "receipt-1", screenshot)
+            val secondToken = second.temporaryDirectory.name.substringAfter(".tmp-")
+            second.finalDirectory.resolve(".owner-$secondToken").writeText(secondToken)
 
             assertFailsWith<FeedbackVerificationArtifactException> {
                 secondStore.promote(second)
@@ -276,9 +289,17 @@ class FeedbackVerificationArtifactStoreTest {
                 "receipt-original",
                 SnapshotScreenshotDto(desktopFullPath = sourcePng.absolutePath),
             )
-            val sibling = original.copy(
-                receiptId = "receipt-sibling",
-                finalDirectory = receiptDirectory(root.canonicalFile, "session-1", "receipt-sibling"),
+            val sibling = PreparedVerificationArtifact.issue(
+                storeCapability = Any(),
+                data = PreparedVerificationArtifactData(
+                    sessionId = original.sessionId,
+                    receiptId = "receipt-sibling",
+                    ownershipToken = original.ownershipToken,
+                    temporaryDirectory = original.temporaryDirectory,
+                    finalDirectory = receiptDirectory(root.canonicalFile, "session-1", "receipt-sibling"),
+                    stagedFile = original.stagedFile,
+                    sourceMetadata = original.sourceMetadata,
+                ),
             )
 
             assertFailsWith<FeedbackVerificationArtifactException> {
@@ -286,7 +307,8 @@ class FeedbackVerificationArtifactStoreTest {
             }
 
             assertFalse(receiptDirectory(root, "session-1", "receipt-sibling").exists())
-            assertFalse(original.temporaryDirectory.exists())
+            assertTrue(original.temporaryDirectory.exists())
+            store.discard(original)
         }
     }
 
@@ -410,6 +432,206 @@ class FeedbackVerificationArtifactStoreTest {
     }
 
     @Test
+    fun fallbackSourceOpenGapFailsBeforeReadingFromSubstitutedParent() {
+        val root = Files.createTempDirectory("fixthis-verification-source-open-gap").toFile().canonicalFile
+        val outside = Files.createTempDirectory("fixthis-verification-source-open-outside").toFile().canonicalFile
+        val sourceDirectory = root.resolve("capture").apply { mkdirs() }
+        val displaced = root.resolve("capture-displaced")
+        val source = pngFile(root, "capture/source.png")
+        val outsideSource = pngFile(outside, "source.png").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        var swapped = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                afterFallbackFileOpenedBeforeValidation = { opened ->
+                    if (!swapped && opened.fileName.toString() == "source.png") {
+                        Files.move(sourceDirectory.toPath(), displaced.toPath())
+                        Files.createSymbolicLink(sourceDirectory.toPath(), outside.toPath())
+                        swapped = true
+                    }
+                },
+                rootDirectoryStreamFactory = ::nonSecureDirectoryStream,
+            ),
+        )
+        try {
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.prepare(
+                    session(root),
+                    "receipt-1",
+                    SnapshotScreenshotDto(desktopFullPath = source.absolutePath),
+                )
+            }
+
+            assertTrue(swapped)
+            assertEquals(listOf(1, 2, 3), outsideSource.readBytes().map(Byte::toInt))
+            assertFalse(receiptDirectory(root, "session-1", "receipt-1").exists())
+        } finally {
+            if (Files.isSymbolicLink(sourceDirectory.toPath())) Files.delete(sourceDirectory.toPath())
+            root.deleteRecursively()
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fallbackCreateGapFailsBeforeWritingIntoSubstitutedTemporaryDirectory() {
+        val root = Files.createTempDirectory("fixthis-verification-create-gap").toFile().canonicalFile
+        val outside = Files.createTempDirectory("fixthis-verification-create-outside").toFile().canonicalFile
+        val displaced = root.resolve("displaced-temp")
+        var swapped = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                beforeFallbackFileCreate = { target ->
+                    if (!swapped && target.fileName.toString() == "after.png") {
+                        val temporary = target.parent
+                        Files.move(temporary, displaced.toPath())
+                        Files.createSymbolicLink(temporary, outside.toPath())
+                        swapped = true
+                    }
+                },
+                rootDirectoryStreamFactory = ::nonSecureDirectoryStream,
+            ),
+        )
+        try {
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.prepare(
+                    session(root),
+                    "receipt-1",
+                    SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+                )
+            }
+
+            assertTrue(swapped)
+            assertFalse(outside.resolve("after.png").exists())
+            assertFalse(receiptDirectory(root, "session-1", "receipt-1").exists())
+        } finally {
+            val verification = root.resolve(".fixthis/feedback-sessions/session-1/verification")
+            verification.listFiles().orEmpty()
+                .filter { Files.isSymbolicLink(it.toPath()) }
+                .forEach { Files.deleteIfExists(it.toPath()) }
+            root.deleteRecursively()
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fallbackDirectoryCreateGapFailsBeforeCreatingUnderSubstitutedVerificationRoot() {
+        val root = Files.createTempDirectory("fixthis-verification-directory-create-gap").toFile().canonicalFile
+        val outside = Files.createTempDirectory("fixthis-verification-directory-create-outside").toFile().canonicalFile
+        val verification = root.resolve(".fixthis/feedback-sessions/session-1/verification")
+        val displaced = verification.parentFile.resolve("verification-displaced")
+        var swapped = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                beforeFallbackDirectoryCreate = { target ->
+                    if (!swapped && target.fileName.toString().startsWith(".receipt-1.tmp-")) {
+                        Files.move(verification.toPath(), displaced.toPath())
+                        Files.createSymbolicLink(verification.toPath(), outside.toPath())
+                        swapped = true
+                    }
+                },
+                rootDirectoryStreamFactory = ::nonSecureDirectoryStream,
+            ),
+        )
+        try {
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.prepare(session(root), "receipt-1", null)
+            }
+
+            assertTrue(swapped)
+            assertTrue(outside.listFiles().orEmpty().isEmpty())
+        } finally {
+            if (Files.isSymbolicLink(verification.toPath())) Files.delete(verification.toPath())
+            root.deleteRecursively()
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fallbackDeleteGapFailsBeforeDeletingThroughSubstitutedTemporaryDirectory() {
+        val root = Files.createTempDirectory("fixthis-verification-delete-gap").toFile().canonicalFile
+        val outside = Files.createTempDirectory("fixthis-verification-delete-outside").toFile().canonicalFile
+        val outsideSentinel = outside.resolve("after.png").apply { writeText("keep") }
+        val displaced = root.resolve("displaced-temp")
+        var prepared: PreparedVerificationArtifact? = null
+        var swapped = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                beforeFallbackDelete = { target ->
+                    val current = prepared
+                    if (!swapped && current != null && target.fileName.toString() == "after.png") {
+                        Files.move(current.temporaryDirectory.toPath(), displaced.toPath())
+                        Files.createSymbolicLink(current.temporaryDirectory.toPath(), outside.toPath())
+                        swapped = true
+                    }
+                },
+                rootDirectoryStreamFactory = ::nonSecureDirectoryStream,
+            ),
+        )
+        try {
+            prepared = store.prepare(
+                session(root),
+                "receipt-1",
+                SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+            )
+
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.discard(checkNotNull(prepared))
+            }
+
+            assertTrue(swapped)
+            assertEquals("keep", outsideSentinel.readText())
+        } finally {
+            prepared?.temporaryDirectory?.toPath()?.takeIf(Files::isSymbolicLink)?.let(Files::delete)
+            root.deleteRecursively()
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fallbackMoveGapFailsBeforeMovingIntoSubstitutedVerificationRoot() {
+        val root = Files.createTempDirectory("fixthis-verification-move-gap").toFile().canonicalFile
+        val outside = Files.createTempDirectory("fixthis-verification-move-outside").toFile().canonicalFile
+        val outsideSentinel = outside.resolve("keep.txt").apply { writeText("keep") }
+        val verification = root.resolve(".fixthis/feedback-sessions/session-1/verification")
+        val displaced = verification.parentFile.resolve("verification-displaced")
+        var swapped = false
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                beforeFallbackMove = { _, _ ->
+                    if (!swapped) {
+                        Files.move(verification.toPath(), displaced.toPath())
+                        Files.createSymbolicLink(verification.toPath(), outside.toPath())
+                        swapped = true
+                    }
+                },
+                rootDirectoryStreamFactory = ::nonSecureDirectoryStream,
+            ),
+        )
+        val prepared = store.prepare(
+            session(root),
+            "receipt-1",
+            SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+        )
+        try {
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.promote(prepared)
+            }
+
+            assertTrue(swapped)
+            assertEquals("keep", outsideSentinel.readText())
+            assertFalse(outside.resolve("receipt-1").exists())
+        } finally {
+            if (Files.isSymbolicLink(verification.toPath())) Files.delete(verification.toPath())
+            root.deleteRecursively()
+            outside.deleteRecursively()
+        }
+    }
+
+    @Test
     fun cleanupRemovesIncompleteAndOrphansWhileReferencedReceiptsSurvive() {
         withFixture { root, store, _ ->
             val verificationRoot = root.resolve(
@@ -441,6 +663,23 @@ class FeedbackVerificationArtifactStoreTest {
             assertTrue(otherSessionKept.isDirectory)
             assertFalse(orphan.exists())
             assertFalse(incomplete.exists())
+        }
+    }
+
+    @Test
+    fun cleanupIncompleteNeverDeletesFinalReceiptBecauseItContainsOwnerLikeFiles() {
+        withFixture { root, store, _ ->
+            val finalReceipt = receiptDirectory(root, "session-1", "receipt-kept").apply {
+                mkdirs()
+                resolve("after.png").writeBytes(PNG_BYTES)
+                resolve(".owner-0123456789abcdef0123456789abcdef")
+                    .writeText("0123456789abcdef0123456789abcdef")
+            }
+
+            assertEquals(0, store.cleanupIncomplete())
+
+            assertTrue(finalReceipt.resolve("after.png").isFile)
+            assertTrue(finalReceipt.resolve(".owner-0123456789abcdef0123456789abcdef").isFile)
         }
     }
 
@@ -479,6 +718,15 @@ class FeedbackVerificationArtifactStoreTest {
         createdAtEpochMillis = 1L,
         updatedAtEpochMillis = 2L,
     )
+
+    private fun nonSecureDirectoryStream(path: Path): DirectoryStream<Path> {
+        val delegate = Files.newDirectoryStream(path)
+        return object : DirectoryStream<Path> {
+            override fun iterator(): MutableIterator<Path> = delegate.iterator()
+
+            override fun close() = delegate.close()
+        }
+    }
 
     private companion object {
         val PNG_BYTES = byteArrayOf(

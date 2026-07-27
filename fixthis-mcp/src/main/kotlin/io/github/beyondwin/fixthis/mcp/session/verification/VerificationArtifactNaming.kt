@@ -8,6 +8,11 @@ internal data class VerificationArtifactStoreHooks(
     val afterSourceParentOpened: (java.nio.file.Path) -> Unit = {},
     val afterTemporaryDirectoryOpened: (java.nio.file.Path) -> Unit = {},
     val beforePromotion: () -> Unit = {},
+    val afterFallbackFileOpenedBeforeValidation: (java.nio.file.Path) -> Unit = {},
+    val beforeFallbackFileCreate: (java.nio.file.Path) -> Unit = {},
+    val beforeFallbackDirectoryCreate: (java.nio.file.Path) -> Unit = {},
+    val beforeFallbackDelete: (java.nio.file.Path) -> Unit = {},
+    val beforeFallbackMove: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
     val rootDirectoryStreamFactory: (java.nio.file.Path) -> java.nio.file.DirectoryStream<java.nio.file.Path> = {
         java.nio.file.Files.newDirectoryStream(it)
     },
@@ -49,11 +54,6 @@ internal object VerificationArtifactNaming {
     fun reservationName(receiptId: String): String {
         validateSegment(receiptId, "receiptId")
         return ".$receiptId.reserve"
-    }
-
-    fun ownerMarkerName(ownershipToken: String): String {
-        validateToken(ownershipToken)
-        return ".owner-$ownershipToken"
     }
 
     fun isTemporaryName(name: String): Boolean = temporary.matches(name)
