@@ -32,9 +32,10 @@ private data class FeedbackConsoleServerConfig(
         consoleAssetsDir?.let { ConsoleAssetsWatcher(it, eventBus) }
 }
 
-private data class FeedbackConsoleServerLifecycle(
-    val assetsWatcher: ConsoleAssetsWatcher?,
-    val sessionUpdateSubscriptionFactory: (() -> AutoCloseable)?,
+internal data class FeedbackConsoleServerLifecycle(
+    val startAssetsWatcher: () -> Unit = {},
+    val stopAssetsWatcher: () -> Unit = {},
+    val sessionUpdateSubscriptionFactory: (() -> AutoCloseable)? = null,
 )
 
 class FeedbackConsoleServer private constructor(
@@ -72,7 +73,8 @@ class FeedbackConsoleServer private constructor(
         consoleToken = config.consoleToken,
         routeTable = consoleRouteTable(config),
         lifecycle = FeedbackConsoleServerLifecycle(
-            assetsWatcher = config.assetsWatcher,
+            startAssetsWatcher = { config.assetsWatcher?.start() },
+            stopAssetsWatcher = { config.assetsWatcher?.stop() },
             sessionUpdateSubscriptionFactory = {
                 config.service.subscribeVerificationReceiptUpdates { session ->
                     config.eventBus.emitSessionUpdated(session)
@@ -86,16 +88,14 @@ class FeedbackConsoleServer private constructor(
         routes: List<ConsoleRoute>,
         host: String = "127.0.0.1",
         port: Int = 0,
+        lifecycle: FeedbackConsoleServerLifecycle = FeedbackConsoleServerLifecycle(),
         diagnosticsSink: (String) -> Unit = { System.err.print(it) },
     ) : this(
         host = host,
         port = port,
         consoleToken = UUID.randomUUID().toString(),
         routeTable = ConsoleRouteTable(routes),
-        lifecycle = FeedbackConsoleServerLifecycle(
-            assetsWatcher = null,
-            sessionUpdateSubscriptionFactory = null,
-        ),
+        lifecycle = lifecycle,
         diagnosticsSink = diagnosticsSink,
     )
 
@@ -114,23 +114,36 @@ class FeedbackConsoleServer private constructor(
 
     fun start(): String = synchronized(lock) {
         server?.let { return@synchronized url }
-        val requestExecutor = consoleHttpExecutor()
-        HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
-            .also { httpServer ->
-                httpServer.createContext("/") { exchange -> dispatch(exchange) }
-                httpServer.executor = requestExecutor
-                httpServer.start()
-                executor = requestExecutor
-                server = httpServer
+        var acquiredSubscription: AutoCloseable? = null
+        var acquiredExecutor: ExecutorService? = null
+        var acquiredServer: HttpServer? = null
+        var assetsStartAttempted = false
+        var completed = false
+        try {
+            acquiredSubscription = lifecycle.sessionUpdateSubscriptionFactory?.invoke()
+            acquiredExecutor = consoleHttpExecutor()
+            acquiredServer = HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
+            acquiredServer.createContext("/") { exchange -> dispatch(exchange) }
+            acquiredServer.executor = acquiredExecutor
+            acquiredServer.start()
+            assetsStartAttempted = true
+            lifecycle.startAssetsWatcher()
+            sessionUpdateSubscription = acquiredSubscription
+            executor = acquiredExecutor
+            server = acquiredServer
+            val startedUrl = url
+            completed = true
+            startedUrl
+        } finally {
+            if (!completed) {
+                rollbackStart(assetsStartAttempted, acquiredServer, acquiredExecutor, acquiredSubscription)
             }
-        lifecycle.assetsWatcher?.start()
-        sessionUpdateSubscription = lifecycle.sessionUpdateSubscriptionFactory?.invoke()
-        url
+        }
     }
 
     fun stop() {
         synchronized(lock) {
-            lifecycle.assetsWatcher?.stop()
+            lifecycle.stopAssetsWatcher()
             server?.stop(0)
             server = null
             executor?.shutdownNow()
@@ -142,6 +155,21 @@ class FeedbackConsoleServer private constructor(
 
     private fun runningServer(): HttpServer = synchronized(lock) {
         server ?: throw IllegalStateException("Feedback console server is not running")
+    }
+
+    private fun rollbackStart(
+        assetsStartAttempted: Boolean,
+        acquiredServer: HttpServer?,
+        acquiredExecutor: ExecutorService?,
+        acquiredSubscription: AutoCloseable?,
+    ) {
+        server = null
+        executor = null
+        sessionUpdateSubscription = null
+        if (assetsStartAttempted) runCatching { lifecycle.stopAssetsWatcher() }
+        runCatching { acquiredServer?.stop(0) }
+        runCatching { acquiredExecutor?.shutdownNow() }
+        runCatching { acquiredSubscription?.close() }
     }
 
     private fun runningPortOrNull(): Int? = synchronized(lock) { server?.address?.port }

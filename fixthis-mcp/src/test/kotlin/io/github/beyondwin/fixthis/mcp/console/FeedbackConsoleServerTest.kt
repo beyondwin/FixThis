@@ -10,12 +10,20 @@ import io.github.beyondwin.fixthis.mcp.session.FakeFixThisBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.net.ServerSocket
 import java.net.URI
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -353,6 +361,89 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun receiptSubscriptionCompletesBeforeHttpPortBecomesObservable() {
+        val port = availableLoopbackPort()
+        val subscriptionEntered = CountDownLatch(1)
+        val releaseSubscription = CountDownLatch(1)
+        val starter = Executors.newSingleThreadExecutor()
+        val server = FeedbackConsoleServer(
+            routes = listOf(OkRoute()),
+            port = port,
+            lifecycle = FeedbackConsoleServerLifecycle(
+                sessionUpdateSubscriptionFactory = {
+                    subscriptionEntered.countDown()
+                    check(releaseSubscription.await(3, TimeUnit.SECONDS))
+                    AutoCloseable {}
+                },
+            ),
+        )
+        val start = starter.submit<String> { server.start() }
+
+        try {
+            assertTrue(subscriptionEntered.await(3, TimeUnit.SECONDS))
+            ServerSocket(port, 1, InetAddress.getByName("127.0.0.1")).use { }
+            releaseSubscription.countDown()
+            assertEquals("ok", ConsoleHttpTestClient(start.get(3, TimeUnit.SECONDS)).get())
+        } finally {
+            releaseSubscription.countDown()
+            runCatching { start.get(3, TimeUnit.SECONDS) }
+            server.stop()
+            starter.shutdownNow()
+        }
+    }
+
+    @Test
+    fun watcherStartFailureRollsBackBoundServerAndSubscriptionBeforeRetry() {
+        val port = availableLoopbackPort()
+        val subscriptionStarts = AtomicInteger(0)
+        val activeSubscriptions = AtomicInteger(0)
+        val watcherStarts = AtomicInteger(0)
+        val lifecycleSteps = mutableListOf<String>()
+        val server = FeedbackConsoleServer(
+            routes = listOf(OkRoute()),
+            port = port,
+            lifecycle = FeedbackConsoleServerLifecycle(
+                startAssetsWatcher = {
+                    lifecycleSteps += "watcher-start"
+                    if (watcherStarts.incrementAndGet() == 1) throw IOException("watcher start failed")
+                },
+                stopAssetsWatcher = { lifecycleSteps += "watcher-stop" },
+                sessionUpdateSubscriptionFactory = {
+                    lifecycleSteps += "subscribe"
+                    subscriptionStarts.incrementAndGet()
+                    activeSubscriptions.incrementAndGet()
+                    AutoCloseable {
+                        lifecycleSteps += "unsubscribe"
+                        activeSubscriptions.decrementAndGet()
+                    }
+                },
+            ),
+        )
+
+        assertFailsWith<IOException> { server.start() }
+
+        assertEquals(0, activeSubscriptions.get())
+        assertEquals(
+            listOf("subscribe", "watcher-start", "watcher-stop", "unsubscribe"),
+            lifecycleSteps,
+        )
+        ServerSocket(port, 1, InetAddress.getByName("127.0.0.1")).use { }
+
+        val retryUrl = server.start()
+        try {
+            assertEquals("ok", ConsoleHttpTestClient(retryUrl).get())
+            assertEquals(retryUrl, server.start())
+            assertEquals(2, subscriptionStarts.get())
+            assertEquals(1, activeSubscriptions.get())
+        } finally {
+            server.stop()
+        }
+
+        assertEquals(0, activeSubscriptions.get())
+        ServerSocket(port, 1, InetAddress.getByName("127.0.0.1")).use { }
+    }
+
+    @Test
     fun startsConsoleAssetsWatcherOnlyInDirMode() {
         val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
         val assetsDir = java.nio.file.Files.createTempDirectory("server-test-assets").toFile()
@@ -431,4 +522,14 @@ class FeedbackConsoleServerTest {
         override fun getPrincipal(): HttpPrincipal? = null
         override fun getResponseCode(): Int = -1
     }
+
+    private class OkRoute : ConsoleRoute {
+        override fun matches(path: String): Boolean = true
+
+        override fun handle(exchange: HttpExchange) {
+            exchange.sendText(200, "ok", "text/plain; charset=utf-8")
+        }
+    }
+
+    private fun availableLoopbackPort(): Int = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
 }
