@@ -32,7 +32,7 @@ internal class OwnedVerificationCapture private constructor(
 @Suppress("TooGenericExceptionCaught")
 internal class FeedbackVerificationCaptureStore(
     projectRoot: File,
-    hooks: VerificationArtifactStoreHooks = VerificationArtifactStoreHooks(),
+    private val hooks: VerificationArtifactStoreHooks = VerificationArtifactStoreHooks(),
 ) {
     private val storeCapability = Any()
     private val paths = VerificationArtifactPaths(projectRoot)
@@ -51,6 +51,7 @@ internal class FeedbackVerificationCaptureStore(
             var createdFileKey: Any? = null
             try {
                 createdFileKey = access.files.createTemporaryDirectoryChild(parent, directoryName)
+                hooks.afterDirectoryCreateIdentityCaptured(parent.absolute.resolve(directoryName))
                 access.withChildDirectory(parent, directoryName) { directory ->
                     artifactRequire(directory.fileKey == createdFileKey) {
                         "Verification capture directory ownership changed during reservation"
@@ -65,7 +66,7 @@ internal class FeedbackVerificationCaptureStore(
                 }
             } catch (failure: Exception) {
                 createdFileKey?.let { fileKey ->
-                    runCatching { deleteOwnedDirectoryIfPresent(access, parent, directoryName, fileKey) }
+                    runCatching { deleteOwnedDirectoryIfPresent(access, hooks, parent, directoryName, fileKey) }
                 }
                 throw failure
             }
@@ -78,16 +79,13 @@ internal class FeedbackVerificationCaptureStore(
         try {
             requireOwned(capture)
             access.withProjectDirectory(parentSegments(capture.sessionId)) { parent ->
-                if (!access.entryExists(parent, directoryName(capture.receiptId))) return@withProjectDirectory
-                val attributes = access.attributes(parent, directoryName(capture.receiptId))
-                artifactRequire(
-                    attributes.isDirectory &&
-                        !attributes.isSymbolicLink &&
-                        attributes.fileKey() == capture.fileKey,
-                ) {
-                    "Verification capture directory ownership changed before cleanup"
-                }
-                access.files.deleteEntryRecursively(parent, directoryName(capture.receiptId))
+                deleteOwnedDirectoryIfPresent(
+                    access = access,
+                    hooks = hooks,
+                    parent = parent,
+                    name = directoryName(capture.receiptId),
+                    fileKey = capture.fileKey,
+                )
             }
         } catch (failure: Exception) {
             throw artifactFailure("clean live capture", capture.receiptId, failure)

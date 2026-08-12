@@ -86,10 +86,15 @@ internal class VerificationArtifactDirectoryAccess(
         if (secureParent != null) {
             val childStream = secureParent.newDirectoryStream(Path.of(name), LinkOption.NOFOLLOW_LINKS)
             childStream.use { stream ->
+                val secureChildStream = secureDirectoryStream(stream)
                 val child = VerificationDirectoryHandle(
-                    stream = secureDirectoryStream(stream),
+                    stream = secureChildStream,
                     absolute = childPath,
-                    fileKey = stableFileKey(childAttributes),
+                    fileKey = stableFileKey(
+                        secureChildStream
+                            .getFileAttributeView(BasicFileAttributeView::class.java)
+                            .readAttributes(),
+                    ),
                 )
                 assertBound(child)
                 return block(child)

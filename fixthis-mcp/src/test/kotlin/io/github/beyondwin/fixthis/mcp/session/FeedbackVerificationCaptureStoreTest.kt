@@ -9,6 +9,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FeedbackVerificationCaptureStoreTest {
@@ -17,12 +18,15 @@ class FeedbackVerificationCaptureStoreTest {
         val capturePath = capturePath(root)
         val replacement = Files.createDirectory(root.toPath().resolve("replacement"))
         replacement.resolve("sentinel.txt").toFile().writeText("replacement")
-        val store = captureStore(root) { created ->
-            if (created.fileName.toString() == "verification-$RECEIPT_ID") {
-                Files.delete(created)
-                Files.move(replacement, created)
-            }
-        }
+        val store = captureStore(
+            root = root,
+            afterIdentityCaptured = { created ->
+                if (created.fileName.toString() == "verification-$RECEIPT_ID") {
+                    Files.delete(created)
+                    Files.move(replacement, created)
+                }
+            },
+        )
 
         val failure = assertFailsWith<FeedbackVerificationArtifactException> {
             store.reserve(session(root), RECEIPT_ID)
@@ -38,12 +42,15 @@ class FeedbackVerificationCaptureStoreTest {
         val target = Files.createTempDirectory("verification-capture-target-").toFile()
         val sentinel = target.resolve("sentinel.txt").apply { writeText("target") }
         try {
-            val store = captureStore(root) { created ->
-                if (created.fileName.toString() == "verification-$RECEIPT_ID") {
-                    Files.delete(created)
-                    Files.createSymbolicLink(created, target.toPath())
-                }
-            }
+            val store = captureStore(
+                root = root,
+                afterIdentityCaptured = { created ->
+                    if (created.fileName.toString() == "verification-$RECEIPT_ID") {
+                        Files.delete(created)
+                        Files.createSymbolicLink(created, target.toPath())
+                    }
+                },
+            )
 
             assertFailsWith<FeedbackVerificationArtifactException> {
                 store.reserve(session(root), RECEIPT_ID)
@@ -57,13 +64,91 @@ class FeedbackVerificationCaptureStoreTest {
         }
     }
 
+    @Test
+    fun rollbackPreservesDirectoryReplacementMadeAfterOwnedIdentityValidation() = withRoot { root ->
+        val capturePath = capturePath(root)
+        val displaced = root.toPath().resolve("displaced-owned")
+        val replacement = Files.createDirectory(root.toPath().resolve("rollback-replacement"))
+        replacement.resolve("sentinel.txt").toFile().writeText("replacement")
+        var swapped = false
+        val store = captureStore(
+            root = root,
+            afterIdentityCaptured = { created ->
+                if (created.fileName.toString() == "verification-$RECEIPT_ID") {
+                    error("force reservation rollback")
+                }
+            },
+            afterOwnedIdentityValidated = { validated ->
+                if (validated.fileName.toString() == "verification-$RECEIPT_ID") {
+                    Files.move(validated, displaced)
+                    Files.move(replacement, validated)
+                    swapped = true
+                }
+            },
+        )
+
+        assertFailsWith<FeedbackVerificationArtifactException> {
+            store.reserve(session(root), RECEIPT_ID)
+        }
+
+        assertTrue(swapped)
+        assertEquals("replacement", capturePath.resolve("sentinel.txt").toFile().readText())
+    }
+
+    @Test
+    fun cleanupPreservesSymlinkReplacementMadeAfterOwnedIdentityValidation() = withRoot { root ->
+        val capturePath = capturePath(root)
+        val displaced = root.toPath().resolve("displaced-owned")
+        val target = Files.createTempDirectory("verification-cleanup-target-").toFile()
+        val sentinel = target.resolve("sentinel.txt").apply { writeText("target") }
+        var swapped = false
+        try {
+            val store = captureStore(
+                root = root,
+                afterOwnedIdentityValidated = { validated ->
+                    if (validated.fileName.toString() == "verification-$RECEIPT_ID") {
+                        Files.move(validated, displaced)
+                        Files.createSymbolicLink(validated, target.toPath())
+                        swapped = true
+                    }
+                },
+            )
+            val capture = store.reserve(session(root), RECEIPT_ID)
+
+            assertFailsWith<FeedbackVerificationArtifactException> {
+                store.cleanup(capture)
+            }
+
+            assertTrue(swapped)
+            assertTrue(Files.isSymbolicLink(capturePath))
+            assertEquals("target", sentinel.readText())
+        } finally {
+            Files.deleteIfExists(capturePath)
+            target.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun cleanupDeletesGenuinelyOwnedDirectoryRecursively() = withRoot { root ->
+        val store = captureStore(root)
+        val capture = store.reserve(session(root), RECEIPT_ID)
+        capture.directory.resolve("nested").mkdirs()
+        capture.directory.resolve("nested/after.png").writeText("owned")
+
+        store.cleanup(capture)
+
+        assertFalse(capture.directory.exists())
+    }
+
     private fun captureStore(
         root: File,
-        afterIdentityCaptured: (java.nio.file.Path) -> Unit,
+        afterIdentityCaptured: (java.nio.file.Path) -> Unit = {},
+        afterOwnedIdentityValidated: (java.nio.file.Path) -> Unit = {},
     ): FeedbackVerificationCaptureStore = FeedbackVerificationCaptureStore(
         projectRoot = root,
         hooks = VerificationArtifactStoreHooks(
             afterDirectoryCreateIdentityCaptured = afterIdentityCaptured,
+            afterOwnedDirectoryIdentityValidatedBeforeDelete = afterOwnedIdentityValidated,
         ),
     )
 
