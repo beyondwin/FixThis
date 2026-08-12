@@ -83,14 +83,34 @@ class FeedbackVerificationResolutionTest {
     }
 
     @Test
-    fun rejectsMissingFailedCrossItemOldAndNonResolvedReceiptLinks() = withFixture { fixture ->
+    fun olderFailedReceiptIsRejectedAsNotLatestWithoutMutation() = withFixture { fixture ->
+        fixture.attachReceipt("old-fail", FeedbackVerificationVerdict.FAIL, createdAt = 10L)
+        fixture.attachReceipt("latest-pass", FeedbackVerificationVerdict.PASS, createdAt = 20L)
+
+        fixture.assertResolveError("VERIFICATION_RECEIPT_NOT_LATEST:", "old-fail")
+
+        assertEquals(0, fixture.events().count { it.type == "updateItemStatus" })
+        assertEquals(AnnotationStatusDto.IN_PROGRESS, fixture.store.getSession(fixture.sessionId).items.single().status)
+    }
+
+    @Test
+    fun latestFailedReceiptIsRejectedAsFailedWithoutMutation() = withFixture { fixture ->
+        fixture.attachReceipt("old-pass", FeedbackVerificationVerdict.PASS, createdAt = 10L)
+        fixture.attachReceipt("latest-fail", FeedbackVerificationVerdict.FAIL, createdAt = 20L)
+
+        fixture.assertResolveError("VERIFICATION_RECEIPT_FAILED:", "latest-fail")
+
+        assertEquals(0, fixture.events().count { it.type == "updateItemStatus" })
+        assertEquals(AnnotationStatusDto.IN_PROGRESS, fixture.store.getSession(fixture.sessionId).items.single().status)
+    }
+
+    @Test
+    fun rejectsMissingCrossItemOldAndNonResolvedReceiptLinks() = withFixture { fixture ->
         fixture.attachReceipt("old", FeedbackVerificationVerdict.PASS, createdAt = 10L)
-        fixture.attachReceipt("failed", FeedbackVerificationVerdict.FAIL, createdAt = 20L)
         fixture.attachReceipt("other-item", FeedbackVerificationVerdict.PASS, createdAt = 30L, itemId = "item-2")
         fixture.attachReceipt("latest", FeedbackVerificationVerdict.PASS, createdAt = 40L)
 
         fixture.assertResolveError("VERIFICATION_RECEIPT_NOT_FOUND:", "missing")
-        fixture.assertResolveError("VERIFICATION_RECEIPT_FAILED:", "failed")
         fixture.assertResolveError("VERIFICATION_RECEIPT_MISMATCH:", "other-item")
         fixture.assertResolveError("VERIFICATION_RECEIPT_NOT_LATEST:", "old")
         fixture.assertResolveError(

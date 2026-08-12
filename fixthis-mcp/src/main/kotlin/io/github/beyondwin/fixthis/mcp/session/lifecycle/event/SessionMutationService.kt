@@ -143,11 +143,6 @@ internal class SessionMutationService(
             "VERIFICATION_RECEIPT_MISMATCH:",
             "Receipt $verificationReceiptId cannot resolve item $itemId",
         )
-        requireResolutionReceipt(
-            receipt.verdict != FeedbackVerificationVerdict.FAIL,
-            "VERIFICATION_RECEIPT_FAILED:",
-            "Receipt $verificationReceiptId did not pass verification",
-        )
         val latestReceipt = session.verificationReceipts
             .filter { it.itemId == itemId }
             .maxWithOrNull(compareBy({ it.createdAtEpochMillis }, { it.receiptId }))
@@ -155,6 +150,11 @@ internal class SessionMutationService(
             latestReceipt?.receiptId == verificationReceiptId,
             "VERIFICATION_RECEIPT_NOT_LATEST:",
             "Receipt $verificationReceiptId is not the latest for item $itemId",
+        )
+        requireResolutionReceipt(
+            receipt.verdict != FeedbackVerificationVerdict.FAIL,
+            "VERIFICATION_RECEIPT_FAILED:",
+            "Receipt $verificationReceiptId did not pass verification",
         )
     }
 
