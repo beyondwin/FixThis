@@ -21,12 +21,24 @@ import { resolveAndroidEnvironment } from "./evidence-runner.mjs";
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(scriptPath), "..");
 const defaultReportDir = "build/reports/fixthis-verification-receipt";
-const fixtureDirectory = join(repoRoot, "build/tmp/fixthis-verification-receipt/fixture");
+const fixtureRoot = join(repoRoot, "build/tmp/fixthis-verification-receipt");
 const baselineButtonText = "Review receipt";
 const changedButtonText = "Receipt verified";
 const buttonTestTag = "comp:VerificationReceiptButton:primary";
 const commandTimeoutMs = 8 * 60_000;
 const toolTimeoutMs = 90_000;
+
+export function createRunPaths(baseDirectory = fixtureRoot, runId = uniqueRunId()) {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(String(runId))) throw new Error(`Invalid run id: ${runId}`);
+  const runDirectory = resolve(baseDirectory, runId);
+  const base = resolve(baseDirectory);
+  if (!runDirectory.startsWith(`${base}${sep}`)) throw new Error(`Invalid run id: ${runId}`);
+  return Object.freeze({ runId, runDirectory, fixtureDirectory: join(runDirectory, "fixture") });
+}
+
+function uniqueRunId() {
+  return `run-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`;
+}
 
 export const requiredVerificationReceiptSteps = Object.freeze([
   "baseline_install",
@@ -309,22 +321,148 @@ class McpStdioClient {
   }
 
   async close() {
-    if (this.closedState.closed) return;
+    if (this.closedState.closed) return true;
     this.lines.close();
     this.child.stdin.end();
-    this.child.kill("SIGTERM");
-    const closed = await Promise.race([
-      new Promise((resolvePromise) => this.child.once("close", () => resolvePromise(true))),
-      delay(5_000).then(() => false),
-    ]);
-    if (!closed && !this.closedState.closed) {
-      this.child.kill("SIGKILL");
-      await Promise.race([
-        new Promise((resolvePromise) => this.child.once("close", resolvePromise)),
-        delay(2_000),
-      ]);
-    }
+    return stopOwnedChild(this.child);
   }
+}
+
+function childExited(child) {
+  return child?.exitCode != null || child?.signalCode != null;
+}
+
+async function waitForChildExit(child, timeoutMs) {
+  if (childExited(child)) return true;
+  return Promise.race([
+    new Promise((resolvePromise) => child.once("close", () => resolvePromise(true))),
+    delay(timeoutMs).then(() => childExited(child)),
+  ]);
+}
+
+export async function stopOwnedChild(child, { graceMs = 5_000, killMs = 2_000 } = {}) {
+  if (!child || childExited(child)) return true;
+  child.kill("SIGTERM");
+  if (await waitForChildExit(child, graceMs)) return true;
+  child.kill("SIGKILL");
+  return waitForChildExit(child, killMs);
+}
+
+export async function terminateOwnedProcessGroup(child, {
+  killGroup = (pid, signal) => {
+    try { process.kill(-pid, signal); } catch (error) {
+      if (error?.code !== "ESRCH") throw error;
+    }
+  },
+  waitForExit = (activeChild, _phase, timeoutMs) => waitForChildExit(activeChild, timeoutMs),
+  graceMs = 5_000,
+  killMs = 2_000,
+} = {}) {
+  if (!child || childExited(child)) return true;
+  killGroup(child.pid, "SIGTERM");
+  if (await waitForExit(child, "term", graceMs)) return true;
+  killGroup(child.pid, "SIGKILL");
+  return waitForExit(child, "kill", killMs);
+}
+
+export function createOwnedResourceController() {
+  const mcps = new Map();
+  const processGroups = new Map();
+  const tasks = [];
+  const failures = [];
+  const cleanup = {
+    ownedMcpPids: [],
+    ownedMcpStopped: [],
+    ownedProcessGroupPids: [],
+    ownedProcessGroupsStopped: [],
+  };
+  let cleanupPromise = null;
+
+  async function stopMcp(client, finalAttempt = false) {
+    if (!client) return true;
+    const pid = client.pid;
+    const stopped = await client.close().catch((error) => {
+      failures.push(`Owned MCP PID ${pid} cleanup failed: ${error.message}`);
+      return false;
+    });
+    if (stopped === true) {
+      if (!cleanup.ownedMcpStopped.includes(pid)) cleanup.ownedMcpStopped.push(pid);
+      mcps.delete(pid);
+    } else if (finalAttempt) failures.push(`Unconfirmed owned MCP PID ${pid} stop`);
+    return stopped === true;
+  }
+
+  return {
+    failures,
+    summary: cleanup,
+    trackMcp(client) {
+      if (client?.pid != null && !mcps.has(client.pid)) {
+        mcps.set(client.pid, client);
+        cleanup.ownedMcpPids.push(client.pid);
+      }
+      return client;
+    },
+    stopMcp,
+    trackProcessGroup(child) {
+      if (child?.pid != null && !processGroups.has(child.pid)) {
+        processGroups.set(child.pid, child);
+        cleanup.ownedProcessGroupPids.push(child.pid);
+      }
+    },
+    releaseProcessGroup(child, stopped = childExited(child)) {
+      if (!child?.pid || !stopped) return;
+      processGroups.delete(child.pid);
+      if (!cleanup.ownedProcessGroupsStopped.includes(child.pid)) cleanup.ownedProcessGroupsStopped.push(child.pid);
+    },
+    addCleanupTask(label, operation, priority = 20) {
+      tasks.push({ label, operation, priority });
+    },
+    cleanup(reason = "normal") {
+      if (cleanupPromise) return cleanupPromise;
+      cleanup.reason = reason;
+      cleanupPromise = (async () => {
+        for (const child of [...processGroups.values()]) {
+          const stopped = await terminateOwnedProcessGroup(child).catch((error) => {
+            failures.push(`Owned process group PID ${child.pid} cleanup failed: ${error.message}`);
+            return false;
+          });
+          if (stopped) {
+            processGroups.delete(child.pid);
+            cleanup.ownedProcessGroupsStopped.push(child.pid);
+          } else failures.push(`Unconfirmed owned process group PID ${child.pid} stop`);
+        }
+        for (const client of [...mcps.values()]) await stopMcp(client, true);
+        for (const task of [...tasks].sort((left, right) => left.priority - right.priority)) {
+          try { Object.assign(cleanup, await task.operation()); } catch (error) {
+            failures.push(`${task.label} cleanup failed: ${error.message}`);
+          }
+        }
+        return { ...cleanup, failures: [...failures] };
+      })();
+      return cleanupPromise;
+    },
+  };
+}
+
+export function installLifecycleCleanup({ processLike = process, cleanup, exit = (code) => process.exit(code) }) {
+  let handling = null;
+  const begin = (code, reason) => {
+    if (handling) return;
+    handling = Promise.resolve()
+      .then(() => cleanup(reason))
+      .catch(() => {})
+      .finally(() => exit(code));
+  };
+  const handlers = {
+    SIGINT: () => begin(130, "SIGINT"),
+    SIGTERM: () => begin(143, "SIGTERM"),
+    uncaughtException: () => begin(1, "uncaughtException"),
+    unhandledRejection: () => begin(1, "unhandledRejection"),
+  };
+  for (const [event, handler] of Object.entries(handlers)) processLike.on(event, handler);
+  return () => {
+    for (const [event, handler] of Object.entries(handlers)) processLike.removeListener(event, handler);
+  };
 }
 
 function runChecked(command, args, { cwd = repoRoot, env = process.env, timeout = commandTimeoutMs } = {}) {
@@ -345,6 +483,66 @@ function runChecked(command, args, { cwd = repoRoot, env = process.env, timeout 
   }
   process.stdout.write(`[verification-receipt] PASS ${printable} (${Date.now() - started}ms)\n`);
   return result;
+}
+
+export async function runOwnedCommand(command, args, {
+  cwd = repoRoot,
+  env = process.env,
+  timeout = commandTimeoutMs,
+  ownership = null,
+  spawnImpl = spawn,
+  terminateGroup = terminateOwnedProcessGroup,
+} = {}) {
+  const printable = [command, ...args].join(" ");
+  process.stdout.write(`[verification-receipt] RUN ${printable}\n`);
+  const started = Date.now();
+  const child = spawnImpl(command, args, {
+    cwd,
+    env,
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  ownership?.trackProcessGroup(child);
+  let stdout = "";
+  let stderr = "";
+  child.stdout?.setEncoding?.("utf8");
+  child.stderr?.setEncoding?.("utf8");
+  child.stdout?.on?.("data", (chunk) => { stdout = `${stdout}${chunk}`.slice(-32 * 1024 * 1024); });
+  child.stderr?.on?.("data", (chunk) => { stderr = `${stderr}${chunk}`.slice(-32 * 1024 * 1024); });
+  const closed = new Promise((resolvePromise) => {
+    child.once("error", (error) => resolvePromise({ kind: "error", error }));
+    child.once("close", (code, signal) => resolvePromise({ kind: "close", code, signal }));
+  });
+  let timeoutTriggered = false;
+  let terminationPromise = null;
+  let timer;
+  const timedOut = new Promise((resolvePromise) => {
+    timer = setTimeout(() => {
+      timeoutTriggered = true;
+      terminationPromise = terminateGroup(child).catch(() => false);
+      terminationPromise.then((stopped) => resolvePromise({ kind: "timeout", stopped }));
+    }, timeout);
+    timer.unref?.();
+  });
+  const result = await Promise.race([closed, timedOut]);
+  clearTimeout(timer);
+  if (timeoutTriggered || result.kind === "timeout") {
+    const stopped = result.kind === "timeout" ? result.stopped : await terminationPromise;
+    ownership?.releaseProcessGroup(child, stopped);
+    throw new Error(`${printable} timed out; owned process group PID ${child.pid} ${stopped ? "stopped" : "stop unconfirmed"}`);
+  }
+  if (result.kind === "error") {
+    const stopped = await terminateGroup(child).catch(() => false);
+    ownership?.releaseProcessGroup(child, stopped);
+    throw new Error(`${printable} failed (${result.error?.code ?? "spawn"}); owned process group PID ${child.pid} ${stopped ? "stopped" : "stop unconfirmed"}`);
+  }
+  ownership?.releaseProcessGroup(child, true);
+  if (result.code !== 0) {
+    const output = `${stdout}\n${stderr}`.trim().split(/\r?\n/).slice(-80).join("\n");
+    throw new Error(`${printable} failed (${result.code ?? result.signal ?? "spawn"})${output ? `\n${output}` : ""}`);
+  }
+  process.stdout.write(`[verification-receipt] PASS ${printable} (${Date.now() - started}ms)\n`);
+  return { status: result.code, signal: result.signal, stdout, stderr };
 }
 
 function writeGenerated(path, body, mode = null) {
@@ -385,7 +583,8 @@ function uniquePackageName() {
   return `io.github.beyondwin.fixthis.receipt.r${suffix}`;
 }
 
-function generateFixture({ environment }) {
+function generateFixture({ environment, runPaths }) {
+  const { fixtureDirectory, runDirectory } = runPaths;
   rmSync(fixtureDirectory, { recursive: true, force: true });
   mkdirSync(fixtureDirectory, { recursive: true });
   const packageName = uniquePackageName();
@@ -464,7 +663,7 @@ dependencies {
 </resources>
 `.trimStart());
   writeGenerated(sourcePath, fixtureSource(baselineButtonText));
-  return { fixtureDirectory, localMavenDirectory, packageName, namespace, sourcePath };
+  return { fixtureDirectory, runDirectory, localMavenDirectory, packageName, namespace, sourcePath };
 }
 
 function fixtureSource(buttonText) {
@@ -519,6 +718,39 @@ export function packageCleanupOutcome({
   };
 }
 
+function cleanupFixturePackage(fixture, environment) {
+  const packagePath = spawnSync("adb", adbArgs(environment, "shell", "pm", "path", fixture.packageName), {
+    cwd: repoRoot,
+    env: environment.env,
+    encoding: "utf8",
+    timeout: 60_000,
+  });
+  const packagePathOutput = `${packagePath.stdout || ""}${packagePath.stderr || ""}`;
+  const packageWasInstalled = packagePath.status === 0 && /^package:/m.test(packagePathOutput);
+  const uninstall = packageWasInstalled
+    ? spawnSync("adb", adbArgs(environment, "uninstall", fixture.packageName), {
+      cwd: repoRoot,
+      env: environment.env,
+      encoding: "utf8",
+      timeout: 60_000,
+    })
+    : null;
+  const outcome = packageCleanupOutcome({
+    packagePathStatus: packagePath.status,
+    packagePathOutput,
+    uninstallStatus: uninstall?.status ?? null,
+    uninstallOutput: `${uninstall?.stdout || ""}${uninstall?.stderr || ""}`,
+  });
+  if (!outcome.packageUninstalled) {
+    throw new Error(String(uninstall?.stderr || uninstall?.stdout || packagePath.stderr || packagePath.stdout));
+  }
+  return {
+    packageWasInstalled: outcome.packageWasInstalled,
+    packageUninstalled: outcome.packageUninstalled,
+    uninstalledPackage: fixture.packageName,
+  };
+}
+
 export function assertActivityStartOutput(output, packageName, activityClass) {
   const expectedActivity = `${packageName}/${activityClass}`;
   const started = /^Status:\s*ok\s*$/mi.test(String(output)) &&
@@ -526,14 +758,36 @@ export function assertActivityStartOutput(output, packageName, activityClass) {
   if (!started) throw new Error(`ADB did not start ${expectedActivity}: ${String(output).trim()}`);
 }
 
-function coldLaunch(environment, fixture) {
+function isRetryableActivityStartTimeout(output, packageName, activityClass) {
+  const expectedActivity = `${packageName}/${activityClass}`;
+  return /^Status:\s*timeout\s*$/mi.test(String(output)) &&
+    /^LaunchState:\s*UNKNOWN(?:\s*\(-?\d+\))?\s*$/mi.test(String(output)) &&
+    new RegExp(`^Activity:\\s*${expectedActivity.replaceAll(".", "\\.")}\\s*$`, "mi").test(String(output));
+}
+
+export async function coldLaunch(environment, fixture, {
+  run = runChecked,
+  attempts = 2,
+  delay: retryDelay = delay,
+} = {}) {
   const activityClass = `${fixture.namespace}.MainActivity`;
-  runChecked("adb", adbArgs(environment, "shell", "am", "force-stop", fixture.packageName), { env: environment.env });
-  const started = runChecked("adb", adbArgs(environment, "shell", "am", "start", "-W", "-n", `${fixture.packageName}/${activityClass}`), {
-    env: environment.env,
-    timeout: 60_000,
-  });
-  assertActivityStartOutput(started.stdout, fixture.packageName, activityClass);
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    run("adb", adbArgs(environment, "shell", "am", "force-stop", fixture.packageName), { env: environment.env });
+    const started = run("adb", adbArgs(environment, "shell", "am", "start", "-W", "-n", `${fixture.packageName}/${activityClass}`), {
+      env: environment.env,
+      timeout: 60_000,
+    });
+    const output = `${started.stdout || ""}\n${started.stderr || ""}`;
+    try {
+      assertActivityStartOutput(output, fixture.packageName, activityClass);
+      return;
+    } catch (error) {
+      const retryable = isRetryableActivityStartTimeout(output, fixture.packageName, activityClass);
+      if (!retryable || attempt >= attempts) throw error;
+      process.stdout.write(`[verification-receipt] RETRY cold launch after exact timeout/UNKNOWN (${attempt}/${attempts})\n`);
+      await retryDelay(1_500);
+    }
+  }
 }
 
 async function retry(label, operation, { attempts = 4, delayMs = 1_500 } = {}) {
@@ -692,8 +946,11 @@ function androidFailureDiagnostics(fixture, environment) {
   return commandOutputs.join("\n---\n").split(/\r?\n/).slice(-220).join("\n");
 }
 
-function ensureMcpDistribution(environment) {
-  runChecked("./gradlew", [":fixthis-mcp:installDist", "--no-daemon"], { env: environment.env });
+async function ensureMcpDistribution(environment, ownership) {
+  await runOwnedCommand("./gradlew", [":fixthis-mcp:installDist", "--no-daemon"], {
+    env: environment.env,
+    ownership,
+  });
   const binary = join(repoRoot, "fixthis-mcp/build/install/fixthis-mcp/bin/fixthis-mcp");
   requireCondition(existsSync(binary), `MCP distribution missing: ${binary}`);
   return binary;
@@ -709,8 +966,8 @@ async function startMcp(binary, fixture, environment, name) {
   });
 }
 
-function publishLocalRuntimeArtifacts(fixture, environment) {
-  runChecked(
+async function publishLocalRuntimeArtifacts(fixture, environment, ownership) {
+  await runOwnedCommand(
     "./gradlew",
     [
       `-Dmaven.repo.local=${fixture.localMavenDirectory}`,
@@ -718,15 +975,15 @@ function publishLocalRuntimeArtifacts(fixture, environment) {
       ":fixthis-compose-sidekick:publishToMavenLocal",
       "--no-daemon",
     ],
-    { env: environment.env },
+    { env: environment.env, ownership },
   );
 }
 
-function installFixture(fixture, environment) {
-  runChecked(
+async function installFixture(fixture, environment, ownership) {
+  await runOwnedCommand(
     "./gradlew",
     ["-p", fixture.fixtureDirectory, ":app:installDebug", "-Pfixthis.runtimeCompatibleSourceIndex=true", "--no-daemon"],
-    { env: environment.env },
+    { env: environment.env, ownership },
   );
 }
 
@@ -811,19 +1068,28 @@ function stepRecorder(steps) {
   };
 }
 
-async function executeConnectedProductPath({ options, environment }) {
-  const fixture = generateFixture({ environment });
+async function executeConnectedProductPath({ options, environment, ownership, runPaths }) {
+  const fixture = generateFixture({ environment, runPaths });
   const steps = [];
   const record = stepRecorder(steps);
-  const cleanup = {
-    ownedMcpPids: [],
-    ownedMcpStopped: [],
+  const cleanup = ownership.summary;
+  Object.assign(cleanup, {
     packageUninstalled: false,
     fixtureDirectoryRemoved: false,
     emulatorPid: environment.ownedEmulator?.pid || null,
-    ownedEmulatorStopped: false,
-  };
-  const failures = [];
+    ownedEmulatorStopped: environment.ownedEmulator ? false : null,
+    runDirectory: fixture.runDirectory,
+  });
+  ownership.addCleanupTask("Package", () => cleanupFixturePackage(fixture, environment), 10);
+  ownership.addCleanupTask("Fixture", () => {
+    rmSync(fixture.runDirectory, { recursive: true, force: true });
+    return {
+      fixtureDirectoryRemoved: !existsSync(fixture.fixtureDirectory),
+      removedFixtureDirectory: fixture.fixtureDirectory,
+      runDirectoryRemoved: !existsSync(fixture.runDirectory),
+    };
+  }, 20);
+  const failures = ownership.failures;
   let mcp = null;
   let sessionId = null;
   let itemId = null;
@@ -834,13 +1100,12 @@ async function executeConnectedProductPath({ options, environment }) {
   let baselineStatus = null;
   let sourceMtime = null;
   try {
-    const mcpBinary = ensureMcpDistribution(environment);
+    const mcpBinary = await ensureMcpDistribution(environment, ownership);
     await record("baseline_install", async () => {
-      publishLocalRuntimeArtifacts(fixture, environment);
-      installFixture(fixture, environment);
-      coldLaunch(environment, fixture);
-      mcp = await startMcp(mcpBinary, fixture, environment, "verification-receipt-baseline");
-      cleanup.ownedMcpPids.push(mcp.pid);
+      await publishLocalRuntimeArtifacts(fixture, environment, ownership);
+      await installFixture(fixture, environment, ownership);
+      await coldLaunch(environment, fixture);
+      mcp = ownership.trackMcp(await startMcp(mcpBinary, fixture, environment, "verification-receipt-baseline"));
       try {
         baselineStatus = await waitForBridge(mcp, fixture.packageName, options.maxRetries);
       } catch (error) {
@@ -914,8 +1179,8 @@ async function executeConnectedProductPath({ options, environment }) {
 
     await record("rebuilt_install_passed_receipt", async () => {
       await waitUntilAfter(sourceMtime);
-      installFixture(fixture, environment);
-      coldLaunch(environment, fixture);
+      await installFixture(fixture, environment, ownership);
+      await coldLaunch(environment, fixture);
       await waitForBridge(mcp, fixture.packageName, options.maxRetries);
       await waitForChangedText(mcp, fixture.packageName, options.maxRetries);
       passingReceipt = receiptFrom(await mcpCall(mcp, "fixthis_verify_feedback", {
@@ -943,11 +1208,9 @@ async function executeConnectedProductPath({ options, environment }) {
 
     await record("restart_replayed_receipts", async () => {
       const firstPid = mcp.pid;
-      await mcp.close();
-      cleanup.ownedMcpStopped.push(firstPid);
+      requireCondition(await ownership.stopMcp(mcp), `Could not verify owned MCP PID ${firstPid} stopped`);
       mcp = null;
-      mcp = await startMcp(mcpBinary, fixture, environment, "verification-receipt-replay");
-      cleanup.ownedMcpPids.push(mcp.pid);
+      mcp = ownership.trackMcp(await startMcp(mcpBinary, fixture, environment, "verification-receipt-replay"));
       const replayed = parseJsonToolResult(await mcpCall(mcp, "fixthis_read_feedback", {
         sessionId,
         includeAll: true,
@@ -1067,46 +1330,9 @@ async function executeConnectedProductPath({ options, environment }) {
   } finally {
     if (mcp) {
       const pid = mcp.pid;
-      await mcp.close().catch((error) => failures.push(`MCP cleanup: ${error.message}`));
-      cleanup.ownedMcpStopped.push(pid);
+      if (!await ownership.stopMcp(mcp)) failures.push(`Unconfirmed owned MCP PID ${pid} stop`);
     }
-    if (fixture.packageName) {
-      const packagePath = spawnSync("adb", adbArgs(environment, "shell", "pm", "path", fixture.packageName), {
-        cwd: repoRoot,
-        env: environment.env,
-        encoding: "utf8",
-        timeout: 60_000,
-      });
-      const packagePathOutput = `${packagePath.stdout || ""}${packagePath.stderr || ""}`;
-      const packageWasInstalled = packagePath.status === 0 && /^package:/m.test(packagePathOutput);
-      const uninstall = packageWasInstalled
-        ? spawnSync("adb", adbArgs(environment, "uninstall", fixture.packageName), {
-          cwd: repoRoot,
-          env: environment.env,
-          encoding: "utf8",
-          timeout: 60_000,
-        })
-        : null;
-      const outcome = packageCleanupOutcome({
-        packagePathStatus: packagePath.status,
-        packagePathOutput,
-        uninstallStatus: uninstall?.status ?? null,
-        uninstallOutput: `${uninstall?.stdout || ""}${uninstall?.stderr || ""}`,
-      });
-      cleanup.packageWasInstalled = outcome.packageWasInstalled;
-      cleanup.packageUninstalled = outcome.packageUninstalled;
-      cleanup.uninstalledPackage = fixture.packageName;
-      if (!cleanup.packageUninstalled) {
-        failures.push(`Package cleanup failed: ${uninstall?.stderr || uninstall?.stdout || packagePath.stderr || packagePath.stdout}`);
-      }
-    }
-    rmSync(fixture.fixtureDirectory, { recursive: true, force: true });
-    cleanup.fixtureDirectoryRemoved = !existsSync(fixture.fixtureDirectory);
-    cleanup.removedFixtureDirectory = fixture.fixtureDirectory;
-    if (environment.ownedEmulator && !environment.ownedEmulator.stopped) {
-      cleanup.ownedEmulatorStopped = await stopOwnedEmulator(environment.ownedEmulator);
-      if (!cleanup.ownedEmulatorStopped) failures.push(`Owned emulator cleanup failed: ${environment.ownedEmulator.pid}`);
-    }
+    await ownership.cleanup("normal");
   }
   for (const name of requiredVerificationReceiptSteps) {
     if (!steps.some((step) => step.name === name)) {
@@ -1129,7 +1355,7 @@ function readyEnvironment(base, ownedEmulator = null) {
   };
 }
 
-async function resolveConnectedEnvironment(options) {
+async function resolveConnectedEnvironment(options, ownership) {
   const requestedEnv = options.device ? { ...process.env, ANDROID_SERIAL: options.device } : process.env;
   let environment = resolveAndroidEnvironment({ env: requestedEnv });
   if (environment.ready) return readyEnvironment(environment);
@@ -1147,6 +1373,13 @@ async function resolveConnectedEnvironment(options) {
     stdio: ["ignore", "ignore", "ignore"],
   });
   const ownedEmulator = { child, pid: child.pid, stopped: false };
+  ownership.summary.emulatorPid = child.pid;
+  ownership.summary.ownedEmulatorStopped = false;
+  ownership.addCleanupTask("Owned emulator", async () => {
+    const stopped = await stopOwnedEmulator(ownedEmulator);
+    if (!stopped) throw new Error(`Unconfirmed owned emulator PID ${child.pid} stop`);
+    return { emulatorPid: child.pid, ownedEmulatorStopped: true };
+  }, 30);
   for (let attempt = 0; attempt < 90; attempt += 1) {
     await delay(2_000);
     environment = resolveAndroidEnvironment({ env: requestedEnv });
@@ -1160,7 +1393,6 @@ async function resolveConnectedEnvironment(options) {
     }
     if (child.exitCode != null) break;
   }
-  await stopOwnedEmulator(ownedEmulator);
   return readyEnvironment(environment, ownedEmulator);
 }
 
@@ -1168,12 +1400,15 @@ export async function runVerificationReceiptSmoke({
   options = parseArgs(),
   environment = null,
   executeProductPath = executeConnectedProductPath,
+  ownership = createOwnedResourceController(),
+  runPaths = createRunPaths(),
 } = {}) {
   const startedAt = new Date().toISOString();
   const activeEnvironment = environment
     ? { ...environment, env: environment.env || { ...process.env, ...(environment.envPatch || {}) } }
-    : await resolveConnectedEnvironment(options);
+    : await resolveConnectedEnvironment(options, ownership);
   if (!activeEnvironment.ready) {
+    await ownership.cleanup("environment-unavailable");
     const status = options.strict ? "FAIL" : "DEFERRED";
     const steps = requiredVerificationReceiptSteps.map((name) => ({
       name,
@@ -1187,17 +1422,15 @@ export async function runVerificationReceiptSmoke({
       startedAt,
       finishedAt: new Date().toISOString(),
       failures: [activeEnvironment.reason || "Android device unavailable"],
-      cleanup: {
-        ownedMcpPids: [],
-        ownedMcpStopped: [],
-        packageUninstalled: false,
-        fixtureDirectoryRemoved: true,
-        emulatorPid: activeEnvironment.ownedEmulator?.pid || null,
-        ownedEmulatorStopped: activeEnvironment.ownedEmulator?.stopped === true,
-      },
+      cleanup: ownership.summary,
     });
   }
-  const result = await executeProductPath({ options, environment: activeEnvironment });
+  let result;
+  try {
+    result = await executeProductPath({ options, environment: activeEnvironment, ownership, runPaths });
+  } finally {
+    await ownership.cleanup("normal");
+  }
   return buildReport({
     strict: options.strict,
     deviceSerial: activeEnvironment.device,
@@ -1207,7 +1440,7 @@ export async function runVerificationReceiptSmoke({
     startedAt,
     finishedAt: new Date().toISOString(),
     failures: result.failures || [],
-    cleanup: result.cleanup || null,
+    cleanup: ownership.summary,
   });
 }
 
@@ -1223,7 +1456,20 @@ export async function main(argv = process.argv.slice(2), io = { stdout: process.
     io.stdout.write("Usage: node scripts/verification-receipt-smoke.mjs [--strict] [--headed] [--device <serial>] [--report-dir <dir>] [--max-retries <count>]\n");
     return 0;
   }
-  const report = await runVerificationReceiptSmoke({ options });
+  const ownership = createOwnedResourceController();
+  const disposeLifecycle = installLifecycleCleanup({
+    cleanup: (reason) => ownership.cleanup(reason),
+  });
+  let report;
+  try {
+    report = await runVerificationReceiptSmoke({ options, ownership });
+  } catch (error) {
+    await ownership.cleanup("main-error");
+    io.stderr.write(`${error.message}\n`);
+    disposeLifecycle();
+    return 1;
+  }
+  disposeLifecycle();
   const paths = writeReport(report, options.reportDir);
   io.stdout.write(`Verification receipt smoke: ${report.status}\nJSON: ${paths.json}\nMarkdown: ${paths.markdown}\n`);
   if (options.strict) {

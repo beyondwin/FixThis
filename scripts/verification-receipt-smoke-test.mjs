@@ -1,17 +1,26 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import test from "node:test";
 import {
   assertStrictReport,
   assertActivityStartOutput,
   buildReport,
+  coldLaunch,
+  createOwnedResourceController,
+  createRunPaths,
+  installLifecycleCleanup,
   fixtureSettings,
   mcpCall,
   packageCleanupOutcome,
   parseArgs,
   savedItemRowSelector,
+  runOwnedCommand,
+  stopOwnedChild,
+  terminateOwnedProcessGroup,
   writeReport,
 } from "./verification-receipt-smoke.mjs";
 
@@ -210,10 +219,224 @@ test("cold launch rejects adb am output that did not start the fixture activity"
   );
 });
 
+test("cold launch retries only an exact timeout/unknown result and force-stops before every attempt", async () => {
+  const packageName = "io.example";
+  const activityClass = "io.fixture.MainActivity";
+  const calls = [];
+  const starts = [
+    `Starting: Intent { cmp=${packageName}/${activityClass} }\nStatus: timeout\nLaunchState: UNKNOWN (-1)\nActivity: ${packageName}/${activityClass}\n`,
+    `Starting: Intent { cmp=${packageName}/${activityClass} }\nStatus: ok\nActivity: ${packageName}/${activityClass}\n`,
+  ];
+  const run = (_command, args) => {
+    calls.push(args);
+    return { stdout: args.includes("start") ? starts.shift() : "" };
+  };
+
+  await coldLaunch(
+    { device: "emulator-5554", env: {} },
+    { packageName, namespace: "io.fixture" },
+    { run, attempts: 2, delay: async () => {} },
+  );
+
+  assert.deepEqual(calls.map((args) => args.slice(3, 5)), [
+    ["am", "force-stop"],
+    ["am", "start"],
+    ["am", "force-stop"],
+    ["am", "start"],
+  ]);
+});
+
+test("cold launch fails immediately for non-retryable adb semantics and bounds timeout retries", async () => {
+  const packageName = "io.example";
+  const activityClass = "io.fixture.MainActivity";
+  const cases = [
+    "Error type 3\nActivity class does not exist\n",
+    "Status: timeout\nLaunchState: UNKNOWN (-1)\nActivity: io.other/io.other.MainActivity\n",
+  ];
+  for (const output of cases) {
+    let starts = 0;
+    await assert.rejects(
+      () => coldLaunch(
+        { device: "emulator-5554", env: {} },
+        { packageName, namespace: "io.fixture" },
+        {
+          run: (_command, args) => {
+            if (args.includes("start")) starts += 1;
+            return { stdout: args.includes("start") ? output : "" };
+          },
+          attempts: 2,
+          delay: async () => {},
+        },
+      ),
+      /did not start io\.example\/io\.fixture\.MainActivity/,
+    );
+    assert.equal(starts, 1);
+  }
+
+  let timeoutStarts = 0;
+  await assert.rejects(
+    () => coldLaunch(
+      { device: "emulator-5554", env: {} },
+      { packageName, namespace: "io.fixture" },
+      {
+        run: (_command, args) => {
+          if (args.includes("start")) timeoutStarts += 1;
+          return {
+            stdout: args.includes("start")
+              ? `Status: timeout\nLaunchState: UNKNOWN (-1)\nActivity: ${packageName}/${activityClass}\n`
+              : "",
+          };
+        },
+        attempts: 2,
+        delay: async () => {},
+      },
+    ),
+    /did not start io\.example\/io\.fixture\.MainActivity/,
+  );
+  assert.equal(timeoutStarts, 2);
+});
+
 test("browser proof scopes the verified badge to the exact saved item row", () => {
   assert.equal(
     savedItemRowSelector("item-123"),
     '[data-focus-saved="item-123"]',
   );
   assert.throws(() => savedItemRowSelector('item-123"] .verification-badge'), /invalid item id/i);
+});
+
+test("owned child shutdown is recorded only after verified exit", async () => {
+  class FakeChild extends EventEmitter {
+    constructor(closeOnSignal = null) {
+      super();
+      this.pid = 41;
+      this.exitCode = null;
+      this.signalCode = null;
+      this.closeOnSignal = closeOnSignal;
+      this.signals = [];
+    }
+    kill(signal) {
+      this.signals.push(signal);
+      if (signal === this.closeOnSignal) {
+        this.signalCode = signal;
+        queueMicrotask(() => this.emit("close", null, signal));
+      }
+      return true;
+    }
+  }
+
+  const stopped = new FakeChild("SIGTERM");
+  assert.equal(await stopOwnedChild(stopped, { graceMs: 5, killMs: 5 }), true);
+  assert.deepEqual(stopped.signals, ["SIGTERM"]);
+
+  const leaked = new FakeChild();
+  assert.equal(await stopOwnedChild(leaked, { graceMs: 1, killMs: 1 }), false);
+  assert.deepEqual(leaked.signals, ["SIGTERM", "SIGKILL"]);
+
+  const controller = createOwnedResourceController();
+  controller.trackMcp({ pid: leaked.pid, close: async () => false });
+  const cleanup = await controller.cleanup("test");
+  assert.deepEqual(cleanup.ownedMcpStopped, []);
+  assert.match(cleanup.failures.join("\n"), /unconfirmed owned MCP PID 41/i);
+});
+
+test("run paths are contained and isolated for concurrent runs", () => {
+  const base = "/repo/build/tmp/fixthis-verification-receipt";
+  const first = createRunPaths(base, "run-a");
+  const second = createRunPaths(base, "run-b");
+
+  assert.equal(first.fixtureDirectory, "/repo/build/tmp/fixthis-verification-receipt/run-a/fixture");
+  assert.equal(second.fixtureDirectory, "/repo/build/tmp/fixthis-verification-receipt/run-b/fixture");
+  assert.notEqual(first.runDirectory, second.runDirectory);
+  assert.throws(() => createRunPaths(base, "../escape"), /invalid run id/i);
+});
+
+test("lifecycle cleanup is once-only and preserves signal and exception exit semantics", async () => {
+  const processLike = new EventEmitter();
+  processLike.exitCode = 0;
+  const exits = [];
+  let cleanups = 0;
+  const dispose = installLifecycleCleanup({
+    processLike,
+    cleanup: async () => { cleanups += 1; },
+    exit: (code) => exits.push(code),
+  });
+
+  processLike.emit("SIGTERM");
+  processLike.emit("SIGINT");
+  await new Promise((resolvePromise) => setImmediate(resolvePromise));
+  assert.equal(cleanups, 1);
+  assert.deepEqual(exits, [143]);
+  dispose();
+
+  const exceptionProcess = new EventEmitter();
+  const exceptionExits = [];
+  installLifecycleCleanup({
+    processLike: exceptionProcess,
+    cleanup: async () => {},
+    exit: (code) => exceptionExits.push(code),
+  });
+  exceptionProcess.emit("uncaughtException", new Error("boom"));
+  await new Promise((resolvePromise) => setImmediate(resolvePromise));
+  assert.deepEqual(exceptionExits, [1]);
+});
+
+test("command timeout terminates and waits for only its exact owned process group", async () => {
+  const calls = [];
+  const child = { pid: 91, exitCode: null, signalCode: null };
+  const stopped = await terminateOwnedProcessGroup(child, {
+    killGroup: (pid, signal) => calls.push([pid, signal]),
+    waitForExit: async (_child, phase) => phase === "kill",
+  });
+
+  assert.equal(stopped, true);
+  assert.deepEqual(calls, [[91, "SIGTERM"], [91, "SIGKILL"]]);
+  assert.equal(calls.some(([pid]) => pid !== 91), false);
+});
+
+test("owned command timeout reports failure only after its process group stops", async () => {
+  const child = new EventEmitter();
+  child.pid = 92;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  const terminated = [];
+
+  await assert.rejects(
+    () => runOwnedCommand("gradlew", ["task"], {
+      timeout: 1,
+      spawnImpl: () => child,
+      terminateGroup: async (active) => {
+        terminated.push(active.pid);
+        active.signalCode = "SIGKILL";
+        active.emit("close", null, "SIGKILL");
+        return true;
+      },
+    }),
+    /timed out.*owned process group PID 92 stopped/i,
+  );
+  assert.deepEqual(terminated, [92]);
+});
+
+test("owned command spawn error verifies its exact process group stopped before rejection", async () => {
+  const child = new EventEmitter();
+  child.pid = 93;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  const terminated = [];
+  const command = runOwnedCommand("gradlew", ["task"], {
+    timeout: 100,
+    spawnImpl: () => child,
+    terminateGroup: async (active) => {
+      terminated.push(active.pid);
+      active.signalCode = "SIGKILL";
+      return true;
+    },
+  });
+  queueMicrotask(() => child.emit("error", Object.assign(new Error("spawn broke"), { code: "EIO" })));
+
+  await assert.rejects(command, /failed \(EIO\).*owned process group PID 93 stopped/i);
+  assert.deepEqual(terminated, [93]);
 });
