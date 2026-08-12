@@ -101,6 +101,10 @@ const CONTRACT_SYMBOLS = [
   'renderSavedEvidenceOverlay',
   'focusSavedEvidenceItem',
   'renderSavedEvidenceGroups',
+  'receiptForItem',
+  'verificationBadgeModel',
+  'verificationBadgeHtml',
+  'verificationReceiptSectionHtml',
   'renderComposerInspector',
   'renderSavedAnnotationsInspector',
   'renderAnnotationDetail',
@@ -220,10 +224,10 @@ async function buildOnce({ reproducible } = {}) {
   const jsText = new TextDecoder().decode(jsBytes);
   assertContractSymbols(jsText);
 
-  // Runtime diagnostics, its serialized policy queue, and the automatic handoff
-  // status and session-fencing boundary add 8,235 raw bytes, with narrow headroom.
-  const RAW_BUDGET_BYTES = 240_500;
-  const GZIP_BUDGET_BYTES = 61_000;
+  // Runtime diagnostics plus receipt reflection add bounded local evidence UI,
+  // with narrow headroom for the canonical generated bundle.
+  const RAW_BUDGET_BYTES = 247_000;
+  const GZIP_BUDGET_BYTES = 62_500;
   if (jsBytes.byteLength > RAW_BUDGET_BYTES) {
     throw new Error(`Bundle (raw) is ${jsBytes.byteLength} bytes, exceeds raw budget of ${RAW_BUDGET_BYTES} bytes.`);
   }

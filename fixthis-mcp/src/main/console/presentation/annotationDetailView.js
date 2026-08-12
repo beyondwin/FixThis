@@ -1,4 +1,4 @@
-// @requires annotations.js, runtimeEvidence.js, viewmodel/reliabilityPresentation.js, domain/targetReliabilityViewModel.js, presentation/selectionOverlayView.js
+// @requires annotations.js, runtimeEvidence.js, verificationReceipt.js, viewmodel/reliabilityPresentation.js, domain/targetReliabilityViewModel.js, presentation/selectionOverlayView.js
             function itemBounds(item) {
               return boundsForTarget(item?.target) || item?.bounds || item?.target?.bounds || null;
             }
@@ -385,6 +385,7 @@
                         '<span class="ann-row-title">' + escapeHtml(targetLabel(item)) + '</span>' +
                         '<span class="ann-row-comment ' + (hasComment ? '' : 'empty-comment') + '">' + escapeHtml(commentText) + '</span>' +
                         reliabilityBadgeHtml(item) +
+                        verificationBadgeHtml(state.session, item) +
                       '</span>' +
                       '<span class="ann-row-status ' + statusClass(item) + '">' + escapeHtml(statusLabel(item)) + '</span>' +
                     '</button>';
@@ -496,6 +497,7 @@
                   '<section class="annotation-section evidence-section">' +
                     evidenceDetailsHtml(item) +
                   '</section>' +
+                  verificationReceiptSectionHtml(state.session, item) +
                   runtimeEvidenceSectionHtml(item) +
                 '</div>';
               const labelInput = draftItems.querySelector('#annotationLabelInput');

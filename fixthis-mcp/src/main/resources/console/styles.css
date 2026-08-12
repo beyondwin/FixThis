@@ -172,6 +172,208 @@
               font-size: 0.8rem;
               margin: 0.5rem 0;
             }
+
+            .verification-receipt-section,
+            .verification-receipt-heading,
+            .verification-meta,
+            .verification-subsection,
+            .verification-list,
+            .verification-list li,
+            .verification-entry-heading,
+            .verification-assertion-details,
+            .verification-screenshots,
+            .verification-screenshot {
+              min-width: 0;
+            }
+
+            .verification-receipt-heading {
+              align-items: center;
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+              justify-content: space-between;
+            }
+
+            .verification-receipt-heading h3,
+            .verification-subsection h4 {
+              margin: 0;
+            }
+
+            .verification-subsection {
+              display: grid;
+              gap: 6px;
+            }
+
+            .verification-subsection h4 {
+              color: var(--txt-1);
+              font-size: 11px;
+              line-height: 1.3;
+            }
+
+            .verification-badge {
+              align-items: center;
+              border: 1px solid var(--line);
+              border-radius: 999px;
+              color: var(--txt-2);
+              display: inline-flex;
+              font-size: 10px;
+              font-weight: 800;
+              line-height: 1.2;
+              max-width: 100%;
+              overflow-wrap: anywhere;
+              padding: 3px 7px;
+              text-transform: uppercase;
+              white-space: normal;
+            }
+
+            .verification-badge[data-tone="success"] {
+              border-color: rgba(91, 180, 142, .46);
+              color: #7dd3aa;
+            }
+
+            .verification-badge[data-tone="warning"] {
+              border-color: rgba(230, 180, 90, .46);
+              color: #f4ca76;
+            }
+
+            .verification-badge[data-tone="danger"] {
+              border-color: rgba(242, 109, 109, .48);
+              color: #ff9a9a;
+            }
+
+            .ann-row-body > .verification-badge {
+              margin-block-start: 4px;
+            }
+
+            .verification-meta {
+              display: grid;
+              margin: 0;
+            }
+
+            .verification-meta > div {
+              display: grid;
+              gap: 8px;
+              grid-template-columns: minmax(72px, .35fr) minmax(0, 1fr);
+              padding-block: 5px;
+            }
+
+            .verification-meta dt,
+            .verification-meta dd {
+              min-width: 0;
+              overflow-wrap: anywhere;
+            }
+
+            .verification-meta dt {
+              color: var(--txt-2);
+              font-size: 11px;
+              font-weight: 700;
+            }
+
+            .verification-meta dd {
+              color: var(--txt-1);
+              font-size: 11px;
+              margin: 0;
+            }
+
+            .verification-list {
+              display: grid;
+              list-style: none;
+              margin: 0;
+              padding: 0;
+            }
+
+            .verification-list li {
+              border-block-start: 1px solid var(--line-soft);
+              overflow-wrap: anywhere;
+              padding-block: 8px;
+            }
+
+            .verification-list li:first-child {
+              border-block-start: 0;
+              padding-block-start: 2px;
+            }
+
+            .verification-entry-heading {
+              align-items: baseline;
+              display: flex;
+              flex-wrap: wrap;
+              gap: 5px 8px;
+              justify-content: space-between;
+            }
+
+            .verification-entry-heading strong,
+            .verification-assertion-list > li > strong {
+              color: var(--txt-0);
+              font-size: 11px;
+            }
+
+            .verification-entry-heading span {
+              color: var(--txt-2);
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+            }
+
+            .verification-entry-heading + .verification-entry-message,
+            .verification-empty {
+              margin: 4px 0 0;
+            }
+
+            .verification-entry-message,
+            .verification-empty,
+            .verification-assertion-details {
+              color: var(--txt-1);
+              font-size: 11px;
+              line-height: 1.45;
+              overflow-wrap: anywhere;
+              word-break: break-word;
+            }
+
+            .verification-assertion-details {
+              display: grid;
+              gap: 3px;
+              margin-block-start: 4px;
+            }
+
+            .verification-assertion-details b {
+              color: var(--txt-2);
+              margin-inline-end: 5px;
+            }
+
+            .verification-screenshots {
+              display: grid;
+              gap: 8px;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .verification-screenshot {
+              margin: 0;
+            }
+
+            .verification-screenshot a {
+              border-radius: 8px;
+              display: block;
+              outline-offset: 3px;
+            }
+
+            .verification-screenshot a:focus-visible {
+              outline: 2px solid var(--accent);
+            }
+
+            .verification-screenshot img {
+              aspect-ratio: 4 / 3;
+              display: block;
+              object-fit: cover;
+              width: 100%;
+            }
+
+            .verification-screenshot figcaption {
+              color: var(--txt-2);
+              font-size: 10px;
+              font-weight: 700;
+              margin-block-start: 4px;
+              text-align: center;
+            }
             .studio-context { overflow: hidden; }
             .studio-actions { justify-content: flex-end; flex-wrap: wrap; }
             .history-toggle-button,
@@ -1817,6 +2019,15 @@
               .studio-body { grid-template-columns: 220px minmax(380px, 1fr) 300px; }
             }
             @media (max-width: 900px) {
+              .verification-meta > div {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 3px;
+              }
+
+              .verification-screenshots {
+                grid-template-columns: minmax(0, 1fr);
+              }
+
               body {
                 height: auto;
                 min-height: 100vh;

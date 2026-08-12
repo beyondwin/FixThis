@@ -15,6 +15,10 @@ function runConsoleContractGuards() {
     path.join(repoRoot, "fixthis-mcp/src/main/console/runtimeEvidence.js"),
     "utf8",
   );
+  const verificationReceiptSource = fs.readFileSync(
+    path.join(repoRoot, "fixthis-mcp/src/main/console/verificationReceipt.js"),
+    "utf8",
+  );
   const apiSource = fs.readFileSync(path.join(repoRoot, "fixthis-mcp/src/main/console/api.js"), "utf8");
   if (!runtimeEvidenceSource.includes('id="collectRuntimeEvidenceButton"')) {
     throw new Error("Saved annotation detail must expose the diagnostics collection control.");
@@ -33,6 +37,21 @@ function runConsoleContractGuards() {
   }
   if (runtimeEvidenceSource.includes("localStorage")) {
     throw new Error("Runtime diagnostics policy must remain session-scoped.");
+  }
+  if (!detailSource.includes("verificationBadgeHtml(state.session, item)")) {
+    throw new Error("Saved annotation rows must render verification state from the refreshed session.");
+  }
+  if (!detailSource.includes("verificationReceiptSectionHtml(state.session, item)")) {
+    throw new Error("Saved annotation detail must render verification receipt evidence.");
+  }
+  if (!verificationReceiptSource.includes("/api/verification-receipts/")) {
+    throw new Error("Verification receipt detail must use the contained after-screenshot route.");
+  }
+  if (!verificationReceiptSource.includes("encodeURIComponent(String(session.sessionId))")) {
+    throw new Error("Verification receipt screenshot routes must encode the explicit session id.");
+  }
+  if (/setInterval|setTimeout|\bpoll(?:ing)?\b/i.test(verificationReceiptSource)) {
+    throw new Error("Verification receipt rendering must remain refresh-driven without timers or polling.");
   }
   if (!apiSource.includes("X-FixThis-Console-Token")) {
     throw new Error("Console mutation requests must keep token header wiring.");
