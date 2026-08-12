@@ -136,7 +136,14 @@ class AnnotationWorkflow(
         itemId: String,
         status: AnnotationStatusDto,
         summary: String?,
-    ): AnnotationDto = store.updateItemStatus(sessionId, itemId, status, agentSummary = summary)
+        verificationReceiptId: String? = null,
+    ): AnnotationDto = store.updateItemStatus(
+        sessionId,
+        itemId,
+        status,
+        agentSummary = summary,
+        verificationReceiptId = verificationReceiptId,
+    )
 
     fun claimFeedback(
         sessionId: String,

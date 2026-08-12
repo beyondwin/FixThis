@@ -31,10 +31,6 @@ private const val READ_FEEDBACK_DESCRIPTION =
     "Read the feedback queue as annotation JSON and Markdown. " +
         "By default returns only SENT items that are not yet resolved. " +
         "Pass includeAll=true to receive everything; passing itemId always returns that item regardless of state."
-private const val RESOLVE_FEEDBACK_DESCRIPTION =
-    "Mark a feedback item as resolved, needing clarification, or not fixed. " +
-        "Call this after claiming an item with fixthis_claim_feedback and finishing the work. " +
-        "Status must be one of resolved, needs_clarification, wont_fix."
 private const val CLAIM_FEEDBACK_DESCRIPTION =
     "Mark a feedback item as in-progress before starting work. " +
         "Call this AFTER reading the item and BEFORE making code changes. Returns the updated item. " +
@@ -47,7 +43,7 @@ private const val COLLECT_RUNTIME_EVIDENCE_DESCRIPTION =
     "Collect bounded local Android runtime evidence for a feedback item through an allowlisted preset. " +
         "Returns capture metadata and summaries only; raw collector output remains in ignored local artifacts."
 
-private data class ToolDefinition(
+internal data class ToolDefinition(
     val name: String,
     val description: String,
     val inputSchema: JsonObject,
@@ -171,17 +167,8 @@ private val ToolDefinitions = listOf(
             "includeAll" to booleanProperty("If true, returns DRAFT and resolved items too."),
         ),
     ),
-    ToolDefinition(
-        name = "fixthis_resolve_feedback",
-        description = RESOLVE_FEEDBACK_DESCRIPTION,
-        inputSchema = objectSchema(
-            "sessionId" to stringProperty("Feedback session id. If omitted, the active session is used."),
-            "itemId" to stringProperty("Feedback item id to update."),
-            "status" to stringProperty("One of resolved, needs_clarification, or wont_fix."),
-            "summary" to stringProperty("Agent summary shown in the console."),
-            required = listOf("itemId", "status"),
-        ),
-    ),
+    verifyFeedbackToolDefinition(),
+    resolveFeedbackToolDefinition(),
     ToolDefinition(
         name = "fixthis_claim_feedback",
         description = CLAIM_FEEDBACK_DESCRIPTION,
@@ -246,7 +233,7 @@ private val ResourceDefinitions = listOf(
     ),
 )
 
-private fun objectSchema(
+internal fun objectSchema(
     vararg properties: Pair<String, JsonObject>,
     required: List<String> = emptyList(),
 ): JsonObject = buildJsonObject {
@@ -263,7 +250,7 @@ private fun objectSchema(
     put("additionalProperties", false)
 }
 
-private fun stringProperty(description: String): JsonObject = buildJsonObject {
+internal fun stringProperty(description: String): JsonObject = buildJsonObject {
     put("type", "string")
     put("description", description)
 }

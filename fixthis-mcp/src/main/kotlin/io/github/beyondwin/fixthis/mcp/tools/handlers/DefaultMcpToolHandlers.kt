@@ -1,6 +1,7 @@
 package io.github.beyondwin.fixthis.mcp.tools.handlers
 
 import io.github.beyondwin.fixthis.mcp.tools.FeedbackToolOperations
+import io.github.beyondwin.fixthis.mcp.tools.FeedbackVerificationToolOperations
 import io.github.beyondwin.fixthis.mcp.tools.RuntimeEvidenceToolOperations
 import io.github.beyondwin.fixthis.mcp.tools.ScreenToolOperations
 import kotlinx.serialization.json.JsonObject
@@ -8,6 +9,7 @@ import kotlinx.serialization.json.JsonObject
 internal fun defaultMcpToolHandlers(
     screenOps: ScreenToolOperations,
     feedbackOps: FeedbackToolOperations,
+    feedbackVerificationOps: FeedbackVerificationToolOperations,
     runtimeEvidenceOps: RuntimeEvidenceToolOperations,
 ): List<McpToolHandler> = listOf(
     OperationBackedToolHandler("fixthis_status", screenOps::status),
@@ -19,6 +21,7 @@ internal fun defaultMcpToolHandlers(
     OperationBackedToolHandler("fixthis_navigate_app", feedbackOps::navigateApp),
     OperationBackedToolHandler("fixthis_list_feedback", feedbackOps::listFeedback),
     OperationBackedToolHandler("fixthis_read_feedback", feedbackOps::readFeedback),
+    OperationBackedToolHandler("fixthis_verify_feedback", feedbackVerificationOps::verifyFeedback),
     OperationBackedToolHandler("fixthis_resolve_feedback", feedbackOps::resolveFeedback),
     OperationBackedToolHandler("fixthis_claim_feedback", feedbackOps::claimFeedback),
     OperationBackedToolHandler("fixthis_capture_runtime_evidence", runtimeEvidenceOps::attachSummary),

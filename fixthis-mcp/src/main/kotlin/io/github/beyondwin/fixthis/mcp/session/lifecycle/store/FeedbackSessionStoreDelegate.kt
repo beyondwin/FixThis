@@ -339,9 +339,10 @@ internal class FeedbackSessionStoreDelegate(
         itemId: String,
         status: AnnotationStatusDto,
         agentSummary: String?,
+        verificationReceiptId: String? = null,
     ): AnnotationDto = withEventBackedMutation(sessionId, "updateItemStatus") {
         val session = getSessionLocked(sessionId)
-        val (updated, item) = mutations.updateItemStatus(session, itemId, status, agentSummary)
+        val (updated, item) = mutations.updateItemStatus(session, itemId, status, agentSummary, verificationReceiptId)
         EventBackedMutation(SessionEventPayloadFactory.items(sessionId, updated.items)) {
             commitSessionMutation(session, updated)
             item

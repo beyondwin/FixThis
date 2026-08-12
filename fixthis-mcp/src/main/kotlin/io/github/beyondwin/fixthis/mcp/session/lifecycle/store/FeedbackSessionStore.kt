@@ -110,7 +110,14 @@ class FeedbackSessionStore(
         itemId: String,
         status: AnnotationStatusDto,
         agentSummary: String?,
-    ): AnnotationDto = delegate.updateItemStatus(sessionId, itemId, status, agentSummary)
+        verificationReceiptId: String? = null,
+    ): AnnotationDto = delegate.updateItemStatus(
+        sessionId,
+        itemId,
+        status,
+        agentSummary,
+        verificationReceiptId,
+    )
 
     fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = delegate.claimFeedback(sessionId, itemId, agentNote)
 

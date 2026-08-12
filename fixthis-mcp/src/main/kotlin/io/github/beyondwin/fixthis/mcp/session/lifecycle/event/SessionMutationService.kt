@@ -7,6 +7,7 @@ import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
 import io.github.beyondwin.fixthis.mcp.session.dto.migratedNextItemSequenceNumber
 import io.github.beyondwin.fixthis.mcp.session.handoff.FeedbackDelivery
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionException
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationVerdict
 
 internal class SessionMutationService(
     private val clock: () -> Long,
@@ -96,6 +97,7 @@ internal class SessionMutationService(
         itemId: String,
         status: AnnotationStatusDto,
         summary: String?,
+        verificationReceiptId: String? = null,
     ): Pair<SessionDto, AnnotationDto> {
         val allowedStatuses = setOf(
             AnnotationStatusDto.RESOLVED,
@@ -105,6 +107,7 @@ internal class SessionMutationService(
         require(status in allowedStatuses) {
             "Agent resolution status is not allowed: $status"
         }
+        validateResolutionReceipt(session, itemId, status, verificationReceiptId)
         val now = clock()
         var updatedItem: AnnotationDto? = null
         val updatedItems = session.items.map { item ->
@@ -112,6 +115,7 @@ internal class SessionMutationService(
                 item.copy(
                     status = status,
                     agentSummary = summary,
+                    resolutionVerificationReceiptId = verificationReceiptId,
                     updatedAtEpochMillis = now,
                 ).also { updatedItem = it }
             } else {
@@ -121,4 +125,42 @@ internal class SessionMutationService(
         val item = updatedItem ?: throw FeedbackSessionException("Unknown feedback item: $itemId")
         return session.copy(items = updatedItems, updatedAtEpochMillis = now) to item
     }
+
+    private fun validateResolutionReceipt(
+        session: SessionDto,
+        itemId: String,
+        status: AnnotationStatusDto,
+        verificationReceiptId: String?,
+    ) {
+        if (verificationReceiptId == null) return
+        val receipt = session.verificationReceipts.singleOrNull { it.receiptId == verificationReceiptId }
+            ?: resolutionReceiptError(
+                "VERIFICATION_RECEIPT_NOT_FOUND:",
+                "Unknown verification receipt: $verificationReceiptId",
+            )
+        requireResolutionReceipt(
+            status == AnnotationStatusDto.RESOLVED && receipt.itemId == itemId,
+            "VERIFICATION_RECEIPT_MISMATCH:",
+            "Receipt $verificationReceiptId cannot resolve item $itemId",
+        )
+        requireResolutionReceipt(
+            receipt.verdict != FeedbackVerificationVerdict.FAIL,
+            "VERIFICATION_RECEIPT_FAILED:",
+            "Receipt $verificationReceiptId did not pass verification",
+        )
+        val latestReceipt = session.verificationReceipts
+            .filter { it.itemId == itemId }
+            .maxWithOrNull(compareBy({ it.createdAtEpochMillis }, { it.receiptId }))
+        requireResolutionReceipt(
+            latestReceipt?.receiptId == verificationReceiptId,
+            "VERIFICATION_RECEIPT_NOT_LATEST:",
+            "Receipt $verificationReceiptId is not the latest for item $itemId",
+        )
+    }
+
+    private fun requireResolutionReceipt(condition: Boolean, prefix: String, detail: String) {
+        if (!condition) resolutionReceiptError(prefix, detail)
+    }
+
+    private fun resolutionReceiptError(prefix: String, detail: String): Nothing = throw FeedbackSessionException("$prefix $detail")
 }

@@ -81,6 +81,7 @@ class McpProtocolTest {
         assertTrue("fixthis_status" in tools)
         assertTrue("fixthis_get_current_screen" in tools)
         assertTrue("fixthis_open_feedback_console" in tools)
+        assertTrue("fixthis_verify_feedback" in tools)
         assertTrue("fixthis_resolve_feedback" in tools)
         assertTrue("fixthis_capture_runtime_evidence" in tools)
         assertTrue("fixthis_collect_runtime_evidence" in tools)
@@ -242,6 +243,7 @@ class McpProtocolTest {
                 "fixthis_navigate_app",
                 "fixthis_list_feedback",
                 "fixthis_read_feedback",
+                "fixthis_verify_feedback",
                 "fixthis_resolve_feedback",
                 "fixthis_claim_feedback",
                 "fixthis_capture_runtime_evidence",
@@ -278,6 +280,15 @@ class McpProtocolTest {
         val description = resolve.jsonObject["description"]!!.jsonPrimitive.content
         assertTrue(description, description.contains("after claiming", ignoreCase = true))
     }
+
+    @Test
+    fun verifyFeedbackToolPublishesTypedAssertionArrayAndReceiptAwareResolve() = FeedbackVerificationMcpProtocolContract.verifySchema()
+
+    @Test
+    fun verifyFeedbackReturnsOnlyBoundedPersistedReceiptInStructuredOutput() = FeedbackVerificationMcpProtocolContract.verifyResult()
+
+    @Test
+    fun verifyFeedbackParserDefersAssertionBudgetEnforcementToExistingValidator() = FeedbackVerificationMcpProtocolContract.verifyValidatorBudget()
 
     @Test
     fun readFeedbackSchemaAdvertisesDetailMode() {

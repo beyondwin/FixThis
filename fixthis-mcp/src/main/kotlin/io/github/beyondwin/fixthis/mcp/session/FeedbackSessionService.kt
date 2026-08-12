@@ -379,7 +379,14 @@ class FeedbackSessionService(
         itemId: String,
         status: AnnotationStatusDto,
         summary: String?,
-    ): AnnotationDto = annotations.resolveFeedback(sessionId, itemId, status, summary)
+        verificationReceiptId: String? = null,
+    ): AnnotationDto = annotations.resolveFeedback(
+        sessionId,
+        itemId,
+        status,
+        summary,
+        verificationReceiptId,
+    )
 
     fun claimFeedback(sessionId: String, itemId: String, agentNote: String?): AnnotationDto = annotations.claimFeedback(sessionId, itemId, agentNote)
 

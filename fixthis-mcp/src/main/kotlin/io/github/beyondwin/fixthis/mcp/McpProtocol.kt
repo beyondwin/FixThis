@@ -182,9 +182,14 @@ internal fun textContent(text: String, mimeType: String? = null): JsonObject = b
     put("text", text)
 }
 
-internal fun toolResult(isError: Boolean = false, content: List<JsonObject>): JsonObject = buildJsonObject {
+internal fun toolResult(
+    isError: Boolean = false,
+    content: List<JsonObject>,
+    structuredContent: JsonObject? = null,
+): JsonObject = buildJsonObject {
     put("content", buildJsonArray { content.forEach { add(it) } })
     put("isError", isError)
+    structuredContent?.let { put("structuredContent", it) }
 }
 
 internal fun resourceText(uri: String, text: String, mimeType: String = "application/json"): JsonObject = buildJsonObject {

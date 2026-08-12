@@ -129,7 +129,14 @@ internal class FeedbackToolOperations(
         val status = arguments.stringParam("status")?.takeIf { it.isNotBlank() }?.toFeedbackItemStatus()
             ?: throw FixThisToolException("fixthis_resolve_feedback requires status")
         val summary = arguments.stringParam("summary")
-        val item = feedbackService.resolveFeedback(session.sessionId, itemId, status, summary)
+        val verificationReceiptId = arguments.stringParam("verificationReceiptId")?.takeIf { it.isNotBlank() }
+        val item = feedbackService.resolveFeedback(
+            session.sessionId,
+            itemId,
+            status,
+            summary,
+            verificationReceiptId,
+        )
         jsonToolResult(McpProtocol.json.encodeToJsonElement(AnnotationDto.serializer(), item).jsonObject)
     }
 
