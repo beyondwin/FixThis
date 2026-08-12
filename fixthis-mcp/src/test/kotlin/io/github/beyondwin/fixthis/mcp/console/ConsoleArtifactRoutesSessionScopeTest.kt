@@ -6,6 +6,9 @@ import io.github.beyondwin.fixthis.mcp.fixtures.FakeLongs
 import io.github.beyondwin.fixthis.mcp.fixtures.SessionScreenshotBridge
 import io.github.beyondwin.fixthis.mcp.session.FeedbackSessionService
 import io.github.beyondwin.fixthis.mcp.session.lifecycle.store.FeedbackSessionStore
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationVerdict
+import java.io.File
 import java.net.URLEncoder
 import java.nio.file.Files
 import kotlin.test.Test
@@ -138,5 +141,176 @@ class ConsoleArtifactRoutesSessionScopeTest {
         }
     }
 
+    @Test
+    fun verificationAfterScreenshotUsesExplicitSessionIdWhenCurrentSessionChanged() = withReceiptFixture(
+        switchCurrentSession = true,
+    ) { fixture ->
+        val response = fixture.getAfterScreenshot(sessionId = fixture.session.sessionId)
+
+        assertEquals(200, response.statusCode)
+        assertTrue(response.contentTypeStartsWith("image/png"))
+    }
+
+    @Test
+    fun verificationAfterScreenshotUsesCurrentSessionWithoutExplicitSessionId() = withReceiptFixture { fixture ->
+        val response = fixture.getAfterScreenshot(sessionId = null)
+
+        assertEquals(200, response.statusCode)
+        assertTrue(response.contentTypeStartsWith("image/png"))
+    }
+
+    @Test
+    fun verificationAfterScreenshotRejectsReceiptOutsideExplicitSession() = withReceiptFixture(
+        switchCurrentSession = true,
+    ) { fixture ->
+        assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.otherSessionId).statusCode)
+    }
+
+    @Test
+    fun verificationAfterScreenshotRejectsOutsideRootAndWrongExtension() {
+        val outside = Files.createTempFile("fixthis-receipt-outside", ".png").toFile()
+        try {
+            withReceiptFixture(artifactPath = { outside }) { fixture ->
+                assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
+            }
+        } finally {
+            outside.delete()
+        }
+        withReceiptFixture(artifactPath = { fixture -> File(fixture.receiptDirectory, "after.jpg") }) { fixture ->
+            assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
+        }
+    }
+
+    @Test
+    fun verificationAfterScreenshotRejectsMissingNonRegularAndSymlinkArtifacts() {
+        withReceiptFixture(
+            artifactPath = { fixture -> File(fixture.receiptDirectory, "missing.png") },
+            createArtifact = false,
+        ) { fixture ->
+            assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
+        }
+        withReceiptFixture(
+            artifactPath = { fixture -> File(fixture.receiptDirectory, "directory.png") },
+            createArtifact = false,
+        ) { fixture ->
+            fixture.artifactFile.parentFile.mkdirs()
+            assertTrue(fixture.artifactFile.mkdir())
+            assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
+        }
+        withReceiptFixture(
+            artifactPath = { fixture -> File(fixture.receiptDirectory, "linked.png") },
+            createArtifact = false,
+        ) { fixture ->
+            fixture.artifactFile.parentFile.mkdirs()
+            val target = File(fixture.receiptDirectory, "target.png")
+            target.writeBytes(png)
+            Files.createSymbolicLink(fixture.artifactFile.toPath(), target.toPath())
+
+            assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
+        }
+    }
+
+    @Test
+    fun verificationAfterScreenshotDecodesReceiptIdAndRejectsTraversalId() {
+        withReceiptFixture(receiptId = "receipt encoded") { fixture ->
+            val response = fixture.getAfterScreenshot(sessionId = fixture.session.sessionId)
+
+            assertEquals(200, response.statusCode)
+            assertTrue(response.contentTypeStartsWith("image/png"))
+        }
+        withReceiptFixture { fixture ->
+            val response = fixture.getAfterScreenshot(
+                receiptId = "%2E%2E%2F${encode(fixture.receiptId)}",
+                sessionId = fixture.session.sessionId,
+                encodedReceiptId = true,
+            )
+
+            assertEquals(404, response.statusCode)
+        }
+    }
+
+    private fun withReceiptFixture(
+        receiptId: String = "receipt-a",
+        switchCurrentSession: Boolean = false,
+        artifactPath: ((ReceiptFixture) -> File)? = null,
+        createArtifact: Boolean = true,
+        block: (ReceiptFixture) -> Unit,
+    ) {
+        val root = Files.createTempDirectory("fixthis-receipt-artifact").toFile()
+        val store = FeedbackSessionStore(
+            clock = FakeLongs(100L, 200L, 300L, 400L, 500L).next,
+            idGenerator = FakeIds("session-a", "session-b").next,
+        )
+        val service = FeedbackSessionService(
+            bridge = SessionScreenshotBridge(png),
+            store = store,
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val provisional = ReceiptFixture(
+            session = session,
+            otherSessionId = "session-b",
+            receiptId = receiptId,
+            receiptDirectory = File(root, ".fixthis/feedback-sessions/${session.sessionId}/verification/$receiptId"),
+            artifactFile = File(root, "unused"),
+            client = null,
+        )
+        val artifactFile = artifactPath?.invoke(provisional) ?: File(provisional.receiptDirectory, "after.png")
+        if (createArtifact) {
+            artifactFile.parentFile?.mkdirs()
+            if (!artifactFile.exists()) artifactFile.writeBytes(png)
+        }
+        store.replaceSessionForDomain(
+            session.copy(
+                verificationReceipts = listOf(
+                    FeedbackVerificationReceiptDto(
+                        receiptId = receiptId,
+                        itemId = "item-a",
+                        baselineScreenId = "screen-a",
+                        createdAtEpochMillis = 100L,
+                        verdict = FeedbackVerificationVerdict.PASS,
+                        checks = emptyList(),
+                        assertions = emptyList(),
+                        afterScreenshot = io.github.beyondwin.fixthis.mcp.session.dto.SnapshotScreenshotDto(
+                            desktopFullPath = artifactFile.absolutePath,
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val otherSessionId = if (switchCurrentSession) service.openSession(null, newSession = true).sessionId else session.sessionId
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            block(provisional.copy(otherSessionId = otherSessionId, artifactFile = artifactFile, client = ConsoleHttpTestClient(server.url)))
+        } finally {
+            server.stop()
+            root.deleteRecursively()
+        }
+    }
+
+    private data class ReceiptFixture(
+        val session: io.github.beyondwin.fixthis.mcp.session.dto.SessionDto,
+        val otherSessionId: String,
+        val receiptId: String,
+        val receiptDirectory: File,
+        val artifactFile: File,
+        val client: ConsoleHttpTestClient?,
+    ) {
+        fun getAfterScreenshot(
+            receiptId: String = this.receiptId,
+            sessionId: String?,
+            encodedReceiptId: Boolean = false,
+        ) = checkNotNull(client).getResponse(
+            "/api/verification-receipts/${if (encodedReceiptId) receiptId else URLEncoder.encode(receiptId, Charsets.UTF_8.name())}/screenshot/after" +
+                sessionId?.let { "?sessionId=${URLEncoder.encode(it, Charsets.UTF_8.name())}" }.orEmpty(),
+        )
+    }
+
     private fun encode(value: String): String = URLEncoder.encode(value, Charsets.UTF_8.name())
+
+    private companion object {
+        val png = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47)
+    }
 }
