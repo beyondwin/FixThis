@@ -11,6 +11,7 @@ internal data class VerificationArtifactStoreHooks(
     val afterFallbackFileOpenedBeforeValidation: (java.nio.file.Path) -> Unit = {},
     val beforeFallbackFileCreate: (java.nio.file.Path) -> Unit = {},
     val beforeFallbackDirectoryCreate: (java.nio.file.Path) -> Unit = {},
+    val afterDirectoryCreateIdentityCaptured: (java.nio.file.Path) -> Unit = {},
     val beforeFallbackDelete: (java.nio.file.Path) -> Unit = {},
     val beforeFallbackMove: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
     val beforeAtomicMoveFallback: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },

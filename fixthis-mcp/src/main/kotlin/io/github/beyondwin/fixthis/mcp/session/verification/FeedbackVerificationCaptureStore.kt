@@ -48,11 +48,13 @@ internal class FeedbackVerificationCaptureStore(
         val directoryName = directoryName(receiptId)
         access.ensureProjectDescendant(parentSegments)
         access.withProjectDirectory(parentSegments) { parent ->
-            var created = false
+            var createdFileKey: Any? = null
             try {
-                access.files.createTemporaryDirectoryChild(parent, directoryName)
-                created = true
+                createdFileKey = access.files.createTemporaryDirectoryChild(parent, directoryName)
                 access.withChildDirectory(parent, directoryName) { directory ->
+                    artifactRequire(directory.fileKey == createdFileKey) {
+                        "Verification capture directory ownership changed during reservation"
+                    }
                     OwnedVerificationCapture.issue(
                         storeCapability = storeCapability,
                         sessionId = session.sessionId,
@@ -62,7 +64,9 @@ internal class FeedbackVerificationCaptureStore(
                     )
                 }
             } catch (failure: Exception) {
-                if (created) runCatching { access.files.deleteEntryRecursively(parent, directoryName) }
+                createdFileKey?.let { fileKey ->
+                    runCatching { deleteOwnedDirectoryIfPresent(access, parent, directoryName, fileKey) }
+                }
                 throw failure
             }
         }

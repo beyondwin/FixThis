@@ -51,16 +51,7 @@ internal class VerificationArtifactFileOperations(
         }
     }
 
-    fun createTemporaryDirectoryChild(parent: VerificationDirectoryHandle, name: String) {
-        access.assertBound(parent)
-        val target = parent.absolute.resolve(name)
-        if (parent.stream == null) {
-            hooks.beforeFallbackDirectoryCreate(target)
-            access.assertBound(parent)
-        }
-        Files.createDirectory(target)
-        access.assertBound(parent)
-    }
+    fun createTemporaryDirectoryChild(parent: VerificationDirectoryHandle, name: String): Any = createOwnedDirectoryChild(access, hooks, parent, name)
 
     fun moveDirectory(
         parent: VerificationDirectoryHandle,
