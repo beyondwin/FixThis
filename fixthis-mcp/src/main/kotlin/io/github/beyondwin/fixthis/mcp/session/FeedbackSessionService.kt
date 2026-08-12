@@ -42,8 +42,16 @@ import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceService
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceSummarizer
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import io.github.beyondwin.fixthis.mcp.session.runtime.SendDraftToAgentWithRuntimeEvidenceResult
+import io.github.beyondwin.fixthis.mcp.session.source.HostSourceFreshnessProbe
 import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationArtifactStore
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationCoordinator
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationRequest
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationSessionAccess
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationStartContext
 import io.github.beyondwin.fixthis.mcp.tools.FixThisBridge
 import io.github.beyondwin.fixthis.mcp.tools.RuntimeEvidenceBridge
 import io.github.beyondwin.fixthis.mcp.tools.UnavailableRuntimeEvidenceBridge
@@ -152,6 +160,32 @@ class FeedbackSessionService(
             )
         },
     )
+    private val feedbackVerificationCoordinator = FeedbackVerificationCoordinator(
+        bridge = bridge,
+        sessionAccess = object : FeedbackVerificationSessionAccess {
+            override fun getSession(sessionId: String): SessionDto = store.getSession(sessionId)
+
+            override fun captureContext(
+                sessionId: String,
+                itemId: String,
+                assertions: List<FeedbackVerificationAssertionDto>,
+            ): FeedbackVerificationStartContext = store.captureVerificationContext(sessionId, itemId, assertions)
+
+            override fun validateContext(context: FeedbackVerificationStartContext) {
+                store.validateVerificationContext(context)
+            }
+
+            override fun attachReceipt(
+                context: FeedbackVerificationStartContext,
+                receipt: FeedbackVerificationReceiptDto,
+            ): SessionDto = store.attachVerificationReceipt(context, receipt)
+        },
+        previewCaptureService = previewCaptureService,
+        targetEvidenceService = targetEvidenceService,
+        freshnessProbe = HostSourceFreshnessProbe(configuredProjectRoot),
+        artifactStore = FeedbackVerificationArtifactStore(configuredProjectRoot),
+        idGenerator = { store.nextId() },
+    )
 
     // --- Session lifecycle (delegates to FeedbackSessionRegistry) ---
 
@@ -230,6 +264,14 @@ class FeedbackSessionService(
     fun previewScreenshotFile(sessionId: String, previewId: String): File = evidence.previewScreenshotFile(sessionId, previewId)
 
     suspend fun navigate(sessionId: String, request: FeedbackNavigationRequest): FeedbackNavigationResult = evidence.navigate(sessionId, request)
+
+    suspend fun verifyFeedback(
+        sessionId: String,
+        itemId: String,
+        assertions: List<FeedbackVerificationAssertionDto>,
+    ): FeedbackVerificationReceiptDto = feedbackVerificationCoordinator.verify(
+        FeedbackVerificationRequest(sessionId, itemId, assertions),
+    )
 
     // --- Annotation CRUD (delegates to AnnotationWorkflow) ---
 

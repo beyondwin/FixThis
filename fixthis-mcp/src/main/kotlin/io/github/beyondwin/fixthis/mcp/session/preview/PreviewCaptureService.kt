@@ -38,15 +38,14 @@ class PreviewCaptureService(
             session.projectRoot,
             ".fixthis/preview-cache/${session.sessionId}/$previewId",
         )
-        val payload = bridge.captureScreenSnapshot(
-            packageName = session.packageName,
-            sessionId = session.sessionId,
-            screenId = screenId,
-            destinationDirectory = artifactDirectory,
-        )
         val preview = FeedbackPreviewSnapshot(
             previewId = previewId,
-            screen = payload.toCapturedScreen(screenId = screenId, fallbackDisplayName = "Draft screen"),
+            screen = captureCurrentScreen(
+                session = session,
+                screenId = screenId,
+                destinationDirectory = artifactDirectory,
+                displayName = "Draft screen",
+            ),
         )
         val sourceIndex = targetEvidenceService.readSourceIndexOrNull(session.packageName, preview.screen)
         previewCache.put(
@@ -69,17 +68,28 @@ class PreviewCaptureService(
             ".fixthis/preview-cache/${session.sessionId}/fingerprint-$probeId",
         )
         return try {
-            val payload = bridge.captureScreenSnapshot(
-                packageName = session.packageName,
-                sessionId = session.sessionId,
+            captureCurrentScreen(
+                session = session,
                 screenId = probeId,
                 destinationDirectory = artifactDirectory,
+                displayName = "Current screen",
             )
-            payload.toCapturedScreen(screenId = probeId, fallbackDisplayName = "Current screen")
         } finally {
             artifactDirectory.deleteRecursively()
         }
     }
+
+    internal suspend fun captureCurrentScreen(
+        session: SessionDto,
+        screenId: String,
+        destinationDirectory: File,
+        displayName: String,
+    ): SnapshotDto = bridge.captureScreenSnapshot(
+        packageName = session.packageName,
+        sessionId = session.sessionId,
+        screenId = screenId,
+        destinationDirectory = destinationDirectory,
+    ).toCapturedScreen(screenId, displayName)
 
     fun previewScreenshotFile(sessionId: String, previewId: String): File {
         previewCache.get(sessionId, previewId)?.let { record ->

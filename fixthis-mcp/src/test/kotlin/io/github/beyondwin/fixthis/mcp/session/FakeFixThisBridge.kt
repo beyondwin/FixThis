@@ -49,6 +49,11 @@ internal class FakeFixThisBridge(
         private set
     var selectedDeviceSerial: String? = null
         private set
+    var statusError: Throwable? = null
+    var statusActivity: String? = "MainActivity"
+    var statusPackageName: String? = null
+    var installEpochMillis: Long? = null
+    var captureActivity: String? = "MainActivity"
 
     override fun resolvePackageName(packageOverride: String?): String {
         resolvedOverrides += packageOverride
@@ -80,8 +85,11 @@ internal class FakeFixThisBridge(
 
     override suspend fun status(packageName: String): JsonObject {
         statusCount += 1
+        statusError?.let { throw it }
         return statusProvider?.invoke() ?: buildJsonObject {
-            put("activity", "MainActivity")
+            statusActivity?.let { put("activity", it) }
+            statusPackageName?.let { put("packageName", it) }
+            installEpochMillis?.let { put("installEpochMillis", it) }
         }
     }
 
@@ -121,12 +129,12 @@ internal class FakeFixThisBridge(
         lastCaptureDestination = destinationDirectory?.absolutePath
         captureCount = nextCaptureCount
         val payload = buildJsonObject {
-            put("activity", "MainActivity")
+            captureActivity?.let { put("activity", it) }
             put("sourceIndexAvailable", sourceIndexAvailable)
             put(
                 "inspection",
                 buildJsonObject {
-                    put("activity", "MainActivity")
+                    captureActivity?.let { put("activity", it) }
                     put(
                         "roots",
                         JsonArray(
