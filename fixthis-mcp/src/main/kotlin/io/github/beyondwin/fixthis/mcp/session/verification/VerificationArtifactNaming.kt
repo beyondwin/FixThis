@@ -13,6 +13,10 @@ internal data class VerificationArtifactStoreHooks(
     val beforeFallbackDirectoryCreate: (java.nio.file.Path) -> Unit = {},
     val afterDirectoryCreateIdentityCaptured: (java.nio.file.Path) -> Unit = {},
     val afterOwnedDirectoryIdentityValidatedBeforeDelete: (java.nio.file.Path) -> Unit = {},
+    val captureCleanupClaimName: () -> String = {
+        ".capture-cleanup-${java.util.UUID.randomUUID().toString().replace("-", "")}"
+    },
+    val afterOwnedDirectoryClaimedBeforeTraversal: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
     val beforeFallbackDelete: (java.nio.file.Path) -> Unit = {},
     val beforeFallbackMove: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },
     val beforeAtomicMoveFallback: (java.nio.file.Path, java.nio.file.Path) -> Unit = { _, _ -> },

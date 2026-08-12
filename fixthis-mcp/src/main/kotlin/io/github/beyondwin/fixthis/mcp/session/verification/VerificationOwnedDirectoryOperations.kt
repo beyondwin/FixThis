@@ -4,7 +4,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.UUID
 
 internal fun createOwnedDirectoryChild(
     access: VerificationArtifactDirectoryAccess,
@@ -33,97 +32,133 @@ internal fun deleteOwnedDirectoryIfPresent(
     fileKey: Any,
 ) {
     if (!access.entryExists(parent, name)) return
-    if (parent.stream == null) {
-        deleteAtomicallyClaimedOwnedDirectory(access, hooks, parent, name, fileKey)
-    } else {
-        deleteSecureOwnedDirectory(access, hooks, parent, name, fileKey)
-    }
-}
-
-private fun deleteSecureOwnedDirectory(
-    access: VerificationArtifactDirectoryAccess,
-    hooks: VerificationArtifactStoreHooks,
-    parent: VerificationDirectoryHandle,
-    name: String,
-    fileKey: Any,
-) {
-    val secureParent = checkNotNull(parent.stream)
-    access.withChildDirectory(parent, name) { directory ->
-        artifactRequire(directory.fileKey == fileKey) {
-            "Verification capture directory ownership changed before deletion"
-        }
-        hooks.afterOwnedDirectoryIdentityValidatedBeforeDelete(directory.absolute)
-        access.assertBound(directory)
-        deleteOwnedDirectoryContents(access, directory)
-        access.assertBound(directory)
-        val current = access.attributes(parent, name)
-        artifactRequire(isOwnedDirectory(current, fileKey)) {
-            "Verification capture directory ownership changed before unlink"
-        }
-        access.assertBound(directory)
-        secureParent.deleteDirectory(Path.of(name))
-        access.assertBound(parent)
-    }
-}
-
-private fun deleteAtomicallyClaimedOwnedDirectory(
-    access: VerificationArtifactDirectoryAccess,
-    hooks: VerificationArtifactStoreHooks,
-    parent: VerificationDirectoryHandle,
-    name: String,
-    fileKey: Any,
-) {
     artifactRequire(isOwnedDirectory(access.attributes(parent, name), fileKey)) {
         "Verification capture directory ownership changed before atomic cleanup claim"
     }
     val source = parent.absolute.resolve(name)
     hooks.afterOwnedDirectoryIdentityValidatedBeforeDelete(source)
     access.assertBound(parent)
-    val claimedName = ".capture-cleanup-${UUID.randomUUID().toString().replace("-", "")}"
+    val claimedName = hooks.captureCleanupClaimName()
     VerificationArtifactNaming.validateSegment(claimedName, "capture cleanup claim")
-    artifactRequire(!access.entryExists(parent, claimedName)) {
-        "Verification capture cleanup claim already exists"
-    }
-    val claimed = parent.absolute.resolve(claimedName)
-    hooks.beforeFallbackMove(source, claimed)
-    access.assertBound(parent)
-    Files.move(source, claimed, StandardCopyOption.ATOMIC_MOVE)
-    access.assertBound(parent)
-    val claimedAttributes = access.attributes(parent, claimedName)
-    if (!isOwnedDirectory(claimedAttributes, fileKey)) {
-        restoreUnownedAtomicClaim(access, hooks, parent, name, claimedName)
-        throw FeedbackVerificationArtifactException(
-            "Verification capture directory ownership changed during atomic cleanup claim",
-        )
-    }
-    access.withChildDirectory(parent, claimedName) { directory ->
-        artifactRequire(directory.fileKey == fileKey) {
-            "Verification capture directory ownership changed after atomic cleanup claim"
+    val quarantineFileKey = access.files.createTemporaryDirectoryChild(parent, claimedName)
+    val claimedChildName = "owned"
+    var claimedChildPresent = false
+    runCatching {
+        access.withChildDirectory(parent, claimedName) { quarantine ->
+            artifactRequire(quarantine.fileKey == quarantineFileKey) {
+                "Verification capture cleanup quarantine ownership changed after creation"
+            }
+            claimOwnedDirectory(
+                context = CleanupClaimContext(access, hooks, parent, quarantine),
+                sourceName = name,
+                claimedName = claimedChildName,
+            )
+            claimedChildPresent = true
+            if (!isOwnedDirectory(access.attributes(quarantine, claimedChildName), fileKey)) {
+                throw FeedbackVerificationArtifactException(
+                    "Verification capture directory ownership changed during cleanup claim; " +
+                        "the unowned entry remains recoverable at ${quarantine.absolute.resolve(claimedChildName)}",
+                )
+            }
+            hooks.afterOwnedDirectoryClaimedBeforeTraversal(source, quarantine.absolute.resolve(claimedChildName))
+            access.withChildDirectory(quarantine, claimedChildName) { claimed ->
+                artifactRequire(claimed.fileKey == fileKey) {
+                    "Verification capture directory ownership changed during cleanup claim"
+                }
+                deleteOwnedDirectoryContents(access, claimed)
+                access.assertBound(claimed)
+            }
+            deleteClaimedDirectory(access, hooks, quarantine, claimedChildName, fileKey)
+            claimedChildPresent = false
         }
-        deleteOwnedDirectoryContents(access, directory)
-        hooks.beforeFallbackDelete(claimed)
-        access.assertBound(directory)
-        artifactRequire(isOwnedDirectory(access.attributes(parent, claimedName), fileKey)) {
-            "Verification capture directory ownership changed before unlink"
+        deleteEmptyQuarantine(access, hooks, parent, claimedName, quarantineFileKey)
+    }.onFailure {
+        if (!claimedChildPresent) {
+            runCatching { deleteEmptyQuarantine(access, hooks, parent, claimedName, quarantineFileKey) }
         }
-        Files.delete(claimed)
-        access.assertBound(parent)
-    }
+    }.getOrThrow()
 }
 
-private fun restoreUnownedAtomicClaim(
+private data class CleanupClaimContext(
+    val access: VerificationArtifactDirectoryAccess,
+    val hooks: VerificationArtifactStoreHooks,
+    val sourceParent: VerificationDirectoryHandle,
+    val quarantine: VerificationDirectoryHandle,
+)
+
+private fun claimOwnedDirectory(
+    context: CleanupClaimContext,
+    sourceName: String,
+    claimedName: String,
+) {
+    val access = context.access
+    val hooks = context.hooks
+    val sourceParent = context.sourceParent
+    val quarantine = context.quarantine
+    access.assertBound(sourceParent)
+    access.assertBound(quarantine)
+    val source = sourceParent.absolute.resolve(sourceName)
+    val target = quarantine.absolute.resolve(claimedName)
+    if (sourceParent.stream != null && quarantine.stream != null) {
+        sourceParent.stream.move(Path.of(sourceName), quarantine.stream, Path.of(claimedName))
+    } else {
+        hooks.beforeFallbackMove(source, target)
+        access.assertBound(sourceParent)
+        access.assertBound(quarantine)
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE)
+    }
+    access.assertBound(sourceParent)
+    access.assertBound(quarantine)
+}
+
+private fun deleteClaimedDirectory(
+    access: VerificationArtifactDirectoryAccess,
+    hooks: VerificationArtifactStoreHooks,
+    quarantine: VerificationDirectoryHandle,
+    claimedName: String,
+    fileKey: Any,
+) {
+    artifactRequire(isOwnedDirectory(access.attributes(quarantine, claimedName), fileKey)) {
+        "Verification capture cleanup claim changed before unlink"
+    }
+    if (quarantine.stream != null) {
+        quarantine.stream.deleteDirectory(Path.of(claimedName))
+    } else {
+        val claimed = quarantine.absolute.resolve(claimedName)
+        hooks.beforeFallbackDelete(claimed)
+        access.assertBound(quarantine)
+        Files.delete(claimed)
+    }
+    access.assertBound(quarantine)
+}
+
+private fun deleteEmptyQuarantine(
     access: VerificationArtifactDirectoryAccess,
     hooks: VerificationArtifactStoreHooks,
     parent: VerificationDirectoryHandle,
-    originalName: String,
-    claimedName: String,
+    quarantineName: String,
+    quarantineFileKey: Any,
 ) {
-    if (access.entryExists(parent, originalName)) return
-    val claimed = parent.absolute.resolve(claimedName)
-    val original = parent.absolute.resolve(originalName)
-    hooks.beforeFallbackMove(claimed, original)
-    access.assertBound(parent)
-    Files.move(claimed, original, StandardCopyOption.ATOMIC_MOVE)
+    if (!access.entryExists(parent, quarantineName)) return
+    access.withChildDirectory(parent, quarantineName) { quarantine ->
+        artifactRequire(quarantine.fileKey == quarantineFileKey) {
+            "Verification capture cleanup quarantine ownership changed before unlink"
+        }
+        artifactRequire(access.entryNames(quarantine).isEmpty()) {
+            "Verification capture cleanup quarantine retained a recoverable claim"
+        }
+    }
+    artifactRequire(isOwnedDirectory(access.attributes(parent, quarantineName), quarantineFileKey)) {
+        "Verification capture cleanup quarantine ownership changed before unlink"
+    }
+    if (parent.stream != null) {
+        parent.stream.deleteDirectory(Path.of(quarantineName))
+    } else {
+        val quarantine = parent.absolute.resolve(quarantineName)
+        hooks.beforeFallbackDelete(quarantine)
+        access.assertBound(parent)
+        Files.delete(quarantine)
+    }
     access.assertBound(parent)
 }
 

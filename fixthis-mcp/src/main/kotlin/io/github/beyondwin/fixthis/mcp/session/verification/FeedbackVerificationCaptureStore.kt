@@ -36,9 +36,18 @@ internal class FeedbackVerificationCaptureStore(
 ) {
     private val storeCapability = Any()
     private val paths = VerificationArtifactPaths(projectRoot)
+    private val operationLocks = VerificationArtifactOperationLocks(paths, hooks)
     private val access = VerificationArtifactDirectoryAccess(paths, hooks)
 
     fun reserve(session: SessionDto, receiptId: String): OwnedVerificationCapture = try {
+        operationLocks.withReceiptLock(session.sessionId, receiptId) {
+            reserveLocked(session, receiptId)
+        }
+    } catch (failure: Exception) {
+        throw artifactFailure("reserve live capture", receiptId, failure)
+    }
+
+    private fun reserveLocked(session: SessionDto, receiptId: String): OwnedVerificationCapture = try {
         VerificationArtifactNaming.validateSessionId(session.sessionId)
         VerificationArtifactNaming.validateReceiptId(receiptId)
         artifactRequire(File(session.projectRoot).canonicalFile == paths.projectRoot) {
@@ -65,8 +74,14 @@ internal class FeedbackVerificationCaptureStore(
                     )
                 }
             } catch (failure: Exception) {
-                createdFileKey?.let { fileKey ->
-                    runCatching { deleteOwnedDirectoryIfPresent(access, hooks, parent, directoryName, fileKey) }
+                val rollbackFailure = createdFileKey?.let { fileKey ->
+                    runCatching {
+                        deleteOwnedDirectoryIfPresent(access, hooks, parent, directoryName, fileKey)
+                    }.exceptionOrNull()
+                }
+                if (rollbackFailure != null) {
+                    rollbackFailure.addSuppressed(failure)
+                    throw rollbackFailure
                 }
                 throw failure
             }
@@ -75,7 +90,15 @@ internal class FeedbackVerificationCaptureStore(
         throw artifactFailure("reserve live capture", receiptId, failure)
     }
 
-    fun cleanup(capture: OwnedVerificationCapture) {
+    fun cleanup(capture: OwnedVerificationCapture) = try {
+        operationLocks.withReceiptLock(capture.sessionId, capture.receiptId) {
+            cleanupLocked(capture)
+        }
+    } catch (failure: Exception) {
+        throw artifactFailure("clean live capture", capture.receiptId, failure)
+    }
+
+    private fun cleanupLocked(capture: OwnedVerificationCapture) {
         try {
             requireOwned(capture)
             access.withProjectDirectory(parentSegments(capture.sessionId)) { parent ->
