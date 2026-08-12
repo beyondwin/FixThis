@@ -122,10 +122,11 @@ class FeedbackConsoleServer private constructor(
         try {
             acquiredSubscription = lifecycle.sessionUpdateSubscriptionFactory?.invoke()
             acquiredExecutor = consoleHttpExecutor()
-            acquiredServer = HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
-            acquiredServer.createContext("/") { exchange -> dispatch(exchange) }
-            acquiredServer.executor = acquiredExecutor
-            acquiredServer.start()
+            val createdServer = HttpServer.create(InetSocketAddress(InetAddress.getByName(host), port), 0)
+            acquiredServer = createdServer
+            createdServer.createContext("/") { exchange -> dispatchAcceptedRequest(exchange, createdServer) }
+            createdServer.executor = acquiredExecutor
+            createdServer.start()
             assetsStartAttempted = true
             lifecycle.startAssetsWatcher()
             sessionUpdateSubscription = acquiredSubscription
@@ -174,6 +175,10 @@ class FeedbackConsoleServer private constructor(
 
     private fun runningPortOrNull(): Int? = synchronized(lock) { server?.address?.port }
 
+    private fun publishedPortOrNull(acceptingServer: HttpServer): Int? = synchronized(lock) {
+        server?.takeIf { it === acceptingServer }?.address?.port
+    }
+
     private companion object {
         fun consoleRouteTable(config: FeedbackConsoleServerConfig) = ConsoleRouteTable(
             listOf(
@@ -197,9 +202,21 @@ class FeedbackConsoleServer private constructor(
         )
     }
 
+    private fun dispatchAcceptedRequest(exchange: HttpExchange, acceptingServer: HttpServer) {
+        val runningPort = publishedPortOrNull(acceptingServer)
+        if (runningPort == null) {
+            exchange.closeQuietly()
+            return
+        }
+        dispatch(exchange, runningPort)
+    }
+
     internal fun dispatch(exchange: HttpExchange) {
+        dispatch(exchange, runningPortOrNull())
+    }
+
+    private fun dispatch(exchange: HttpExchange, runningPort: Int?) {
         try {
-            val runningPort = runningPortOrNull()
             if (exchange.requiresConsoleApiGuard() && runningPort != null) {
                 exchange.requireConsoleApiAllowed(
                     ConsoleRequestAuthConfig(

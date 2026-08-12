@@ -444,6 +444,59 @@ class FeedbackConsoleServerTest {
     }
 
     @Test
+    fun watcherStartFailureRejectsAcceptedRequestsBeforeRouteDispatch() {
+        val port = availableLoopbackPort()
+        val watcherEntered = CountDownLatch(1)
+        val releaseWatcher = CountDownLatch(1)
+        val routeInvocations = AtomicInteger(0)
+        val starter = Executors.newSingleThreadExecutor()
+        val requesters = Executors.newFixedThreadPool(2)
+        val server = FeedbackConsoleServer(
+            routes = listOf(
+                object : ConsoleRoute {
+                    override fun matches(path: String): Boolean = true
+
+                    override fun handle(exchange: HttpExchange) {
+                        routeInvocations.incrementAndGet()
+                        exchange.sendText(200, "unexpected", "text/plain; charset=utf-8")
+                    }
+                },
+            ),
+            port = port,
+            lifecycle = FeedbackConsoleServerLifecycle(
+                startAssetsWatcher = {
+                    watcherEntered.countDown()
+                    check(releaseWatcher.await(3, TimeUnit.SECONDS))
+                    throw IOException("watcher start failed")
+                },
+            ),
+        )
+        val start = starter.submit<String> { server.start() }
+
+        try {
+            assertTrue(watcherEntered.await(3, TimeUnit.SECONDS))
+            val responses = listOf("/", "/api/test").map { path ->
+                requesters.submit<Int?> { responseCodeOrNull(port, path) }
+            }
+            awaitBlockedConsoleRequestHandlers(expected = 2)
+            releaseWatcher.countDown()
+
+            val startFailure = runCatching { start.get(3, TimeUnit.SECONDS) }.exceptionOrNull()
+            assertTrue(startFailure?.cause is IOException)
+            responses.forEach { response ->
+                assertTrue(response.get(3, TimeUnit.SECONDS) in setOf(null, 503))
+            }
+            assertEquals(0, routeInvocations.get())
+        } finally {
+            releaseWatcher.countDown()
+            runCatching { start.get(3, TimeUnit.SECONDS) }
+            server.stop()
+            starter.shutdownNow()
+            requesters.shutdownNow()
+        }
+    }
+
+    @Test
     fun startsConsoleAssetsWatcherOnlyInDirMode() {
         val service = FeedbackSessionService(FakeFixThisBridge(), FeedbackSessionStore(), "/repo", "io.github.beyondwin.fixthis.sample")
         val assetsDir = java.nio.file.Files.createTempDirectory("server-test-assets").toFile()
@@ -532,4 +585,28 @@ class FeedbackConsoleServerTest {
     }
 
     private fun availableLoopbackPort(): Int = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
+
+    private fun responseCodeOrNull(port: Int, path: String): Int? = runCatching {
+        val connection = URI("http://127.0.0.1:$port$path").toURL().openConnection() as java.net.HttpURLConnection
+        connection.connectTimeout = 3_000
+        connection.readTimeout = 3_000
+        connection.responseCode
+    }.getOrNull()
+
+    private fun awaitBlockedConsoleRequestHandlers(expected: Int) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3)
+        while (System.nanoTime() < deadline) {
+            val blockedHandlers = Thread.getAllStackTraces().count { (thread, stack) ->
+                thread.name.startsWith("fixthis-console-http-") &&
+                    thread.state == Thread.State.BLOCKED &&
+                    stack.any {
+                        it.className == FeedbackConsoleServer::class.java.name &&
+                            it.methodName in setOf("runningPortOrNull", "publishedPortOrNull")
+                    }
+            }
+            if (blockedHandlers >= expected) return
+            Thread.sleep(10)
+        }
+        error("Expected $expected console request handlers to block on the lifecycle lock")
+    }
 }
