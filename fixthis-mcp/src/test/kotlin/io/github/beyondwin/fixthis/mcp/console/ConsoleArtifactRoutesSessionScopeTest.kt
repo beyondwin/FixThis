@@ -109,6 +109,39 @@ class ConsoleArtifactRoutesSessionScopeTest {
     }
 
     @Test
+    fun screenScreenshotRejectsPngAliasWhoseCanonicalTargetIsNotPng() {
+        val root = Files.createTempDirectory("fixthis-screen-artifact-alias").toFile()
+        val service = FeedbackSessionService(
+            bridge = SessionScreenshotBridge(png),
+            store = FeedbackSessionStore(
+                clock = FakeLongs(100L, 200L, 300L).next,
+                idGenerator = FakeIds("session-a", "screen-a").next,
+            ),
+            projectRoot = root.absolutePath,
+            defaultPackageName = "io.github.beyondwin.fixthis.sample",
+        )
+        val session = service.openSession(null, newSession = true)
+        val screen = kotlinx.coroutines.runBlocking { service.captureScreen(session.sessionId) }
+        val alias = File(checkNotNull(screen.screenshot?.desktopFullPath))
+        val payload = File(alias.parentFile, "payload.jpg")
+        payload.writeBytes(png)
+        assertTrue(alias.delete())
+        Files.createSymbolicLink(alias.toPath(), payload.toPath())
+        val server = FeedbackConsoleServer(service = service, port = 0)
+        server.start()
+        try {
+            val response = ConsoleHttpTestClient(server.url).getResponse(
+                "/api/screens/${encode(screen.screenId)}/screenshot/full?sessionId=${encode(session.sessionId)}",
+            )
+
+            assertEquals(404, response.statusCode)
+        } finally {
+            server.stop()
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun deleteScreenUsesExplicitSessionIdWhenCurrentSessionChanged() {
         val root = Files.createTempDirectory("fixthis-screen-delete-scope").toFile()
         val png = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47)
@@ -208,6 +241,44 @@ class ConsoleArtifactRoutesSessionScopeTest {
 
             assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
         }
+    }
+
+    @Test
+    fun verificationAfterScreenshotRejectsFileAsReceiptArtifactRoot() = withReceiptFixture(
+        receiptId = "receipt.png",
+        artifactPath = { fixture -> fixture.receiptDirectory },
+    ) { fixture ->
+        assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
+    }
+
+    @Test
+    fun verificationAfterScreenshotRejectsSymlinkedReceiptArtifactRoot() = withReceiptFixture(
+        artifactPath = { fixture -> File(fixture.receiptDirectory, "after.png") },
+        createArtifact = false,
+    ) { fixture ->
+        fixture.receiptDirectory.parentFile.mkdirs()
+        val outside = File(fixture.receiptDirectory.parentFile, "outside-receipt-root").apply { mkdirs() }
+        File(outside, "after.png").writeBytes(png)
+        Files.createSymbolicLink(fixture.receiptDirectory.toPath(), outside.toPath())
+
+        assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
+    }
+
+    @Test
+    fun verificationAfterScreenshotRejectsSymlinkedVerificationParent() = withReceiptFixture(
+        artifactPath = { fixture -> File(fixture.receiptDirectory, "after.png") },
+        createArtifact = false,
+    ) { fixture ->
+        val verification = fixture.receiptDirectory.parentFile
+        verification.parentFile.mkdirs()
+        val outside = File(verification.parentFile, "outside-verification-root").apply { mkdirs() }
+        File(File(outside, fixture.receiptId), "after.png").apply {
+            parentFile.mkdirs()
+            writeBytes(png)
+        }
+        Files.createSymbolicLink(verification.toPath(), outside.toPath())
+
+        assertEquals(404, fixture.getAfterScreenshot(sessionId = fixture.session.sessionId).statusCode)
     }
 
     @Test

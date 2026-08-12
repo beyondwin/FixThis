@@ -44,7 +44,7 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
         val screenshotPath = screen.screenshot?.desktopFullPath
             ?: throw FeedbackConsoleHttpException(404, "Screenshot not found")
-        val screenshotFile = File(screenshotPath)
+        val screenshotFile = File(screenshotPath).canonicalFile
         val sessionArtifactsDir = FeedbackSessionPaths(File(session.projectRoot)).rootDirectory
         if (!screenshotFile.isAllowedPngArtifactUnder(sessionArtifactsDir)) {
             throw FeedbackConsoleHttpException(404, "Screenshot not found")
@@ -61,7 +61,13 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
         val receiptArtifactDirectory = session.verificationReceiptArtifactDirectory(receipt.receiptId)
             ?: screenshotNotFound()
         val screenshotFile = File(screenshotPath)
-        if (!screenshotFile.isAllowedPngArtifactUnder(receiptArtifactDirectory, rejectSymbolicLinks = true)) {
+        if (
+            !screenshotFile.isAllowedPngArtifactUnder(
+                receiptArtifactDirectory,
+                rejectSymbolicLinks = true,
+                requireStrictDescendant = true,
+            )
+        ) {
             screenshotNotFound()
         }
         sendBytes(200, screenshotFile.readBytes(), "image/png")
@@ -78,11 +84,17 @@ internal class ArtifactRoutes(private val service: FeedbackSessionService) : Con
     private fun SessionDto.verificationReceiptArtifactDirectory(receiptId: String): File? {
         if (!sessionId.isSafeArtifactPathSegment() || !receiptId.isSafeArtifactPathSegment()) return null
         val feedbackRoot = FeedbackSessionPaths(File(projectRoot)).rootDirectory
-        val sessionDirectory = File(feedbackRoot, sessionId).canonicalFile
-        val verificationDirectory = File(sessionDirectory, "verification").canonicalFile
-        val receiptDirectory = File(verificationDirectory, receiptId).canonicalFile
+        val sessionDirectoryPath = File(feedbackRoot, sessionId)
+        val verificationDirectoryPath = File(sessionDirectoryPath, "verification")
+        val receiptDirectoryPath = File(verificationDirectoryPath, receiptId)
+        val sessionDirectory = sessionDirectoryPath.canonicalFile
+        val verificationDirectory = verificationDirectoryPath.canonicalFile
+        val receiptDirectory = receiptDirectoryPath.canonicalFile
         return receiptDirectory.takeIf {
-            sessionDirectory.toPath().startsWith(feedbackRoot.toPath()) &&
+            sessionDirectoryPath.isRealNonSymlinkDirectory() &&
+                verificationDirectoryPath.isRealNonSymlinkDirectory() &&
+                receiptDirectoryPath.isRealNonSymlinkDirectory() &&
+                sessionDirectory.toPath().startsWith(feedbackRoot.toPath()) &&
                 verificationDirectory.toPath().startsWith(sessionDirectory.toPath()) &&
                 receiptDirectory.toPath().startsWith(verificationDirectory.toPath())
         }
@@ -106,10 +118,14 @@ private fun String.screenIdFromScreenPath(): String = URLDecoder.decode(split('/
 private fun File.isAllowedPngArtifactUnder(
     artifactDirectory: File,
     rejectSymbolicLinks: Boolean = false,
+    requireStrictDescendant: Boolean = false,
 ): Boolean = extension.lowercase() == "png" &&
     (!rejectSymbolicLinks || Files.isRegularFile(toPath(), NOFOLLOW_LINKS)) &&
     canonicalFile.let { artifact ->
-        artifact.isFile && artifact.toPath().startsWith(artifactDirectory.canonicalFile.toPath())
+        val canonicalDirectory = artifactDirectory.canonicalFile
+        artifact.isFile &&
+            artifact.toPath().startsWith(canonicalDirectory.toPath()) &&
+            (!requireStrictDescendant || artifact.toPath() != canonicalDirectory.toPath())
     }
 
 private fun String.isSafeArtifactPathSegment(): Boolean = isNotBlank() &&
@@ -117,3 +133,6 @@ private fun String.isSafeArtifactPathSegment(): Boolean = isNotBlank() &&
     this != ".." &&
     '/' !in this &&
     '\\' !in this
+
+private fun File.isRealNonSymlinkDirectory(): Boolean =
+    Files.isDirectory(toPath(), NOFOLLOW_LINKS) && !Files.isSymbolicLink(toPath())
