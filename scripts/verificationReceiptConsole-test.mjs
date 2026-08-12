@@ -133,6 +133,23 @@ test('missing linked receipt does not silently substitute unrelated latest evide
   assert.equal(verification.verificationReceiptSectionHtml(savedSession, resolved), '');
 });
 
+test('resolved item without a receipt link stays unverified and renders no substituted receipt card', () => {
+  for (const verdict of ['pass', 'warn']) {
+    const savedSession = session([
+      receipt({ receiptId: `unlinked-${verdict}`, verdict, createdAtEpochMillis: 999 }),
+    ]);
+    const resolved = item({ resolutionVerificationReceiptId: null });
+
+    assert.equal(verification.receiptForItem(savedSession, resolved), null);
+    assert.deepEqual(
+      verification.verificationBadgeModel(savedSession, resolved),
+      { tone: 'neutral', label: 'unverified' },
+    );
+    assert.match(verification.verificationBadgeHtml(savedSession, resolved), />unverified</);
+    assert.equal(verification.verificationReceiptSectionHtml(savedSession, resolved), '');
+  }
+});
+
 test('renders semantic receipt details, escaped text, and encoded before/after URLs', () => {
   const unsafe = '<script dir="rtl">& خطر 길</script>';
   const savedReceipt = receipt({

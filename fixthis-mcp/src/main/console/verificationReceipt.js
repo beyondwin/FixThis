@@ -8,7 +8,8 @@ function receiptForItem(session, item) {
       ((Number(right?.createdAtEpochMillis) || 0) - (Number(left?.createdAtEpochMillis) || 0)) ||
       String(right?.receiptId || '').localeCompare(String(left?.receiptId || ''))
     );
-  if (item.status === 'resolved' && item.resolutionVerificationReceiptId) {
+  if (item.status === 'resolved') {
+    if (!item.resolutionVerificationReceiptId) return null;
     return receipts.find(receipt => receipt.receiptId === item.resolutionVerificationReceiptId) || null;
   }
   return receipts[0] || null;
