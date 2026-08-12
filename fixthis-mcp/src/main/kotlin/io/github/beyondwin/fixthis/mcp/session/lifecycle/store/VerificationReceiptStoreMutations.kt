@@ -64,7 +64,7 @@ internal class VerificationReceiptStoreMutations(
                 type = "feedbackVerified",
                 payload = SessionEventPayloadFactory.verificationReceipt(context.sessionId, receipt),
             )
-            stateStore.commit(session, next)
+            stateStore.commitAfterDurableEvent(session, next)
         }
         compactionCoordinator.compactAfterMutation(context.sessionId)
         sessionUpdatedListeners.forEach { listener -> runCatching { listener(updated) } }

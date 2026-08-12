@@ -38,6 +38,7 @@ internal class FeedbackVerificationCoordinator(
     private val previewCaptureService: PreviewCaptureService,
     private val targetEvidenceService: TargetEvidenceService,
     private val freshnessProbe: HostSourceFreshnessProbe,
+    private val captureStore: FeedbackVerificationCaptureStore,
     private val artifactStore: FeedbackVerificationArtifactStore,
     private val correspondenceEvaluator: FeedbackTargetCorrespondenceEvaluator = FeedbackTargetCorrespondenceEvaluator(),
     private val assertionEvaluator: FeedbackAssertionEvaluator = FeedbackAssertionEvaluator(),
@@ -52,14 +53,12 @@ internal class FeedbackVerificationCoordinator(
         val receiptId = idGenerator()
         VerificationArtifactNaming.validateSessionId(session.sessionId)
         VerificationArtifactNaming.validateReceiptId(receiptId)
-        val captureDirectory = File(
-            session.projectRoot,
-            ".fixthis/preview-cache/${session.sessionId}/verification-$receiptId",
-        )
+        var capture: OwnedVerificationCapture? = null
         var prepared: PreparedVerificationArtifact? = null
         var promoted = false
         return try {
-            val evidence = collectEvidence(session, context, receiptId, captureDirectory)
+            capture = captureStore.reserve(session, receiptId)
+            val evidence = collectEvidence(session, context, receiptId, checkNotNull(capture).directory)
             val receipt = assembleReceipt(receiptId, context, evidence)
             prepared = artifactStore.prepare(session, receiptId, evidence.currentScreen?.screenshot)
             sessionAccess.validateContext(context)
@@ -67,16 +66,17 @@ internal class FeedbackVerificationCoordinator(
             promoted = true
             artifactStore.discard(checkNotNull(prepared))
             prepared = null
-            requireCaptureCleanup(captureDirectory, receiptId)
+            captureStore.cleanup(checkNotNull(capture))
+            capture = null
             sessionAccess.attachReceipt(
                 context,
                 receipt.copy(afterScreenshot = afterScreenshot),
             ).verificationReceipts.single { it.receiptId == receiptId }
         } catch (failure: CancellationException) {
-            cleanupFailureArtifacts(session, receiptId, captureDirectory, prepared, promoted, failure)
+            cleanupFailureArtifacts(session, receiptId, capture, prepared, promoted, failure)
             throw failure
         } catch (failure: Throwable) {
-            cleanupFailureArtifacts(session, receiptId, captureDirectory, prepared, promoted, failure)
+            cleanupFailureArtifacts(session, receiptId, capture, prepared, promoted, failure)
             throw failure
         }
     }
@@ -105,10 +105,10 @@ internal class FeedbackVerificationCoordinator(
             BridgeResult<SnapshotDto>(null, null)
         }
         val currentScreen = screen.value
-        val sourceIndex = currentScreen?.let {
-            targetEvidenceService.readSourceIndexOrNull(session.packageName, it)
-        }
         val installEpoch = status.value?.get("installEpochMillis")?.jsonPrimitive?.longOrNull
+        val sourceIndex = currentScreen?.let {
+            targetEvidenceService.readSourceIndexOrNull(session.packageName, it, installEpoch)
+        }
         val freshness = sourceIndex?.let { freshnessProbe.evaluate(it, installEpoch) }
         val correspondence = currentScreen?.let { correspondenceEvaluator.evaluate(context.item, it) }
         val assertions = assertionEvaluator.evaluate(context.assertions, correspondence)
@@ -239,7 +239,7 @@ internal class FeedbackVerificationCoordinator(
     private fun cleanupFailureArtifacts(
         session: SessionDto,
         receiptId: String,
-        captureDirectory: File,
+        capture: OwnedVerificationCapture?,
         prepared: PreparedVerificationArtifact?,
         promoted: Boolean,
         failure: Throwable,
@@ -250,15 +250,7 @@ internal class FeedbackVerificationCoordinator(
             }
         }
         prepared?.let { artifact -> suppressCleanupFailure(failure) { artifactStore.discard(artifact) } }
-        suppressCleanupFailure(failure) { requireCaptureCleanup(captureDirectory, receiptId) }
-    }
-
-    private fun requireCaptureCleanup(directory: File, receiptId: String) {
-        if (directory.exists() && !directory.deleteRecursively()) {
-            throw FeedbackVerificationArtifactException(
-                "VERIFICATION_ARTIFACT_FAILED: Could not delete temporary verification capture $receiptId",
-            )
-        }
+        capture?.let { owned -> suppressCleanupFailure(failure) { captureStore.cleanup(owned) } }
     }
 
     private inline fun suppressCleanupFailure(primary: Throwable, cleanup: () -> Unit) {

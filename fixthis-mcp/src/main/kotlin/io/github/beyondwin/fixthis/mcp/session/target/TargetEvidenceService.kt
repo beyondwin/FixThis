@@ -35,9 +35,16 @@ class TargetEvidenceService(
     private val reliabilityCalculator: TargetReliabilityCalculator = TargetReliabilityCalculator,
     private val targetValidator: FeedbackTargetValidator = FeedbackTargetValidator(),
 ) {
-    suspend fun readSourceIndexOrNull(packageName: String, screen: SnapshotDto): SourceIndex? {
+    @Suppress("ReturnCount")
+    suspend fun readSourceIndexOrNull(
+        packageName: String,
+        screen: SnapshotDto,
+        installEpochMillis: Long? = null,
+    ): SourceIndex? {
         if (!screen.sourceIndexAvailable) return null
-        if (sourceIndexRegistry.contains(packageName)) return sourceIndexRegistry.cached(packageName)
+        if (sourceIndexRegistry.contains(packageName, installEpochMillis)) {
+            return sourceIndexRegistry.cached(packageName, installEpochMillis)
+        }
         val result = runCatching { bridge.readSourceIndex(packageName) }.getOrElse { return null }
         val available = result["sourceIndexAvailable"]?.jsonPrimitive?.booleanOrNull ?: false
         val sourceIndexElement = result["sourceIndex"]
@@ -49,7 +56,7 @@ class TargetEvidenceService(
         } else {
             null
         }
-        sourceIndexRegistry.put(packageName, sourceIndex)
+        sourceIndexRegistry.put(packageName, installEpochMillis, sourceIndex)
         return sourceIndex
     }
 

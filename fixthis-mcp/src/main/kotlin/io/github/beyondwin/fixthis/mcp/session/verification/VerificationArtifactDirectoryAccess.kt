@@ -26,18 +26,7 @@ internal class VerificationArtifactDirectoryAccess(
 
     fun ensureVerificationRoot(sessionId: String) {
         VerificationArtifactNaming.validateSessionId(sessionId)
-        withProjectDirectory(emptyList()) { root ->
-            ensureDescendant(
-                root,
-                listOf(
-                    ".fixthis",
-                    "feedback-sessions",
-                    sessionId,
-                    VerificationArtifactNaming.VERIFICATION_DIRECTORY,
-                ),
-                index = 0,
-            )
-        }
+        ensureProjectDescendant(listOf(".fixthis", "feedback-sessions", sessionId, VerificationArtifactNaming.VERIFICATION_DIRECTORY))
     }
 
     fun <T> withVerificationDirectory(
@@ -169,6 +158,8 @@ internal class VerificationArtifactDirectoryAccess(
         }
     }
 }
+
+internal fun VerificationArtifactDirectoryAccess.ensureProjectDescendant(segments: List<String>) = withProjectDirectory(emptyList()) { root -> ensureDescendant(root, segments, index = 0) }
 
 internal fun VerificationArtifactDirectoryAccess.entryExists(
     parent: VerificationDirectoryHandle,

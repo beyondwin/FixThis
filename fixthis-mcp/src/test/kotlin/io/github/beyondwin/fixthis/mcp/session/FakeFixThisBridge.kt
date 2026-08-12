@@ -23,7 +23,7 @@ internal class FakeFixThisBridge(
     private val captureError: Throwable? = null,
     private val captureRoots: List<SnapshotRootDto> = defaultCaptureRoots(),
     private val sourceIndexAvailable: Boolean = true,
-    private val sourceIndex: SourceIndex? = defaultSourceIndex(),
+    var sourceIndex: SourceIndex? = defaultSourceIndex(),
     private val sourceIndexReadError: String? = null,
     private val devicesOverride: List<AdbDevice>? = null,
     private val devicesError: Throwable? = null,

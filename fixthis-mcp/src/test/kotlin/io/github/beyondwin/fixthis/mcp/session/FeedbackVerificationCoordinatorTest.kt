@@ -25,6 +25,7 @@ import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationArtifactStore
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionDto
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionKind
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationCaptureStore
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationCheckOutcome
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationCoordinator
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
@@ -69,7 +70,7 @@ class FeedbackVerificationCoordinatorTest {
         assertTrue(afterPath.endsWith("/verification/${receipt.receiptId}/after.png"))
         assertNull(receipt.afterScreenshot.fullPath)
         assertNull(receipt.afterScreenshot.cropPath)
-        assertFalse(fixture.captureDirectory().exists())
+        assertFalse(fixture.captureDirectory(receipt.receiptId).exists())
     }
 
     @Test
@@ -202,6 +203,79 @@ class FeedbackVerificationCoordinatorTest {
         fixture.assertNoReceiptOrOwnedArtifacts()
     }
 
+    @Test
+    fun durableReceiptSurvivesSnapshotSaveFailureAndRestartWithArtifact() = withFixture(
+        artifactHooks = { fixture ->
+            VerificationArtifactStoreHooks(
+                beforePromotion = fixture::blockNextSessionSnapshotSave,
+            )
+        },
+    ) { fixture ->
+        val receipt = fixture.verify()
+        val afterPath = assertNotNull(receipt.afterScreenshot?.desktopFullPath)
+
+        assertEquals(receipt, fixture.persistedReceipt())
+        assertTrue(File(afterPath).isFile)
+
+        val replayed = fixture.restoreSnapshotAndReopen().getSession(fixture.sessionId)
+
+        assertEquals(listOf(receipt), replayed.verificationReceipts)
+        assertTrue(File(afterPath).isFile)
+    }
+
+    @Test
+    fun preExistingCaptureDirectoryIsRefusedWithoutDeletingSentinel() = withFixture { fixture ->
+        val sentinel = fixture.captureDirectory().resolve("sentinel.txt").apply {
+            parentFile.mkdirs()
+            writeText("keep")
+        }
+
+        val failure = assertFailsWith<FeedbackVerificationArtifactException> { fixture.verify() }
+
+        assertTrue(failure.message.orEmpty().startsWith("VERIFICATION_ARTIFACT_FAILED:"), failure.message)
+        assertEquals("keep", sentinel.readText())
+        assertTrue(fixture.store.getSession(fixture.sessionId).verificationReceipts.isEmpty())
+    }
+
+    @Test
+    fun mismatchedPersistedProjectRootIsRefusedWithoutTouchingItsCapturePath() = withFixture { fixture ->
+        val tamperedRoot = Files.createTempDirectory("feedback-verification-tampered-").toFile()
+        try {
+            val sentinel = tamperedRoot
+                .resolve(".fixthis/preview-cache/${fixture.sessionId}/verification-$RECEIPT_ID/sentinel.txt")
+                .apply {
+                    parentFile.mkdirs()
+                    writeText("keep")
+                }
+            fixture.tamperProjectRoot(tamperedRoot)
+
+            val failure = assertFailsWith<FeedbackVerificationArtifactException> { fixture.verify() }
+
+            assertTrue(failure.message.orEmpty().contains("project root"), failure.message)
+            assertEquals("keep", sentinel.readText())
+            assertEquals(0, fixture.bridge.captureCount)
+            assertTrue(fixture.store.getSession(fixture.sessionId).verificationReceipts.isEmpty())
+        } finally {
+            tamperedRoot.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun reinstallDoesNotReusePriorSourceIndexToAuthorizePass() = withFixture { fixture ->
+        val first = fixture.verify()
+        assertEquals(FeedbackVerificationVerdict.PASS, first.verdict)
+        assertEquals(1, fixture.bridge.readSourceIndexCount)
+
+        fixture.bridge.installEpochMillis = fixture.installedAt + 10_000L
+        fixture.bridge.sourceIndex = SourceIndex(entries = emptyList())
+
+        val second = fixture.verify()
+
+        assertEquals(FeedbackVerificationVerdict.WARN, second.verdict)
+        assertCheck(second, "INSTALL_FRESHNESS_UNKNOWN", FeedbackVerificationCheckOutcome.WARNING)
+        assertEquals(2, fixture.bridge.readSourceIndexCount)
+    }
+
     private fun assertFail(receipt: FeedbackVerificationReceiptDto, kind: String) {
         assertEquals(FeedbackVerificationVerdict.FAIL, receipt.verdict)
         assertCheck(receipt, kind, FeedbackVerificationCheckOutcome.FAILED)
@@ -245,6 +319,8 @@ class FeedbackVerificationCoordinatorTest {
         val root: File,
         val store: FeedbackSessionStore,
         val bridge: FakeFixThisBridge,
+        private val paths: FeedbackSessionPaths,
+        private val persistence: FeedbackSessionPersistence,
         val sourceFile: File,
         val installedAt: Long,
         val sessionId: String,
@@ -253,6 +329,8 @@ class FeedbackVerificationCoordinatorTest {
         private val previewCaptureService: PreviewCaptureService,
     ) {
         lateinit var artifactStore: FeedbackVerificationArtifactStore
+        private var receiptSequence = 0
+        private var snapshotBeforeFailure: String? = null
 
         fun service(): FeedbackSessionService = FeedbackSessionService(
             bridge = bridge,
@@ -272,6 +350,30 @@ class FeedbackVerificationCoordinatorTest {
         }
 
         fun persistedReceipt(): FeedbackVerificationReceiptDto = store.getSession(sessionId).verificationReceipts.single()
+
+        fun blockNextSessionSnapshotSave() {
+            val sessionFile = paths.sessionFile(sessionId)
+            snapshotBeforeFailure = sessionFile.readText()
+            assertTrue(sessionFile.delete())
+            assertTrue(sessionFile.mkdir())
+        }
+
+        fun restoreSnapshotAndReopen(): FeedbackSessionStore {
+            val sessionFile = paths.sessionFile(sessionId)
+            assertTrue(sessionFile.deleteRecursively())
+            sessionFile.writeText(checkNotNull(snapshotBeforeFailure))
+            return FeedbackSessionStore(
+                persistence = persistence,
+                eventLogWriterProvider = { EventLogWriter(paths.eventLogDirectory(it)) },
+                eventLogReaderProvider = { EventLogReader(paths.eventLogDirectory(it)) },
+            )
+        }
+
+        fun tamperProjectRoot(projectRoot: File) {
+            store.replaceSessionForDomain(
+                store.getSession(sessionId).copy(projectRoot = projectRoot.absolutePath),
+            )
+        }
 
         fun assertNoReceiptOrOwnedArtifacts() {
             assertTrue(store.getSession(sessionId).verificationReceipts.isEmpty())
@@ -309,14 +411,15 @@ class FeedbackVerificationCoordinatorTest {
             previewCaptureService = previewCaptureService,
             targetEvidenceService = targetEvidenceService,
             freshnessProbe = HostSourceFreshnessProbe(root),
+            captureStore = FeedbackVerificationCaptureStore(root),
             artifactStore = artifactStore,
             clock = { RECEIPT_TIME },
-            idGenerator = { RECEIPT_ID },
+            idGenerator = { "receipt-${++receiptSequence}" },
         )
 
         private fun receiptDirectory(): File = root.resolve(".fixthis/feedback-sessions/$sessionId/verification/$RECEIPT_ID")
 
-        fun captureDirectory(): File = root.resolve(".fixthis/preview-cache/$sessionId/verification-$RECEIPT_ID")
+        fun captureDirectory(receiptId: String = RECEIPT_ID): File = root.resolve(".fixthis/preview-cache/$sessionId/verification-$receiptId")
 
         companion object {
             @Suppress("LongMethod")
@@ -425,6 +528,8 @@ class FeedbackVerificationCoordinatorTest {
                     root = root,
                     store = store,
                     bridge = bridge,
+                    paths = paths,
+                    persistence = persistence,
                     sourceFile = sourceFile,
                     installedAt = INSTALLED_AT,
                     sessionId = session.sessionId,

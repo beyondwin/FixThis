@@ -47,6 +47,7 @@ import io.github.beyondwin.fixthis.mcp.session.source.SourceIndexRegistry
 import io.github.beyondwin.fixthis.mcp.session.target.TargetEvidenceService
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationArtifactStore
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationAssertionDto
+import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationCaptureStore
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationCoordinator
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationReceiptDto
 import io.github.beyondwin.fixthis.mcp.session.verification.FeedbackVerificationRequest
@@ -183,6 +184,7 @@ class FeedbackSessionService(
         previewCaptureService = previewCaptureService,
         targetEvidenceService = targetEvidenceService,
         freshnessProbe = HostSourceFreshnessProbe(configuredProjectRoot),
+        captureStore = FeedbackVerificationCaptureStore(configuredProjectRoot),
         artifactStore = FeedbackVerificationArtifactStore(configuredProjectRoot),
         idGenerator = { store.nextId() },
     )

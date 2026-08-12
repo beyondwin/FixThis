@@ -154,17 +154,13 @@ internal class FeedbackSessionStoreDelegate(
         packageName: String? = null,
         includeClosed: Boolean = false,
     ): FeedbackSessionList = lock.withLock {
-        val replaySkipped = bootReplayer.skippedList(packageName, includeClosed)
-        persistence?.list(packageName, includeClosed)
-            ?.let { list -> list.copy(skippedSessions = list.skippedSessions + replaySkipped) }
-            ?: FeedbackSessionList(
-                sessions = store.all()
-                    .filter { packageName == null || it.packageName == packageName }
-                    .filter { includeClosed || it.status != SessionStatusDto.CLOSED }
-                    .map(FeedbackSessionSummary.Companion::from)
-                    .sortedByDescending { it.updatedAtEpochMillis },
-                skippedSessions = replaySkipped,
-            )
+        FeedbackSessionListResolver.resolve(
+            persistence,
+            store,
+            packageName,
+            includeClosed,
+            bootReplayer.skippedList(packageName, includeClosed),
+        )
     }
 
     fun openExistingSession(sessionId: String): SessionDto = lock.withLock {

@@ -6,19 +6,32 @@ import kotlinx.coroutines.sync.withLock
 
 class SourceIndexRegistry {
     private val mutex = Mutex()
-    private val entries = mutableMapOf<String, SourceIndex?>()
+    private val entries = mutableMapOf<SourceIndexCacheKey, SourceIndex?>()
 
-    suspend fun cached(packageName: String): SourceIndex? = mutex.withLock {
-        entries[packageName]
+    suspend fun cached(packageName: String): SourceIndex? = cached(packageName, installEpochMillis = null)
+
+    suspend fun cached(packageName: String, installEpochMillis: Long?): SourceIndex? = mutex.withLock {
+        entries[SourceIndexCacheKey(packageName, installEpochMillis)]
     }
 
-    suspend fun contains(packageName: String): Boolean = mutex.withLock {
-        entries.containsKey(packageName)
+    suspend fun contains(packageName: String): Boolean = contains(packageName, installEpochMillis = null)
+
+    suspend fun contains(packageName: String, installEpochMillis: Long?): Boolean = mutex.withLock {
+        entries.containsKey(SourceIndexCacheKey(packageName, installEpochMillis))
     }
 
-    suspend fun put(packageName: String, sourceIndex: SourceIndex?) {
+    suspend fun put(packageName: String, sourceIndex: SourceIndex?) = put(packageName, installEpochMillis = null, sourceIndex)
+
+    suspend fun put(packageName: String, installEpochMillis: Long?, sourceIndex: SourceIndex?) {
         mutex.withLock {
-            entries[packageName] = sourceIndex
+            val key = SourceIndexCacheKey(packageName, installEpochMillis)
+            entries.keys.removeAll { cached -> cached.packageName == packageName && cached != key }
+            entries[key] = sourceIndex
         }
     }
 }
+
+private data class SourceIndexCacheKey(
+    val packageName: String,
+    val installEpochMillis: Long?,
+)

@@ -163,19 +163,27 @@ class FeedbackVerificationSessionEventTest {
     }
 
     @Test
-    fun receiptStateCommitFailureEmitsNoSessionNotifications() = withFixture { fixture ->
+    fun receiptSnapshotSaveFailureStillReturnsDurableReceiptAndNotifies() = withFixture { fixture ->
         withConsoleNotifications(fixture) { eventBus ->
             val context = fixture.captureContext()
             val sessionFile = fixture.paths.sessionFile(fixture.session.sessionId)
             assertTrue(sessionFile.delete())
             assertTrue(sessionFile.mkdir())
 
-            assertFailsWith<FeedbackSessionException> {
-                fixture.store.attachVerificationReceipt(context, receiptFixture(context))
-            }
+            val receipt = receiptFixture(context)
+            val updated = fixture.store.attachVerificationReceipt(context, receipt)
 
+            assertEquals(listOf(receipt), updated.verificationReceipts)
+            assertEquals(listOf(receipt), fixture.store.getSession(fixture.session.sessionId).verificationReceipts)
+            assertEquals(
+                updated.updatedAtEpochMillis,
+                fixture.store.listSessions(includeClosed = true).sessions.single().updatedAtEpochMillis,
+            )
             assertEquals(1, fixture.events().count { it.type == "feedbackVerified" })
-            assertTrue(eventBus.eventsAfter(0L).events.isEmpty())
+            assertEquals(
+                listOf("session-updated", "sessions-updated"),
+                eventBus.eventsAfter(0L).events.map { it.name },
+            )
         }
     }
 
