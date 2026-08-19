@@ -26,7 +26,11 @@ internal object VerificationArtifactReentrantFileLocks {
             }
         }
 
-        return acquire(path, key, heldLocks, hooks, block)
+        return try {
+            acquire(path, key, heldLocks, hooks, block)
+        } finally {
+            if (heldLocks.isEmpty()) heldLocksByThread.remove()
+        }
     }
 
     private fun <T> acquire(
@@ -36,8 +40,8 @@ internal object VerificationArtifactReentrantFileLocks {
         hooks: VerificationArtifactStoreHooks,
         block: (Path) -> T,
     ): T {
-        val channel = FileChannel.open(path, lockOpenOptions)
-        val fileLock = acquireFileLock(channel, hooks.closeFileChannel)
+        val channel = hooks.openFileLockChannel(path, lockOpenOptions)
+        val fileLock = acquireFileLock(channel, hooks.acquireFileLock, hooks.closeFileChannel)
         val outcome = runCatching {
             runWithAcquiredLock(path, key, heldLocks, fileLock, block)
         }
@@ -54,15 +58,15 @@ internal object VerificationArtifactReentrantFileLocks {
                 }
             }
         }
-        if (heldLocks.isEmpty()) heldLocksByThread.remove()
         return outcome.getOrThrow()
     }
 
     private fun acquireFileLock(
         channel: FileChannel,
+        acquireFileLock: (FileChannel) -> FileLock,
         closeFileChannel: (FileChannel) -> Unit,
     ): FileLock {
-        val outcome = runCatching { channel.lock() }
+        val outcome = runCatching { acquireFileLock(channel) }
         outcome.exceptionOrNull()?.let { primaryFailure ->
             runCatching { closeFileChannel(channel) }.exceptionOrNull()?.let { cleanupFailure ->
                 if (cleanupFailure !== primaryFailure) {

@@ -145,27 +145,34 @@ for (const moduleName of [
 
 // Rule 11: maintained console bundle budgets match the generator's enforced limits.
 const consoleBuilder = read("scripts/build-console-assets.mjs");
-const feedbackConsoleContract = read("docs/reference/feedback-console-contract.md");
+const consoleBudgetContracts = new Map([
+  ["docs/reference/feedback-console-contract.md", read("docs/reference/feedback-console-contract.md")],
+  ["CONTRIBUTING.md", read("CONTRIBUTING.md")],
+  ["CLAUDE.md", read("CLAUDE.md")],
+]);
 function numericConstant(name) {
   const match = consoleBuilder.match(new RegExp(`const ${name} = ([\\d_]+);`));
   return match ? Number(match[1].replaceAll("_", "")) : null;
 }
-function documentedBudgets(label) {
-  const inline = [...feedbackConsoleContract.matchAll(new RegExp(`([\\d,]+) B ${label}`, "gi"))];
-  const list = [...feedbackConsoleContract.matchAll(new RegExp(`${label} budget\\s*-\\s*\`([\\d,]+) B\``, "gi"))];
+function documentedBudgets(content, label) {
+  const inline = [...content.matchAll(new RegExp(`([\\d,]+) B ${label}`, "gi"))];
+  const list = [...content.matchAll(new RegExp(`${label} budget\\s*-\\s*\`([\\d,]+) B\``, "gi"))];
   return new Set([...inline, ...list].map((match) => Number(match[1].replaceAll(",", ""))));
 }
-for (const [label, constantName] of [
-  ["raw", "RAW_BUDGET_BYTES"],
-  ["gzip", "GZIP_BUDGET_BYTES"],
-]) {
-  const enforced = numericConstant(constantName);
-  const documented = documentedBudgets(label);
-  check(
-    `R11.console-${label}-budget`,
-    enforced !== null && documented.size === 1 && documented.has(enforced),
-    `feedback-console-contract.md documents ${label} budgets ${[...documented].join(", ") || "none"}; generator enforces ${enforced ?? "unknown"}.`,
-  );
+for (const [contractPath, content] of consoleBudgetContracts) {
+  for (const [label, constantName] of [
+    ["raw", "RAW_BUDGET_BYTES"],
+    ["gzip", "GZIP_BUDGET_BYTES"],
+  ]) {
+    const enforced = numericConstant(constantName);
+    const documented = documentedBudgets(content, label);
+    const contractId = contractPath.replace(/[^a-z0-9]+/gi, "-");
+    check(
+      `R11.console-${contractId}-${label}-budget`,
+      enforced !== null && documented.size === 1 && documented.has(enforced),
+      `${contractPath} documents ${label} budgets ${[...documented].join(", ") || "none"}; generator enforces ${enforced ?? "unknown"}.`,
+    );
+  }
 }
 
 if (failures.length > 0) {

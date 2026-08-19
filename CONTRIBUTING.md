@@ -363,7 +363,7 @@ Failure artifacts (screenshots, traces, console logs) land under
 `node scripts/build-console-assets.mjs` produces three files under
 `fixthis-mcp/src/main/resources/console/`:
 
-- `app.js` - minified bundle (must be ≤ 240,500 B raw / ≤ 61,000 B gzipped; the build aborts otherwise).
+- `app.js` - minified bundle (must be ≤ 247,000 B raw / ≤ 62,500 B gzipped; the build aborts otherwise).
 - `app.js.map` — external source map; DevTools picks it up via the
   `//# sourceMappingURL=app.js.map` trailer when the console is served
   with `--console-assets-dir`. The map is excluded from the packaged JAR.

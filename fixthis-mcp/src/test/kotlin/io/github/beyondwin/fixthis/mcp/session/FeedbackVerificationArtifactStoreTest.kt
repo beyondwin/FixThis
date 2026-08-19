@@ -8,6 +8,7 @@ import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerification
 import io.github.beyondwin.fixthis.mcp.session.verification.PreparedVerificationArtifactData
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactOperationLocks
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactPaths
+import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactReentrantFileLocks
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactStoreHooks
 import java.io.File
 import java.io.IOException
@@ -31,6 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @Suppress("LargeClass")
@@ -100,10 +102,20 @@ class FeedbackVerificationArtifactStoreTest {
             hooks = VerificationArtifactStoreHooks(
                 beforePromotionResultConstruction = { failTeardown = true },
                 releaseFileLock = { lock ->
-                    releaseLockForTest(lock, failTeardown) { releaseAttempts += 1 }
+                    releaseLockForTest(
+                        lock,
+                        injectedTeardownFailure(failTeardown, "forced file lock release failure")?.also {
+                            releaseAttempts += 1
+                        },
+                    )
                 },
                 closeFileChannel = { channel ->
-                    closeChannelForTest(channel, failTeardown) { closeAttempts += 1 }
+                    closeChannelForTest(
+                        channel,
+                        injectedTeardownFailure(failTeardown, "forced file channel close failure")?.also {
+                            closeAttempts += 1
+                        },
+                    )
                 },
             ),
         )
@@ -130,8 +142,7 @@ class FeedbackVerificationArtifactStoreTest {
     fun lockTeardownFailuresCannotMaskPrimaryPromotionFailure() {
         val root = Files.createTempDirectory("fixthis-verification-lock-teardown-primary").toFile()
         var failTeardown = false
-        var releaseAttempts = 0
-        var closeAttempts = 0
+        val teardownFailures = mutableListOf<IOException>()
         val store = FeedbackVerificationArtifactStore(
             root,
             hooks = VerificationArtifactStoreHooks(
@@ -140,10 +151,24 @@ class FeedbackVerificationArtifactStoreTest {
                     throw FeedbackVerificationArtifactException("primary promotion failure")
                 },
                 releaseFileLock = { lock ->
-                    releaseLockForTest(lock, failTeardown) { releaseAttempts += 1 }
+                    releaseLockForTest(
+                        lock,
+                        injectedTeardownFailure(
+                            failTeardown,
+                            "forced file lock release failure",
+                            teardownFailures,
+                        ),
+                    )
                 },
                 closeFileChannel = { channel ->
-                    closeChannelForTest(channel, failTeardown) { closeAttempts += 1 }
+                    closeChannelForTest(
+                        channel,
+                        injectedTeardownFailure(
+                            failTeardown,
+                            "forced file channel close failure",
+                            teardownFailures,
+                        ),
+                    )
                 },
             ),
         )
@@ -160,8 +185,15 @@ class FeedbackVerificationArtifactStoreTest {
 
             assertEquals("primary promotion failure", failure.message)
             assertFalse(prepared.finalDirectory.exists())
-            assertEquals(2, releaseAttempts)
-            assertEquals(2, closeAttempts)
+            assertEquals(2, teardownFailures.count { it.message == "forced file lock release failure" })
+            assertEquals(2, teardownFailures.count { it.message == "forced file channel close failure" })
+            assertEquals(
+                teardownFailures.map { it.message },
+                failure.suppressed.map { it.message },
+            )
+            teardownFailures.zip(failure.suppressed).forEach { (expected, actual) ->
+                assertSame(expected, actual)
+            }
         } finally {
             root.deleteRecursively()
         }
@@ -947,6 +979,94 @@ class FeedbackVerificationArtifactStoreTest {
     }
 
     @Test
+    fun fileLockChannelOpenFailureClearsPerThreadStateBeforeNextAttempt() {
+        val root = Files.createTempDirectory("fixthis-verification-channel-open-failure").toFile().canonicalFile
+        val threadState = verificationFileLockThreadState()
+        threadState.remove()
+        val stateBeforeFailure = threadState.get()
+        val primaryFailure = IOException("forced file lock channel open failure")
+        val failingLocks = VerificationArtifactOperationLocks(
+            VerificationArtifactPaths(root),
+            VerificationArtifactStoreHooks(
+                openFileLockChannel = { _, _ -> throw primaryFailure },
+            ),
+        )
+        try {
+            val observedFailure = assertFailsWith<IOException> {
+                failingLocks.withRootLock { error("must not enter operation") }
+            }
+
+            assertSame(primaryFailure, observedFailure)
+            val stateAfterFailure = threadState.get()
+            assertTrue(stateBeforeFailure !== stateAfterFailure)
+
+            var recovered = false
+            VerificationArtifactOperationLocks(
+                VerificationArtifactPaths(root),
+                VerificationArtifactStoreHooks(),
+            ).withRootLock {
+                recovered = true
+            }
+            assertTrue(recovered)
+            assertTrue(stateAfterFailure !== threadState.get())
+        } finally {
+            threadState.remove()
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun fileLockAcquisitionFailureClosesChannelAndClearsPerThreadStateBeforeNextAttempt() {
+        val root = Files.createTempDirectory("fixthis-verification-lock-acquire-failure").toFile().canonicalFile
+        val threadState = verificationFileLockThreadState()
+        threadState.remove()
+        val stateBeforeFailure = threadState.get()
+        val primaryFailure = IOException("forced file lock acquisition failure")
+        val closeFailure = IOException("forced file channel close failure")
+        lateinit var openedChannel: FileChannel
+        var closeAttempts = 0
+        val failingLocks = VerificationArtifactOperationLocks(
+            VerificationArtifactPaths(root),
+            VerificationArtifactStoreHooks(
+                openFileLockChannel = { path, options ->
+                    FileChannel.open(path, options).also { openedChannel = it }
+                },
+                acquireFileLock = { throw primaryFailure },
+                closeFileChannel = { channel ->
+                    closeAttempts += 1
+                    channel.close()
+                    throw closeFailure
+                },
+            ),
+        )
+        try {
+            val observedFailure = assertFailsWith<IOException> {
+                failingLocks.withRootLock { error("must not enter operation") }
+            }
+
+            assertSame(primaryFailure, observedFailure)
+            assertSame(closeFailure, observedFailure.suppressed.single())
+            assertEquals(1, closeAttempts)
+            assertFalse(openedChannel.isOpen)
+            val stateAfterFailure = threadState.get()
+            assertTrue(stateBeforeFailure !== stateAfterFailure)
+
+            var recovered = false
+            VerificationArtifactOperationLocks(
+                VerificationArtifactPaths(root),
+                VerificationArtifactStoreHooks(),
+            ).withRootLock {
+                recovered = true
+            }
+            assertTrue(recovered)
+            assertTrue(stateAfterFailure !== threadState.get())
+        } finally {
+            threadState.remove()
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
     fun atomicMoveFallbackRevalidatesAfterFallbackHookBeforeMoving() {
         val root = Files.createTempDirectory("fixthis-verification-atomic-fallback").toFile().canonicalFile
         val outside = Files.createTempDirectory("fixthis-verification-atomic-fallback-outside").toFile().canonicalFile
@@ -1163,26 +1283,30 @@ class FeedbackVerificationArtifactStoreTest {
 
     private fun releaseLockForTest(
         lock: FileLock,
-        fail: Boolean,
-        recordFailure: () -> Unit,
+        failure: IOException?,
     ) {
         lock.release()
-        if (fail) {
-            recordFailure()
-            throw IOException("forced file lock release failure")
-        }
+        if (failure != null) throw failure
     }
 
     private fun closeChannelForTest(
         channel: FileChannel,
-        fail: Boolean,
-        recordFailure: () -> Unit,
+        failure: IOException?,
     ) {
         channel.close()
-        if (fail) {
-            recordFailure()
-            throw IOException("forced file channel close failure")
-        }
+        if (failure != null) throw failure
+    }
+
+    private fun injectedTeardownFailure(
+        fail: Boolean,
+        message: String,
+        failures: MutableList<IOException>? = null,
+    ): IOException? = if (fail) IOException(message).also { failures?.add(it) } else null
+
+    private fun verificationFileLockThreadState(): ThreadLocal<*> {
+        val field = VerificationArtifactReentrantFileLocks::class.java.getDeclaredField("heldLocksByThread")
+        field.isAccessible = true
+        return field.get(VerificationArtifactReentrantFileLocks) as ThreadLocal<*>
     }
 
     private companion object {
