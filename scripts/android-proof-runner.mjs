@@ -434,6 +434,7 @@ function withTeardownFailures(step, normalized, teardownFailures) {
     return {
       ...normalized,
       reason: `${normalized.reason}; display teardown failed: ${teardownReason}`,
+      unsafeDownstream: true,
     };
   }
   return {
@@ -443,6 +444,7 @@ function withTeardownFailures(step, normalized, teardownFailures) {
     failureCode: step.failureCode || "unknown_failure",
     reason: `Display teardown failed: ${teardownReason}`,
     reportPath: step.reportPath || null,
+    unsafeDownstream: true,
   };
 }
 
@@ -482,7 +484,7 @@ export function runAndroidProof(options = {}, deps = {}) {
     for (const step of buildProofSteps(options, preflight)) {
       const normalized = runProofStep(step, run, commandEnvironment);
       steps.push(normalized);
-      if (normalized.status === "fail" && !options.continueOnFailure) break;
+      if (normalized.unsafeDownstream === true || (normalized.status === "fail" && !options.continueOnFailure)) break;
     }
   }
   const report = buildReport({

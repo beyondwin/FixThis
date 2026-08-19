@@ -410,6 +410,43 @@ test("runAndroidProof continues after failed steps when requested", () => {
   assert.equal(report.steps.find((step) => step.name === "Agent loop smoke").failureCode, "agent_loop_failed");
 });
 
+test("runAndroidProof blocks downstream rows after display cleanup failure even with continue requested", () => {
+  const commands = [];
+  const sizeReset = "adb -s emulator-5554 shell wm size reset";
+  const densityReset = "adb -s emulator-5554 shell wm density reset";
+  const { report } = runAndroidProof({
+    strict: true,
+    continueOnFailure: true,
+    reportDir: "build/reports/fixthis-android-proof-test",
+    device: null,
+    skipBuild: false,
+    headed: false,
+  }, {
+    resolveAndroidPreflight: () => ({
+      status: "pass",
+      sdk: "/sdk",
+      adb: "/sdk/platform-tools/adb",
+      deviceSerial: "emulator-5554",
+      bootCompleted: true,
+      failureCode: null,
+      nextAction: null,
+    }),
+    runCommand: (command) => {
+      commands.push(command);
+      return { status: command === sizeReset ? 1 : 0, stdout: "", stderr: "size reset failed", durationMs: 5 };
+    },
+    writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+  });
+
+  assert.deepEqual(commands.slice(-2), [sizeReset, densityReset]);
+  assert.equal(report.steps.at(-1).name, "Runtime evidence product path");
+  assert.equal(report.steps.at(-1).status, "fail");
+  assert.equal(report.steps.at(-1).unsafeDownstream, true);
+  assert.match(report.steps.at(-1).reason, /size reset failed/);
+  assert.equal(commands.includes("npm run verification-receipt:smoke -- --strict"), false);
+  assert.equal(commands.includes("npm run external-fixture:matrix -- --strict"), false);
+});
+
 test("runAndroidProof scopes the runtime display and sample prerequisite to the selected device", () => {
   const commands = [];
   const { report } = runAndroidProof({
