@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
@@ -14,6 +14,8 @@ import {
   createRunPaths,
   installLifecycleCleanup,
   fixtureSettings,
+  generateOwnedFixture,
+  McpStdioClient,
   mcpCall,
   packageCleanupOutcome,
   parseArgs,
@@ -339,6 +341,38 @@ test("owned child shutdown is recorded only after verified exit", async () => {
   assert.match(cleanup.failures.join("\n"), /unconfirmed owned MCP PID 41/i);
 });
 
+test("MCP startup failure remains owned when shutdown cannot be verified", async () => {
+  const child = new EventEmitter();
+  child.pid = 51;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  const ownership = createOwnedResourceController();
+
+  await assert.rejects(
+    () => McpStdioClient.start({
+      command: "fixthis-mcp",
+      args: [],
+      cwd: "/repo",
+      env: {},
+      clientName: "startup-failure",
+      ownership,
+      spawnImpl: () => child,
+      initialize: async () => { throw new Error("initialize failed"); },
+      stopChild: async () => false,
+    }),
+    /initialize failed/,
+  );
+
+  assert.deepEqual(ownership.summary.ownedMcpPids, [51]);
+  assert.deepEqual(ownership.summary.ownedMcpStopped, []);
+  const cleanup = await ownership.cleanup("startup-failure");
+  assert.deepEqual(cleanup.ownedMcpStopped, []);
+  assert.match(cleanup.failures.join("\n"), /unconfirmed owned MCP PID 51/i);
+});
+
 test("run paths are contained and isolated for concurrent runs", () => {
   const base = "/repo/build/tmp/fixthis-verification-receipt";
   const first = createRunPaths(base, "run-a");
@@ -348,6 +382,34 @@ test("run paths are contained and isolated for concurrent runs", () => {
   assert.equal(second.fixtureDirectory, "/repo/build/tmp/fixthis-verification-receipt/run-b/fixture");
   assert.notEqual(first.runDirectory, second.runDirectory);
   assert.throws(() => createRunPaths(base, "../escape"), /invalid run id/i);
+});
+
+test("run-root ownership is registered before fixture generation can fail", async () => {
+  const base = mkdtempSync(join(tmpdir(), "fixthis-verification-receipt-fixture-failure-"));
+  const runPaths = createRunPaths(base, "run-generation-failure");
+  const ownership = createOwnedResourceController();
+  try {
+    assert.throws(
+      () => generateOwnedFixture({
+        environment: {},
+        runPaths,
+        ownership,
+        generate: ({ runPaths: activePaths }) => {
+          mkdirSync(activePaths.fixtureDirectory, { recursive: true });
+          writeFileSync(join(activePaths.fixtureDirectory, "partial.txt"), "partial");
+          throw new Error("fixture generation failed");
+        },
+      }),
+      /fixture generation failed/,
+    );
+    assert.equal(existsSync(runPaths.runDirectory), true);
+
+    const cleanup = await ownership.cleanup("generation-failure");
+    assert.equal(cleanup.runDirectoryRemoved, true);
+    assert.equal(existsSync(runPaths.runDirectory), false);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
 });
 
 test("lifecycle cleanup is once-only and preserves signal and exception exit semantics", async () => {
@@ -380,16 +442,24 @@ test("lifecycle cleanup is once-only and preserves signal and exception exit sem
   assert.deepEqual(exceptionExits, [1]);
 });
 
-test("command timeout terminates and waits for only its exact owned process group", async () => {
+test("process-group shutdown does not trust leader exit while an exact-PGID descendant survives", async () => {
   const calls = [];
-  const child = { pid: 91, exitCode: null, signalCode: null };
+  const probes = [];
+  const child = { pid: 91, exitCode: 0, signalCode: null };
   const stopped = await terminateOwnedProcessGroup(child, {
     killGroup: (pid, signal) => calls.push([pid, signal]),
-    waitForExit: async (_child, phase) => phase === "kill",
+    groupExists: (pid) => {
+      probes.push(pid);
+      return calls.at(-1)?.[1] !== "SIGKILL";
+    },
+    wait: async () => {},
+    graceMs: 0,
+    killMs: 0,
   });
 
   assert.equal(stopped, true);
   assert.deepEqual(calls, [[91, "SIGTERM"], [91, "SIGKILL"]]);
+  assert.deepEqual(probes, [91, 91, 91]);
   assert.equal(calls.some(([pid]) => pid !== 91), false);
 });
 
@@ -439,4 +509,33 @@ test("owned command spawn error verifies its exact process group stopped before 
 
   await assert.rejects(command, /failed \(EIO\).*owned process group PID 93 stopped/i);
   assert.deepEqual(terminated, [93]);
+});
+
+test("owned command normal close verifies the exact group, not only its leader", async () => {
+  const child = new EventEmitter();
+  child.pid = 94;
+  child.exitCode = null;
+  child.signalCode = null;
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  const ownership = createOwnedResourceController();
+  const terminated = [];
+  const command = runOwnedCommand("gradlew", ["task"], {
+    timeout: 100,
+    ownership,
+    spawnImpl: () => child,
+    groupExists: () => true,
+    terminateGroup: async (active) => {
+      terminated.push(active.pid);
+      return true;
+    },
+  });
+  queueMicrotask(() => {
+    child.exitCode = 0;
+    child.emit("close", 0, null);
+  });
+
+  await command;
+  assert.deepEqual(terminated, [94]);
+  assert.deepEqual(ownership.summary.ownedProcessGroupsStopped, [94]);
 });

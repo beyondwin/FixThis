@@ -223,18 +223,36 @@ function parseJsonToolResult(result, label) {
   throw new Error(`${label} did not include JSON text content`);
 }
 
-class McpStdioClient {
-  constructor(child, lines, pending, stderr, closedState) {
+export class McpStdioClient {
+  constructor(child, lines, pending, stderr, closedState, stopChild = stopOwnedChild) {
     this.child = child;
     this.lines = lines;
     this.pending = pending;
     this.stderr = stderr;
     this.closedState = closedState;
+    this.stopChild = stopChild;
     this.nextId = 1;
   }
 
-  static async start({ command, args, cwd, env, clientName }) {
-    const child = spawn(command, args, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
+  static async start({
+    command,
+    args,
+    cwd,
+    env,
+    clientName,
+    ownership = null,
+    spawnImpl = spawn,
+    initialize = async (client) => {
+      await client.request("initialize", {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: clientName, version: "0" },
+      }, 45_000);
+      client.notify("notifications/initialized", {});
+    },
+    stopChild = stopOwnedChild,
+  }) {
+    const child = spawnImpl(command, args, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
     const pending = new Map();
     const stderr = [];
     const closedState = { closed: false, code: null, signal: null };
@@ -255,7 +273,8 @@ class McpStdioClient {
       if (response.error) slot.reject(new Error(response.error.message || JSON.stringify(response.error)));
       else slot.resolve(response.result);
     });
-    const client = new McpStdioClient(child, lines, pending, stderr, closedState);
+    const client = new McpStdioClient(child, lines, pending, stderr, closedState, stopChild);
+    ownership?.trackMcp(client);
     child.once("error", (error) => client.rejectAll(new Error(`MCP child failed: ${error.message}`)));
     child.once("close", (code, signal) => {
       closedState.closed = true;
@@ -264,15 +283,11 @@ class McpStdioClient {
       client.rejectAll(new Error(`MCP child closed: code=${code ?? "unknown"} signal=${signal ?? "none"}${client.stderrText()}`));
     });
     try {
-      await client.request("initialize", {
-        protocolVersion: "2025-06-18",
-        capabilities: {},
-        clientInfo: { name: clientName, version: "0" },
-      }, 45_000);
-      client.notify("notifications/initialized", {});
+      await initialize(client);
       return client;
     } catch (error) {
-      await client.close().catch(() => {});
+      if (ownership) await ownership.stopMcp(client);
+      else await client.close().catch(() => {});
       throw error;
     }
   }
@@ -324,7 +339,7 @@ class McpStdioClient {
     if (this.closedState.closed) return true;
     this.lines.close();
     this.child.stdin.end();
-    return stopOwnedChild(this.child);
+    return this.stopChild(this.child);
   }
 }
 
@@ -348,21 +363,43 @@ export async function stopOwnedChild(child, { graceMs = 5_000, killMs = 2_000 } 
   return waitForChildExit(child, killMs);
 }
 
+function ownedProcessGroupExists(pid) {
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch (error) {
+    if (error?.code === "ESRCH") return false;
+    if (error?.code === "EPERM") return true;
+    throw error;
+  }
+}
+
+async function waitForProcessGroupExit(pid, timeoutMs, groupExists, wait) {
+  const deadline = Date.now() + timeoutMs;
+  while (groupExists(pid)) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return false;
+    await wait(Math.min(50, remaining));
+  }
+  return true;
+}
+
 export async function terminateOwnedProcessGroup(child, {
   killGroup = (pid, signal) => {
     try { process.kill(-pid, signal); } catch (error) {
       if (error?.code !== "ESRCH") throw error;
     }
   },
-  waitForExit = (activeChild, _phase, timeoutMs) => waitForChildExit(activeChild, timeoutMs),
+  groupExists = ownedProcessGroupExists,
+  wait = delay,
   graceMs = 5_000,
   killMs = 2_000,
 } = {}) {
-  if (!child || childExited(child)) return true;
+  if (!child?.pid || !groupExists(child.pid)) return true;
   killGroup(child.pid, "SIGTERM");
-  if (await waitForExit(child, "term", graceMs)) return true;
+  if (await waitForProcessGroupExit(child.pid, graceMs, groupExists, wait)) return true;
   killGroup(child.pid, "SIGKILL");
-  return waitForExit(child, "kill", killMs);
+  return waitForProcessGroupExit(child.pid, killMs, groupExists, wait);
 }
 
 export function createOwnedResourceController() {
@@ -492,6 +529,7 @@ export async function runOwnedCommand(command, args, {
   ownership = null,
   spawnImpl = spawn,
   terminateGroup = terminateOwnedProcessGroup,
+  groupExists = ownedProcessGroupExists,
 } = {}) {
   const printable = [command, ...args].join(" ");
   process.stdout.write(`[verification-receipt] RUN ${printable}\n`);
@@ -536,7 +574,11 @@ export async function runOwnedCommand(command, args, {
     ownership?.releaseProcessGroup(child, stopped);
     throw new Error(`${printable} failed (${result.error?.code ?? "spawn"}); owned process group PID ${child.pid} ${stopped ? "stopped" : "stop unconfirmed"}`);
   }
-  ownership?.releaseProcessGroup(child, true);
+  const groupStopped = !groupExists(child.pid) || await terminateGroup(child).catch(() => false);
+  ownership?.releaseProcessGroup(child, groupStopped);
+  if (!groupStopped) {
+    throw new Error(`${printable} completed but owned process group PID ${child.pid} stop unconfirmed`);
+  }
   if (result.code !== 0) {
     const output = `${stdout}\n${stderr}`.trim().split(/\r?\n/).slice(-80).join("\n");
     throw new Error(`${printable} failed (${result.code ?? result.signal ?? "spawn"})${output ? `\n${output}` : ""}`);
@@ -581,6 +623,22 @@ include(":app")
 function uniquePackageName() {
   const suffix = `${Date.now().toString(36)}${randomBytes(3).toString("hex")}`.toLowerCase();
   return `io.github.beyondwin.fixthis.receipt.r${suffix}`;
+}
+
+export function generateOwnedFixture({ environment, runPaths, ownership, generate = generateFixture }) {
+  Object.assign(ownership.summary, {
+    fixtureDirectoryRemoved: false,
+    runDirectory: runPaths.runDirectory,
+  });
+  ownership.addCleanupTask("Fixture", () => {
+    rmSync(runPaths.runDirectory, { recursive: true, force: true });
+    return {
+      fixtureDirectoryRemoved: !existsSync(runPaths.fixtureDirectory),
+      removedFixtureDirectory: runPaths.fixtureDirectory,
+      runDirectoryRemoved: !existsSync(runPaths.runDirectory),
+    };
+  }, 20);
+  return generate({ environment, runPaths });
 }
 
 function generateFixture({ environment, runPaths }) {
@@ -956,13 +1014,14 @@ async function ensureMcpDistribution(environment, ownership) {
   return binary;
 }
 
-async function startMcp(binary, fixture, environment, name) {
+async function startMcp(binary, fixture, environment, name, ownership) {
   return McpStdioClient.start({
     command: binary,
     args: ["--project-dir", fixture.fixtureDirectory, "--package", fixture.packageName],
     cwd: repoRoot,
     env: environment.env,
     clientName: name,
+    ownership,
   });
 }
 
@@ -1069,26 +1128,16 @@ function stepRecorder(steps) {
 }
 
 async function executeConnectedProductPath({ options, environment, ownership, runPaths }) {
-  const fixture = generateFixture({ environment, runPaths });
+  const cleanup = ownership.summary;
+  const fixture = generateOwnedFixture({ environment, runPaths, ownership });
   const steps = [];
   const record = stepRecorder(steps);
-  const cleanup = ownership.summary;
   Object.assign(cleanup, {
     packageUninstalled: false,
-    fixtureDirectoryRemoved: false,
     emulatorPid: environment.ownedEmulator?.pid || null,
     ownedEmulatorStopped: environment.ownedEmulator ? false : null,
-    runDirectory: fixture.runDirectory,
   });
   ownership.addCleanupTask("Package", () => cleanupFixturePackage(fixture, environment), 10);
-  ownership.addCleanupTask("Fixture", () => {
-    rmSync(fixture.runDirectory, { recursive: true, force: true });
-    return {
-      fixtureDirectoryRemoved: !existsSync(fixture.fixtureDirectory),
-      removedFixtureDirectory: fixture.fixtureDirectory,
-      runDirectoryRemoved: !existsSync(fixture.runDirectory),
-    };
-  }, 20);
   const failures = ownership.failures;
   let mcp = null;
   let sessionId = null;
@@ -1105,7 +1154,7 @@ async function executeConnectedProductPath({ options, environment, ownership, ru
       await publishLocalRuntimeArtifacts(fixture, environment, ownership);
       await installFixture(fixture, environment, ownership);
       await coldLaunch(environment, fixture);
-      mcp = ownership.trackMcp(await startMcp(mcpBinary, fixture, environment, "verification-receipt-baseline"));
+      mcp = await startMcp(mcpBinary, fixture, environment, "verification-receipt-baseline", ownership);
       try {
         baselineStatus = await waitForBridge(mcp, fixture.packageName, options.maxRetries);
       } catch (error) {
@@ -1210,7 +1259,7 @@ async function executeConnectedProductPath({ options, environment, ownership, ru
       const firstPid = mcp.pid;
       requireCondition(await ownership.stopMcp(mcp), `Could not verify owned MCP PID ${firstPid} stopped`);
       mcp = null;
-      mcp = ownership.trackMcp(await startMcp(mcpBinary, fixture, environment, "verification-receipt-replay"));
+      mcp = await startMcp(mcpBinary, fixture, environment, "verification-receipt-replay", ownership);
       const replayed = parseJsonToolResult(await mcpCall(mcp, "fixthis_read_feedback", {
         sessionId,
         includeAll: true,
