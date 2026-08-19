@@ -364,6 +364,44 @@ verification, or replay verification is unavailable.
 Runtime evidence remains a host capability over ADB. It does not add a
 sidekick Bridge capability or bump Bridge protocol `1.3`.
 
+## Feedback Verification Receipt Evidence
+
+Feedback verification receipts are delivered on the current source line only
+when both the offline orchestration test and strict connected product path
+pass:
+
+```bash
+npm run verification-receipt:smoke:test
+npm run verification-receipt:smoke -- --strict
+```
+
+The strict smoke must report `PASS` for all eight product checkpoints:
+baseline install; sent-and-claimed feedback; stale-install failed receipt;
+rebuilt-install passed receipt; restart replay with contained after artifact;
+failed-receipt rejection; latest passing-receipt resolution linkage; and
+verified console rendering. `DEFERRED` or `SKIPPED` device, fixture, receipt,
+replay, artifact, resolution, or console evidence is not a passing connected
+claim.
+
+The focused ignored reports are:
+
+```text
+build/reports/fixthis-verification-receipt/report.json
+build/reports/fixthis-verification-receipt/report.md
+```
+
+`npm run android:proof -- --strict` also runs the required
+`Verification receipt product path` row immediately after
+`Runtime evidence product path`. Its aggregate ignored reports remain under
+`build/reports/fixthis-android-proof/`. A failing row reports
+`verification_receipt_failed` and directs maintainers back to the focused
+report and strict command.
+
+This proof covers stale-install fail-closed behavior, receipt persistence and
+replay, `FAIL` rejection, atomic latest-`PASS` resolution linkage, and console
+reflection. It does not change Bridge protocol `1.3` or the existing
+`fixthis_verify_ui_change` tool.
+
 ## Required Before Next Source Release
 
 - [ ] Full PR checks pass on the release commit.
@@ -388,6 +426,11 @@ sidekick Bridge capability or bump Bridge protocol `1.3`.
       `npm run runtime-evidence:smoke -- --strict` and
       `npm run android:proof -- --strict` reports; deferred is not called
       connected proof.
+- [ ] Feedback Verification Receipt claims have fresh passing
+      `npm run verification-receipt:smoke:test`,
+      `npm run verification-receipt:smoke -- --strict`, and
+      `npm run android:proof -- --strict` results; deferred or skipped
+      checkpoints are not called connected proof.
 - [ ] CLI/MCP package workflow has produced the release tarball, or the release
       notes explicitly say no desktop package is attached.
 - [ ] Release tarball checksum sidecar exists and both shell/npm installers

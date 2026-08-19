@@ -134,5 +134,4 @@ private fun String.isSafeArtifactPathSegment(): Boolean = isNotBlank() &&
     '/' !in this &&
     '\\' !in this
 
-private fun File.isRealNonSymlinkDirectory(): Boolean =
-    Files.isDirectory(toPath(), NOFOLLOW_LINKS) && !Files.isSymbolicLink(toPath())
+private fun File.isRealNonSymlinkDirectory(): Boolean = Files.isDirectory(toPath(), NOFOLLOW_LINKS) && !Files.isSymbolicLink(toPath())

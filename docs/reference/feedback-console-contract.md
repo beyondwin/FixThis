@@ -53,6 +53,11 @@
   lifecycle phases. `needs_clarification` remains editable; `wont_fix` and
   `resolved` are terminal agent outcomes. Agent notes and summaries appear in
   the saved annotation detail.
+- Saved annotation rows render at most one verification badge: `verified` for
+  a resolved item linked to a `pass` receipt, `warning` for a resolved item
+  linked to a `warn` receipt, `verification failed` for an unresolved item
+  whose latest receipt is `fail`, and `unverified` for a resolved item with no
+  linked receipt.
 
 ## Persistence Semantics
 
@@ -105,6 +110,9 @@
 - Server-sent `session-updated` and `preview-ready` events carry top-level
   `sessionId`. The browser applies them to detail/preview state only when that
   session is currently active, except for the initial `snapshot` event.
+- Receipt rendering uses refreshed session state from the existing
+  `session-updated`/`sessions-updated` SSE path. It adds no receipt polling,
+  timer, or verification-specific EventSource.
 - Live preview delivery is push-first. `preview-ready` SSE events are the normal
   automatic update path. Fallback preview polling runs only while `/api/events`
   is disconnected or unavailable, and both paths route through the same
@@ -194,6 +202,37 @@
 - SSE `/api/events` computes its initial snapshot before committing streaming
   headers. Once the stream is open, keep-alive or event write failures caused by
   client disconnect close the subscription quietly.
+
+## Verification receipt reflection
+
+The existing saved-annotation detail and compact History drawer are the only
+receipt surfaces; verification adds no navigation destination or browser-side
+verification action. Selection is deterministic:
+
+- A resolved item with `resolutionVerificationReceiptId` renders that linked
+  receipt, even if newer unrelated history exists.
+- An unresolved item renders its latest receipt by
+  `(createdAtEpochMillis, receiptId)` descending.
+- A resolved item without a link renders the `unverified` badge and no receipt
+  card.
+
+The receipt card renders verdict, receipt id, capture time, bounded checks,
+typed assertions, and available before/after thumbnails. Every receipt-derived
+text fragment and URL attribute is passed through the existing HTML escaping
+helpers. Screen, receipt, and session ids are encoded with
+`encodeURIComponent`.
+
+The post-change screenshot route is:
+
+```text
+GET /api/verification-receipts/<receiptId>/screenshot/after?sessionId=<sessionId>
+```
+
+The console always supplies the explicit owning `sessionId`. The server
+requires the receipt to belong to that session and serves only a regular PNG
+contained beneath that session's
+`verification/<receiptId>/` directory; wrong-session, missing, symlinked, or
+outside-root artifacts return 404.
 
 ### `console-assets-changed` (dir-mode only)
 

@@ -80,7 +80,7 @@ internal class RuntimeEvidenceCollector(
             RuntimeEvidenceEndContextOutcome.TimedOut
         } else {
             try {
-                withTimeoutOrNull(minOf(endContextReserve(), remaining)) {
+                withTimeoutOrNull(remaining) {
                     bridge.contextForDevice(packageName, deviceSerial)
                 }
                     ?.let(RuntimeEvidenceEndContextOutcome::Available)

@@ -1046,8 +1046,14 @@ async function installFixture(fixture, environment, ownership) {
   );
 }
 
+export function sourceMtimeAfterInstall(installEpochMillis) {
+  const installedAt = Number(installEpochMillis);
+  if (!Number.isFinite(installedAt)) throw new Error("Fixture requires a finite install epoch");
+  return installedAt + 1_000;
+}
+
 function advanceSourceBeyondInstall(fixture, installEpochMillis) {
-  const sourceMtime = Math.max(Date.now(), Number(installEpochMillis) + 1_000);
+  const sourceMtime = sourceMtimeAfterInstall(installEpochMillis);
   writeFileSync(fixture.sourcePath, fixtureSource(changedButtonText));
   const timestamp = new Date(sourceMtime);
   utimesSync(fixture.sourcePath, timestamp, timestamp);

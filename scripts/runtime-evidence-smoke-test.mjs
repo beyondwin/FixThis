@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import {
   buildRuntimeEvidenceReport,
+  collectRuntimeEvidenceWithStatusPreflight,
   createRuntimeEvidenceSmokeReport,
   parseArgs,
   proveRuntimeEvidenceProductPath,
@@ -105,6 +106,63 @@ test("product-path report carries the strict MCP collection contract", async () 
   });
   assert.equal(report.status, "pass");
   assert.deepEqual(report.productPath, productPath);
+});
+
+test("runtime evidence collection requires a ready same-client status preflight", async () => {
+  const calls = [];
+  const mcp = {
+    async callTool(name, args, timeoutMs) {
+      calls.push({ name, args, timeoutMs });
+      if (name === "fixthis_status") {
+        return {
+          deviceConnected: true,
+          appRunning: true,
+          sidekickConnected: true,
+          composeRoots: 1,
+        };
+      }
+      return { attempted: true, status: "complete" };
+    },
+  };
+
+  assert.deepEqual(await collectRuntimeEvidenceWithStatusPreflight({
+    mcp,
+    sessionId: "session-1",
+    itemId: "item-1",
+  }), { attempted: true, status: "complete" });
+  assert.deepEqual(calls, [
+    {
+      name: "fixthis_status",
+      args: { packageName: "io.github.beyondwin.fixthis.sample" },
+      timeoutMs: 30_000,
+    },
+    {
+      name: "fixthis_collect_runtime_evidence",
+      args: { sessionId: "session-1", itemId: "item-1", preset: "baseline" },
+      timeoutMs: 30_000,
+    },
+  ]);
+});
+
+test("runtime evidence status preflight fails closed before collection when the app is not ready", async () => {
+  const calls = [];
+  const mcp = {
+    async callTool(name) {
+      calls.push(name);
+      return {
+        deviceConnected: true,
+        appRunning: false,
+        sidekickConnected: true,
+        composeRoots: 0,
+      };
+    },
+  };
+
+  await assert.rejects(
+    collectRuntimeEvidenceWithStatusPreflight({ mcp, sessionId: "session-1", itemId: "item-1" }),
+    /Runtime evidence status preflight is not ready/,
+  );
+  assert.deepEqual(calls, ["fixthis_status"]);
 });
 
 test("non-strict missing Android defers while strict fails closed", async () => {

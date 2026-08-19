@@ -165,6 +165,11 @@ test("failureForCode returns stable next actions", () => {
   assert.equal(failureForCode("device_offline").nextAction, "Run `adb kill-server && adb start-server`, confirm `adb devices -l`, then rerun `npm run android:proof -- --strict`.");
   assert.equal(failureForCode("multiple_devices").nextAction, "Rerun with `npm run android:proof -- --strict --device <serial>`.");
   assert.equal(failureForCode("copy_prompt_failed").nextAction, "Inspect the real Copy Prompt smoke report and rerun `npm run real-copy-prompt:smoke -- --strict`.");
+  assert.deepEqual(failureForCode("verification_receipt_failed"), {
+    failureCode: "verification_receipt_failed",
+    reason: "Feedback verification receipt product-path proof failed.",
+    nextAction: "Inspect build/reports/fixthis-verification-receipt and rerun `npm run verification-receipt:smoke -- --strict`.",
+  });
 });
 
 test("buildProofSteps creates ordered smoke commands and forwards flags", () => {
@@ -185,15 +190,37 @@ test("buildProofSteps creates ordered smoke commands and forwards flags", () => 
     "Real Copy Prompt smoke",
     "Agent loop smoke",
     "Runtime evidence product path",
+    "Verification receipt product path",
     "External fixture matrix",
   ]);
   assert.equal(steps[0].command, "scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --device emulator-5554 --no-build");
   assert.equal(steps[1].command, "npm run real-copy-prompt:smoke -- --strict --headed");
   assert.equal(steps[2].command, "npm run agent-loop:smoke -- --strict --headed");
   assert.equal(steps[3].command, "npm run runtime-evidence:smoke -- --strict");
+  assert.equal(
+    steps[3].setupCommand,
+    "adb -s emulator-5554 shell wm size 720x1280 && " +
+      "adb -s emulator-5554 shell wm density 320",
+  );
+  assert.equal(
+    steps[3].prerequisiteCommand,
+    "adb -s emulator-5554 shell am force-stop com.example.jetsnack && " +
+      "adb -s emulator-5554 shell am force-stop com.example.reply && " +
+      "adb -s emulator-5554 shell am force-stop io.github.beyondwin.fixthis.sample && " +
+      "adb -s emulator-5554 shell am start -W -n io.github.beyondwin.fixthis.sample/.MainActivity",
+  );
+  assert.equal(
+    steps[3].teardownCommand,
+    "adb -s emulator-5554 shell wm size reset && " +
+      "adb -s emulator-5554 shell wm density reset",
+  );
   assert.equal(steps[3].failureCode, "runtime_evidence_failed");
   assert.equal(steps[3].reportPath, "build/reports/fixthis-runtime-evidence/report.json");
-  assert.equal(steps[4].command, "npm run external-fixture:matrix -- --strict");
+  assert.equal(steps[4].command, "npm run verification-receipt:smoke -- --strict");
+  assert.equal(steps[4].failureCode, "verification_receipt_failed");
+  assert.equal(steps[4].reportPath, "build/reports/fixthis-verification-receipt/report.json");
+  assert.equal(steps[4].required, true);
+  assert.equal(steps[5].command, "npm run external-fixture:matrix -- --strict");
 });
 
 test("buildReport derives fail deferred and pass statuses", () => {
@@ -379,9 +406,164 @@ test("runAndroidProof continues after failed steps when requested", () => {
     writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
   });
 
-  assert.equal(commands.length, 5);
+  assert.equal(commands.length, 9);
   assert.equal(report.status, "fail");
   assert.equal(report.steps.find((step) => step.name === "Agent loop smoke").failureCode, "agent_loop_failed");
+});
+
+test("runAndroidProof scopes the runtime display and sample prerequisite to the selected device", () => {
+  const commands = [];
+  const { report } = runAndroidProof({
+    strict: true,
+    continueOnFailure: false,
+    reportDir: "build/reports/fixthis-android-proof-test",
+    device: null,
+    skipBuild: false,
+    headed: false,
+  }, {
+    resolveAndroidPreflight: () => ({
+      status: "pass",
+      sdk: "/sdk",
+      adb: "/sdk/platform-tools/adb",
+      deviceSerial: "emulator-5554",
+      bootCompleted: true,
+      failureCode: null,
+      nextAction: null,
+    }),
+    runCommand: (command) => {
+      commands.push(command);
+      return { status: 0, stdout: "", stderr: "", durationMs: 5 };
+    },
+    writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+  });
+
+  const agentLoopIndex = commands.indexOf("npm run agent-loop:smoke -- --strict");
+  assert.deepEqual(commands.slice(agentLoopIndex, agentLoopIndex + 7), [
+    "npm run agent-loop:smoke -- --strict",
+    "adb -s emulator-5554 shell wm size 720x1280 && " +
+      "adb -s emulator-5554 shell wm density 320",
+    "adb -s emulator-5554 shell am force-stop com.example.jetsnack && " +
+      "adb -s emulator-5554 shell am force-stop com.example.reply && " +
+      "adb -s emulator-5554 shell am force-stop io.github.beyondwin.fixthis.sample && " +
+      "adb -s emulator-5554 shell am start -W -n io.github.beyondwin.fixthis.sample/.MainActivity",
+    "npm run runtime-evidence:smoke -- --strict",
+    "adb -s emulator-5554 shell wm size reset && " +
+      "adb -s emulator-5554 shell wm density reset",
+    "npm run verification-receipt:smoke -- --strict",
+    "npm run external-fixture:matrix -- --strict",
+  ]);
+  assert.equal(report.status, "pass");
+});
+
+test("runAndroidProof restores display after runtime setup prerequisite and command failures", () => {
+  const setupCommand = "adb -s emulator-5554 shell wm size 720x1280 && adb -s emulator-5554 shell wm density 320";
+  const prerequisiteCommand = "adb -s emulator-5554 shell am force-stop com.example.jetsnack && " +
+    "adb -s emulator-5554 shell am force-stop com.example.reply && " +
+    "adb -s emulator-5554 shell am force-stop io.github.beyondwin.fixthis.sample && " +
+    "adb -s emulator-5554 shell am start -W -n io.github.beyondwin.fixthis.sample/.MainActivity";
+  const runtimeCommand = "npm run runtime-evidence:smoke -- --strict";
+  const teardownCommand = "adb -s emulator-5554 shell wm size reset && adb -s emulator-5554 shell wm density reset";
+
+  for (const failingCommand of [setupCommand, prerequisiteCommand, runtimeCommand]) {
+    const commands = [];
+    const { report } = runAndroidProof({
+      strict: true,
+      continueOnFailure: false,
+      reportDir: "build/reports/fixthis-android-proof-test",
+      device: null,
+      skipBuild: false,
+      headed: false,
+    }, {
+      resolveAndroidPreflight: () => ({
+        status: "pass",
+        sdk: "/sdk",
+        adb: "/sdk/platform-tools/adb",
+        deviceSerial: "emulator-5554",
+        bootCompleted: true,
+        failureCode: null,
+        nextAction: null,
+      }),
+      runCommand: (command) => {
+        commands.push(command);
+        return { status: command === failingCommand ? 1 : 0, stdout: "", stderr: "fixture failed", durationMs: 5 };
+      },
+      writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+    });
+
+    assert.equal(commands.at(-1), teardownCommand, failingCommand);
+    assert.equal(report.steps.at(-1).name, "Runtime evidence product path");
+    assert.equal(report.steps.at(-1).status, "fail");
+    assert.equal(commands.includes("npm run verification-receipt:smoke -- --strict"), false);
+  }
+});
+
+test("runAndroidProof restores display when runtime result normalization throws", () => {
+  const commands = [];
+  const teardownCommand = "adb -s emulator-5554 shell wm size reset && adb -s emulator-5554 shell wm density reset";
+  const { report } = runAndroidProof({
+    strict: true,
+    continueOnFailure: false,
+    reportDir: "build/reports/fixthis-android-proof-test",
+    device: null,
+    skipBuild: false,
+    headed: false,
+  }, {
+    resolveAndroidPreflight: () => ({
+      status: "pass",
+      sdk: "/sdk",
+      adb: "/sdk/platform-tools/adb",
+      deviceSerial: "emulator-5554",
+      bootCompleted: true,
+      failureCode: null,
+      nextAction: null,
+    }),
+    runCommand: (command) => {
+      commands.push(command);
+      if (command === "npm run runtime-evidence:smoke -- --strict") {
+        return Object.defineProperty({}, "status", { get: () => { throw new Error("normalize failed"); } });
+      }
+      return { status: 0, stdout: "", stderr: "", durationMs: 5 };
+    },
+    writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+  });
+
+  assert.equal(commands.at(-1), teardownCommand);
+  assert.equal(report.steps.at(-1).status, "fail");
+  assert.match(report.steps.at(-1).reason, /normalize failed/);
+});
+
+test("runAndroidProof fails the runtime row when display restoration fails", () => {
+  const commands = [];
+  const teardownCommand = "adb -s emulator-5554 shell wm size reset && adb -s emulator-5554 shell wm density reset";
+  const { report } = runAndroidProof({
+    strict: true,
+    continueOnFailure: false,
+    reportDir: "build/reports/fixthis-android-proof-test",
+    device: null,
+    skipBuild: false,
+    headed: false,
+  }, {
+    resolveAndroidPreflight: () => ({
+      status: "pass",
+      sdk: "/sdk",
+      adb: "/sdk/platform-tools/adb",
+      deviceSerial: "emulator-5554",
+      bootCompleted: true,
+      failureCode: null,
+      nextAction: null,
+    }),
+    runCommand: (command) => {
+      commands.push(command);
+      return { status: command === teardownCommand ? 1 : 0, stdout: "", stderr: "restore failed", durationMs: 5 };
+    },
+    writeReports: (proofReport) => ({ json: "/tmp/report.json", markdown: "/tmp/report.md", proofReport }),
+  });
+
+  assert.equal(commands.at(-1), teardownCommand);
+  assert.equal(report.steps.at(-1).status, "fail");
+  assert.equal(report.steps.at(-1).failureCode, "runtime_evidence_failed");
+  assert.equal(report.steps.at(-1).reason, "restore failed");
+  assert.equal(commands.includes("npm run verification-receipt:smoke -- --strict"), false);
 });
 
 test("runAndroidProof writes deferred environment report without running smokes", () => {

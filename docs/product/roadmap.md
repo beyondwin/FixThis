@@ -34,6 +34,25 @@ broader Android UI stacks or additional package channels.
 
 ## High-priority Work
 
+### Feedback Verification Receipts (delivered)
+
+The MCP feedback loop now verifies a claimed item against its persisted
+baseline target and current debug app with explicit `text_present`,
+`text_absent`, and `target_present` assertions. It persists bounded `PASS`,
+`WARN`, or `FAIL` receipts plus one optional local after screenshot, restores
+them through event replay, and can atomically link the latest compatible
+receipt when resolving an item. Receipt-free resolution remains supported and
+verification never resolves an item automatically.
+
+The existing History and saved-detail surfaces show linked-versus-latest
+receipt evidence with `verified`, `warning`, `verification failed`, or
+`unverified` badges. The milestone was marked delivered after the strict
+external-fixture smoke proved stale-install failure, rebuilt-install success,
+restart replay, failed-receipt rejection, passing-receipt linkage, and console
+reflection. The aggregate Android proof now carries the focused strict smoke
+as a required row. This remains host/MCP-side behavior: Bridge protocol `1.3`
+and `fixthis_verify_ui_change` are unchanged.
+
 ### Runtime Evidence Autopilot (delivered)
 
 The host CLI/MCP path now collects allowlisted logcat, memory, and frame

@@ -92,6 +92,9 @@ Feedback console sessions are returned by `fixthis_open_feedback_console` and se
 - `createdAtEpochMillis`, `updatedAtEpochMillis`: session timestamps.
 - `screens`: persisted evidence snapshots saved from frozen previews.
 - `items`: feedback queue items.
+- `verificationReceipts`: additive list of item-scoped post-change
+  verification receipts. Legacy session JSON decodes a missing field as an
+  empty list.
 - `runtimeEvidence`: additive list of bounded local runtime evidence summaries
   and artifact paths. It defaults to an empty list. Runtime evidence artifacts
   are local files and must not be committed.
@@ -218,6 +221,9 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
 - `sentAtEpochMillis`: time the item was sent to a handoff batch, present for sent items.
 - `status`: `open`, `ready`, `in_progress`, `resolved`, `needs_clarification`, or `wont_fix`.
 - `agentSummary`: optional agent resolution summary.
+- `resolutionVerificationReceiptId`: optional id of the latest compatible
+  `pass` or `warn` receipt linked atomically when this item was resolved.
+  Legacy items and receipt-free resolutions omit it.
 - `targetEvidence`: optional additive evidence for stable agent handoff. When present, it follows the annotation `targetEvidence` shape above.
 - `targetReliability`: optional target confidence and warning metadata. When present, it follows the annotation `targetReliability` shape above.
 - `runtimeEvidenceIds`: optional additive list of ids referencing
@@ -225,6 +231,39 @@ Feedback items represent human comments on a persisted evidence snapshot. When a
   so large local artifacts are not duplicated across feedback items.
 
 `ready` is retained for persisted/session JSON compatibility. Domain mappers normalize legacy `ready` values to `AnnotationStatus.OPEN`; this is not a JSON field migration.
+
+## Feedback Verification Receipt Schema
+
+`verificationReceipts` is append-only item history restored by the
+`feedbackVerified` event log and checkpoint replay. Verification never changes
+item status. Each receipt contains:
+
+- `receiptId`: stable receipt id.
+- `itemId`: owning feedback item id.
+- `baselineScreenId`: persisted screen used as the pre-change baseline.
+- `createdAtEpochMillis`: receipt creation time.
+- `verdict`: `pass`, `warn`, or `fail`.
+- `checks`: up to 16 `{kind, outcome, message}` objects. `outcome` is
+  `passed`, `warning`, or `failed`; each message is capped at 512 characters.
+- `assertions`: normalized typed assertions. `kind` is `text_present`,
+  `text_absent`, or `target_present`; `value` and `role` are optional by shape
+  and valid only under the MCP rules documented in
+  [MCP tools](mcp-tools.md).
+- `currentActivity`: optional current Activity captured for comparison.
+- `currentScreenFingerprint`: optional diagnostic fingerprint. Whole-screen
+  fingerprint equality is not a pass criterion.
+- `installedAtEpochMillis`: optional APK install timestamp used by freshness
+  checks.
+- `afterScreenshot`: optional screenshot metadata for the one local
+  post-change PNG.
+- `matchedTargetSummary`: optional bounded target evidence containing
+  `confidence` (`high`, `medium`, `low`, or `none`), optional `nodeUid`,
+  optional `role`, bounded `text` and `contentDescriptions` arrays, and
+  optional `boundsInWindow`.
+
+Old session JSON decodes with `verificationReceipts: []` and
+`resolutionVerificationReceiptId: null`. Receipts persist bounded summaries,
+not the live root or full current semantics tree.
 
 ### `runtimeEvidence`
 
@@ -524,6 +563,12 @@ CLI and MCP flows pull screenshots through the bridge and write desktop-readable
 ```text
 .fixthis/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-full.png
 .fixthis/feedback-sessions/<session-id>/artifacts/screens/<screen-id>/<screen-id>-crop.png
+```
+
+One optional post-change verification screenshot is stored per receipt at:
+
+```text
+.fixthis/feedback-sessions/<session-id>/verification/<receipt-id>/after.png
 ```
 
 When available, annotation paths appear as `desktopFullPath` and

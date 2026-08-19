@@ -20,6 +20,7 @@ import {
   packageCleanupOutcome,
   parseArgs,
   savedItemRowSelector,
+  sourceMtimeAfterInstall,
   runOwnedCommand,
   stopOwnedChild,
   terminateOwnedProcessGroup,
@@ -55,6 +56,11 @@ test("strict result requires every product-path checkpoint", () => {
     assert.equal(report.steps.find((step) => step.name === name)?.status, "PASS");
   }
   assert.doesNotThrow(() => assertStrictReport(report));
+});
+
+test("stale fixture mtime advances from the device install epoch without host clock skew", () => {
+  assert.equal(sourceMtimeAfterInstall(1_000), 2_000);
+  assert.throws(() => sourceMtimeAfterInstall(Number.NaN), /finite install epoch/);
 });
 
 test("strict report fails closed for missing, duplicate, failed, deferred, or skipped checkpoints", () => {

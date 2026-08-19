@@ -101,6 +101,10 @@ const failureCatalog = Object.freeze({
     reason: "The runtime evidence MCP product-path proof failed.",
     nextAction: "Inspect the runtime evidence report and rerun `npm run runtime-evidence:smoke -- --strict`.",
   },
+  verification_receipt_failed: {
+    reason: "Feedback verification receipt product-path proof failed.",
+    nextAction: "Inspect build/reports/fixthis-verification-receipt and rerun `npm run verification-receipt:smoke -- --strict`.",
+  },
   external_fixture_failed: {
     reason: "The strict external fixture matrix failed.",
     nextAction: "Inspect the external fixture matrix report and rerun `npm run external-fixture:matrix -- --strict`.",
@@ -243,10 +247,27 @@ function shellQuote(value) {
 
 export function buildProofSteps(options = {}, environment = {}) {
   const serial = environment.deviceSerial || options.device || null;
+  const adbArgs = serial ? ["adb", "-s", serial] : ["adb"];
+  const samplePackage = "io.github.beyondwin.fixthis.sample";
+  const sampleActivity = `${samplePackage}/.MainActivity`;
+  const runtimeDisplaySetupCommand = [
+    [...adbArgs, "shell", "wm", "size", "720x1280"],
+    [...adbArgs, "shell", "wm", "density", "320"],
+  ].map((args) => args.map(shellQuote).join(" ")).join(" && ");
+  const samplePrerequisiteCommand = [
+    [...adbArgs, "shell", "am", "force-stop", "com.example.jetsnack"],
+    [...adbArgs, "shell", "am", "force-stop", "com.example.reply"],
+    [...adbArgs, "shell", "am", "force-stop", samplePackage],
+    [...adbArgs, "shell", "am", "start", "-W", "-n", sampleActivity],
+  ].map((args) => args.map(shellQuote).join(" ")).join(" && ");
+  const runtimeDisplayTeardownCommand = [
+    [...adbArgs, "shell", "wm", "size", "reset"],
+    [...adbArgs, "shell", "wm", "density", "reset"],
+  ].map((args) => args.map(shellQuote).join(" ")).join(" && ");
   const sampleArgs = [
     "scripts/fixthis-smoke.sh",
     "--package",
-    "io.github.beyondwin.fixthis.sample",
+    samplePackage,
   ];
   if (serial) sampleArgs.push("--device", serial);
   if (options.skipBuild) sampleArgs.push("--no-build");
@@ -273,8 +294,18 @@ export function buildProofSteps(options = {}, environment = {}) {
     {
       name: "Runtime evidence product path",
       command: "npm run runtime-evidence:smoke -- --strict",
+      setupCommand: runtimeDisplaySetupCommand,
+      prerequisiteCommand: samplePrerequisiteCommand,
+      teardownCommand: runtimeDisplayTeardownCommand,
       failureCode: "runtime_evidence_failed",
       reportPath: "build/reports/fixthis-runtime-evidence/report.json",
+    },
+    {
+      name: "Verification receipt product path",
+      command: "npm run verification-receipt:smoke -- --strict",
+      failureCode: "verification_receipt_failed",
+      reportPath: "build/reports/fixthis-verification-receipt/report.json",
+      required: true,
     },
     {
       name: "External fixture matrix",
@@ -383,6 +414,44 @@ function runShellCommand(command, envPatch = {}) {
   };
 }
 
+function failedStepFromError(step, error) {
+  return {
+    name: step.name,
+    command: step.command,
+    status: "fail",
+    exitCode: 1,
+    durationMs: 0,
+    failureCode: step.failureCode || "unknown_failure",
+    reason: error instanceof Error ? error.message : String(error),
+    reportPath: step.reportPath || null,
+  };
+}
+
+function runProofStep(step, run, commandEnvironment) {
+  let normalized = null;
+  try {
+    for (const fixtureCommand of [step.setupCommand, step.prerequisiteCommand].filter(Boolean)) {
+      normalized = normalizeStepResult(step, run(fixtureCommand, commandEnvironment));
+      if (normalized.status === "fail") break;
+    }
+    if (normalized?.status !== "fail") {
+      normalized = normalizeStepResult(step, run(step.command, commandEnvironment));
+    }
+  } catch (error) {
+    normalized = failedStepFromError(step, error);
+  } finally {
+    if (step.teardownCommand) {
+      try {
+        const teardown = normalizeStepResult(step, run(step.teardownCommand, commandEnvironment));
+        if (teardown.status === "fail") normalized = teardown;
+      } catch (error) {
+        normalized = failedStepFromError(step, error);
+      }
+    }
+  }
+  return normalized;
+}
+
 export function runAndroidProof(options = {}, deps = {}) {
   const preflight = (deps.resolveAndroidPreflight || resolveAndroidPreflight)(options, deps);
   const steps = [];
@@ -390,7 +459,7 @@ export function runAndroidProof(options = {}, deps = {}) {
     const run = deps.runCommand || runShellCommand;
     const commandEnvironment = proofCommandEnvironment(preflight);
     for (const step of buildProofSteps(options, preflight)) {
-      const normalized = normalizeStepResult(step, run(step.command, commandEnvironment));
+      const normalized = runProofStep(step, run, commandEnvironment);
       steps.push(normalized);
       if (normalized.status === "fail" && !options.continueOnFailure) break;
     }

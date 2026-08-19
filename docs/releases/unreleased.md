@@ -8,6 +8,15 @@ as release evidence.
 
 ## Highlights
 
+- **Item-scoped verification receipts.** Agents can verify claimed feedback
+  against its persisted target and current debug app with explicit typed
+  assertions. Host source newer than the installed APK fails closed with
+  `SOURCE_INSTALL_STALE`; bounded receipts and one optional after screenshot
+  survive MCP restart/event replay. Resolution can atomically link only the
+  latest compatible `PASS` or `WARN` receipt, while receipt-free resolution
+  remains supported. The existing History and saved-detail views render
+  linked-versus-latest evidence as `verified`, `warning`,
+  `verification failed`, or `unverified` without adding polling.
 - **Repository Agent Kit.** Added a read-only task and verification router, scoped AGENTS.md guidance, repo-discovered maintainer skills, and semantic drift gates for commands, line budgets, connected-proof requirements, and installable-plugin audiences.
 - **Accurate Gradle Plugin Portal recovery.** Release automation now verifies
   the exact `io.github.beyondwin.fixthis.compose` version page instead of the
@@ -30,6 +39,9 @@ as release evidence.
 - Bridge protocol version is `1.3`.
 - Runtime evidence is a host ADB/CLI capability. It does not add an app-side
   bridge capability and does not change Bridge protocol `1.3`.
+- Feedback verification receipts are additive MCP/session fields. Legacy
+  sessions decode with empty receipt history and null resolution links,
+  `fixthis_verify_ui_change` is unchanged, and Bridge protocol remains `1.3`.
 
 ## Validation Surface
 
@@ -56,6 +68,8 @@ aggregate strict validation before release notes claim them as delivered:
 ```bash
 npm run runtime-evidence:smoke:test
 npm run runtime-evidence:smoke -- --strict
+npm run verification-receipt:smoke:test
+npm run verification-receipt:smoke -- --strict
 npm run android:proof -- --strict
 npm run external-fixture:matrix -- --strict
 npm run release:check

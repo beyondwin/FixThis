@@ -192,6 +192,27 @@ function noSecret(value) {
   return !JSON.stringify(value).includes(secretValue);
 }
 
+export async function collectRuntimeEvidenceWithStatusPreflight({ mcp, sessionId, itemId }) {
+  const status = await mcp.callTool("fixthis_status", { packageName }, 30_000);
+  const ready = status?.deviceConnected === true &&
+    status?.appRunning === true &&
+    status?.sidekickConnected === true &&
+    Number(status?.composeRoots) > 0;
+  if (!ready) {
+    throw new Error(`Runtime evidence status preflight is not ready: ${JSON.stringify({
+      deviceConnected: status?.deviceConnected,
+      appRunning: status?.appRunning,
+      sidekickConnected: status?.sidekickConnected,
+      composeRoots: status?.composeRoots,
+    })}`);
+  }
+  return mcp.callTool("fixthis_collect_runtime_evidence", {
+    sessionId,
+    itemId,
+    preset: "baseline",
+  }, 30_000);
+}
+
 export function proveRuntimeEvidenceProductPath({
   toolName,
   sessionId,
@@ -279,11 +300,11 @@ export async function runRuntimeEvidenceProductPath({ environment, projectDir, m
       bounds: { left: 0, top: 0, right: 32, bottom: 32 },
     });
     const policy = await post(`/api/sessions/${encodeURIComponent(sessionId)}/runtime-evidence-policy`, { policy: "auto_on_handoff" });
-    const collected = await mcp.callTool("fixthis_collect_runtime_evidence", {
+    const collected = await collectRuntimeEvidenceWithStatusPreflight({
+      mcp,
       sessionId,
       itemId: item.itemId,
-      preset: "baseline",
-    }, 30_000);
+    });
     const logged = run(
       "adb",
       ["-s", environment.device, "shell", "log", "-b", "crash", "-t", "FixThisRuntimeSmoke", `Authorization: Bearer ${secretValue}`],

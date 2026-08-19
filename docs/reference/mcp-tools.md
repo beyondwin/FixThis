@@ -67,7 +67,12 @@ Typical flow:
 7. Call `fixthis_list_feedback` (defaults to SENT and unfinished items).
 8. Call `fixthis_read_feedback({itemId})` for the item to work on.
 9. Call `fixthis_claim_feedback({itemId})` before editing code.
-10. Make code changes and call `fixthis_resolve_feedback({itemId, status, summary})`.
+10. Make code changes, rebuild and install the debug app, then call
+    `fixthis_verify_feedback({itemId, assertions})` for item-scoped evidence.
+11. Inspect the receipt and call
+    `fixthis_resolve_feedback({itemId, status, summary, verificationReceiptId})`
+    when the latest `PASS` or `WARN` receipt should be linked. Omitting the
+    receipt id remains supported.
 
 The CLI command `fixthis console --package <applicationId>` opens the same local console for copy/export workflows.
 
@@ -223,6 +228,50 @@ Inspects the current Compose screen and returns bridge screen data. It may inclu
 `fixthis_verify_ui_change`
 
 Checks whether expected text is present on the current screen. `expectedText` is required; `role` is an optional semantic hint.
+This lightweight global current-screen check is unchanged by feedback
+verification receipts; it does not persist or link an item-scoped receipt.
+
+`fixthis_verify_feedback`
+
+Verifies one claimed feedback item against its persisted baseline screen and
+target, then persists one bounded `pass`, `warn`, or `fail` receipt. Verification
+does not change the item's status and never resolves it automatically. The
+tool uses the active session when `sessionId` is omitted.
+
+Arguments:
+
+- `sessionId`: optional feedback session id.
+- `itemId`: required feedback item id.
+- `assertions`: optional array with at most 8 objects. Each object requires
+  `kind`, one of `text_present`, `text_absent`, or `target_present`.
+  `text_present` and `text_absent` require a nonblank `value`; `target_present`
+  rejects `value`. Values are trimmed and limited to 256 characters. Optional
+  `role` values are trimmed and limited to 64 characters.
+
+The session must be active and not closed. The item must have `delivery: sent`,
+must be `in_progress`, and must reference a persisted baseline screen. Request
+and state failures create no receipt. Stable prefixes are:
+
+- `VERIFICATION_ITEM_NOT_SENT:`
+- `VERIFICATION_ITEM_NOT_IN_PROGRESS:`
+- `VERIFICATION_BASELINE_NOT_FOUND:`
+- `VERIFICATION_ASSERTIONS_INVALID:`
+- `VERIFICATION_CONTEXT_CHANGED:`
+- `VERIFICATION_ARTIFACT_FAILED:`
+
+The response contains a concise text result and
+`structuredContent.receipt`, the complete persisted receipt described in
+[Output schema](output-schema.md). It never includes raw current semantics or
+image bytes. A receipt contains at most 16 checks; every check message is at
+most 512 characters, target summaries are bounded and redaction-safe, and at
+most one local after screenshot is stored.
+
+A `pass` requires a reachable expected package, a confirmed non-stale install,
+compatible activity context, `high` or `medium` target correspondence, at
+least one explicit assertion, and no failed or warning checks. Incomplete
+proof produces `warn`; required comparison failures such as
+`SOURCE_INSTALL_STALE`, `SCREEN_CONTEXT_MISMATCH`, `TARGET_NOT_FOUND`, or
+`ASSERTION_FAILED` produce `fail`.
 
 `fixthis_open_feedback_console`
 
@@ -326,6 +375,16 @@ Arguments:
 - `itemId`: required feedback item id to resolve.
 - `status`: required status. Must be one of `resolved`, `needs_clarification`, or `wont_fix`.
 - `summary`: optional agent-facing summary or reason. The browser console shows this on the saved annotation detail.
+- `verificationReceiptId`: optional receipt id. For `resolved`, it must name
+  the latest receipt for the same item and that receipt must be `pass` or
+  `warn`. Receipt ids are rejected for `needs_clarification` and `wont_fix`.
+
+Receipt linkage is stored atomically with the terminal item update. Stable
+receipt-link errors are `VERIFICATION_RECEIPT_NOT_FOUND:`,
+`VERIFICATION_RECEIPT_MISMATCH:`, `VERIFICATION_RECEIPT_NOT_LATEST:`, and
+`VERIFICATION_RECEIPT_FAILED:`. Omitting `verificationReceiptId` remains
+backward compatible and resolves the item without verification evidence; the
+console labels that outcome `unverified`.
 
 ### Runtime evidence policy
 
@@ -450,9 +509,14 @@ output to an agent), the agent calls:
    change. This sets the item's `status` to `in_progress`. The user's
    browser console reflects the change over `/api/events` when available,
    with ETag polling as fallback.
-4. After completing the work, `fixthis_resolve_feedback({itemId, status,
-   summary})` with `status` of `resolved`, `wont_fix`, or
-   `needs_clarification`.
+4. After completing and reinstalling the work, optionally call
+   `fixthis_verify_feedback({itemId, assertions})`. This records evidence but
+   does not resolve the item.
+5. Call `fixthis_resolve_feedback({itemId, status, summary,
+   verificationReceiptId?})` with `status` of `resolved`, `wont_fix`, or
+   `needs_clarification`. A supplied receipt must be the latest compatible
+   `PASS` or `WARN` receipt for a `resolved` item; receipt-free resolution
+   remains supported.
 
 The compact handoff prompt (returned by `fixthis_read_feedback` and
 copied by the `Copy Prompt` button) embeds an `agent_protocol:` footer

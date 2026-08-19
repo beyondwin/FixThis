@@ -165,6 +165,37 @@ class RuntimeEvidenceCaptureCoordinatorTest {
 class RuntimeEvidenceCaptureContextTest {
 
     @Test
+    fun endContextUsesTheRemainingOverallDeadlineBeyondTheFormerReserve() = runBlocking {
+        val fixture = fixture(
+            bridge = FakeRuntimeEvidenceBridge(timing = FakeBridgeTiming(contextDelayMillis = 600)),
+            timing = FixtureTiming(deadlineMillis = 1_600),
+        )
+        val started = System.nanoTime()
+
+        val actual = fixture.coordinator.collect(fixture.request())
+        val elapsedMillis = (System.nanoTime() - started) / 1_000_000
+
+        assertEquals(RuntimeEvidenceStatus.COMPLETE, actual.status, actual.toString())
+        assertTrue(elapsedMillis in 1_100..1_599, "capture did not respect remaining total deadline: $elapsedMillis ms")
+    }
+
+    @Test
+    fun endContextStillTimesOutWhenTheRemainingOverallDeadlineExpires() = runBlocking {
+        val fixture = fixture(
+            bridge = FakeRuntimeEvidenceBridge(timing = FakeBridgeTiming(contextDelayMillis = 600)),
+            timing = FixtureTiming(deadlineMillis = 900),
+        )
+        val started = System.nanoTime()
+
+        val actual = fixture.coordinator.collect(fixture.request())
+        val elapsedMillis = (System.nanoTime() - started) / 1_000_000
+
+        assertEquals(RuntimeEvidenceStatus.FAILED, actual.status)
+        assertEquals(RuntimeEvidenceFailureReason.CAPTURE_TIMEOUT, actual.failureReason)
+        assertTrue(elapsedMillis < 1_100, "capture exceeded total deadline: $elapsedMillis ms")
+    }
+
+    @Test
     fun startContextCapabilitiesCollectorsAndEndContextShareOneWallClockDeadline() = runBlocking {
         val bridge = FakeRuntimeEvidenceBridge(
             timing = FakeBridgeTiming(
