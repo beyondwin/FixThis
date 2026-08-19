@@ -14,6 +14,7 @@ internal object VerificationArtifactReentrantFileLocks {
 
     fun <T> withLock(
         path: Path,
+        hooks: VerificationArtifactStoreHooks,
         block: (Path) -> T,
     ): T {
         val key = path.toAbsolutePath().normalize()
@@ -25,22 +26,61 @@ internal object VerificationArtifactReentrantFileLocks {
             }
         }
 
-        return acquire(path, key, heldLocks, block)
+        return acquire(path, key, heldLocks, hooks, block)
     }
 
     private fun <T> acquire(
         path: Path,
         key: Path,
         heldLocks: MutableMap<Path, HeldFileLock>,
+        hooks: VerificationArtifactStoreHooks,
         block: (Path) -> T,
-    ): T = try {
-        FileChannel.open(path, lockOpenOptions).use { channel ->
-            channel.lock().use { fileLock ->
-                runWithAcquiredLock(path, key, heldLocks, fileLock, block)
+    ): T {
+        val channel = FileChannel.open(path, lockOpenOptions)
+        val fileLock = acquireFileLock(channel, hooks.closeFileChannel)
+        val outcome = runCatching {
+            runWithAcquiredLock(path, key, heldLocks, fileLock, block)
+        }
+        val cleanupFailures = releaseAndClose(
+            fileLock = fileLock,
+            channel = channel,
+            releaseFileLock = hooks.releaseFileLock,
+            closeFileChannel = hooks.closeFileChannel,
+        )
+        outcome.exceptionOrNull()?.let { primaryFailure ->
+            cleanupFailures.forEach { cleanupFailure ->
+                if (cleanupFailure !== primaryFailure) {
+                    runCatching { primaryFailure.addSuppressed(cleanupFailure) }
+                }
             }
         }
-    } finally {
         if (heldLocks.isEmpty()) heldLocksByThread.remove()
+        return outcome.getOrThrow()
+    }
+
+    private fun acquireFileLock(
+        channel: FileChannel,
+        closeFileChannel: (FileChannel) -> Unit,
+    ): FileLock {
+        val outcome = runCatching { channel.lock() }
+        outcome.exceptionOrNull()?.let { primaryFailure ->
+            runCatching { closeFileChannel(channel) }.exceptionOrNull()?.let { cleanupFailure ->
+                if (cleanupFailure !== primaryFailure) {
+                    runCatching { primaryFailure.addSuppressed(cleanupFailure) }
+                }
+            }
+        }
+        return outcome.getOrThrow()
+    }
+
+    private fun releaseAndClose(
+        fileLock: FileLock,
+        channel: FileChannel,
+        releaseFileLock: (FileLock) -> Unit,
+        closeFileChannel: (FileChannel) -> Unit,
+    ): List<Throwable> = buildList {
+        runCatching { releaseFileLock(fileLock) }.exceptionOrNull()?.let(::add)
+        runCatching { closeFileChannel(channel) }.exceptionOrNull()?.let(::add)
     }
 
     private fun <T> runWithAcquiredLock(

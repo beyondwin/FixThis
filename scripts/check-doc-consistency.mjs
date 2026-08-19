@@ -143,6 +143,31 @@ for (const moduleName of [
   );
 }
 
+// Rule 11: maintained console bundle budgets match the generator's enforced limits.
+const consoleBuilder = read("scripts/build-console-assets.mjs");
+const feedbackConsoleContract = read("docs/reference/feedback-console-contract.md");
+function numericConstant(name) {
+  const match = consoleBuilder.match(new RegExp(`const ${name} = ([\\d_]+);`));
+  return match ? Number(match[1].replaceAll("_", "")) : null;
+}
+function documentedBudgets(label) {
+  const inline = [...feedbackConsoleContract.matchAll(new RegExp(`([\\d,]+) B ${label}`, "gi"))];
+  const list = [...feedbackConsoleContract.matchAll(new RegExp(`${label} budget\\s*-\\s*\`([\\d,]+) B\``, "gi"))];
+  return new Set([...inline, ...list].map((match) => Number(match[1].replaceAll(",", ""))));
+}
+for (const [label, constantName] of [
+  ["raw", "RAW_BUDGET_BYTES"],
+  ["gzip", "GZIP_BUDGET_BYTES"],
+]) {
+  const enforced = numericConstant(constantName);
+  const documented = documentedBudgets(label);
+  check(
+    `R11.console-${label}-budget`,
+    enforced !== null && documented.size === 1 && documented.has(enforced),
+    `feedback-console-contract.md documents ${label} budgets ${[...documented].join(", ") || "none"}; generator enforces ${enforced ?? "unknown"}.`,
+  );
+}
+
 if (failures.length > 0) {
   console.error("\n" + failures.join("\n"));
   process.exit(1);

@@ -117,10 +117,9 @@ class HostSourceFreshnessProbeTest {
     }
 
     @Test
-    fun `does not flag misconfiguration when at least one indexed file exists`() {
+    fun `is inconclusive when any indexed file cannot be resolved`() {
         val tmp = tempDir()
         val installed = 1_700_000_000_000L
-        // One file exists; a partially dirty index is not a misconfiguration.
         val one = File(tmp, "Exists.kt").also { it.writeText("a") }
         one.setLastModified(installed - 60_000)
         val index = SourceIndex(
@@ -134,7 +133,10 @@ class HostSourceFreshnessProbeTest {
         val result = probe.evaluate(index, installEpochMillis = installed)
 
         assertFalse(result.installStale)
-        assertFalse(result.reason?.startsWith("projectRoot may be misconfigured") == true)
+        assertEquals(
+            "source freshness is incomplete: 1 of 2 indexed files could not be resolved on host",
+            result.reason,
+        )
     }
 
     @Test

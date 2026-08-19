@@ -83,7 +83,7 @@ internal class VerificationArtifactOperationLocks(
     private fun <T> withFileLock(
         path: Path,
         block: (Path) -> T,
-    ): T = VerificationArtifactReentrantFileLocks.withLock(path, block)
+    ): T = VerificationArtifactReentrantFileLocks.withLock(path, hooks, block)
 
     private fun receiptLockName(sessionId: String, receiptId: String): String {
         val digest = MessageDigest.getInstance("SHA-256")

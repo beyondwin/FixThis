@@ -10,7 +10,9 @@ import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifact
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactPaths
 import io.github.beyondwin.fixthis.mcp.session.verification.VerificationArtifactStoreHooks
 import java.io.File
+import java.io.IOException
 import java.nio.channels.FileChannel
+import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.DirectoryStream
@@ -84,6 +86,84 @@ class FeedbackVerificationArtifactStoreTest {
             val finalFile = File(promoted?.desktopFullPath.orEmpty())
             assertTrue(finalFile.isFile)
             assertEquals(PNG_BYTES.toList(), finalFile.readBytes().toList())
+        }
+    }
+
+    @Test
+    fun successfulPromotionIgnoresLockTeardownFailuresAndAttemptsReleaseAndClose() {
+        val root = Files.createTempDirectory("fixthis-verification-lock-teardown-success").toFile()
+        var failTeardown = false
+        var releaseAttempts = 0
+        var closeAttempts = 0
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                beforePromotionResultConstruction = { failTeardown = true },
+                releaseFileLock = { lock ->
+                    releaseLockForTest(lock, failTeardown) { releaseAttempts += 1 }
+                },
+                closeFileChannel = { channel ->
+                    closeChannelForTest(channel, failTeardown) { closeAttempts += 1 }
+                },
+            ),
+        )
+        try {
+            val prepared = store.prepare(
+                session(root),
+                "receipt-1",
+                SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+            )
+
+            val promoted = store.promote(prepared)
+
+            val finalFile = File(promoted?.desktopFullPath.orEmpty())
+            assertTrue(finalFile.isFile)
+            assertEquals(PNG_BYTES.toList(), finalFile.readBytes().toList())
+            assertEquals(2, releaseAttempts)
+            assertEquals(2, closeAttempts)
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun lockTeardownFailuresCannotMaskPrimaryPromotionFailure() {
+        val root = Files.createTempDirectory("fixthis-verification-lock-teardown-primary").toFile()
+        var failTeardown = false
+        var releaseAttempts = 0
+        var closeAttempts = 0
+        val store = FeedbackVerificationArtifactStore(
+            root,
+            hooks = VerificationArtifactStoreHooks(
+                beforePromotion = {
+                    failTeardown = true
+                    throw FeedbackVerificationArtifactException("primary promotion failure")
+                },
+                releaseFileLock = { lock ->
+                    releaseLockForTest(lock, failTeardown) { releaseAttempts += 1 }
+                },
+                closeFileChannel = { channel ->
+                    closeChannelForTest(channel, failTeardown) { closeAttempts += 1 }
+                },
+            ),
+        )
+        try {
+            val prepared = store.prepare(
+                session(root),
+                "receipt-1",
+                SnapshotScreenshotDto(desktopFullPath = pngFile(root, "capture/source.png").absolutePath),
+            )
+
+            val failure = assertFailsWith<FeedbackVerificationArtifactException> {
+                store.promote(prepared)
+            }
+
+            assertEquals("primary promotion failure", failure.message)
+            assertFalse(prepared.finalDirectory.exists())
+            assertEquals(2, releaseAttempts)
+            assertEquals(2, closeAttempts)
+        } finally {
+            root.deleteRecursively()
         }
     }
 
@@ -1078,6 +1158,30 @@ class FeedbackVerificationArtifactStoreTest {
             } catch (_: OverlappingFileLockException) {
                 false
             }
+        }
+    }
+
+    private fun releaseLockForTest(
+        lock: FileLock,
+        fail: Boolean,
+        recordFailure: () -> Unit,
+    ) {
+        lock.release()
+        if (fail) {
+            recordFailure()
+            throw IOException("forced file lock release failure")
+        }
+    }
+
+    private fun closeChannelForTest(
+        channel: FileChannel,
+        fail: Boolean,
+        recordFailure: () -> Unit,
+    ) {
+        channel.close()
+        if (fail) {
+            recordFailure()
+            throw IOException("forced file channel close failure")
         }
     }
 

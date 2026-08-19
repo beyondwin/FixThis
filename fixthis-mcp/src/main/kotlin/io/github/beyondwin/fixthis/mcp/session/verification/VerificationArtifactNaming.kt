@@ -30,6 +30,8 @@ internal data class VerificationArtifactStoreHooks(
         )
     },
     val insideOperationLocks: (java.nio.file.Path, java.nio.file.Path?) -> Unit = { _, _ -> },
+    val releaseFileLock: (java.nio.channels.FileLock) -> Unit = { it.release() },
+    val closeFileChannel: (java.nio.channels.FileChannel) -> Unit = { it.close() },
     val rootDirectoryStreamFactory: (java.nio.file.Path) -> java.nio.file.DirectoryStream<java.nio.file.Path> = {
         java.nio.file.Files.newDirectoryStream(it)
     },

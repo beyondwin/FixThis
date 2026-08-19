@@ -128,6 +128,32 @@ class FeedbackVerificationCoordinatorTest {
     }
 
     @Test
+    fun partiallyUnresolvedSourceIndexProducesFreshnessUnknownWarnNotPass() = withFixture { fixture ->
+        fixture.bridge.sourceIndex = SourceIndex(
+            entries = listOf(
+                SourceIndexEntry(
+                    file = SOURCE_PATH,
+                    line = 1,
+                    text = listOf("Pay now"),
+                    testTags = listOf("pay"),
+                    activityNames = listOf("MainActivity"),
+                ),
+                SourceIndexEntry(
+                    file = "src/main/kotlin/MissingScreen.kt",
+                    line = 1,
+                    text = listOf("Missing"),
+                ),
+            ),
+        )
+
+        val receipt = fixture.verify(textPresent("Pay now"))
+
+        assertEquals(FeedbackVerificationVerdict.WARN, receipt.verdict)
+        assertCheck(receipt, "INSTALL_FRESHNESS_UNKNOWN", FeedbackVerificationCheckOutcome.WARNING)
+        assertEquals(receipt, fixture.persistedReceipt())
+    }
+
+    @Test
     fun knownDifferentScreenContextPersistsFail() = withFixture { fixture ->
         fixture.bridge.statusActivity = "OtherActivity"
         fixture.bridge.captureActivity = "OtherActivity"

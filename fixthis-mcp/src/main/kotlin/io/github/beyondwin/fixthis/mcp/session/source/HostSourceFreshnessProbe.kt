@@ -44,6 +44,7 @@ class HostSourceFreshnessProbe(private val projectRoot: File) {
                 )
             }
         }
+        val unresolvedCount = files.count { !it.resolution.found }
         val newer = files.mapNotNull { resolvedFile ->
             val file = resolvedFile.resolution.file ?: return@mapNotNull null
             if (file.lastModified() > installEpochMillis) resolvedFile.displayPath else null
@@ -55,11 +56,18 @@ class HostSourceFreshnessProbe(private val projectRoot: File) {
             totalIndexedFiles = files.size,
             installedAtEpochMillis = installEpochMillis,
             sampleNewerFiles = newer.take(SampleSize),
-            reason = if (stale) {
-                "${newer.size} of ${files.size} indexed source files changed after the installed APK was built"
-            } else {
-                null
-            },
+            reason = listOfNotNull(
+                if (stale) {
+                    "${newer.size} of ${files.size} indexed source files changed after the installed APK was built"
+                } else {
+                    null
+                },
+                if (unresolvedCount > 0) {
+                    "source freshness is incomplete: $unresolvedCount of ${files.size} indexed files could not be resolved on host"
+                } else {
+                    null
+                },
+            ).joinToString("; ").ifEmpty { null },
         )
     }
 
