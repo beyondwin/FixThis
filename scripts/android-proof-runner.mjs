@@ -260,10 +260,10 @@ export function buildProofSteps(options = {}, environment = {}) {
     [...adbArgs, "shell", "am", "force-stop", samplePackage],
     [...adbArgs, "shell", "am", "start", "-W", "-n", sampleActivity],
   ].map((args) => args.map(shellQuote).join(" ")).join(" && ");
-  const runtimeDisplayTeardownCommand = [
+  const runtimeDisplayTeardownCommands = [
     [...adbArgs, "shell", "wm", "size", "reset"],
     [...adbArgs, "shell", "wm", "density", "reset"],
-  ].map((args) => args.map(shellQuote).join(" ")).join(" && ");
+  ].map((args) => args.map(shellQuote).join(" "));
   const sampleArgs = [
     "scripts/fixthis-smoke.sh",
     "--package",
@@ -296,7 +296,7 @@ export function buildProofSteps(options = {}, environment = {}) {
       command: "npm run runtime-evidence:smoke -- --strict",
       setupCommand: runtimeDisplaySetupCommand,
       prerequisiteCommand: samplePrerequisiteCommand,
-      teardownCommand: runtimeDisplayTeardownCommand,
+      teardownCommands: runtimeDisplayTeardownCommands,
       failureCode: "runtime_evidence_failed",
       reportPath: "build/reports/fixthis-runtime-evidence/report.json",
     },
@@ -427,6 +427,25 @@ function failedStepFromError(step, error) {
   };
 }
 
+function withTeardownFailures(step, normalized, teardownFailures) {
+  if (teardownFailures.length === 0) return normalized;
+  const teardownReason = teardownFailures.map((failure) => failure.reason).join("; ");
+  if (normalized?.status === "fail") {
+    return {
+      ...normalized,
+      reason: `${normalized.reason}; display teardown failed: ${teardownReason}`,
+    };
+  }
+  return {
+    ...teardownFailures[0],
+    name: step.name,
+    command: step.command,
+    failureCode: step.failureCode || "unknown_failure",
+    reason: `Display teardown failed: ${teardownReason}`,
+    reportPath: step.reportPath || null,
+  };
+}
+
 function runProofStep(step, run, commandEnvironment) {
   let normalized = null;
   try {
@@ -440,14 +459,16 @@ function runProofStep(step, run, commandEnvironment) {
   } catch (error) {
     normalized = failedStepFromError(step, error);
   } finally {
-    if (step.teardownCommand) {
+    const teardownFailures = [];
+    for (const teardownCommand of step.teardownCommands || []) {
       try {
-        const teardown = normalizeStepResult(step, run(step.teardownCommand, commandEnvironment));
-        if (teardown.status === "fail") normalized = teardown;
+        const teardown = normalizeStepResult(step, run(teardownCommand, commandEnvironment));
+        if (teardown.status === "fail") teardownFailures.push(teardown);
       } catch (error) {
-        normalized = failedStepFromError(step, error);
+        teardownFailures.push(failedStepFromError(step, error));
       }
     }
+    normalized = withTeardownFailures(step, normalized, teardownFailures);
   }
   return normalized;
 }
