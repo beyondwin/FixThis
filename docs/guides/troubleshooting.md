@@ -1,76 +1,71 @@
 # FixThis Troubleshooting
 
-Start with:
+Start here:
 
 ```bash
 fixthis doctor --package <applicationId>
 ```
 
-If package metadata exists in `.fixthis/project.json`, `--package` can be omitted.
+If `.fixthis/project.json` exists, `--package` can be omitted.
 
-For this repository's sample app, use the Android Studio `app` configuration or Gradle project `:app`; the source files live under `sample/`:
+Sample app:
 
 ```bash
 ./gradlew :app:installDebug
 fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
-For repeatable host and connected-device diagnostics, run the smoke harness:
+Repeatable diagnostics:
 
 ```bash
 scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
-```
-
-For host-only validation without an attached device, run:
-
-```bash
 scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only
 ```
 
-Reports are written under ignored `.fixthis/smoke-reports/` as Markdown and JSON. Connected smoke can finish with an explicit skip category: `SKIPPED_HOST_ONLY`, `SKIPPED_ADB_NOT_FOUND`, `SKIPPED_NO_DEVICE`, `SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`, `SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or `SKIPPED_MULTIPLE_DEVICES`.
+Reports land under ignored `.fixthis/smoke-reports/`. Connected smoke can
+finish with `SKIPPED_HOST_ONLY`, `SKIPPED_ADB_NOT_FOUND`, `SKIPPED_NO_DEVICE`,
+`SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`,
+`SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`, or
+`SKIPPED_MULTIPLE_DEVICES`.
 
-To inspect or remove local FixThis artifacts without touching project metadata, run:
+Clean local artifacts without touching project metadata:
 
 ```bash
 fixthis clean --project-dir <projectRoot> --dry-run
 fixthis clean --project-dir <projectRoot>
 ```
 
-`fixthis clean` only targets `.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`, `.fixthis/artifacts/`, and `.fixthis/smoke-reports/`. It preserves `.fixthis/project.json` and unknown `.fixthis` files or directories. Use `--older-than-days <n>` to clean only artifact directories older than the cutoff.
+`fixthis clean` removes `feedback-sessions/`, `preview-cache/`, `artifacts/`,
+and `smoke-reports/`. It keeps `.fixthis/project.json` and unknown entries.
+`--older-than-days <n>` limits the cleanup.
 
 ## First-Run Readiness States
 
-FixThis first-run surfaces use one readiness vocabulary across `doctor --json`,
-`.fixthis/agent-setup.json`, and the feedback console.
+Same vocabulary across `doctor --json`, `.fixthis/agent-setup.json`, and the
+console.
 
-| State | What it means | First action |
+| State | Meaning | First action |
 | --- | --- | --- |
-| `READY` | Debug app and sidekick are connected. | Capture screen. |
-| `NEEDS_INSTALL` | FixThis metadata or setup is missing. | Run `fixthis install-agent --project-dir . --target all`. |
-| `NEEDS_APP_LAUNCH` | Device is available but the app bridge is not reachable. | Open the debug app. |
-| `DEVICE_BLOCKED` | Device or app is connected but not interactable. | Resolve the specific device overlay. |
-| `UNSUPPORTED_BUILD` | Release/non-debug build, missing sidekick, or `run-as` denied. | Install a debuggable build with FixThis enabled. |
-| `CONFIG_RECOVERABLE` | MCP or project config can be regenerated. | Run the setup command with `--dry-run`, then rerun without it. |
-| `ENV_BLOCKER` | ADB, SDK, device, JDK, Node, or repo root is missing. | Fix the prerequisite and rerun doctor. |
-| `STALE_PREVIEW` | Frozen preview no longer matches the live app screen. | Recapture, force-save, or cancel. |
-| `SESSION_MISMATCH` | Response or artifact belongs to another feedback session. | Refresh the session or return to the matching history item. |
-| `UNKNOWN_ERROR` | FixThis could not classify the failure. | Open details and run doctor with JSON output. |
+| `READY` | Debug app and sidekick connected | Capture screen |
+| `NEEDS_INSTALL` | Metadata or setup missing | `fixthis install-agent --project-dir . --target all` |
+| `NEEDS_APP_LAUNCH` | Device available, bridge not reachable | Open the debug app |
+| `DEVICE_BLOCKED` | Connected but not interactable | Clear the overlay cause |
+| `UNSUPPORTED_BUILD` | Release build, missing sidekick, or `run-as` denied | Install a debuggable build with FixThis |
+| `CONFIG_RECOVERABLE` | MCP or project config can be regenerated | Setup `--dry-run`, then without it |
+| `ENV_BLOCKER` | ADB, SDK, device, JDK, Node, or repo root missing | Fix the prerequisite |
+| `STALE_PREVIEW` | Frozen preview no longer matches the live screen | Recapture, force-save, or cancel |
+| `SESSION_MISMATCH` | Response belongs to another session | Refresh or return to the matching item |
+| `UNKNOWN_ERROR` | Unclassified | Open details and rerun doctor `--json` |
 
 ## ADB_NOT_FOUND
 
-Symptom: `fixthis doctor` fails at `ADB found` or the CLI reports that it cannot run `adb`.
-
-Fix:
-
-- Set `ANDROID_HOME` to your Android SDK.
-- Ensure `$ANDROID_HOME/platform-tools/adb` exists.
-- Add `platform-tools` to `PATH` if `ANDROID_HOME` is not set.
+`fixthis doctor` cannot run `adb`. Set `ANDROID_HOME`, confirm
+`$ANDROID_HOME/platform-tools/adb`, and add `platform-tools` to `PATH`.
 
 ## MULTIPLE_DEVICES
 
-The feedback console can list multiple ADB devices and lets you select the active device. CLI commands that do not carry console selection may still need one usable `adb devices` target or an explicit package/device context.
-
-Check:
+The console can pick a device. CLI commands without that selection still need
+one usable `adb devices` target.
 
 ```bash
 adb devices
@@ -78,174 +73,146 @@ adb devices
 
 ### NO_DEVICE
 
-Connect a device or start an emulator, then run `adb devices`. In the feedback console, use the compact device control's refresh action and select a connected, authorized device.
+Connect a device or start an emulator. In the console, refresh devices and
+pick a connected, authorized one.
 
 ## RUN_AS_FAILED
 
-Symptom: CLI cannot read `files/fixthis/session.json` with `adb shell run-as`.
+CLI cannot read `files/fixthis/session.json` with `adb shell run-as`. Common
+causes: not a debug build, wrong package, app never launched, sidekick did
+not start.
 
-Common causes:
+Install and launch the debug app, then rerun `fixthis doctor --package <applicationId>`.
 
-- The app is not a debug build.
-- The package name is wrong.
-- The app has not been launched since FixThis was added.
-- The sidekick did not start.
-
-Fix: install and launch the debug app, then rerun `fixthis doctor --package <applicationId>`.
-
-If the error says `run-as: unknown package`, ADB is talking to a device where that package is not installed. This often happens after switching devices or when both an emulator and a physical device are connected. Install the debug APK on the target device and make sure only one `adb devices` entry is active for V1.
+`run-as: unknown package` means that package is not on the device ADB is
+talking to. Install the debug APK on the target and keep one `adb devices`
+entry active for V1.
 
 ## SIDEKICK_SESSION_NOT_FOUND
 
-Symptom: the CLI cannot find the sidekick session file.
-
-Fix:
-
-- Confirm the app includes the FixThis debug dependency or Gradle plugin output.
-- Launch the app once so AndroidX Startup can initialize the sidekick.
-- Confirm the process is debuggable.
-- Rerun `fixthis status` or `fixthis doctor`.
+Confirm the debug dependency or plugin output, launch the app once, confirm
+the process is debuggable, then rerun `fixthis status` or `fixthis doctor`.
 
 ### SIDEKICK_UNREACHABLE
 
-Install and launch a debuggable build with FixThis sidekick enabled, then retry `fixthis status`.
+Install and launch a debuggable build with the sidekick, then retry
+`fixthis status`.
 
 ## No Compose Roots
 
-Symptom: `fixthis status` reports `roots: 0`, inspection returns no Compose nodes, or inspection returns a root-discovery/semantics error such as `ROOT_DISCOVERY_FAILED` or `SEMANTICS_*`.
+`fixthis status` reports `roots: 0`, or inspection returns
+`ROOT_DISCOVERY_FAILED` / `SEMANTICS_*`.
 
-Common causes:
+Usual causes: not a Compose screen, `setContent` not called yet, platform
+view / WebView / XML screen, Activity transition.
 
-- The current screen is not Jetpack Compose.
-- The Activity has not called `setContent` yet.
-- The app is displaying a platform view, WebView, or XML/View screen.
-- The screen is between Activity transitions.
-
-Fix: navigate to a Compose screen and retry. FixThis V1 is Android Jetpack Compose only. Empty roots are reported as `rootsCount=0`; V1 does not emit a separate no-roots error code for that case.
+Navigate to a Compose screen and retry. V1 is Jetpack Compose only. Empty
+roots are `rootsCount=0`.
 
 ### Connected test says no Compose hierarchies found
 
-Jetpack Compose test APIs need the app window to be foregrounded and inspectable. If `adb devices` shows a physical device in `device` state but the device is still on a secure lockscreen, system Bouncer, or notification shade, instrumentation can launch the app and still fail with `No compose hierarchies found in the app`.
+Compose test APIs need a foreground, inspectable window. A physical device
+can report `device` in ADB while a secure lockscreen still blocks hierarchy
+discovery.
 
-Fix: unlock the device manually or use an unlocked emulator, then rerun the connected test. ADB wake or dismiss-keyguard commands are not enough for secure lockscreen credentials.
+Unlock the device by hand, or use an unlocked emulator. ADB wake /
+dismiss-keyguard is not enough for secure credentials.
 
 ## Screenshot Failures
 
-FixThis records screenshot failures in `screenshot.captureFailedReason` and still exports the annotation.
+Failures are recorded in `screenshot.captureFailedReason`. The annotation
+still exports.
 
-Common causes:
-
-- DecorView has no size yet.
-- PixelCopy timed out.
-- Canvas fallback failed.
-- Cache directory creation or PNG encoding failed.
-
-Retry after the screen is fully rendered. For CLI/MCP, confirm the Android screenshot path exists under `context.cacheDir/fixthis/` and that the bridge can read the current annotation screenshot.
+Causes: DecorView has no size, PixelCopy timeout, Canvas fallback failed,
+cache or PNG encoding failed. Retry after the screen finishes drawing.
 
 ### SCREEN_CAPTURE_FAILED
 
-The console may still show semantics without a screenshot. Click `Capture screen` after the app finishes drawing. If you are adding feedback, wait until the frozen preview has the screenshot you want before clicking `Copy Prompt` or `Save to MCP`; those actions persist written pending annotations when needed.
+Semantics may still show. Click `Capture screen` after the app finishes
+drawing. Do not Copy Prompt or Save to MCP until the frozen preview has the
+screenshot you want.
 
 ### Capture screen or Annotate does not work
 
-Select a device in the compact console device control. If the control shows `No device`, refresh devices with `↻`. If it shows `Unavailable`, fix unauthorized or offline state in `adb devices -l` first.
+Select a device. If the control shows `No device`, refresh with `↻`. If
+`Unavailable`, fix unauthorized or offline state in `adb devices -l`.
 
 ### I clicked Annotate but do not see saved feedback
 
-`Annotate` freezes the latest preview for targeting only; it does not save. Select a target or visual area to create a numbered pending marker, write a comment in the focused detail editor, then click `Copy Prompt` or `Save to MCP` to persist written pending annotations when needed. Persisted items from the same frozen preview share one evidence snapshot and `screenId`.
+`Annotate` freezes the preview. It does not save. Select a target, write a
+comment, then Copy Prompt or Save to MCP. Items from the same freeze share
+one evidence snapshot and `screenId`.
 
 ### Pending marker numbers changed
 
-Deleting a pending item renumbers the pending list and overlay markers so they keep matching. This is expected before `Copy Prompt` or `Save to MCP` persists pending annotations.
+Deleting a pending item renumbers the list so overlay markers stay matched.
+Expected until save.
 
 ### Reopened console shows a pending recovery banner
 
-The browser found unsaved pending annotations in a DraftWorkspace recovery
-mirror under `localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`.
-Choose:
+Unsaved pending annotations were mirrored in
+`localStorage["fixthis.workspace.<sessionId>.<workspaceId>"]`.
 
-- **Recover** to restore the frozen preview, screenshot, and comments when the
-  saved preview context is complete.
-- **Recapture** to start from a fresh preview before saving.
-- **Discard** to remove the browser-local mirror.
+- **Recover** restores the freeze when the saved preview is complete.
+- **Recapture** starts from a fresh preview.
+- **Discard** removes the browser-local mirror.
 
-FixThis v0.4 does not migrate pre-v0.4 browser pending mirrors. If stale local
-recovery appears after upgrading, clear browser storage for the FixThis console
-origin and run `fixthis clean --project-dir .` to remove old local artifacts.
+v0.4 does not migrate older pending mirrors. Clear console origin storage
+and run `fixthis clean --project-dir .` if stale recovery appears after
+upgrade.
 
 ### Save warns that the screen changed
 
-FixThis compared the frozen preview fingerprint with a lightweight current
-capture and received `screen_fingerprint_mismatch`. This usually means the app
-rotated, changed window mode, showed a system UI surface, or navigated away
-after you clicked **Annotate**.
+Frozen preview fingerprint ≠ current capture (`screen_fingerprint_mismatch`).
+Usually rotate, window-mode change, system UI, or navigation after Annotate.
 
-Pick **re-capture** when you want the saved evidence to match the current
-screen. Pick **force-save** only when you intentionally want to keep the frozen
-preview even though the live screen fingerprint differs. Pick **cancel** to
-return to the pending annotations without writing.
+- **re-capture** if you want saved evidence to match the current screen.
+- **force-save** only if you want the frozen preview anyway.
+- **cancel** to keep pending annotations unsaved.
 
 ### I sent feedback but want to add more
 
-After `Save to MCP`, the saved items are recorded in a local handoff batch for MCP tools. It is not an external AI API call. The session stays visible in the main History list with a `working` pip while the agent claims and resolves items. Click `Annotate` again to freeze the current visible screen and create another saved evidence snapshot when pending annotations are persisted, even if the app has not visibly changed.
+After Save to MCP the items are a local handoff batch, not an external API
+call. The session stays in History with a `working` pip. Click Annotate
+again to freeze the current screen.
 
 ## Runtime Diagnostics
 
-New sessions use Auto runtime diagnostics on `Save to MCP`; legacy sessions
-without a saved policy use Manual. Change the session selector to Manual to
-capture only from saved annotation detail, or Off to skip Studio collection.
-`Copy Prompt` never starts collection.
-
-Run the focused connected proof first when diagnosing this feature:
+New sessions use Auto on Save to MCP. Legacy sessions without a saved policy
+use Manual. Manual captures only from saved annotation detail. Off skips
+Studio collection. Copy Prompt never starts collection.
 
 ```bash
 npm run runtime-evidence:smoke -- --strict
-```
-
-It drives `fixthis_collect_runtime_evidence`, Auto Save to MCP, artifact
-containment/redaction, item linkage, and restart replay. Its report is
-`build/reports/fixthis-runtime-evidence/report.json`. The aggregate proof is:
-
-```bash
 npm run android:proof -- --strict
 ```
 
-Its `Runtime evidence product path` row must be `pass`; deferred is not
-connected proof.
+The aggregate `Runtime evidence product path` row must be `pass`. Deferred
+is not connected proof.
 
 ### `device_changed`
 
-`device_changed` remains in the additive failure-reason schema for compatible
-readers. The current coordinator reports a selected-device serial change as
-`context_changed` and refuses linkage. For either token, keep only the intended
-device selected, confirm it remains `device` in `adb devices -l`, reopen the
-owning feedback session, and retry **Capture diagnostics** or Save to MCP. Do
-not copy artifacts from the rejected capture into the session.
+Kept in the additive schema. The coordinator reports a selected-device serial
+change as `context_changed` and refuses linkage. Keep the intended device
+selected, confirm `device` in `adb devices -l`, reopen the session, retry.
 
 ### `permission_denied`
 
-Confirm the host is authorized in `adb devices -l`, the target package is a
-debug build, and `fixthis doctor --package <applicationId>` reaches the bridge.
-Unlock/authorize the device and retry the focused preset. If app or platform
-policy still denies the fixed ADB collector command, switch the session to
-Manual or Off and send the UI feedback without diagnostics; do not broaden the
-collector to arbitrary shell commands.
+Authorize the host, confirm a debug build, and check
+`fixthis doctor --package <applicationId>`. If policy still denies the
+fixed ADB collector, switch to Manual or Off. Do not broaden the collector.
 
 ### `capture_timeout`
 
-The end-to-end 2,500 ms budget expired. Keep the debug app foregrounded, close
-other expensive ADB work, and retry a focused preset (`logs`, `memory`, or
-`performance`) with `fixthis_collect_runtime_evidence`. Auto Save to MCP still
-sends otherwise valid feedback with a failed/partial attempt record. Repeated
-timeouts should stay visible as missing evidence, not be reported as a pass.
+The 2,500 ms budget expired. Keep the debug app foregrounded, close other
+ADB work, retry a focused preset. Auto Save to MCP still sends otherwise
+valid feedback with a failed/partial record.
 
 ### `quota_exceeded`
 
-The project `.fixthis/runtime-evidence/` root would exceed 250 MiB. Before
-stopping MCP, inspect the persisted sessions and each attachment's
-`artifactPath`. Decide which old session/capture bundles are no longer needed.
-Then stop MCP and archive only those selected capture directories outside the
-quota root, preserving their session/capture layout:
+`.fixthis/runtime-evidence/` would exceed 250 MiB. Stop MCP, archive only
+unneeded capture directories, restart, retry. `fixthis clean` does not
+remove runtime-evidence bundles.
 
 ```bash
 mkdir -p ".fixthis/runtime-evidence-archive/<session-id>"
@@ -253,199 +220,170 @@ mv ".fixthis/runtime-evidence/<session-id>/<capture-id>" \
   ".fixthis/runtime-evidence-archive/<session-id>/"
 ```
 
-Restart MCP and retry the capture. Do not move the entire runtime-evidence root
-unless you intentionally accept `artifact_missing` for every persisted
-attachment. Moving any referenced capture makes that attachment unavailable,
-so archive only diagnostics you have confirmed are no longer needed.
-`fixthis clean` does not currently remove runtime-evidence bundles.
-
 ### `artifact_missing`
 
-The session still references a capture but its committed local file is gone,
-not a regular file, or crosses a symlink/path boundary. FixThis materializes
-an originally `complete` attachment as `partial` and adds `artifact_missing`;
-an existing `partial`, `failed`, or `unsupported` status is preserved while
-the warning is added. It does not invent a replacement. Retry collection for
-the original item. If it repeats, inspect permissions and symlinks under
-`.fixthis/runtime-evidence/`, preserve every still-referenced capture, restart
-MCP, and capture again.
+The session still references a capture, but the file is gone, not a regular
+file, or crosses a path boundary. Retry collection. Inspect permissions and
+symlinks under `.fixthis/runtime-evidence/`.
 
 ### `context_changed` or `process_restarted`
 
-Device/install/package/session/item/screen drift fails linkage. Reinstall or
-reselect as needed, reopen the exact session and screen, and recapture. A PID
-restart or screen-fingerprint change can remain as partial evidence with
-`process_restarted` / `context_changed`; verify the screenshot and app state
-before treating it as related to the feedback.
+Device / install / package / session / item / screen drift fails linkage.
+Reopen the exact session and screen, then recapture.
 
 ## MCP stdout Log Corruption
 
-Symptom: an MCP client fails to parse JSON-RPC messages, often after seeing human-readable logs mixed into stdout.
+MCP clients fail to parse JSON-RPC when human logs leak into stdout.
+`fixthis mcp` writes protocol to stdout only. Diagnostics go to stderr.
 
-Rule: `fixthis mcp` writes JSON-RPC protocol messages to stdout only. Diagnostics and logs must go to stderr.
-
-Fix:
-
-- Do not wrap `fixthis mcp` in a script that prints banners or logs to stdout.
-- Send wrapper logs to stderr.
-- Use the setup JSON from `fixthis setup`; it passes command and args separately.
+Do not wrap `fixthis mcp` in a script that prints to stdout. Use the setup
+JSON from `fixthis setup` so command and args stay separate.
 
 ## Setup Write Warnings
 
-Symptom: `fixthis setup --write` completes but prints a warning about Android SDK detection or the MCP executable.
+`fixthis setup --write` completed but warned about Android SDK or
+`fixthis-mcp`.
 
-Fix:
-
-- Run `fixthis doctor --package <applicationId> --project-dir <projectRoot>` to confirm ADB, package discovery, and bridge readiness.
-- If the warning says Android SDK was not found, set `ANDROID_HOME` or `ANDROID_SDK_ROOT`, or install the Android SDK in the platform default location.
-- If the warning says `fixthis-mcp` was not found, run `./gradlew :fixthis-mcp:installDist` or make sure `fixthis` is available on PATH before restarting the MCP client.
-- Use `fixthis setup --package <applicationId> --project-dir <projectRoot> --write --target codex --dry-run` to inspect the rendered config without modifying files.
+- Confirm ADB, package, and bridge with `fixthis doctor --package <applicationId> --project-dir <projectRoot>`.
+- Set `ANDROID_HOME` or `ANDROID_SDK_ROOT` if SDK was not found.
+- Run `./gradlew :fixthis-mcp:installDist` if `fixthis-mcp` was not found.
+- Inspect with `--dry-run` before writing.
 
 ### MCP_SESSION_CLOSED
 
-Reopen the feedback console from the agent or run `fixthis console --package <applicationId>`.
+Reopen the console from the agent or run `fixthis console --package <applicationId>`.
 
 ### Console API returns 403
 
-The browser console uses a per-server token for mutating localhost `/api/*` requests and rejects mutating requests with a non-localhost `Origin`. Reload the console page if the MCP process restarted, because the token changes per server instance. Direct scripts that call mutating console APIs must read the current token from the served console page and send it as `X-FixThis-Console-Token`.
+Mutating `/api/*` needs the current `X-FixThis-Console-Token` and a localhost
+Origin. Reload if the MCP process restarted. The token changes per instance.
 
 ### MCP status stays waiting
 
-The in-app status pill changes to `MCP connected` only after an authorized MCP browser heartbeat, not after every bridge status or screen-capture request. Open the feedback console and keep the browser tab active long enough for heartbeat polling to run.
+The in-app pill becomes `MCP connected` after an authorized MCP browser
+heartbeat, not after every bridge call. Keep the console tab active.
 
 ## Browser Console Says Reconnect
 
-`Reconnect` means the console previously reached the FixThis sidekick bridge, but a later heartbeat, preview, or navigation request failed. Common causes are app restart, app reinstall, process death, device sleep, wireless debugging interruption, or the app being backgrounded.
+The console reached the bridge before, then a later heartbeat, preview, or
+navigation failed. Typical causes: app restart, reinstall, process death,
+sleep, wireless ADB drop, app backgrounded.
 
-Click `Reconnect`. The console will try to open the app and refresh the bridge session. Draft annotations and the last preview are kept while reconnecting.
-
-Open `Details` for raw diagnostics such as `Bridge closed before sending a response`.
+Click `Reconnect`. Drafts and the last preview are kept.
 
 ### Connection paused while work is in progress
 
-If Studio says `Connection paused - draft preserved`, the bridge or foreground
-app state changed while local feedback work still exists. FixThis keeps the
-draft, sent handoff batches, claim state, resolve state, and persisted evidence
-intact.
+`Connection paused - draft preserved` means the bridge or foreground state
+changed while local work still exists. Heartbeat retry, reconnect, preview
+refresh, and polling resume are safe. Save from a stale preview, dirty-draft
+session switch, stale force-save, claim, and resolve still need a current
+context or explicit confirmation.
 
-Safe automatic recovery includes heartbeat retry, reconnect, preview refresh,
-and polling resume. Durable mutations still require a current context or an
-explicit confirmation: Save to MCP from a stale preview, dirty-draft session
-switch, stale force-save, claim, and resolve.
-
-If a closed session blocks work with
-`Reopen the session or create a new active session before changing feedback`,
-open an active session from the history list or create a new session before
-adding, claiming, resolving, or handing off feedback.
+If a closed session blocks work, reopen an active session or create a new
+one.
 
 ### I reopened the console and do not see my previous feedback
 
-Run `fixthis_list_feedback_sessions` or reopen the console with the exact `sessionId`. If the session was closed, pass `includeClosed` when listing sessions. Verify `.fixthis/feedback-sessions/` exists under the same project root used by the MCP server.
+Call `fixthis_list_feedback_sessions` or reopen with the exact `sessionId`.
+Closed sessions need `includeClosed`. Confirm `.fixthis/feedback-sessions/`
+is under the same project root the MCP server uses.
 
 ### Live preview stopped updating
 
-Live preview is push-first over `/api/events`. Preview polling is retained as a fallback while the event stream is disconnected, and it pauses when the browser tab is hidden or while the `Annotate` frozen-preview flow is active. Switch back to the tab, click `Copy Prompt` or `Save to MCP` to persist pending annotations, exit annotate mode, or use `Capture screen`. The preview interval options are Manual, 1s, 2s, and 5s, with 1s as the default.
+Live preview is push-first over `/api/events`. Polling is fallback while the
+stream is down. It pauses when the tab is hidden or Annotate is active.
+Switch back to the tab, persist pending annotations, exit annotate, or
+Capture screen. Intervals: Manual, 1s, 2s, 5s (default 1s).
 
 ### Navigation worked but no new screen appeared
 
-The navigation action can succeed while follow-up capture fails. Check the `captureError` field or click `Capture screen` manually after the app finishes drawing.
+The navigation action can succeed while follow-up capture fails. Check
+`captureError` or Capture screen after the app finishes drawing.
 
 ## Connected But Interaction Is Blocked
 
-The compact device chip can show `Connected` while still suppressing canvas selection and capture-driven actions. In that case the canvas renders a per-cause overlay and FixThis auto-resumes the prior tool mode, frozen preview, and pending pins when the cause clears. Causes are reported by the sidekick via the `BridgeStatus` availability fields (`screenInteractive`, `keyguardLocked`, `appForeground`, `pictureInPicture`) and resolved by priority on the desktop.
+The chip can show `Connected` while selection is suppressed. The canvas
+shows a per-cause overlay and auto-resumes when the cause clears.
 
 | Sub-state | Cause | Fix |
 | --- | --- | --- |
-| Screen off | Device display is off (`screenInteractive=false`) | Wake the device. |
-| Lock screen | `keyguardLocked=true` over a foregrounded app | Unlock the device manually. ADB wake/dismiss is not enough on secure lockscreens. |
-| App backgrounded | `appForeground=false` | Bring the debug app back to foreground (relaunch, recents, or `Open app`). |
-| Picture-in-Picture | `pictureInPicture=true` | Restore the app to fullscreen. |
-| Sample app unresponsive | Heartbeat or status calls timing out | Wait for the app to recover, or relaunch via `Reconnect`. |
-| No Compose UI | Foreground screen is not Compose (View/WebView/dialog) | Navigate to a Compose screen. See [No Compose Roots](#no-compose-roots). |
-
-Browser-side draft work and the last preview remain visible while blocked. Selection and `Capture screen` resume automatically once the cause clears; you do not need to re-enter `Annotate` or re-add pending pins.
+| Screen off | `screenInteractive=false` | Wake the device |
+| Lock screen | `keyguardLocked=true` | Unlock by hand |
+| App backgrounded | `appForeground=false` | Foreground the debug app |
+| Picture-in-Picture | `pictureInPicture=true` | Restore fullscreen |
+| Sample app unresponsive | Heartbeat timeout | Wait or Reconnect |
+| No Compose UI | View / WebView / dialog | Navigate to a Compose screen. See [No Compose Roots](#no-compose-roots). |
 
 ## Browser Console Connection Card States
 
-The connection card is the first place to look when capture, preview, or navigation is unavailable.
+- `Connect to your app`: click `Start`.
+- `Ready`: live capture and debug navigation allowed.
+- `Open the app`: device is usable, bridge is not. Click `Open app`.
+- `Reconnect`: later request failed. Click `Reconnect`.
+- `Choose a device`: more than one ready device.
+- `Check your phone`: no usable device, ADB failed, or selected device is
+  offline / unauthorized. Check `adb devices -l`.
+- `This build cannot connect`: not debuggable, `run-as` denied, or sidekick
+  missing.
 
-- `Connect to your app`: click `Start`. The console will use the selected or only ready device, launch the debug app when possible, and check the sidekick bridge.
-- `Ready`: live capture and debug navigation are allowed. Click `Capture screen` when you want a fresh preview immediately.
-- `Open the app`: ADB sees a usable device, but the sidekick bridge is not reachable. Click `Open app` to launch the active package.
-- `Reconnect`: the console reached the bridge before, but a later heartbeat, preview, or navigation request failed. Click `Reconnect` to reopen the app and refresh the bridge session.
-- `Choose a device`: more than one ready device is connected. Pick one from the compact device control.
-- `Check your phone`: no usable device is available, ADB failed, or the selected device is offline/unauthorized/missing. Check `adb devices -l`, unlock/authorize the device, then click `Try again`.
-- `This build cannot connect`: the package is not debuggable, `run-as` is denied, the sidekick is missing, or the build cannot expose the FixThis bridge. Install a debuggable build with the sidekick enabled.
-
-Open `Details` for raw `deviceState`, `bridgeState`, and `rawError`. These details are diagnostic; the normal action button is the supported recovery path.
+Open `Details` for `deviceState`, `bridgeState`, and `rawError`.
 
 ## Console Notifications
 
-The console uses different surfaces for different recovery work:
+- Toasts: success, cancel, undo.
+- Inline status: connection card, preview, inspector, save controls.
+- Global banners: whole-workflow blocks.
+- Sheets: discard drafts, forget a device, force-save a stale preview.
+- Details panels: raw errors and JSON.
 
-- Toasts are for success, cancel, and undo messages that can disappear.
-- Inline status belongs to the connection card, preview, inspector, or save controls.
-- Global banners stay visible when the whole workflow is blocked.
-- In-app sheets handle destructive choices such as discarding drafts, clearing saved drafts, forgetting a device, or force-saving a stale preview.
-- Details panels hold raw errors, JSON, and diagnostic commands.
-
-If a mutating request returns `403`, reload the console page served by the
-current MCP process. The console token changes when the server restarts.
+A mutating `403` means reload the page served by the current MCP process.
 
 ## "Source coordinates point to old code"
 
-Symptom: After editing app code, `fixthis_read_feedback` returns paths/lines that don't match what you see in the editor.
-
-Cause: The debug APK on the device was built before your changes. The on-device `fixthis-source-index.json` still references old line numbers.
-
-Fix:
+The debug APK on the device is older than the editor. Reinstall:
 
 ```bash
 ./gradlew :app:installDebug
 ```
 
-Cold-launch the app once so the sidekick re-reads the new index. `fixthis_status` will then report `installStale: false`. Per-candidate `stale: true` flags also clear.
+Cold-launch once. `fixthis_status` should report `installStale: false`.
 
-If `fixthis_status` reports `installStaleReason: "projectRoot may be misconfigured: 0 of <N> indexed files exist on host"`, FixThis could not resolve any indexed source file against the MCP project root. Re-run from the repository root first. If you are using an older debug APK, reinstall so the source index includes `sourceRoot` and `repoFile` metadata for module paths such as `sample/src/main/...`. If the warning remains after reinstall, check that the MCP `projectRoot` points at the repository containing the app sources.
+If `installStaleReason` says `projectRoot may be misconfigured`, run from the
+repository root. Reinstall older APKs so the index includes `sourceRoot` and
+`repoFile`. Confirm MCP `projectRoot` points at the repo that contains the
+app sources.
 
-Per-candidate `staleReason` values are more specific for host path problems: `file not found on host; sourceRoot unresolved` means root metadata was present but did not resolve to a file, and `file not found on host; multiple suffix matches` means the compatibility fallback found more than one possible file.
-
-To verify the round-trip end-to-end on a connected device, run `./scripts/fixthis-smoke.sh --check-staleness`. The smoke script asserts `installStale: false` after install, bumps a tracked source file's mtime to assert `installStale: true` (with `newerSourceFiles` referencing the touched file), then reinstalls and asserts `installStale: false` again. The original mtime is restored before the reinstall step and again via an exit `trap` so failures do not leave the workspace dirty.
+Round-trip check: `./scripts/fixthis-smoke.sh --check-staleness`.
 
 ## Bridge Connection Failures
 
-Bridge failures usually mean the desktop CLI could not connect through ADB to the sidekick local socket.
-
-Check:
-
-- One device is connected and authorized.
-- The debug app is installed and running.
-- `run-as <package>` works.
-- The sidekick session exists.
-- The bridge protocol version matches the CLI/MCP version.
-
-Retry with `fixthis doctor --package <applicationId>` to see the failing stage.
+Desktop CLI could not connect through ADB to the sidekick socket. Check: one
+authorized device, debug app running, `run-as <package>` works, sidekick
+session exists, bridge protocol matches CLI/MCP. Then
+`fixthis doctor --package <applicationId>`.
 
 ## Console Staleness Banner
 
-The browser console shows a red banner at the top when it detects that the JS, the running MCP/console JAR, or the connected sample APK is out of date. The same banner is reused for three causes:
+Red banner when JS, MCP/console JAR, or sample APK is out of date.
 
-- **Console JS is stale** — the bundled JS build epoch is older than `/api/server-version` reports for the running server. Re-run `bash scripts/restart-console.sh` (or `node scripts/build-console-assets.mjs && ./gradlew :fixthis-mcp:installDist` and restart) and hard-reload the browser tab.
-- **Bridge protocol mismatch** — the sample APK’s sidekick reports a `bridgeProtocolVersion` older than the console’s `MinimumSupportedProtocolVersion`. Rebuild and reinstall the debug sample APK (e.g. `bash scripts/restart-console.sh --with-app`).
-- **Sidekick build is older than the console** — the sample APK was built before the running console JAR was built. Reinstall the debug APK as above so its sidekick matches.
+- **Console JS is stale** — `bash scripts/restart-console.sh` and hard-reload.
+- **Bridge protocol mismatch** — rebuild and reinstall the sample APK
+  (`bash scripts/restart-console.sh --with-app`).
+- **Sidekick build is older than the console** — reinstall the debug APK.
 
-The banner is dismissable; it does not block usage, but recovery features that depend on the new protocol fields will degrade until you refresh the stale side. See [Bridge protocol](../reference/bridge-protocol.md) for the contract that governs when `BridgeProtocol.VERSION` and the console's minimum must change in lockstep.
+Dismissable. Features that need new protocol fields degrade until you
+refresh. See [Bridge protocol](../reference/bridge-protocol.md).
 
 ## Setup failures
 
-`fixthis setup --write` fails when an existing agent config file cannot be parsed. The error message classifies the cause and recommends an action.
+`fixthis setup --write` fails when an existing agent config cannot be parsed.
 
-| Category | Meaning | Recommended action |
+| Category | Meaning | Action |
 |---|---|---|
-| `MALFORMED_JSON` | `.claude/settings.json` is not valid JSON. | Fix the JSON syntax shown in the `caused by` line, or back up + delete the file and re-run. |
-| `MALFORMED_MCPSERVERS_SHAPE` | The `mcpServers` key exists but is not a JSON object. | Replace its value with `{}` or remove the key; re-run. |
-| `MALFORMED_TOML` | `~/.codex/config.toml` has a TOML syntax error in the `[mcp_servers.fixthis]` section. | Back up the file, remove the `[mcp_servers.fixthis]` block, and re-run. |
-| `FILESYSTEM_ERROR` | The config file cannot be read (permissions, missing directory). | Check `ls -l <path>`; fix ownership or permissions with `chmod`/`chown`. |
-| `UNKNOWN` | Anything else. | Re-run with `--verbose` for a stack trace and file an issue. |
+| `MALFORMED_JSON` | `.claude/settings.json` is not valid JSON | Fix the syntax, or back up and delete, then rerun |
+| `MALFORMED_MCPSERVERS_SHAPE` | `mcpServers` is not an object | Replace with `{}` or remove the key |
+| `MALFORMED_TOML` | Codex config TOML error in `[mcp_servers.fixthis]` | Back up, remove that block, rerun |
+| `FILESYSTEM_ERROR` | Cannot read the file | Fix ownership or permissions |
+| `UNKNOWN` | Anything else | `--verbose` and file an issue |
 
-For maximum detail, append `--verbose` to any failing `fixthis setup` invocation. The same categorized message is printed, followed by a full Java stack trace including nested causes.
+Append `--verbose` for a full stack trace.

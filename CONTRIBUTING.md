@@ -5,26 +5,21 @@
 | Tool | Minimum | Notes |
 |---|---|---|
 | JDK | 21 | Adoptium Temurin recommended. |
-| Android SDK + ADB | API 30+ | Required for `:app:assembleDebug` and connected smoke. |
-| Node.js | 20.0.0 | Compatibility floor enforced via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20 reached upstream EOL on 2026-04-30; use an upstream-supported Node 22 or 24 release for local development. CI keeps one Node 20 lane until the compatibility floor changes. |
-| Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. macOS 11+ / Ubuntu 20.04+ required by Playwright's bundled Chromium. |
+| Android SDK + ADB | API 30+ | Needed for `:app:assembleDebug` and connected smoke. |
+| Node.js | 20.0.0 | Floor via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20 reached upstream EOL on 2026-04-30; use Node 22 or 24 locally. CI keeps one Node 20 lane until the floor changes. |
+| Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. |
 
-Run `npm install` and `npx playwright install chromium` once before running any `npm run console:*` script.
+Run `npm install` and `npx playwright install chromium` once before any
+`npm run console:*` script.
 
 ## Formatting
 
-Kotlin sources and Gradle Kotlin DSL scripts are formatted by [Spotless](https://github.com/diffplug/spotless)
-with the [ktlint](https://github.com/pinterest/ktlint) formatter.
-
 ```bash
-./gradlew spotlessApply   # format the codebase locally
-./gradlew spotlessCheck   # verify formatting (this is what CI runs)
+./gradlew spotlessApply   # format locally
+./gradlew spotlessCheck   # what CI runs
 ```
 
-CI runs `./gradlew spotlessCheck` before unit tests and fails on unformatted files.
-The historical bulk reformatting commit is recorded in
-[`.git-blame-ignore-revs`](.git-blame-ignore-revs); configure git to ignore it for
-`git blame` with:
+Ignore the historical bulk-format commit in blame:
 
 ```bash
 git config blame.ignoreRevsFile .git-blame-ignore-revs
@@ -32,99 +27,78 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## Required PR checks
 
-The following table is the canonical contract for status checks on pull
-requests targeting `main`. The exact live contexts are also recorded in
+Canonical contract for PRs targeting `main`. Live context names:
 [`docs/contributing/required-checks.md`](docs/contributing/required-checks.md).
 
-| Check | Workflow | Source task | Status |
-|---|---|---|---|
-| `Gradle verification` | `.github/workflows/ci.yml` (`gradle-verification`) | build, formatting, detekt, unit tests, sample assemble, CLI/MCP install | Required |
-| `Console JavaScript` | `.github/workflows/ci.yml` (`console-js`) | docs, release contracts, console assets/tests, package/perf contracts | Required |
-| `Analyze (java-kotlin)` | `.github/workflows/codeql.yml` | CodeQL Java/Kotlin analysis | Required |
-| `Analyze (javascript-typescript)` | `.github/workflows/codeql.yml` | CodeQL JavaScript/TypeScript analysis | Required |
-| Nightly connected tests | `.github/workflows/connected-tests.yml` | CI-4 | Informational only — promote after 14 consecutive green |
-| Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | BR-4 | Informational only — promote after 1 week stable |
-
-The four required context names above must match live branch protection exactly.
-Scheduled jobs remain observation-only until a separate policy change.
+| Check | Workflow | Status |
+|---|---|---|
+| `Gradle verification` | `.github/workflows/ci.yml` (`gradle-verification`) | Required |
+| `Console JavaScript` | `.github/workflows/ci.yml` (`console-js`) | Required |
+| `Analyze (java-kotlin)` | `.github/workflows/codeql.yml` | Required |
+| `Analyze (javascript-typescript)` | `.github/workflows/codeql.yml` | Required |
+| Nightly connected tests | `.github/workflows/connected-tests.yml` | Informational until 14 consecutive green |
+| Compatibility matrix scheduled | `.github/workflows/nightly-compat.yml` | Informational until 1 week stable |
 
 ## Console Inner Loop
 
-The console JS is live-reloaded; the Kotlin server is pinned in the JAR. Two helper scripts cover the common inner-loop cases.
+Console JS live-reloads. Kotlin server is pinned in the JAR.
 
-### `scripts/restart-console.sh` — restart after Kotlin server changes
+### `scripts/restart-console.sh` — after Kotlin server changes
 
-Use after any change to `:fixthis-mcp` server code. The script kills any running console process, frees the bookmarked port (default `9876`), and starts a new console pointed at the source-tree assets.
-
-```bash
-bash scripts/restart-console.sh                 # restart console only
-bash scripts/restart-console.sh --with-app      # also reinstall the sample APK
-bash scripts/restart-console.sh --dry-run       # preview commands without executing
-bash scripts/restart-console.sh --port 9876     # use a non-default port
-```
-
-Override the port with `FIXTHIS_CONSOLE_PORT` or `--port`. The script also frees stray `screen` sessions named `fixthis-console-*`.
-
-### `scripts/fixthis-console-dev.sh` — JS-only hot-reload loop
-
-Use after edits to `fixthis-mcp/src/main/console/*` that you rebundle with `node scripts/build-console-assets.mjs`. The script launches `fixthis console` with `--console-assets-dir` (so the source-tree JS is served live), parses the `consoleUrl` from CLI output, and opens it in the default browser.
+Kills the running console, frees the bookmarked port (default `9876`), and
+starts a new one pointed at source-tree assets.
 
 ```bash
-scripts/fixthis-console-dev.sh                                # default package
-scripts/fixthis-console-dev.sh io.github.beyondwin.fixthis.sample    # explicit package
+bash scripts/restart-console.sh                 # console only
+bash scripts/restart-console.sh --with-app      # also reinstall sample APK
+bash scripts/restart-console.sh --dry-run
+bash scripts/restart-console.sh --port 9876
 ```
 
-Stop with Ctrl-C; re-running kills any stale `fixthis console` process before starting a new one.
+Port override: `FIXTHIS_CONSOLE_PORT` or `--port`. Also frees stray
+`screen` sessions named `fixthis-console-*`.
 
-### `node scripts/build-console-assets.mjs --watch` — auto-rebundle on JS edit
+### `scripts/fixthis-console-dev.sh` — JS-only hot reload
 
-Pair this with `scripts/fixthis-console-dev.sh` (which runs the server with
-`--console-assets-dir`) for a no-touch JS edit loop. Save a JS file under
-`fixthis-mcp/src/main/console/` and the bundle, source map, and
-`console-build-meta.json` are atomically rewritten. The console server polls
-`console-build-meta.json` mtime and pushes a `console-assets-changed` event
-over `/api/events`; the browser auto-reloads when the bundle hash differs.
-The reload signal is gated on `--console-assets-dir`; the packaged JAR never
-reloads itself.
+Launches `fixthis console` with `--console-assets-dir`, parses `consoleUrl`,
+opens the browser.
+
+```bash
+scripts/fixthis-console-dev.sh
+scripts/fixthis-console-dev.sh io.github.beyondwin.fixthis.sample
+```
+
+### Auto-rebundle
 
 ```bash
 node scripts/build-console-assets.mjs --watch
 ```
 
-Stop with Ctrl-C. After stopping, the on-disk artifacts already satisfy
-`node scripts/build-console-assets.mjs --check`, so no extra command is
-needed before pushing.
+Produces `app.js` (must be ≤ 247,000 B raw / 62,500 B gzip), `app.js.map`,
+and `console-build-meta.json`. The console polls that sidecar and reloads
+when the bundle hash changes. Reload is gated on `--console-assets-dir`.
 
-### Server build chip
+The top bar chip shows server build SHA and reconnect state. Use it to
+confirm `restart-console.sh` actually delivered a new JAR.
 
-The console top bar shows a small chip with the current server build SHA and
-reconnect state (`connected · build sha=<short>` → `reconnecting…` →
-`connected · build sha=<new>`). Use it to confirm that
-`bash scripts/restart-console.sh` actually delivered a new server build.
+### Documentation consistency
 
-### Documentation consistency check (required)
-
-After editing `package.json`, README, AGENTS.md, or this file, run:
+After editing `package.json`, README, AGENTS.md, or this file:
 
 ```bash
 node scripts/check-doc-consistency.mjs
 ```
 
-The script verifies that npm scripts and CONTRIBUTING.md agree, that README ↔ AGENTS cross-links exist, that the contributor scripts are documented here, and that every `*.md#anchor` link resolves to a real heading (via `github-slugger`). It exits non-zero with a `FAIL Rx.…` line if any rule breaks.
-
-### Docs ↔ CLI surface check
-
-After editing README.md, AGENTS.md, CLAUDE.md, MCP.md, `docs/getting-started/agent-install-snippet.md`, or any `fixthis-cli/**` source that changes the CLI's command/flag surface, run:
+After editing README.md, AGENTS.md, CLAUDE.md, MCP.md,
+`docs/getting-started/agent-install-snippet.md`, or CLI command/flag surface:
 
 ```bash
 bash scripts/check-docs-cli-surface.sh
 ```
 
-The script invokes the installed CLI (building `:fixthis-cli:installDist` first if needed), then scans the five DX docs for `fixthis <subcommand>` and `fixthis <subcommand> --flag` references. Each subcommand must appear in `fixthis --help`, and each flag must appear in the corresponding `fixthis <subcommand> --help`. The same check runs in CI via `.github/workflows/docs-cli-surface.yml` on PRs that touch the docs or the CLI module.
-
 ### Repository Agent Kit
 
-The repository Agent Kit is checked-in guidance and read-only routing; it does not modify personal or project Codex configuration.
+Read-only routing. Does not modify personal or project Codex config.
 
 ```bash
 npm run agent:route -- --task console --json
@@ -134,30 +108,18 @@ npm run docs:agent-guidance:test
 npm run plugin:contract:test
 ```
 
-The router prints maintained docs, first source files, focused checks, broad gates, and connected-proof requirements; it never executes them. Unknown paths warn and fall back to `npm run ci:local:changed`. Contract tests enforce the root 130-line budget, nested 60-line budgets, canonical commands, and skill audiences.
-
-After editing `AGENTS.md`, a nested `AGENTS.md`, `.agents/skills`, `.codex-plugin/skills`, or `scripts/agent-*`, run all three focused test commands above.
+After editing `AGENTS.md`, nested `AGENTS.md`, `.agents/skills`,
+`.codex-plugin/skills`, or `scripts/agent-*`, run those three test commands.
 
 ## Required Local Checks
 
-The root build enables the local Gradle build cache by default. Configuration
-cache is intentionally still opt-in because `spotlessCheck` does not reliably
-reuse it yet; use `--configuration-cache` on focused loops such as
-`:app:assembleDebug` or `:fixthis-mcp:installDist` after verifying the command
-stores and reuses a cache entry.
+Local Gradle build cache is on. Configuration cache is still opt-in because
+`spotlessCheck` does not reuse it reliably.
 
-Architecture guardrails are part of `:fixthis-mcp:test`. They assert that
-`:fixthis-compose-core` stays free of Android/MCP/CLI imports and that known
-large handwritten files stay within their hotspot budgets while they are being
-split. If a legitimate architecture change needs a new dependency direction,
-record the decision in `docs/architecture/adr/` before changing the guard.
-Prefer fixing new detekt findings over expanding a baseline; remove stale
-baseline entries when a refactor makes them disappear.
+Architecture guardrails live in `:fixthis-mcp:test`. If a new dependency
+direction is needed, record it in `docs/architecture/adr/` first.
 
 ### Local Evidence Profiles
-
-Use the evidence runner when you want a named local validation profile with a
-JSON and Markdown report under `build/reports/fixthis-evidence/`.
 
 ```bash
 npm run evidence:fast -- --dry-run
@@ -166,92 +128,66 @@ npm run evidence:console
 npm run evidence:release
 ```
 
-The runner is a convenience layer over canonical commands. If a profile fails,
-rerun the failed command printed in the summary. Android-connected trust checks,
-including runtime source trust, automatic runtime evidence, and the real Copy
-Prompt browser smoke, are
-reported as deferred when Android SDK or a ready emulator is unavailable unless
-the profile is run with `--strict-runtime`.
+Android-connected trust checks report deferred when SDK or a ready emulator
+is missing, unless run with `--strict-runtime`.
 
 ### Focused Test Loops
 
-Use focused loops while iterating, then run the full local checklist before
-opening or updating a pull request.
-
 ```bash
-# MCP event-log changes
 ./gradlew :fixthis-mcp:test --tests '*eventlog*' --no-daemon
-
-# MCP console/server route changes
 ./gradlew :fixthis-mcp:test --tests '*console*' --no-daemon
-
-# Sidekick Android unit changes
 ./gradlew :fixthis-compose-sidekick:testDebugUnitTest --no-daemon
-
-# Pure console JavaScript changes
 npm run console:test:fast
-
-# Draft workspace state-machine changes
 npm run console:draft:test
-
-# Runtime-evidence MCP/console contracts
 npm run runtime-evidence:smoke:test
 ./gradlew :fixthis-cli:test :fixthis-mcp:test --no-daemon
 ```
 
-Per-feature focused harnesses are also available as named npm scripts (each
-delegates to `scripts/run-console-tests.mjs` or its dedicated runner):
+Named console harnesses:
 
 ```bash
-npm run console:availability:test   # availability/blocked-state harness
-npm run console:pending:test        # pending-item recovery harness
-npm run console:beforeunload:test   # beforeunload guard harness
-npm run console:undo:test           # undo/redo harness
-npm run console:activity:test       # activity-drift harness
-npm run console:preview:test        # preview staleness harness
-npm run console:browser:reliability # browser reliability proof
-npm run console:harness:test        # scenario matrix harness unit tests
-npm run console:fsm:test            # connection FSM harness
-npm run console:build:test          # build-console-assets unit tests
-npm run console:build:watch:test    # build-console-assets --watch loop test
-npm run console:devReload:test      # console-assets-changed SSE handler test
-npm run console:serverBuildChip:test # server build chip render/transition test
-npm run console:innerloop:test      # aggregate of the three above (gated in console:test:fast / :all)
+npm run console:availability:test
+npm run console:pending:test
+npm run console:beforeunload:test
+npm run console:undo:test
+npm run console:activity:test
+npm run console:preview:test
+npm run console:browser:reliability
+npm run console:harness:test
+npm run console:fsm:test
+npm run console:build:test
+npm run console:build:watch:test
+npm run console:devReload:test
+npm run console:serverBuildChip:test
+npm run console:innerloop:test
+npm run console:session:test
+npm run console:smoke
+npm run console:responsive:stress
+npm run console:reliability:test
+npm run console:harness
+npm run console:test:all
 ```
 
-> As of 2026-05-14, `ConsoleFeedbackItemRoutesTest.kt` was split into seven
-> focused files. If you previously pinned that class in your IDE run
-> configurations, switch to the package filter
-> `io.github.beyondwin.fixthis.mcp.console.*`.
-
-Run this before pushing routine work:
+Before pushing routine work:
 
 ```bash
 npm run prepush
 ```
 
-`npm run prepush` is the one-shot preparation command. It applies
-Kotlin/Gradle formatting, rebuilds the checked-in console asset bundle with
-reproducible metadata, then runs fast push hygiene. It does not run Gradle
-static analysis, unit tests, sample assemble, installDist, perf, package, or
-release-evidence checks.
+That formats Kotlin/Gradle, rebuilds the console bundle, and runs fast push
+hygiene. It does not run the full Gradle matrix.
 
-Run this before opening a release pull request or cutting a release:
+Before a release PR:
 
 ```bash
 npm run release:check
 ```
 
-`npm run release:check` mirrors the full required CI gates locally. It includes
-the release-readiness, release-evidence, package, perf, console, Gradle test,
-sample assemble, and installDist checks. `npm run ci:local` is kept as the same
-full gate, while `npm run ci:local:fast` and `npm run ci:local:changed` remain
-available for targeted debugging. Whitespace checks intentionally ignore
-Markdown files under `docs/superpowers/`, because those files are historical
-planning artifacts; all other files remain enforced.
+That mirrors required CI gates. `npm run ci:local` is the same full gate.
+`npm run ci:local:fast` and `npm run ci:local:changed` are for targeted
+debugging. Whitespace checks ignore Markdown under `docs/superpowers/`.
 
-When changing runtime-evidence policy, collector, artifact, handoff, or console
-behavior, run this focused acceptance set before the full release gate:
+Runtime-evidence changes, before the full release gate:
 
 ```bash
 ./gradlew :fixthis-cli:test :fixthis-mcp:test --no-daemon
@@ -264,17 +200,15 @@ bash scripts/check-docs-cli-surface.sh
 npm run release:package:test
 ```
 
-To install the tracked pre-push hook for this checkout:
+Install the tracked pre-push hook:
 
 ```bash
 npm run hooks:install
 ```
 
-The hook runs `npm run prepush` before each push. To bypass it for an
-intentional emergency push, run `FIXTHIS_SKIP_PRE_PUSH=1 git push` and follow up
-with the CI result immediately.
+Bypass only for an emergency: `FIXTHIS_SKIP_PRE_PUSH=1 git push`.
 
-The full command set is:
+Full command set:
 
 ```bash
 node scripts/check-doc-consistency.mjs
@@ -308,130 +242,41 @@ node scripts/check-whitespace.mjs diff --check <base>..HEAD
 node scripts/check-whitespace.mjs diff --check
 ```
 
-`check-release-readiness.mjs` protects public release docs from accidentally
-claiming Maven Central or Gradle Plugin Portal publication before artifacts are
-actually visible.
-
-`release:v06:evidence:test` includes version and compatibility checks. It
-verifies that current public install docs, CLI defaults, npm metadata, MCP
-Registry metadata, Android SDK levels, and compatibility docs match the
-version catalog and `FIXTHIS_VERSION` in `gradle.properties`.
-
-When touching feedback-session switching, saved overlays, pending recovery, or
-undo/redo context, also run the focused session-scope harnesses:
-
-```bash
-npm run console:session:test
-```
-
-If you edited any console JS module under `fixthis-mcp/src/main/console/`, rebundle the served asset before running `installDist` and the syntax check:
+If you edited `fixthis-mcp/src/main/console/`, rebundle first:
 
 ```bash
 node scripts/build-console-assets.mjs
 ```
 
-### Console Harness
-
-The nightly `Console harness` workflow runs the full Playwright matrix against a
-fake bridge fixture. Run it locally before pushing changes that touch
-`scripts/console-*` or `fixthis-mcp/src/main/resources/console/**`.
+Console harness (nightly Playwright matrix against a fake bridge):
 
 ```bash
-# Full matrix (all scenarios × all viewports):
 npm run console:harness
-
-# Single scenario across all viewports:
 node scripts/console-harness.mjs --matrix network-outage
-
-# Single scenario at one viewport (great for debugging):
 node scripts/console-harness.mjs --matrix slow-handoff --viewport mobile-390 --headed
 ```
 
-Environment knobs:
+Env: `FIXTHIS_HARNESS_MATRIX`, `FIXTHIS_HARNESS_VIEWPORTS`,
+`FIXTHIS_HARNESS_HEADED`. Failures land under `output/playwright/`.
 
-| Env var | Effect |
-| --- | --- |
-| `FIXTHIS_HARNESS_MATRIX` | CSV of scenario keys; default `all`. |
-| `FIXTHIS_HARNESS_VIEWPORTS` | CSV of viewport keys; default `all`. |
-| `FIXTHIS_HARNESS_HEADED` | `1` to launch headed Chromium for debugging. |
-
-Failure artifacts (screenshots, traces, console logs) land under
-`output/playwright/` and upload to GitHub Actions on nightly failures.
-
-### Console bundle
-
-`node scripts/build-console-assets.mjs` produces three files under
-`fixthis-mcp/src/main/resources/console/`:
-
-- `app.js` - minified bundle (must be ≤ 247,000 B raw / ≤ 62,500 B gzipped; the build aborts otherwise).
-- `app.js.map` — external source map; DevTools picks it up via the
-  `//# sourceMappingURL=app.js.map` trailer when the console is served
-  with `--console-assets-dir`. The map is excluded from the packaged JAR.
-- `console-build-meta.json` — sidecar with `buildEpochMs` and `gitSha`,
-  inlined into `window.FixThisConsoleConfig.buildMeta` by
-  `FeedbackConsoleAssets.kt` at serve time.
-
-`node scripts/build-console-assets.mjs --check` verifies all three artifacts
-are byte-equivalent to a fresh regeneration under `FIXTHIS_BUNDLE_REPRODUCIBLE=1`.
-CI runs this check.
-
-Module load order is a topological sort over `// @requires` directives at
-the top of each `fixthis-mcp/src/main/console/*.js` file. The build aborts
-if a non-entry-point module lacks a `// @requires` header.
-
-If the build aborts with "esbuild dropped contract symbol", a JS function
-the asset contract tests rely on was inlined or renamed by the minifier;
-audit the change or extend the `CONTRACT_SYMBOLS` list in
-`scripts/build-console-assets.mjs`.
-
-If you changed Gradle build logic, also run:
+If you changed Gradle build logic:
 
 ```bash
 ./gradlew help --warning-mode all --no-daemon
 ```
 
-The help task should not print Gradle deprecation warnings. Detekt still runs
-for `detekt`, `check`, and build tasks; it is intentionally skipped for
-configuration-only help invocations.
-
-Optional console smoke harnesses (require Node + a recent Chromium via Playwright) live under `scripts/`:
-
-```bash
-npm run console:smoke                  # end-to-end console smoke
-npm run console:responsive:stress      # narrow-width error/agent-state stress test
-npm run console:availability:test      # availability/blocked-state harness
-npm run console:draft:test             # DraftWorkspace reducer/storage/API/use-case harnesses
-npm run console:reliability:test       # Studio reliability: reducer + use-case + polling + idempotency contract tests
-npm run console:browser:reliability    # browser proof for SSE sync, stale previews, and closed-session fences
-node scripts/console-blocked-harness.mjs # blocked-overlay rendering harness
-```
-
-Run the responsive stress harness whenever you touch console layout, global
-status messages, activity-drift warnings, or agent-state rendering.
+That should print no Gradle deprecation warnings.
 
 ## Connected Device Checks
 
-Use the connected Android proof runner when validating release-decision device
-behavior:
-
 ```bash
 npm run android:proof -- --strict
-```
-
-The runner checks Android SDK/ADB readiness, device selection, boot completion,
-the bundled sample smoke, real Copy Prompt, the external agent lifecycle, the
-runtime-evidence MCP/Auto-handoff product path, and the external fixture
-matrix. It writes JSON and Markdown reports under
-`build/reports/fixthis-android-proof/`; these reports are ignored build
-artifacts and should not be committed.
-
-For a broader failure picture in one run, use:
-
-```bash
 npm run android:proof -- --strict --continue
 ```
 
-When debugging a specific layer, the focused commands remain available:
+Reports under `build/reports/fixthis-android-proof/`. Do not commit them.
+
+Focused children:
 
 ```bash
 scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample
@@ -441,10 +286,9 @@ npm run runtime-evidence:smoke -- --strict
 npm run external-fixture:matrix -- --strict
 ```
 
-For release-decision evidence, run:
+Release-decision extras:
 
 ```bash
-npm run android:proof -- --strict
 npm run release:drift
 npm run release:drift:test
 npm run external-fixture:matrix:test
@@ -452,87 +296,35 @@ npm run release:gate
 npm run release:gate:test
 ```
 
-`runtime-evidence:smoke -- --strict` must call the real
-`fixthis_collect_runtime_evidence` MCP tool and prove artifact containment,
-redaction, item linkage, Auto Save-to-MCP, and restart replay. Generic direct
-logcat output is not accepted. The local report is written under
-`build/reports/fixthis-runtime-evidence/`.
-
-`release:gate` consumes the integrated connected Android proof report and the
-public release-reality check. Before tagging, use the focused commands above and
-`android:proof -- --strict`; a pre-tag gate run is expected to fail only its
-`Release reality` row because the new tag and registry versions do not exist
-yet. After every channel is published, `release:gate -- --strict` must pass.
-Do not run every connected smoke independently unless debugging a failing child
-row named in `build/reports/fixthis-android-proof/report.json`.
-
-The release gate writes JSON and Markdown reports under
-`build/reports/fixthis-release-gate/`. These reports are ignored build
-artifacts and should not be committed.
-
-For host-only validation, use:
+Host-only:
 
 ```bash
 scripts/fixthis-smoke.sh --package io.github.beyondwin.fixthis.sample --host-only
 ```
 
-Smoke reports are written under ignored `.fixthis/smoke-reports/` as Markdown and JSON. When connected smoke is skipped, record one of these categories in the pull request:
-
-- `SKIPPED_HOST_ONLY`
-- `SKIPPED_ADB_NOT_FOUND`
-- `SKIPPED_NO_DEVICE`
-- `SKIPPED_UNAUTHORIZED_DEVICE`
-- `SKIPPED_OFFLINE_DEVICE`
-- `SKIPPED_LOCKED_DEVICE`
-- `SKIPPED_WIRELESS_ADB_LOST`
-- `SKIPPED_MULTIPLE_DEVICES`
+When connected smoke is skipped, record one of:
+`SKIPPED_HOST_ONLY`, `SKIPPED_ADB_NOT_FOUND`, `SKIPPED_NO_DEVICE`,
+`SKIPPED_UNAUTHORIZED_DEVICE`, `SKIPPED_OFFLINE_DEVICE`,
+`SKIPPED_LOCKED_DEVICE`, `SKIPPED_WIRELESS_ADB_LOST`,
+`SKIPPED_MULTIPLE_DEVICES`.
 
 ## Performance Measurement
 
-The `scripts/perf/` harness measures Gradle and console JS scenario
-wall-clock times and compares them against a committed baseline. See
-[`scripts/perf/README.md`](scripts/perf/README.md) for details and
-[`docs/superpowers/specs/2026-05-16-build-test-performance-measurement-design.md`](docs/superpowers/specs/2026-05-16-build-test-performance-measurement-design.md)
-for the design.
-
-Typical loop when proposing a build/test config change:
-
-```bash
-# 1. Confirm main is clean on your machine (no rogue REGRESS/IMPROVE).
-node scripts/perf/bench.mjs
-node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-18-linux.json "$(ls -t output/perf/run-*.json | head -1)"
-
-# 2. Apply your change, then re-measure.
-node scripts/perf/bench.mjs
-node scripts/perf/compare-perf.mjs docs/perf/baseline-2026-05-18-linux.json "$(ls -t output/perf/run-*.json | head -1)"
-
-# 3. Attach the comparator output to the PR description.
-```
-
-Re-baseline (`docs/perf/baseline-2026-05-18-linux.json`) only when adopting
-a deliberate, reviewed change. The active baseline is captured on the
-GitHub Actions Ubuntu runner (linux/x64, AMD EPYC, 16 GB RAM, JDK 21,
-Node 20) so the nightly `perf-report` gate compares apples to apples.
-Local Mac runs will diverge from the Linux baseline; the comparator warns
-rather than fails on environment mismatch, so contributor numbers stay
-informational while CI remains the authoritative gate. The same rule protects
-scheduled GitHub runs when hosted-runner CPU models rotate: only matching
-environment fingerprints, including CPU core count, can produce a blocking
-regression or confirmed improvement, and the noise band combines baseline and
-current-run variance.
+See [`scripts/perf/README.md`](scripts/perf/README.md). Active baseline:
+`docs/perf/baseline-2026-05-18-linux.json` (GitHub Ubuntu runner). Local Mac
+numbers are informational.
 
 ## Local Artifacts
 
 `.fixthis/feedback-sessions/`, `.fixthis/preview-cache/`,
 `.fixthis/artifacts/`, `.fixthis/smoke-reports/`, and
-`.fixthis/runtime-evidence/` can contain screenshots, local feedback, or
-redacted-but-still-sensitive debug diagnostics. Do not commit or share them
-casually.
+`.fixthis/runtime-evidence/` can contain screenshots or redacted-but-still-
+sensitive diagnostics. Do not commit them.
 
 ## Compatibility Checklist
 
 - Existing persisted sessions still decode.
-- MCP JSON field names are unchanged unless the pull request explains a migration.
-- CLI commands keep their current flags and output shape unless the pull request explains the break.
-- Existing Compose public APIs keep source compatibility or the pull request explains the break.
+- MCP JSON field names stay unless the PR explains a migration.
+- CLI flags and output shape stay unless the PR explains the break.
+- Compose public APIs stay source-compatible unless the PR explains the break.
 - New coroutine code does not hold monitor locks around disk or bridge I/O.

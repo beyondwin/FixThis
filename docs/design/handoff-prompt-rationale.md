@@ -1,173 +1,84 @@
 # Handoff Prompt Rationale
 
-FixThis produces a compact Markdown handoff for agents and a complete JSON
-session model for tools. The Markdown is intentionally small enough to paste
-into chat-style agents, but structured enough that MCP-aware agents can claim,
-edit, and resolve specific feedback items.
-
-The current grammar is defined in the
-[feedback console contract](../reference/feedback-console-contract.md#compact-handoff-schema).
-This document explains why the prompt is shaped that way.
-
-## Design Goal
+FixThis produces compact Markdown for agents and complete JSON for tools.
+Grammar: [console contract](../reference/feedback-console-contract.md#compact-handoff-schema).
 
 The prompt should answer four questions quickly:
 
 1. What did the user ask?
-2. Which UI target did they mean?
-3. Which source files are likely relevant?
-4. How much should the agent trust the target and source hints?
+2. Which UI target?
+3. Which source files are likely?
+4. How much should the agent trust those hints?
 
-It should not pretend to be an exact compiler mapping. Every handoff keeps the
-rule:
+Rule:
 
 ```text
 source hints are candidates; verify screenshot, target, and code before editing
 ```
 
-## Why Markdown Plus JSON
+## Why Markdown plus JSON
 
-Markdown is optimized for human and chat-agent consumption. It carries the
-request, visible target, candidate source lines, screenshots, confidence, and
-warnings in a compact sequence.
+Markdown is for humans and chat agents. JSON is the durable tool contract:
+IDs, screens, nodes, candidates, evidence, screenshot paths, batches. Agents
+that need full fidelity should read JSON from `fixthis_read_feedback`.
 
-JSON is the durable tool contract. It preserves IDs, screen records, selected
-nodes, nearby nodes, source candidates, target evidence, screenshot paths, and
-handoff batches. Agents that need full fidelity should read JSON from
-`fixthis_read_feedback` rather than scraping the Markdown.
+## Why it starts with package, source root, and quality
 
-## Why The Prompt Starts With Package, Source Root, And Quality
+- `Package` names the debug app.
+- `Source root` trims repeated long paths.
+- `Handoff quality` surfaces aggregate warnings first.
 
-- `Package` confirms which debug app the feedback came from.
-- `Source root` trims repeated long paths when multiple candidates share a
-  directory prefix.
-- `Handoff quality` surfaces aggregate warnings early, before the agent reads
-  individual items.
+## Why screens are grouped
 
-This keeps the prompt readable in monorepos and makes low-confidence sessions
-obvious.
+Annotations from one freeze share screenshot, viewport, and Activity.
+`viewport:` lets an agent reason about pixel coordinates without opening the
+image first.
 
-## Why Each Screen Is Grouped
+## Why each item has an `id`
 
-Feedback is saved from frozen preview evidence. Multiple annotations can share
-one screen, screenshot, viewport, and Activity. Grouping by screen lets the
-agent interpret bounds once and then handle each marker.
+The visible marker is for humans. `id:` is for `fixthis_claim_feedback` and
+`fixthis_resolve_feedback`. Without it, a paste can still guide edits, but
+the console cannot move the item through sent / in_progress / resolved.
 
-The `viewport:` line exists so an agent can reason about pixel coordinates
-without opening the screenshot first.
+## Why `target:` and `box=` are separate
 
-## Why Each Item Has An `id`
+`target:` is a redaction-safe semantic summary. `box=(L,T)-(R,B)` is the
+window-pixel target. Useful when the summary is weak, redacted, or missing.
 
-The visible marker number is for humans. The `id:` line is for tools.
+## Why source candidates are ranked hints
 
-MCP-aware agents use the item ID to call:
+Compose nodes often do not expose exact file and line. FixThis ranks up to
+three candidates from the source index. Rank 1 may be the call site, rank 2
+the reusable composable, rank 3 related copy or data. `margin=` and
+`matched=[...]` show how decisive the ranking is.
 
-- `fixthis_claim_feedback`
-- `fixthis_resolve_feedback`
+## Why `editSurface:` exists
 
-Without the ID, a pasted prompt can still guide code edits, but the console
-cannot reliably move the item through `sent`, `in_progress`, and `resolved`
-states.
+`sourceCandidates` answer where evidence came from. `editSurface:` answers
+where a visual or style change is likely rendered. `role=` distinguishes
+call site, component definition, copy/data, layout/style, visual area, and
+interop risk.
 
-## Why `target:` And `box=` Are Separate
+## Why instance and duplicate signals exist
 
-`target:` is a redaction-safe semantic summary: tag, text, content description,
-role, or `visual area`.
+Repeated list rows can share a call site. `instance i/N`, overlap groups, and
+`targetRisk=duplicate-of-marker-N` keep identical-looking markers distinct.
 
-`box=(L,T)-(R,B)` is the physical window-pixel target. It remains useful when
-the semantic summary is weak, redacted, or missing.
+## Why confidence and warnings are explicit
 
-Separating the two helps agents distinguish "what the user meant" from "where
-the user clicked or dragged."
+Source confidence is “did a file match?” Target confidence is “is this UI
+target reliable?” Warnings such as `VISUAL_AREA_ONLY`,
+`POSSIBLE_VIEW_INTEROP`, and `SOURCE_INDEX_STALE` tell the agent to slow
+down.
 
-## Why Source Candidates Are Ranked Hints
+## Why one server renderer owns the prompt
 
-Compose runtime nodes do not always expose exact source file and line data.
-FixThis ranks candidates from the source index using semantics evidence such as
-selected text, content description, test tag, role, nearby labels, Activity, and
-string resources.
+Browser Copy Prompt and MCP `fixthis_read_feedback` used to drift. Kotlin
+`CompactHandoffRenderer` is the source of truth. Both paths ask the server
+to render the same prompt.
 
-The prompt renders up to three candidates because runner-up files often matter:
+## Why some historical tokens were removed
 
-- rank 1 may be the call site
-- rank 2 may be the reusable composable definition
-- rank 3 may contain related copy or data
-
-The first candidate includes `margin=` and `matched=[...]` so agents can judge
-how decisive the ranking is. A medium-confidence result with a small margin
-should be inspected more carefully than a high-confidence result with direct tag
-and text matches.
-
-## Why `editSurface:` Exists
-
-`sourceCandidates` answer "where did the selected or nearby evidence come
-from?"
-
-`editSurface:` answers "where is a visual, layout, or style change likely
-rendered?"
-
-Those are related but not identical. For example, a selected card title may map
-to a string source, while the requested spacing change belongs in the card
-container composable. `editSurface:` is an inspection hint, not an automatic
-edit instruction.
-
-The optional `role=` token explains what kind of surface the hint represents:
-call site, reusable component definition, copy/data source, layout/style
-surface, visual-area work, or interop risk. That distinction keeps an agent
-from treating a text-origin candidate as the right place for every color,
-spacing, or typography change.
-
-## Why Instance And Duplicate Signals Exist
-
-Repeated UI is common in Compose: list rows, metric cards, tabs, and reusable
-buttons can all map to the same call site. Without extra signals, a prompt with
-three markers can look like three identical source hints.
-
-FixThis adds:
-
-- `instance i/N` when multiple markers share a source/tag grouping but point at
-  distinct runtime instances
-- overlap groups when targets visually collide
-- `targetRisk=duplicate-of-marker-N` when a later marker appears to be the same
-  target as an earlier one
-
-These signals reduce accidental double-fixes and help the agent resolve one
-marker at a time.
-
-## Why Confidence And Warnings Are Explicit
-
-Target confidence is separate from source confidence.
-
-- Source confidence describes whether a file candidate matched the available
-  evidence.
-- Target confidence describes whether the selected UI target itself is reliable.
-
-Warnings such as `VISUAL_AREA_ONLY`, `POSSIBLE_VIEW_INTEROP`,
-`SOURCE_INDEX_STALE`, `SCREEN_FINGERPRINT_MISMATCH_FORCED`, and
-`SENSITIVE_TEXT_REDACTED` tell the agent when to slow down and verify.
-
-## Why One Server Renderer Owns The Prompt
-
-The browser console and MCP tools previously had parallel renderers: JavaScript
-for Copy Prompt and Kotlin for `fixthis_read_feedback`. That drifted. The
-browser prompt missed fields that the MCP prompt had, including item IDs,
-session IDs, claim/resolve protocol guidance, crop paths, and staleness signals.
-
-The current design makes the Kotlin `CompactHandoffRenderer` the source of
-truth. Browser Copy Prompt and Save to MCP ask the local server to render the
-same prompt that MCP tools read. Future prompt fields now have one production
-renderer and one main test surface.
-
-## Why Some Historical Tokens Were Removed
-
-The v2 prompt removed several noisy tokens after real agent use:
-
-- item count headers were dropped because marker numbering already shows count
-- `ui:` and `candidates:` headers were removed when indentation was enough
-- `tag=(none)` placeholders were dropped
-- repeated path prefixes moved into `Source root`
-- size suffixes were dropped because they are derivable from `box=`
-
-The result is shorter but not less informative. The migration table in the
-[feedback console contract](../reference/feedback-console-contract.md#v1--v2-token-migration)
-documents exact token changes.
+v2 dropped noisy headers, `tag=(none)` placeholders, repeated path prefixes,
+and size suffixes. Token table:
+[v1 → v2](../reference/feedback-console-contract.md#v1--v2-token-migration).

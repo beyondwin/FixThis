@@ -1,12 +1,9 @@
 # Release Notes
 
-This directory keeps the human-written notes that are published with GitHub
-Releases or staged on `main` while release validation is still in progress.
-`CHANGELOG.md` remains the canonical chronological change log; these files are
-the concise release-facing summaries.
+GitHub Release summaries. `CHANGELOG.md` is the chronological log.
 
-FixThis is distributed through GitHub Releases, Homebrew, npm, MCP Registry,
-Maven Central, and the Gradle Plugin Portal.
+Distributed through GitHub Releases, Homebrew, npm, MCP Registry, Maven
+Central, and the Gradle Plugin Portal.
 
 ## Releases
 

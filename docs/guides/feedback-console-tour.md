@@ -1,13 +1,11 @@
 # Feedback Console Tour
 
-A visual walkthrough of the FixThis Studio console — from launching it against
-a connected device to handing a batch of annotations off to your AI agent.
+Walkthrough of FixThis Studio: connect a device, annotate, hand off.
 
-> **Screenshot capture notes:** the tour below records the frames that should be
-> captured for release screenshots. The image files are intentionally not linked
-> until those captures exist in `docs/assets/`.
+The console is loopback-only. See [Privacy](../reference/privacy.md) and
+[Security](../../SECURITY.md).
 
-## Open the console
+## Open it
 
 From a configured agent:
 
@@ -15,229 +13,77 @@ From a configured agent:
 fixthis_open_feedback_console
 ```
 
-Or directly from the CLI:
+Or:
 
 ```bash
 fixthis console --package <applicationId>
 ```
 
-The console opens in your default browser at `http://127.0.0.1:<port>`. The
-URL is loopback-only — see [Privacy](../reference/privacy.md) and
-[Security](../../SECURITY.md).
+It opens at `http://127.0.0.1:<port>`.
 
-> Capture needed: full console window on first open, with the `Start`
-> connection card visible and the workflow progress showing Connect, Preview,
-> Annotate, and Handoff.
-
-*Caption:* Three-pane layout. Left: persisted feedback sessions. Center: live
-or frozen Android preview. Right: mode-aware Inspector. Top bar: device
-selector + connection state + session-level actions (Refresh devices, Clear
-selection, Copy Prompt, Save to MCP). The workflow progress row marks the
-current Connect → Preview → Annotate → Handoff step, and the prompt readiness
-summary explains whether a batch is ready to copy or save.
+Layout: left = sessions, center = preview, right = Inspector. Top bar:
+device, connection, Copy Prompt, Save to MCP. Progress row:
+Connect → Preview → Annotate → Handoff.
 
 ## Connect a device
 
-1. Make sure your device or emulator is reachable (`adb devices` from a shell
-   shows it as `device`).
-2. Pick the target device in the top-bar device selector. Multiple connected
-   devices are visible but only ready ones are selectable.
-3. Click **Start** on the connection card. FixThis launches your debug app and
-   attaches the sidekick bridge.
+1. `adb devices` shows the target as `device`.
+2. Pick it in the top-bar selector.
+3. Click **Start**. FixThis launches the debug app and attaches the bridge.
 
-> Capture needed: top bar with the device selector showing `Connected`, and
-> the Inspector showing `Ready`.
+If it fails, the recovery card offers **Choose device**, **Open app**,
+**Reconnect**, or **Try again**. Drafts and the last preview stay visible.
 
-If the connection fails, the recovery card surfaces actionable options:
-**Choose device** (multiple ready devices), **Open app** (debug app is not in
-foreground), **Reconnect** (bridge dropped), **Try again** (transient ADB
-error). Drafts and the last preview remain visible while reconnecting.
+If the device is blocked (screen off, locked, backgrounded, PiP, no Compose
+UI), the canvas shows a per-cause overlay and input waits until the cause
+clears.
 
-When the device is *blocked* — screen off, locked, app in background, in
-Picture-in-Picture, sample app unresponsive, or no Compose UI on the current
-screen — the canvas shows a per-cause overlay and suppresses input until the
-cause clears, then auto-resumes the prior tool mode. The workflow progress row
-keeps the blocked connection visible instead of making the user infer it from
-the canvas alone.
+## Select mode
 
-## Navigate in Select mode
+Default after connect. Clicks on the preview navigate the app. Live preview
+refreshes at Manual / 1s / 2s / 5s (default 1s). It pauses when the tab is
+hidden. Navigation is debug-only: one-step `back`, `tap`, `swipe`.
 
-After connection, the console defaults to **Select** mode. Clicks on the
-preview navigate the app the same way they would on the device. Live preview
-refreshes at the chosen interval (Manual, 1s, 2s, 5s; default 1s; auto-paused
-when the tab is hidden or the device becomes unavailable).
+## Annotate mode
 
-Navigation is debug-only and limited to one-step `back`, `tap`, and `swipe`.
+Click **Annotate**. The preview freezes. The frame badge names the state:
+`Live preview`, `Frozen for annotation`, `Saved screen`, `Stale frame`,
+`No screenshot`, or `Interaction blocked`.
 
-> Capture needed: sample app Home screen in the preview, with the `Select`
-> mode chip highlighted.
+If the app rotates, changes window mode, or leaves the screen before save,
+FixThis asks to re-capture, force-save, or cancel.
 
-## Switch to Annotate mode
+## Select a target
 
-Once you're on the screen you want to leave feedback on, click **Annotate**.
-The current preview freezes — subsequent navigation in the running app does
-not change what you're annotating, so you can take your time.
+**Click** pins the closest Compose node. Inspector shows composable name,
+labels, bounds, `instance i/N`, and top-3 source candidates.
 
-The preview frame status badge names the current frame state: `Live preview`,
-`Frozen for annotation`, `Saved screen`, `Stale frame`, `No screenshot`, or
-`Interaction blocked`. Stale and blocked states keep their existing overlays,
-but the badge stays visible so screenshots and videos still explain why the
-preview is not interactive.
+**Drag** draws a visual area for empty space, gaps, or AndroidView pixels.
+Area selections keep activity / screen metadata, not source candidates.
 
-The frozen preview carries a screen fingerprint when the bridge can compute
-one. If the app rotates, changes window mode, or otherwise moves to a different
-screen before you hand off the batch, FixThis asks whether to re-capture,
-force-save, or cancel.
+## Write a comment
 
-> Capture needed: top bar mode toggle with `Annotate` active, plus a frozen
-> preview indicator.
+A numbered marker appears, the detail editor opens, and a pending row is
+added. Type the change. Multiple annotations on one freeze share one
+screenshot. Draft numbers stay in sync until save; persisted numbers stay
+stable.
 
-## Make a selection
+## Hand off
 
-Two selection styles, picked automatically from how you click:
+The readiness summary sits near **Copy Prompt** and **Save to MCP**. It
+explains empty, draft-only, ready-to-copy, and ready-to-save. Only written
+comments persist. Copy Prompt keeps leftover pins in the browser draft. Save
+to MCP drops them.
 
-### Smart Select (single click on a UI element)
+New sessions use **Auto** diagnostics on Save to MCP. Switch to Manual or Off
+if you do not want that. Copy Prompt never starts collection.
 
-A single click pins the closest Compose semantics node under the cursor. The
-overlay shows the merged-tree bounds; the Inspector shows:
+After Save to MCP, the session stays in History with a working pip while the
+agent claims and resolves items. Click **Annotate** again for another screen.
 
-- the matched composable name (e.g. `MetricCard`)
-- semantic labels and `contentDescription` if any
-- bounds, instance index (`instance i/N` for repeated cards)
-- top-3 source-file candidates with line numbers, match reasons, and a margin
-  score
+## Next
 
-> Capture needed: one Smart Select pin on a card, with the Inspector showing
-> semantic info and source candidates.
-
-### Area selection (drag a rectangle)
-
-Drag to draw a visual area when there's no clean target — typical for empty
-margins, gaps between elements, or `AndroidView` interop where Compose
-semantics are not detected.
-
-Area selections still attach activity / screen metadata, just no source
-candidates.
-
-> Capture needed: area rectangle around a margin, with the Inspector showing
-> area mode and no source candidates.
-
-## Write a comment on the pin
-
-Click a target or drag a region on the frozen preview. A numbered overlay
-marker appears, its detail editor opens in the Inspector, and a row appears in
-the pending list. Type the requested change in the detail editor. Pending
-annotations support focus and **Delete annotation**.
-Draft pin numbers stay in sync while editing; once persisted, item sequence
-numbers remain stable for the session.
-
-> Capture needed: frozen preview with two numbered pins, plus pending comments
-> 1 and 2 in the right pane.
-
-You can pin **multiple annotations on the same frozen preview** — they share
-one screenshot and one source-candidate context.
-
-## Save the batch
-
-You have two ways to hand off the pending batch:
-
-The prompt readiness summary sits near **Copy Prompt** and **Save to MCP**. It
-shows `No annotations ready` before any written comments exist, then counts the
-ready annotations and distinguishes clipboard-only copy from the local MCP
-queue. Disabled handoff buttons always have a visible reason in this summary.
-If a frozen draft contains a mix of written comments and pin-only targets,
-FixThis persists only the written items. For **Copy Prompt**, pin-only
-residuals stay recoverable in the browser draft. For **Save to MCP**, residual
-pin-only draft items are discarded because the action completes the handoff.
-If the browser retries the same save after a reconnect or slow response, the
-server recognizes the draft item ids and does not create duplicate saved
-annotations. If the retry contains one additional written annotation, only that
-new item is added to the same evidence screen.
-
-### Copy Prompt — for any chat-style agent
-
-Click **Copy Prompt**. A compact Markdown prompt lands in the clipboard. Paste
-into Claude, Codex, Cursor, ChatGPT, or any other agent. The Markdown contains
-your comments + target evidence + top-3 source candidates + severity / status
-— enough for the agent to start editing.
-
-### Save to MCP — for Claude Code or Codex
-
-Click **Save to MCP**. The batch is persisted as a local handoff under
-`.fixthis/feedback-sessions/<session-id>/`. New sessions show an evidence policy
-control with **Auto** selected. Auto collects a bounded, redacted baseline
-before the batch becomes agent-visible; **Manual** saves without automatic
-collection, and **Off** disables collection for the session. Copy Prompt never
-starts diagnostics.
-
-If collection succeeds or partially succeeds, bounded summaries appear with
-the saved item while raw artifacts remain under
-`.fixthis/runtime-evidence/<session-id>/<capture-id>/`. A typed collection
-failure does not discard otherwise valid written feedback; the saved handoff
-records the failure state and recovery detail. Then in your agent:
-
-> Read the latest FixThis handoff and start fixing.
-
-The agent calls `fixthis_read_feedback`, gets the same JSON + Markdown, and
-edits.
-
-Saved annotation details also expose **Capture diagnostics** / **Capture
-again** for a deliberate post-save capture using one of the fixed presets.
-
-Both paths share the same compact prompt format and the same JSON evidence;
-**Save to MCP** just removes the manual paste step and never uploads the
-handoff. See
-[Working with AI agents](agents.md) for per-agent specifics.
-
-> Capture needed: Inspector Draft view with screenshot, numbered overlay,
-> comments, and the `Copy Prompt` / `Save to MCP` buttons visible.
-
-## After the agent makes the change
-
-Resolve the items so they don't appear in the next queue:
-
-> Mark all FixThis items in that batch as resolved.
-
-The agent calls `fixthis_resolve_feedback` per item, with a status of
-`resolved`, `needs_clarification`, or `wont_fix`.
-
-The console renders Resolved, Needs Clarification, and Won't Fix as distinct
-states. Resolved and Won't Fix items move out of the default agent work queue;
-Needs Clarification stays visible and editable so you can update the comment
-and re-save.
-
-## Resuming after a restart
-
-Feedback console sessions are resumable. FixThis saves workspace metadata and
-screenshot artifacts under `.fixthis/feedback-sessions/`, so an MCP or console
-restart does not discard queued feedback.
-
-On compact layouts, the prior-session list moves behind the **History** button
-in the top bar. The drawer exposes the same saved evidence groups as the
-desktop left pane without covering the current preview until opened.
-
-Unsaved browser-only pending annotations are mirrored locally per session. When
-the console reloads and finds a recoverable frozen preview, it shows a
-Recover / Recapture / Discard banner before exposing the pending rows again.
-Recover keeps the frozen screenshot and pending comments; Recapture maps the
-comments onto a fresh preview; Discard clears the local mirror.
-`Save to MCP` is the exception for pin-only residuals: after it creates the
-local handoff batch for written comments, it discards residual pin-only targets
-instead of restoring them later from browser recovery.
-Deleting a session from History also clears that session's browser-local draft
-recovery, including older pending mirrors, so a deleted session cannot reappear
-as a recovery card later.
-
-> Capture needed: left session list with two prior sessions, one expanded to
-> show saved evidence groups.
-
-## What's next
-
-- [Working with AI agents](agents.md) — Claude Code, Codex, Cursor specifics
-- [MCP tools reference](../reference/mcp-tools.md) — exact tool signatures
-- [Output schema](../reference/output-schema.md) — JSON shape of what the
-  agent reads
-- [Feedback console contract](../reference/feedback-console-contract.md) —
-  console-side semantics and persisted shape
-- [Troubleshooting](troubleshooting.md) — when the bridge / device / preview
-  misbehaves
+- [Connect your agent](../getting-started/connect-your-agent.md)
+- [Working with agents](agents.md)
+- [Troubleshooting](troubleshooting.md)
+- [Console contract](../reference/feedback-console-contract.md)

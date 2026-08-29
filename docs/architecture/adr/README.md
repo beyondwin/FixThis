@@ -1,15 +1,12 @@
 # Architecture Decision Records
 
-This directory records durable architecture decisions for FixThis.
+Durable architecture decisions.
 
-Each ADR uses a monotonic numeric prefix, a short kebab-case title, and one status:
+Each ADR uses a monotonic numeric prefix, a short kebab-case title, and one
+status: Proposed, Accepted, Deprecated, or Superseded.
 
-- Proposed
-- Accepted
-- Deprecated
-- Superseded
-
-Every ADR must include Context, Decision, Consequences, and Alternatives Considered.
+Every ADR must include Context, Decision, Consequences, and Alternatives
+Considered.
 
 ## Accepted ADRs
 
@@ -27,6 +24,5 @@ Every ADR must include Context, Decision, Consequences, and Alternatives Conside
 
 - [ADR-0005: Overlay Mode State Machine](0005-overlay-mode-state-machine.md)
 
-ADR-0005 records the earlier in-app overlay state-machine design. The current
-mainline product path is MCP feedback console first, with the Android app
-showing only MCP connection status.
+ADR-0005 is the earlier in-app overlay. Current path: MCP console first. The
+Android app shows MCP connection status only.

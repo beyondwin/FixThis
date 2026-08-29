@@ -1,42 +1,35 @@
-# Add FixThis to Your Own App
+# Add FixThis to Your App
 
-This page is the how-to for wiring FixThis into an external Compose debug app. For a compact repository map, see [Project map](../guides/project-map.md). For every CLI flag and exit behavior, see [CLI reference](../reference/cli.md).
+How to wire FixThis into an external Compose debug app.
+
+Repo map: [project map](../guides/project-map.md). Flags: [CLI](../reference/cli.md).
 
 ## Requirements
 
-Same as the sample: JDK 21 toolchain, AGP 9.1.1, Kotlin 2.2.21, Compose BOM
-2025.01.01, `minSdk` 23, ADB on PATH. See
-[try-the-sample.md](try-the-sample.md#prerequisites) for the full table, and
-[`docs/reference/compatibility.md`](../reference/compatibility.md) for the
-full supported / minimum-that-compiles version axes.
+Same as the sample: JDK 21, AGP 9.1.1, Kotlin 2.2.21, Compose BOM 2025.01.01,
+`minSdk` 23, ADB on PATH. See [sample prerequisites](try-the-sample.md#prerequisites)
+and [compatibility](../reference/compatibility.md).
 
 ## 1. Apply the Gradle plugin
 
-The agent-first path should do this automatically:
+Agent-first path:
 
 ```bash
 brew install beyondwin/tools/fixthis
-
-# Or, with npm:
-npm install -g @beyondwin/fixthis
-
-# Or, without a package manager:
-curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v1.5.0
+# or: npm install -g @beyondwin/fixthis
+# or: curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh | bash -s -- --version v1.5.0
 
 fixthis install-agent --project-dir . --target all --verify --json
 ```
 
-If Homebrew already has an older FixThis, run
-`brew update && brew upgrade beyondwin/tools/fixthis` and verify with
-`fixthis --version`.
+If Homebrew already has an older build:
+`brew update && brew upgrade beyondwin/tools/fixthis`, then `fixthis --version`.
 
-`fixthis install-agent` detects the Android app module by `applicationId`,
-writes Claude Code / Codex MCP config, creates `.fixthis/project.json` plus
-`.fixthis/agent-setup.*` handoff files, and applies the published Gradle
-plugin.
+`install-agent` finds the app module by `applicationId`, writes Claude Code /
+Codex MCP config, and creates `.fixthis/project.json` plus
+`.fixthis/agent-setup.*`.
 
-Manual equivalent in your app module `build.gradle.kts`:
+Manual equivalent:
 
 ```kotlin
 plugins {
@@ -44,9 +37,8 @@ plugins {
 }
 ```
 
-The plugin handles source-index generation and adds the sidekick as a
-`debugImplementation` automatically. You usually do not need to add this
-dependency yourself, but the resolved Maven artifact is:
+The plugin generates the source index and adds the sidekick as
+`debugImplementation`. You usually do not add this yourself:
 
 ```kotlin
 dependencies {
@@ -54,61 +46,39 @@ dependencies {
 }
 ```
 
-Release builds are not a supported target — the sidekick is debug-only by
-design.
+Release builds are not supported. The sidekick is debug-only.
 
-## 2. Configure your AI agent
+## 2. Configure the agent
 
-Use the `--verify --json` report as the setup contract. `readiness.state`
-describes app readiness, `actions[]` is the follow-up queue, and
-`readyForMcpTooling` must be true before the current agent opens the console.
+Trust the `--verify --json` report. `readiness.state` is app readiness,
+`actions[]` is the follow-up queue, and `readyForMcpTooling` must be true
+before this agent opens the console.
 
-Use `fixthis install-agent --dry-run` to preview the Gradle patch and config
-writes, or `--skip-gradle-plugin` if the plugin is already applied.
+Preview writes with `fixthis install-agent --dry-run`. Skip the Gradle patch
+with `--skip-gradle-plugin` if the plugin is already applied.
 
-Run `./gradlew fixthisSetup` only when doctor reports `NEEDS_INSTALL`, generated
-metadata is missing, or you intentionally want Gradle to refresh project
-metadata after a manual plugin or variant change. If the project has flavored
-debug variants, use the variant-specific task, for example
+Run `./gradlew fixthisSetup` only when doctor reports `NEEDS_INSTALL`,
+generated metadata is missing, or you changed variants by hand. Flavored
+debug variants use a variant-specific task, for example
 `./gradlew :app:fixthisSetupStagingDebug`.
 
 ```bash
-# Bootstrap MCP integration (build + register with Claude Code / Codex)
 ./scripts/bootstrap-mcp.sh --package <applicationId>
 ```
 
-`--package` is the Android applicationId of the app you are running FixThis
-against. The script writes:
+`--package` is the Android applicationId. The script writes:
 
-- **Claude Code** → project-local `.claude/settings.json`
-- **Codex** → user-global `~/.codex/config.toml`
+- Claude Code → `.claude/settings.json`
+- Codex → `~/.codex/config.toml`
 
-Pass `--target claude` or `--target codex` to limit the targets, or
-`--dry-run` to preview without writing. After it completes, restart Claude
-Code or Codex so the new MCP server is picked up.
+Pass `--target claude` or `--target codex` to limit targets, or `--dry-run`
+to preview. Restart Claude Code or Codex after it finishes.
 
-For Cursor, ChatGPT, or any chat-style agent without first-class MCP support,
-use **Copy Prompt** in the console — no setup required.
+Cursor, ChatGPT, and other chat agents use **Copy Prompt**. No MCP setup.
 
-Agents may combine desktop install and MCP registration:
+If the plugin is not applied yet, prefer `install-agent` over `init`.
 
-```bash
-brew install beyondwin/tools/fixthis
-fixthis init --agent --project-dir . --target codex
-
-# Or, with npm:
-npm install -g @beyondwin/fixthis
-fixthis init --agent --project-dir . --target codex
-
-# Or, without a package manager:
-curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
-  | bash -s -- --version v1.5.0 --init --target codex --project-dir . --package <applicationId>
-```
-
-If the Gradle plugin is not applied yet, prefer `fixthis install-agent` because
-it handles both Gradle wiring and MCP config.
-
-### Manual setup (Windows or no shell script)
+### Manual setup (Windows or no bootstrap script)
 
 ```bash
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
@@ -118,41 +88,32 @@ fixthis-cli/build/install/fixthis/bin/fixthis setup \
   --target all
 ```
 
-See the [CLI reference](../reference/cli.md) for the full command surface,
-setup variants, and exit behavior.
-
 ## 3. Open the console
 
-From any configured agent:
+From a configured agent:
 
 ```
 fixthis_open_feedback_console
 ```
 
-Or directly from the CLI:
+Or from the CLI:
 
 ```bash
 fixthis console --package <applicationId>
 ```
 
-## Done State
+## Done
 
-Your app integration is working when:
+- `fixthis doctor --package <applicationId>` reaches a debug app and sidekick.
+- The console opens.
+- One written annotation can be copied or saved to MCP.
+- Release builds do not include the sidekick.
 
-- `fixthis doctor --package <applicationId>` reports a reachable debug app and sidekick bridge;
-- `fixthis_open_feedback_console` or `fixthis console --package <applicationId>` opens FixThis Studio;
-- one written annotation can be saved through **Copy Prompt** or **Save to MCP**;
-- release builds do not include the sidekick.
+## Next
 
-## What's next
-
-- [Connect your AI agent](connect-your-agent.md) — Claude Code, Codex, Cursor,
-  and chat-style agents
-- [Agent install snippet](agent-install-snippet.md) — pasteable AGENTS.md /
-  CLAUDE.md instructions
-- [Feedback console tour](../guides/feedback-console-tour.md) — visual walkthrough
-- [Working with AI agents](../guides/agents.md) — Claude Code, Codex, Cursor,
-  and chat-style agents
-- [MCP tools reference](../reference/mcp-tools.md) — every MCP tool the server
-  exposes
-- [Troubleshooting](../guides/troubleshooting.md) — common failures and fixes
+- [Connect your agent](connect-your-agent.md)
+- [Agent install snippet](agent-install-snippet.md)
+- [Console tour](../guides/feedback-console-tour.md)
+- [Working with agents](../guides/agents.md)
+- [MCP tools](../reference/mcp-tools.md)
+- [Troubleshooting](../guides/troubleshooting.md)

@@ -1,119 +1,62 @@
-# Product Concept
+# Product
 
-FixThis is a debug-only sidekick for Jetpack Compose Android apps. It lets a
-developer, designer, PM, or QA person point at the running UI, describe the
-change they want, and hand an AI coding agent enough local context to edit the
-right source code.
+FixThis is a debug-only sidekick for Jetpack Compose. Point at the running
+UI, say what to change, and hand a coding agent enough local context to edit
+the right source.
 
-The product is intentionally narrow: it is not a general mobile automation
-platform, an Android Studio inspector, a production feedback SDK, or a cloud
-review service. It is a local bridge between a human-selected Compose UI target
-and an agent that can change the app's source.
+It is not a mobile automation platform, an Android Studio inspector, a
+production feedback SDK, or a cloud review service.
 
-## Core Workflow
+## Workflow
 
 ```text
 Run a debug Compose app
--> open FixThis Studio in a desktop browser
+-> open FixThis Studio
 -> navigate the live preview
--> freeze the screen with Annotate
--> select a Compose component or draw a visual area
--> write one or more comments
--> Copy Prompt, or Save to MCP with the session evidence policy
--> the agent edits and resolves the feedback
+-> freeze with Annotate
+-> click a component or drag an area
+-> write comments
+-> Copy Prompt, or Save to MCP
+-> the agent edits and resolves
 ```
 
-The Android app shows only a small MCP connection status pill. Selection,
-annotation, prompt generation, queue state, and agent handoff live in the
-desktop browser console.
+The Android app shows a small MCP status pill. Selection, annotation, and
+handoff live in the desktop console.
 
-## Why This Exists
+## Why it exists
 
-Plain screenshots and free-form chat are often ambiguous:
+A screenshot often is not enough: repeated list items, shared composables,
+dense screens, labels that appear in many files. FixThis attaches runtime
+evidence to the human selection: bounds, semantics, ranked source candidates,
+edit-surface hints, confidence, item IDs, and optional bounded diagnostics.
 
-- The agent may not know which route, Activity, or repeated list item is shown.
-- A label can appear in multiple files or be rendered by a shared composable.
-- Dense UI makes "this button" or "the third card" hard to map to code.
-- Screenshots show pixels, but not source candidates, semantics, or target
-  confidence.
+## Principles
 
-FixThis adds runtime evidence around the human selection:
-
-- screenshot bounds and optional crop artifacts
-- Compose semantics for the selected target and nearby context
-- source candidates ranked from the Gradle source index
-- edit-surface hints that distinguish call sites, component definitions,
-  copy/data, layout/style surfaces, visual-area work, and interop risk
-- target confidence and warning signals
-- stable item IDs for MCP claim/resolve workflows
-- browser draft ids that make retried handoff saves idempotent
-- optional bounded runtime-evidence summaries and local artifact references
-- batching across multiple annotations on one frozen screen
-
-## Product Principles
-
-- **Point first.** The human chooses the UI target directly on a running app.
-- **Tell second.** The request stays attached to that selected target.
-- **Context over certainty.** Source hints are candidates, not promises.
-- **No required test tags.** `testTag` improves evidence but is optional.
-- **Compose-only.** V1 focuses on Jetpack Compose instead of all Android UI
-  stacks.
-- **Debug-only.** The sidekick runs in debug builds and is not a production
-  feedback feature.
-- **Local-first.** FixThis does not upload screenshots, comments, source hints,
-  or prompt text by default.
-- **Agent-ready, not agent-owned.** FixThis provides context and queue state; it
-  does not write code itself.
+- Point first. Tell second.
+- Source hints are candidates, not promises.
+- `testTag` helps but is not required.
+- Compose-only, debug-only, local-first.
+- FixThis hands off context. It does not write code.
 
 ## Users
 
-Android Compose developers use FixThis to give coding agents precise UI context
-and then verify the result.
+Compose developers, agent power users on MCP, and designers / PMs / QA who
+can annotate the desktop preview without knowing ADB.
 
-Agent power users use the MCP flow to open the console, read saved feedback,
-claim items, edit code, and mark items resolved.
+## V1 scope
 
-Designers, PMs, and QA users can annotate the desktop preview without knowing
-ADB, MCP, source indexes, or package names. They can use Copy Prompt for any
-chat-style agent, or Save to MCP when a configured agent will pick up the queue.
+In: Compose debug apps, local ADB console, semantics, screenshots,
+best-effort source candidates, compact Markdown plus complete JSON, MCP
+claim/resolve, Auto / Manual / Off runtime evidence on Save to MCP.
 
-## Current Scope
+Out: XML/View source targeting, WebView DOM, Flutter / RN / iOS, production
+runtime, AccessibilityService, external AI API calls, automatic code edits,
+guaranteed exact source lines.
 
-In scope:
+## Next
 
-- Jetpack Compose debug apps
-- local desktop console over ADB and localhost
-- Compose semantics inspection
-- screenshot and crop artifacts
-- best-effort source candidates
-- compact Markdown handoff and complete JSON session data
-- MCP feedback queue with claim/resolve status
-- Auto, Manual, and Off runtime-evidence policy for Save to MCP
-- fixed-preset host diagnostics with redacted, quota-limited local bundles
-
-Out of scope for V1:
-
-- XML/View source targeting
-- WebView DOM inspection
-- Flutter, React Native, iOS, or other app stacks
-- production runtime usage
-- AccessibilityService-based device-wide control
-- external AI API calls from the console
-- automatic code edits inside FixThis itself
-- guaranteed exact source-line mapping
-
-## Where To Read Next
-
-- [Concept and handoff rationale](concept-and-handoff-rationale.md) is the
-  self-contained explanation of the product concept, core decisions, and prompt
-  design rationale.
-- [Decision rationale](decision-rationale.md) explains the major product and
-  technical trade-offs.
-- [Roadmap](roadmap.md) tracks V1 scope, high-priority follow-up work, and
-  explicitly deferred areas.
-- [Architecture overview](../architecture/overview.md) explains the current
-  module boundaries and runtime flow.
-- [Handoff prompt rationale](../design/handoff-prompt-rationale.md) explains why
-  the compact prompt is shaped the way it is.
-- [Feedback console contract](../reference/feedback-console-contract.md) is the
-  current prompt and browser-console contract.
+- [Decisions](decision-rationale.md)
+- [Roadmap](roadmap.md)
+- [Handoff prompt](../design/handoff-prompt-rationale.md)
+- [Architecture](../architecture/overview.md)
+- [Console contract](../reference/feedback-console-contract.md)

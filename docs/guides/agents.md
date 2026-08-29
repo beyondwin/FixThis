@@ -1,176 +1,106 @@
 # Working with AI Agents
 
-For first-time setup, start with
-[Connect Your AI Agent](../getting-started/connect-your-agent.md). This guide
-keeps the deeper workflow details: queue behavior, claim/resolve semantics,
-shared mode behavior, and target reliability warnings.
+First-time setup: [Connect your agent](../getting-started/connect-your-agent.md).
+This page is the queue and confidence details.
 
-| Agent style                       | Mode             | Setup                              |
-| --------------------------------- | ---------------- | ---------------------------------- |
-| Claude Code (CLI)                 | **Save to MCP**  | `./scripts/bootstrap-mcp.sh --package <applicationId> --target claude` |
-| Codex CLI                         | **Save to MCP**  | `./scripts/bootstrap-mcp.sh --package <applicationId> --target codex`  |
-| Cursor / ChatGPT / any chat agent | **Copy Prompt**  | None — paste from the clipboard    |
+| Agent | Mode | Setup |
+| --- | --- | --- |
+| Claude Code | **Save to MCP** | `./scripts/bootstrap-mcp.sh --package <applicationId> --target claude` |
+| Codex | **Save to MCP** | `./scripts/bootstrap-mcp.sh --package <applicationId> --target codex` |
+| Cursor / ChatGPT / other chat | **Copy Prompt** | None. Paste from the clipboard. |
 
-Both modes share the same compact Markdown prompt format and the same JSON
-evidence; **Save to MCP** just removes the manual paste step. The bootstrap
-script builds the local CLI/MCP distributions and then runs
-`fixthis setup --write`; use the raw CLI command only for manual setup or
-Windows shells.
+Both modes share the same Markdown and JSON. Save to MCP skips the paste step.
 
-New feedback sessions use **Auto** runtime evidence for Save to MCP. Before the
-batch becomes agent-visible, FixThis attempts a bounded, redacted diagnostics
-baseline and records a complete, partial, failed, unsupported, or skipped
-result. The session can be switched to **Manual** or **Off**. **Copy Prompt**
-never starts collection.
+New sessions use **Auto** runtime evidence on Save to MCP. The session can
+switch to **Manual** or **Off**. Copy Prompt never starts collection.
 
 ## Claude Code
-
-Claude Code reads MCP servers from per-project `.claude/settings.json`. Bootstrap:
 
 ```bash
 ./scripts/bootstrap-mcp.sh --package <applicationId> --target claude
 ```
 
-After the script writes the config, **restart Claude Code** so it picks up the
-new MCP server. Then in any Claude Code session for this project:
+Restart Claude Code, then:
 
 ```
 fixthis_open_feedback_console
 ```
 
-opens the browser console. After saving feedback, ask the agent to pick it up:
+After saving:
 
 > Read the latest FixThis handoff and start fixing.
 
-The agent calls `fixthis_read_feedback`, gets the compact Markdown prompt and
-JSON evidence, and edits the right call sites.
-
-When a saved item needs a fresh targeted snapshot, an MCP agent can call
-`fixthis_collect_runtime_evidence` with one fixed preset: `baseline`, `logs`,
-`memory`, or `performance`. The tool cannot execute arbitrary host commands.
-
-For queue work, the agent should claim the item before editing:
+The agent calls `fixthis_read_feedback`, then edits. Claim before editing:
 
 ```
 fixthis_claim_feedback
 ```
 
-This marks the item `in_progress` so the console shows a working state and
-other agents avoid duplicate work. Pass `agentNote` when useful; the console
-shows it in the item detail while the item is locked for editing.
+That marks the item `in_progress`. Pass `agentNote` if useful.
 
-When you've made the change, ask the agent to mark it resolved:
+When done:
 
 > Mark all FixThis items in that batch as resolved.
 
-The agent calls `fixthis_resolve_feedback` per item with `status` set to
-`resolved`, `needs_clarification`, or `wont_fix`. The console renders those as
-Resolved, Needs Clarification, or Won't Fix, with the agent summary visible in
-the saved annotation detail.
+`fixthis_resolve_feedback` takes `resolved`, `needs_clarification`, or
+`wont_fix`.
 
-## Codex CLI
+Targeted diagnostics: `fixthis_collect_runtime_evidence` with one preset
+(`baseline`, `logs`, `memory`, `performance`). No arbitrary host commands.
 
-Codex reads MCP servers from user-global `~/.codex/config.toml`. Bootstrap:
+## Codex
 
 ```bash
 ./scripts/bootstrap-mcp.sh --package <applicationId> --target codex
 ```
 
-Restart Codex so it picks up the new MCP server. After that, the workflow is
-identical to Claude Code — `fixthis_open_feedback_console` to open the console,
-`fixthis_read_feedback` / `fixthis_claim_feedback` /
-`fixthis_resolve_feedback` for the queue.
+Restart Codex. Same tools as Claude Code. Codex also reads root `AGENTS.md`.
 
-Codex also reads `AGENTS.md` at the repository root. The shipped `AGENTS.md`
-points Codex at the same MCP setup so a fresh clone is wired up out of the box.
+## Cursor, ChatGPT, and other chat agents
 
-## Cursor, ChatGPT, and other chat-style agents
+1. Annotate in the console.
+2. Click **Copy Prompt**.
+3. Paste. The Markdown has comments, target evidence, top-3 source candidates,
+   optional `editSurface` hints, and severity.
 
-For agents without first-class MCP support, use **Copy Prompt** in the console:
+No MCP setup.
 
-1. Annotate as usual in the FixThis Studio console.
-2. Click **Copy Prompt** instead of **Save to MCP**.
-3. Paste into the agent's chat input. The pasted Markdown contains:
-   - the user comment(s)
-   - target evidence (bounds, semantics path, instance index)
-   - top-3 source-file candidates with line numbers and match reasons
-   - optional `editSurface` hints with role tokens for likely visual/style edit
-     locations
-   - severity / status
+## Shared behavior
 
-The agent can start editing immediately — no MCP setup, no restart, no extra
-tools.
-
-## Behavior shared across modes
-
-- **Both modes are local.** No FixThis call goes to an external API. **Save to
-  MCP** persists `.fixthis/feedback-sessions/<id>/` files; **Copy Prompt** writes
-  to the clipboard. Runtime evidence bundles stay under
-  `.fixthis/runtime-evidence/<session-id>/<capture-id>/` and must not be
-  committed.
-- **Automatic collection belongs only to Save to MCP.** Auto waits for the
-  evidence decision before exposing the batch. Manual and Off remain explicit
-  session policies, while Copy Prompt always remains side-effect free.
-- **JSON is always complete.** Agent-facing Markdown is intentionally compact
-  but includes the item and session IDs needed for claim/resolve workflows. JSON
-  kept on disk preserves all IDs, paths, and MCP contracts — see the
-  [Output schema](../reference/output-schema.md) and
-  [handoff prompt rationale](../design/handoff-prompt-rationale.md).
-- **Written annotations batch into one handoff.** Whether you Copy Prompt or
-  Save to MCP, every pending annotation on the frozen preview that has a
-  written comment lands in the same batch. Pin-only residual annotations stay
-  local for Copy Prompt and are discarded for Save to MCP.
-- **Draft saves are idempotent.** If the browser or agent-side console retries
-  a slow `Copy Prompt` / `Save to MCP` persistence request, FixThis reuses the
-  browser draft ids and avoids duplicate saved items. Agents should still work
-  from `itemId` values returned by `fixthis_read_feedback`, not browser
-  `draftItemId` values.
-- **Edit-surface hints are routing evidence.** For visual, spacing,
-  typography, or component-renderer requests, inspect `editSurface` lines before
-  assuming the top source candidate is the edit location. `role=` tells you
-  whether the hint points at a call site, component definition, copy/data,
-  layout/style surface, visual area, or interop risk.
-- **Screen mismatch is guarded.** If the frozen preview fingerprint differs
-  from the current app screen when you save, the console asks whether to
-  re-capture, force-save, or cancel.
-- **Agent outcomes stay visible.** Claimed, clarification-needed, won't-fix,
-  and resolved items render as separate states in the browser console instead
-  of collapsing into a generic sent row.
+- Both modes are local. Save to MCP writes `.fixthis/feedback-sessions/<id>/`.
+  Runtime evidence stays under `.fixthis/runtime-evidence/`. Do not commit it.
+- JSON is complete. Markdown is compact but includes item and session IDs.
+  See [output schema](../reference/output-schema.md) and
+  [handoff rationale](../design/handoff-prompt-rationale.md).
+- Written annotations on one frozen preview share one batch. Pin-only leftovers
+  stay local for Copy Prompt and are dropped for Save to MCP.
+- Draft saves reuse browser draft ids, so retries do not duplicate items. Work
+  from `itemId`, not `draftItemId`.
+- For visual or style requests, read `editSurface` / `role=` before assuming
+  the top source candidate is the edit site.
+- If the frozen preview fingerprint no longer matches the live screen, the
+  console asks to re-capture, force-save, or cancel.
 
 ### Target reliability warnings
 
-Saved feedback items may include `targetReliability` in JSON and
-`targetConfidence=` / `warning:` lines in compact Markdown. Treat this as the
-confidence level for the UI target, not as task priority.
+`targetReliability` / `targetConfidence=` is confidence, not priority.
 
-- `HIGH`: source candidates are strong starting points, but still verify the
-  screenshot and surrounding code before editing.
-- `MEDIUM`: inspect the listed candidates before editing; the right call site
-  may be nearby rather than the first candidate.
-- `LOW`: use the screenshot, bounds, comment, and nearby UI labels first. Treat
-  source candidates as hints.
-- `VISUAL_AREA_ONLY`: the user selected an area instead of a Compose semantics
-  node; verify screenshot bounds before editing.
-- `NO_MEANINGFUL_COMPOSE_TARGET`: no useful Compose node covered the selected
-  pixels; search by nearby labels and layout context.
-- `POSSIBLE_VIEW_INTEROP`: the selected pixels may come from AndroidView,
-  WebView, or another non-Compose boundary. Do not assume a Compose candidate
-  rendered those pixels.
-- `LOW_SOURCE_CANDIDATE_MARGIN`: multiple source candidates are close; inspect
-  runner-up candidates before editing.
-- `SOURCE_INDEX_STALE`: reinstall the debug APK or refresh the source index
-  before trusting file/line coordinates.
-- `SCREEN_FINGERPRINT_MISMATCH_FORCED`: the user force-saved after the screen
-  changed. Confirm the current UI before applying edits.
-- `SCREEN_FINGERPRINT_UNAVAILABLE`: mismatch checking was skipped; verify the
-  current screen manually.
-- `SENSITIVE_TEXT_REDACTED`: sensitive text was withheld from evidence; rely on
-  screenshot context and non-sensitive labels.
+| Signal | Meaning |
+| --- | --- |
+| `HIGH` | Strong start. Still verify screenshot and code. |
+| `MEDIUM` | Inspect listed candidates. The right call site may be nearby. |
+| `LOW` | Use screenshot, bounds, comment, nearby labels first. |
+| `VISUAL_AREA_ONLY` | User drew an area, not a Compose node. |
+| `NO_MEANINGFUL_COMPOSE_TARGET` | No useful Compose node covered the pixels. |
+| `POSSIBLE_VIEW_INTEROP` | May be AndroidView / WebView. Do not assume Compose rendered it. |
+| `LOW_SOURCE_CANDIDATE_MARGIN` | Top candidates are close. Inspect runners-up. |
+| `SOURCE_INDEX_STALE` | Reinstall the debug APK before trusting file/line. |
+| `SCREEN_FINGERPRINT_MISMATCH_FORCED` | User force-saved after the screen changed. |
+| `SCREEN_FINGERPRINT_UNAVAILABLE` | Mismatch check was skipped. |
+| `SENSITIVE_TEXT_REDACTED` | Sensitive text was withheld. |
 
-## What's next
+## Next
 
-- [Feedback console tour](feedback-console-tour.md) — annotate / pin / hand off,
-  with screenshots
-- [MCP tools reference](../reference/mcp-tools.md) — exact tool signatures and
-  return shapes
-- [CLI reference](../reference/cli.md) — `fixthis setup` and friends
+- [Console tour](feedback-console-tour.md)
+- [MCP tools](../reference/mcp-tools.md)
+- [CLI](../reference/cli.md)

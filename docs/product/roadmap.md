@@ -1,165 +1,48 @@
 # Roadmap
 
-FixThis V1 is intentionally narrow. The current roadmap keeps the product
-focused on a local, debug-only Compose handoff loop before expanding into
-broader Android UI stacks or additional package channels.
+V1 stays narrow: local, debug-only Compose handoff. Broader Android UI stacks
+and extra package channels wait.
 
-## V1 Scope
+## V1
 
-- **Jetpack Compose only.** View-based hierarchies, XML layouts, AndroidView
-  interop, and WebViews are not source-targeted.
-- **Debug builds only.** The sidekick is installed through `debugImplementation`
-  and is omitted from release builds.
-- **Local-only and ADB-only.** FixThis runs over ADB and localhost. It does not
-  upload screenshots, comments, source hints, or prompt text.
-- **No required `testTag`s.** Smart Select prefers semantics, nearby labels, and
-  composable-name conventions. Tags improve evidence but are optional.
-- **No AccessibilityService.** Inspection runs in-process inside the debug app
-  through the sidekick.
-- **MCP-first workflow.** The browser feedback console is the primary surface.
-  The Android app shows only a connection status pill.
-- **Best-effort source candidates.** Handoffs include up to three ranked
-  candidates plus confidence, margin, and warning signals so agents can verify
-  before editing.
-- **Best-effort edit surfaces.** Visual, style, typography, spacing, and
-  component-renderer feedback can include role-tagged edit-surface hints that
-  distinguish call sites, reusable component definitions, copy/data origins,
-  layout/style surfaces, visual areas, and interop risk.
-- **Pixel screenshots.** Editable and password text is redacted from semantics,
-  but screenshots can still contain sensitive pixels.
-- **Bounded runtime diagnostics.** New feedback sessions default to an
-  automatic, local-only baseline before Save to MCP. Legacy sessions remain
-  Manual; users can choose Auto, Manual, or Off. Copy Prompt never starts
-  collection, and raw collector output stays in ignored local artifacts.
+- Jetpack Compose only. Views / XML / WebView are not source-targeted.
+- Debug builds only.
+- Local ADB and localhost. No upload.
+- No required `testTag`s.
+- No AccessibilityService.
+- MCP-first console. The app shows a status pill.
+- Best-effort source candidates and edit-surface hints.
+- Pixel screenshots. Semantics text can be redacted; pixels can still be
+  sensitive.
+- Bounded runtime diagnostics on Save to MCP. Copy Prompt never starts
+  collection.
 
-## High-priority Work
+## Shipped
 
-### Feedback Verification Receipts (delivered)
+**Feedback verification receipts.** MCP verifies a claimed item against the
+persisted baseline with `text_present`, `text_absent`, and `target_present`.
+Receipts are `PASS` / `WARN` / `FAIL`. Resolution can stay receipt-free.
+Bridge protocol `1.3` is unchanged.
 
-The MCP feedback loop now verifies a claimed item against its persisted
-baseline target and current debug app with explicit `text_present`,
-`text_absent`, and `target_present` assertions. It persists bounded `PASS`,
-`WARN`, or `FAIL` receipts plus one optional local after screenshot, restores
-them through event replay, and can atomically link the latest compatible
-receipt when resolving an item. Receipt-free resolution remains supported and
-verification never resolves an item automatically.
+**Runtime evidence autopilot.** Host CLI/MCP collects allowlisted logcat,
+memory, and frame evidence with a 2,500 ms deadline, redaction, and quotas.
+Presets: `baseline`, `logs`, `memory`, `performance`.
 
-The existing History and saved-detail surfaces show linked-versus-latest
-receipt evidence with `verified`, `warning`, `verification failed`, or
-`unverified` badges. The milestone was marked delivered after the strict
-external-fixture smoke proved stale-install failure, rebuilt-install success,
-restart replay, failed-receipt rejection, passing-receipt linkage, and console
-reflection. The aggregate Android proof now carries the focused strict smoke
-as a required row. This remains host/MCP-side behavior: Bridge protocol `1.3`
-and `fixthis_verify_ui_change` are unchanged.
+## Still in play
 
-### Runtime Evidence Autopilot (delivered)
+- Keep public artifact coordinates honest:
+  [release readiness](../contributing/release-readiness.md).
+- Deeper AndroidView / WebView boundary context, not XML source targeting.
+- Observe SSE fallback until it is unused:
+  [console sync](../architecture/console-state-sync-design.md).
+- Smarter source matching for layouts, shared components, and edit-surface
+  roles.
+- First-class MCP writers for more agents. Copy Prompt already works.
 
-The host CLI/MCP path now collects allowlisted logcat, memory, and frame
-evidence with a 2,500 ms deadline, redaction, local artifact quotas,
-screen/device/install drift checks, event replay, and compact handoff
-summaries. The new MCP tool exposes only `baseline`, `logs`, `memory`, and
-`performance`; the legacy manual attachment tool remains compatible.
+## After V1
 
-This line was marked delivered only after
-`npm run runtime-evidence:smoke -- --strict` exercised the MCP tool, Auto
-Save-to-MCP flow, artifact containment/redaction, item linkage, and restart
-replay on a connected Android target, and `npm run android:proof -- --strict`
-passed the aggregate runtime-evidence row plus the external fixture matrix.
-Host collection does not change Bridge protocol `1.3` or add app-side
-capabilities.
+XML/View exact source targeting, WebView DOM, Flutter / RN / iOS, production
+runtime, cloud review, automatic code edits inside FixThis, guaranteed exact
+source lines.
 
-### v1.1 trust loop evidence
-
-The post-v1.0 hardening line is the trust loop evidence pack: release reality
-checks, an external agent lifecycle smoke from handoff through resolve, and
-runtime source-trust fixtures for shared-component, interop-risk, and
-visual-area cases. This line strengthens evidence for existing public channels;
-it does not add a new package channel.
-
-### Public artifact release upkeep
-
-External projects install FixThis with the published Gradle plugin and Maven
-artifacts instead of a source checkout, Gradle composite build, or local
-repository setup. Ongoing work is release upkeep: keep coordinates, validation
-steps, and rollback notes accurate as the public channels evolve.
-The release readiness tracker is the live source of truth:
-[Release readiness](../contributing/release-readiness.md).
-
-### CLI/MCP package for agent-first installation upkeep
-
-GitHub Releases attach a CLI/MCP package so agents can install the desktop
-tooling with `scripts/install-fixthis.sh` and then run
-`fixthis install-agent` or `fixthis init`.
-
-The Homebrew tap is available for macOS:
-
-```bash
-brew install beyondwin/tools/fixthis
-```
-
-### Registry discovery channels
-
-The npm wrapper is published as `@beyondwin/fixthis`, and the MCP Registry
-entry is published as `io.github.beyondwin/fixthis`. Future discovery work can
-add more package channels, such as PyPI or Docker, only when they preserve the
-same agent-first setup flow.
-
-### Deeper AndroidView and interop awareness
-
-FixThis currently warns when a selected target may cross a View/WebView
-boundary. V1 now renders nearby Compose boundary context and keeps source
-candidates as context for AndroidView/WebView-risk selections. Future interop
-work should continue toward richer subtree evidence instead of exact XML/View
-source targeting.
-
-### Finish SSE-driven console state sync
-
-Phase 1 pushes session, device, connection, and preview updates over
-`/api/events`, with polling retained only as a fallback while the event stream
-is disconnected. Session and preview events are fenced by active `sessionId`,
-and SSE plus fallback polling share one preview-application path.
-
-Remaining SSE work is to keep observing fallback behavior and remove more
-manual recovery code only after local evidence shows it is unused. Healthy
-EventSource sessions no longer rely on automatic preview or session polling.
-See [Console state sync](../architecture/console-state-sync-design.md).
-
-### Smarter source matching
-
-Future matcher work should keep confidence explainable while expanding the set
-of source patterns FixThis recognizes:
-
-- `Layout` and `SubcomposeLayout` wrappers
-- more composable-name conventions (delivered: configurable `testTagConventions`)
-- richer handling for shared reusable components (initial: high fan-in
-  component definitions are flagged `SHARED_COMPONENT` and capped at medium
-  confidence; single call-site disambiguation delivered as a
-  `recommendedEditSite` hint while shared definitions remain MEDIUM-or-lower;
-  ambiguous cases remain caveated)
-  - Follow-up: add a pinned-repo `source-index` fixture-lab case asserting a
-    known reused component definition emits the `SHARED_COMPONENT` signal, once
-    a sample repo with a clearly reused component is selected.
-- richer confidence scoring for the current call-site, component-definition,
-  copy/data, layout/style, visual-area, and interop-risk edit-surface roles
-  (CALL_SITE per-role HIGH calibration delivered; other roles ongoing)
-
-### More agents out of the box
-
-Cursor, Aider, ChatGPT, and other agents already work through Copy Prompt.
-First-class MCP/config writers can follow the Claude Code and Codex setup
-pattern.
-
-## Out of Scope Until After V1
-
-- XML/View exact source targeting
-- WebView DOM inspection
-- Flutter, React Native, iOS, or other app stacks
-- production runtime usage
-- cloud review service behavior
-- automatic code edits inside FixThis itself
-- guaranteed exact source-line mapping
-
-## Contributing
-
-Vote items up or contribute through the [Contributing guide](../../CONTRIBUTING.md).
+Vote or contribute through [CONTRIBUTING](../../CONTRIBUTING.md).

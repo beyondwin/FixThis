@@ -1,16 +1,10 @@
 # Compatibility matrix
 
-FixThis is built and exercised against a single, pinned set of toolchain
-versions (the "Tested" axis below). The "Minimum that compiles" axis records
-the lower bound that the project still expects to assemble against — those
-lower bounds are validated by an informational [scheduled workflow](#scheduled-validation)
-and are not (yet) gated by required CI.
-
-If you consume FixThis from your own project, the **Tested** column is the
-safe choice. The **Minimum that compiles** column documents intent for
-downstream users on older toolchains; treat it as best-effort until the
-scheduled workflow is promoted to a required check (see
-[CHANGELOG.md](../../CHANGELOG.md) for the promotion follow-up).
+**Tested** is the pinned toolchain CI builds on every PR. **Minimum that
+compiles** is the lower bound a scheduled informational
+[workflow](#scheduled-validation) still expects to assemble. Use Tested in
+your own project. Treat Minimum as best-effort until that workflow is a
+required check.
 
 ## Axes
 

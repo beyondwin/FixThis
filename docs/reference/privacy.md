@@ -1,10 +1,13 @@
 # FixThis Privacy
 
-FixThis V1 is a local-first debug tool for Android Jetpack Compose apps.
+Local-first debug tool for Jetpack Compose apps.
 
 ## Local-First Behavior
 
-The MCP feedback console workflow uses a localhost Studio UI and local feedback session files. The Android app sidekick only provides debug runtime evidence and MCP browser connection status. FixThis does not upload annotations, screenshots, UI text, source hints, target evidence, or source candidates.
+The console is localhost. Session files are local. The Android sidekick
+supplies debug runtime evidence and MCP connection status. FixThis does not
+upload annotations, screenshots, UI text, source hints, target evidence, or
+source candidates.
 
 The core sidekick does not require Android network permission. MCP uses a desktop stdio process plus ADB and the app-local bridge; it does not make the Android app open an external network server.
 

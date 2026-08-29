@@ -1,82 +1,58 @@
-# Quick Start — Sample App to Agent Handoff
+# Quick Start — Sample App
 
-The fastest way to understand FixThis is to create one real handoff from the
-bundled sample app. No changes to your own app are required.
+The fastest way to see FixThis: one real handoff from the bundled sample.
+No changes to your app.
 
 ## Prerequisites
 
 | | Tested with |
 | --- | --- |
-| JDK (toolchain) | 21 |
+| JDK | 21 |
 | Android Gradle Plugin | 9.1.1 |
 | Kotlin | 2.2.21 |
 | Compose BOM | 2025.01.01 |
 | Android `minSdk` | 23 (Android 6.0) |
 | Android `targetSdk` / `compileSdk` | 34 |
-| Desktop OS | macOS, Linux, Windows (anywhere `adb` runs) |
-| AI agent (optional) | Claude Code, Codex, Cursor, or any chat agent that accepts pasted Markdown |
+| Desktop OS | macOS, Linux, Windows (`adb` on PATH) |
+| Agent (optional) | Claude Code, Codex, Cursor, or any chat that accepts Markdown |
 
-ADB must be on your PATH. Connect a debuggable Android device or unlocked
-emulator before running the console.
+Connect a debuggable device or an unlocked emulator first.
 
 ## Run the sample (~5 min)
 
 ```bash
-# 1. Clone (you can drive everything from the CLI; Android Studio is optional)
 git clone <this-repo> && cd FixThis
-
-# 2. Build the desktop CLI + MCP server
 ./gradlew :fixthis-cli:installDist :fixthis-mcp:installDist
-
-# 3. Verify your environment (ADB on PATH, JDK 21, device reachable)
 fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.github.beyondwin.fixthis.sample
-
-# 4. With a device or emulator connected, install + run sample + open the browser console
 fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
-`fixthis run` installs the sample debug APK, launches it, attaches the sidekick
-bridge, and opens the FixThis Studio console at `http://127.0.0.1:<port>` in
-your default browser.
+`fixthis run` installs the sample debug APK, launches it, and opens FixThis
+Studio at `http://127.0.0.1:<port>`.
 
-## What to try in the console
+## In the console
 
-1. Click **Annotate** to freeze the latest preview.
-2. Click any UI element on the frozen preview, or drag a visual area.
-3. Type a comment about the change you want in the annotation detail.
-4. Repeat 2–3 for any other changes on this screen.
-5. Click **Copy Prompt** to copy a compact Markdown prompt to the clipboard,
-   then paste it into Claude / Codex / Cursor / any chat-style agent.
+1. Click **Annotate** to freeze the preview.
+2. Click a UI element, or drag a visual area.
+3. Type the change you want.
+4. Repeat for other spots on this screen.
+5. **Copy Prompt** to paste into any chat agent, or **Save to MCP** for
+   Claude Code / Codex.
 
-   *Or* click **Save to MCP** to persist the batch as a local handoff that
-   Claude Code or Codex can read on demand via MCP tools.
+## Done
 
-## Done State
+- A numbered annotation pin is visible.
+- Compact Markdown is on the clipboard, or a local MCP handoff is saved.
+- The agent can receive the paste or call `fixthis_read_feedback`.
 
-The quick start is complete when:
+The Diagnostics tab includes a native AndroidView fixture. Visual-area
+annotations over those pixels should warn instead of claiming Compose source
+precision.
 
-- the console shows at least one numbered annotation pin;
-- **Copy Prompt** has placed compact Markdown on your clipboard, or **Save to MCP** has persisted a local handoff;
-- your agent can either receive the pasted Markdown or call `fixthis_read_feedback`.
+If doctor or run fails, see [Troubleshooting](../guides/troubleshooting.md).
 
-## Sample coverage
+## Next
 
-- The Diagnostics tab includes a native AndroidView fixture. Use it to verify
-  that visual-area annotations over non-Compose pixels carry low-confidence or
-  possible-interop handoff warnings instead of overclaiming Compose source
-  precision.
-
-## Troubleshooting
-
-If `fixthis doctor` or `fixthis run` reports an issue, see
-[Troubleshooting](../guides/troubleshooting.md) for ADB, lockscreen, and
-bridge-attach diagnoses.
-
-## What's next
-
-- [Connect your AI agent](connect-your-agent.md) — Claude Code, Codex, Cursor,
-  and chat-style agents
-- [Add FixThis to your own app](add-to-your-app.md)
-- [Feedback console tour](../guides/feedback-console-tour.md) — full walkthrough
-  with screenshots
-- [Troubleshooting](../guides/troubleshooting.md)
+- [Connect your agent](connect-your-agent.md)
+- [Add FixThis to your app](add-to-your-app.md)
+- [Console tour](../guides/feedback-console-tour.md)

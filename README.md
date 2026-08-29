@@ -8,41 +8,36 @@
 
 ![FixThis Studio — point at any Jetpack Compose UI element, annotate, hand off AI-ready context to your coding agent](docs/assets/fixthis-studio-hero.png)
 
-Point at a Jetpack Compose UI, write the change you want, and hand Claude,
-Codex, Cursor, or another coding agent the source context it needs.
+Point at a Jetpack Compose UI, write the change, and hand Claude, Codex,
+Cursor, or another coding agent the source context it needs.
 
-FixThis adds a debug-only sidekick to a Compose app, mirrors the current screen
-into a local browser console, and turns your UI annotations into a compact
-agent handoff with screenshot bounds, semantics context, source candidates, and
-target-confidence warnings.
+FixThis is debug-only. It attaches a sidekick to a Compose debug app, mirrors
+the screen into a local browser console, and turns annotations into a compact
+handoff: screenshot bounds, semantics, source candidates, and confidence
+warnings.
 
-In the browser console, a single click selects the nearest Compose UI
-component, and a drag selects any visual area when the target is spacing, empty
-room, interop content, or another region that is not a clean component.
+Click a component to select it. Drag when the target is spacing, empty room,
+or something that is not a clean Compose node.
 
 ## Works Today
 
-- Try the bundled sample app in about five minutes.
-- Install the published desktop CLI/MCP package with Homebrew on macOS or from
-  npm / GitHub Releases on macOS/Linux.
-- Add FixThis to an external Android app with the published Gradle plugin:
-  `io.github.beyondwin.fixthis.compose`.
-- Let Claude Code or Codex configure the sample MCP server with `./scripts/bootstrap-mcp.sh --sample`.
-- Let an agent configure your Android app with `fixthis install-agent`.
-- Use **Copy Prompt** with Cursor, ChatGPT, or any chat-style coding agent.
-- Use **Save to MCP** with Claude Code or Codex after running the bootstrap script.
-- Let **Save to MCP** collect a bounded, redacted Android diagnostics baseline
-  for new sessions; switch the session to Manual or Off when automatic
-  collection is not appropriate. **Copy Prompt** never starts collection.
-- Runs locally over ADB and `127.0.0.1`; FixThis makes no external API calls.
-- Debug builds only. Jetpack Compose only.
+- Try the sample app in about five minutes.
+- Install the desktop CLI/MCP with Homebrew, npm, or GitHub Releases.
+- Add it to an external app with the Gradle plugin `io.github.beyondwin.fixthis.compose`.
+- Let Claude Code or Codex configure the sample with `./scripts/bootstrap-mcp.sh --sample`.
+- Let an agent configure your app with `fixthis install-agent`.
+- Use **Copy Prompt** with Cursor, ChatGPT, or any chat agent.
+- Use **Save to MCP** with Claude Code or Codex.
+- **Save to MCP** can attach a bounded, redacted Android diagnostics baseline.
+  Switch the session to Manual or Off if you do not want that. **Copy Prompt**
+  never starts collection.
+- Runs locally over ADB and `127.0.0.1`. No external API calls.
 
 ## Quick Start: Agent Installs FixThis in Your App
 
 ### Claude Code / Codex Bootstrap Prompt
 
-FixThis is debug-only and Jetpack Compose only. Paste this prompt into Claude
-Code or Codex from the root of a Jetpack Compose Android app:
+Paste this into Claude Code or Codex from the root of a Jetpack Compose Android app:
 
 ```text
 Install FixThis in this project and configure it for this agent.
@@ -60,35 +55,32 @@ Do not configure release builds. Do not commit `.fixthis/`.
 The agent should run:
 
 ```bash
-# macOS package-manager path
+# macOS
 brew install beyondwin/tools/fixthis
 
-# Node/npm path
+# Node
 npm install -g @beyondwin/fixthis
 
-# macOS/Linux fallback path
+# macOS/Linux fallback
 curl -fsSL https://raw.githubusercontent.com/beyondwin/FixThis/main/scripts/install-fixthis.sh \
   | bash -s -- --version v1.5.0
 
 fixthis install-agent --project-dir . --target all --verify --json
 ```
 
-If Homebrew already has FixThis installed, run
-`brew update && brew upgrade beyondwin/tools/fixthis` and verify the active
-binary with `fixthis --version`.
+If Homebrew already has it, run
+`brew update && brew upgrade beyondwin/tools/fixthis` and check
+`fixthis --version`.
 
-`fixthis install-agent` patches the detected Android app module with the
-published Gradle plugin, writes MCP config for Claude Code / Codex, writes
-`.fixthis/project.json`, and writes `.fixthis/agent-setup.*` handoff files.
-If doctor reports `NEEDS_INSTALL` or generated metadata is missing, run
-`./gradlew fixthisSetup` as a recovery step and rerun
-`fixthis install-agent --project-dir . --target all --verify --json`. Restart
-Claude Code or Codex when the report asks for it, then call
-`fixthis_open_feedback_console`.
-For manual diagnostics, the same setup can be checked with
+`fixthis install-agent` applies the Gradle plugin, writes MCP config, and
+writes `.fixthis/project.json` plus `.fixthis/agent-setup.*`. If doctor
+reports `NEEDS_INSTALL` or metadata is missing, run `./gradlew fixthisSetup`
+and rerun `fixthis install-agent --project-dir . --target all --verify --json`.
+Restart Claude Code or Codex when the report asks, then call
+`fixthis_open_feedback_console`. For a manual check, use
 `fixthis doctor --project-dir . --json`.
 
-The published Gradle plugin coordinates:
+Published plugin:
 
 ```kotlin
 plugins {
@@ -96,8 +88,7 @@ plugins {
 }
 ```
 
-The plugin adds the debug-only sidekick dependency automatically, generates
-FixThis project metadata, and keeps release builds out of scope.
+The plugin adds the debug-only sidekick and keeps release builds out.
 
 ## Quick Start: Sample App to Agent Handoff
 
@@ -108,23 +99,21 @@ fixthis-cli/build/install/fixthis/bin/fixthis doctor --package io.github.beyondw
 fixthis-cli/build/install/fixthis/bin/fixthis run --package io.github.beyondwin.fixthis.sample
 ```
 
-`fixthis run` installs the sample debug APK, launches it, attaches the
-sidekick bridge, and opens FixThis Studio at `http://127.0.0.1:<port>`.
+`fixthis run` installs the sample debug APK, launches it, and opens FixThis
+Studio at `http://127.0.0.1:<port>`.
 
 In the console:
 
 1. Click **Annotate**.
-2. Click a Compose UI element, or drag a visual area.
-3. Type the requested change in the annotation detail.
-4. Repeat click/drag for any other changes on this screen.
-5. Click **Copy Prompt** for any chat-style agent, or **Save to MCP** for
-   Claude Code / Codex.
+2. Click a UI element, or drag an area.
+3. Type the change you want.
+4. Repeat for other spots on this screen.
+5. **Copy Prompt** for a chat agent, or **Save to MCP** for Claude Code / Codex.
 
-You are done when the console shows a numbered annotation and you have either
-copied compact Markdown or saved a local MCP handoff.
+You are done when a numbered annotation is visible and you have copied Markdown
+or saved a local MCP handoff.
 
-Maintainers can validate that same real Copy Prompt path across the runtime
-fixtures with a connected emulator or device:
+Maintainers can prove that Copy Prompt path on a connected device:
 
 ```bash
 npm run real-copy-prompt:smoke -- --strict
@@ -134,115 +123,82 @@ npm run real-copy-prompt:smoke -- --strict
 
 | Goal | Start here |
 | --- | --- |
-| Try FixThis without touching your app | [Quick Start with the sample](docs/getting-started/try-the-sample.md) |
-| Add FixThis to your Compose debug build | [Add FixThis to your app](docs/getting-started/add-to-your-app.md) |
-| Connect Claude Code, Codex, Cursor, or a chat agent | [Connect your agent](docs/getting-started/connect-your-agent.md) |
-| Let an agent bootstrap MCP from the repo | [MCP bootstrap](MCP.md) |
-| Learn the browser console workflow | [Feedback console tour](docs/guides/feedback-console-tour.md) |
-| Understand the product concept and handoff rationale | [Concept and handoff rationale](docs/product/concept-and-handoff-rationale.md) |
-| Diagnose setup problems | [Troubleshooting](docs/guides/troubleshooting.md) |
-| Inspect CLI, MCP, or JSON contracts | [Documentation index](docs/index.md) |
-| Contribute | [Contributing guide](CONTRIBUTING.md) |
+| Try it without touching your app | [Sample quick start](docs/getting-started/try-the-sample.md) |
+| Add it to your debug build | [Add to your app](docs/getting-started/add-to-your-app.md) |
+| Connect an agent | [Connect your agent](docs/getting-started/connect-your-agent.md) |
+| Bootstrap MCP from this repo | [MCP.md](MCP.md) |
+| Use the console | [Console tour](docs/guides/feedback-console-tour.md) |
+| Understand the product | [Product](docs/product/README.md) |
+| Diagnose a failure | [Troubleshooting](docs/guides/troubleshooting.md) |
+| Inspect contracts | [Docs index](docs/index.md) |
+| Contribute | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
-## How to Read the Docs
+| Reader | Start here |
+| --- | --- |
+| First-time user | [Sample quick start](docs/getting-started/try-the-sample.md) |
+| External app developer | [Add to your app](docs/getting-started/add-to-your-app.md) |
+| Agent in this repo | [AGENTS.md](AGENTS.md) and [project map](docs/guides/project-map.md) |
+| Maintainer | [Docs index](docs/index.md) and [project map](docs/guides/project-map.md) |
+| Contract or CLI change | [Reference contracts](docs/index.md#reference-contracts) |
 
-| Reader | Start Here | Why |
-| --- | --- | --- |
-| First-time user | [Quick Start with the sample](docs/getting-started/try-the-sample.md) | Creates one real handoff before touching your app. |
-| External app developer | [Add FixThis to your app](docs/getting-started/add-to-your-app.md) | Covers Gradle wiring, agent setup, and done-state checks. |
-| Coding agent in this repo | [AGENTS.md](AGENTS.md) and [Project map](docs/guides/project-map.md) | Gives read order, source-of-truth priority, module boundaries, and artifact rules. |
-| Maintainer | [Documentation index](docs/index.md) and [Project map](docs/guides/project-map.md) | Routes architecture, reference contracts, validation, and release docs. |
-| Contract or CLI change | [Reference docs](docs/index.md#reference-contracts) | Stable CLI, MCP, bridge, output schema, and compatibility surfaces live there. |
+## Why not just a screenshot?
 
-## Why FixThis vs. just sending a screenshot?
+A screenshot is enough when the target is obvious. FixThis helps when the UI
+is dense, list-rendered, or named mostly by composable:
 
-Modern coding agents already accept screenshots and accessibility trees.
-FixThis adds the missing handoff structure:
+- Top-3 source candidates with line numbers and match reasons
+- `editSurface` hints for call site vs component vs copy vs layout vs interop
+- Instance grouping so identical cards stay distinct
+- Screen fingerprint so a rotated or changed screen cannot sneak into a save
+- Honest confidence: visual-only, stale, or possible AndroidView/WebView
+- Bounded runtime diagnostics on Save to MCP
+- Retry-safe batches that do not duplicate work
 
-- **Pin to source, not pixels.** Top-3 ranked source-file candidates with line numbers, match reasons, and a margin score — the agent edits the right call site instead of guessing which composable rendered which pixel.
-- **Route visual edits to the likely surface.** `editSurface` hints carry role
-  tokens for call sites, component definitions, copy/data, layout/style,
-  visual-area work, and interop risk, so a style request is not forced through
-  the same path as a text-source match.
-- **Stable target identity.** Instance grouping (`instance i/N`), duplicate-marker detection, and overlap-group hints keep N visually identical cards distinguishable.
-- **Screen integrity checks.** Frozen previews carry a screen fingerprint; if the app rotates, changes window mode, or otherwise moves to a different screen before saving, FixThis asks you to re-capture, force-save, or cancel.
-- **Honest target confidence.** Handoffs can mark visual-only, stale, or
-  possible AndroidView/WebView targets so agents know when to verify rather
-  than trust source hints directly.
-- **Agent verification posture.** Handoffs say whether the agent should inspect source first, corroborate multiple signals, treat source paths as hints, or verify manually.
-- **Bounded runtime diagnostics.** Save to MCP can attach redacted summaries
-  from fixed `baseline`, `logs`, `memory`, and `performance` presets while raw
-  artifacts stay in quota-limited local bundles under `.fixthis/`.
-- **Retry-safe local batches.** Slow or retried `Copy Prompt` / `Save to MCP`
-  saves reuse browser draft ids, so duplicate requests do not create duplicate
-  agent work.
-- **Batched, structured handoff.** One prompt can carry many annotations across many screens, each with its own bounds, severity, and source pin.
-
-If your screen has a single obvious target with clear text, a plain screenshot may already be enough. FixThis pays off when the UI is dense, list-rendered, or labeled mostly by composable name.
-
-## Module Map
+## Modules
 
 | Module | Role |
 | --- | --- |
-| `:app` (`sample/`) | Validation sample app |
+| `:app` (`sample/`) | Validation sample |
 | `:fixthis-compose-core` | Pure Kotlin domain |
 | `:fixthis-compose-sidekick` | Debug Android runtime |
-| `:fixthis-gradle-plugin` | Source-index generation and debug DI |
+| `:fixthis-gradle-plugin` | Source index and debug wiring |
 | `:fixthis-cli` | Desktop CLI |
-| `:fixthis-mcp` | stdio MCP server and local HTTP feedback console |
+| `:fixthis-mcp` | MCP server and local console |
 
-Product and architecture details live in
-[Concept and handoff rationale](docs/product/concept-and-handoff-rationale.md),
-[Product concept](docs/product/README.md),
-[Decision rationale](docs/product/decision-rationale.md), and
-[Architecture overview](docs/architecture/overview.md).
+More: [Product](docs/product/README.md), [decisions](docs/product/decision-rationale.md),
+[architecture](docs/architecture/overview.md).
 
 ## Status
 
-FixThis has public artifacts for the agent-first path:
+Public install paths:
 
-- Gradle plugin: `io.github.beyondwin.fixthis.compose`
-- Maven artifacts: `io.github.beyondwin:fixthis-compose-sidekick` and
-  `io.github.beyondwin:fixthis-compose-core`
-- Homebrew tap: `brew install beyondwin/tools/fixthis`
-- CLI/MCP package: GitHub Release asset `fixthis-cli-mcp-vX.Y.Z.tar.gz`
-- npm wrapper: `npm install -g @beyondwin/fixthis`
-- MCP Registry entry: `io.github.beyondwin/fixthis`
+- Gradle plugin `io.github.beyondwin.fixthis.compose`
+- Maven `io.github.beyondwin:fixthis-compose-sidekick` and `fixthis-compose-core`
+- Homebrew `brew install beyondwin/tools/fixthis`
+- GitHub Release `fixthis-cli-mcp-vX.Y.Z.tar.gz`
+- npm `@beyondwin/fixthis`
+- MCP Registry `io.github.beyondwin/fixthis`
 
-The live release dashboard is
-[Release readiness](docs/contributing/release-readiness.md). It lists current
-coordinates, verification commands, and registry follow-ups.
+Live dashboard: [Release readiness](docs/contributing/release-readiness.md).
 
-Current `main` may contain changes after the latest tag. See
-[`CHANGELOG.md`](CHANGELOG.md#unreleased) and
-[release notes](docs/releases/README.md) before cutting another release.
+`main` may be ahead of the latest tag. See [CHANGELOG](CHANGELOG.md#unreleased)
+and [release notes](docs/releases/README.md).
 
-Agents working inside this repository should also read [AGENTS.md](AGENTS.md).
+Agents in this repo should read [AGENTS.md](AGENTS.md).
 
-## Trust and Privacy
+## Trust
 
-FixThis is local-first: the sidekick talks to the desktop tools over ADB, the
-browser console binds to localhost, and **Save to MCP** writes local files under
-`.fixthis/`. FixThis does not call an external AI API.
+FixThis stays on your machine. The sidekick talks over ADB, the console binds
+to localhost, and **Save to MCP** writes under `.fixthis/`. Screenshots can
+still contain sensitive pixels. Review them before sharing. Do not commit
+`.fixthis/`.
 
-Screenshots and runtime diagnostics may still contain sensitive pixels or app
-data. Review copied prompts and local artifacts before sharing them outside
-your machine, and do not commit `.fixthis/`. Runtime evidence is redacted and
-bounded, but it remains local debug data that you control.
-
-Details: [Privacy](docs/reference/privacy.md), [Security](SECURITY.md), and
+Details: [Privacy](docs/reference/privacy.md), [Security](SECURITY.md),
 [Threat model](docs/reference/threat-model.md).
 
-## Roadmap
-
-FixThis V1 stays intentionally narrow: Jetpack Compose debug builds, local ADB
-transport, MCP-first handoff, best-effort source candidates, and no cloud
-upload.
-
-The detailed roadmap lives in [Roadmap](docs/product/roadmap.md). It covers V1
-scope, public artifact release work, deeper interop awareness, SSE-driven
-console state sync, smarter source matching, and future agent integrations.
+V1 stays narrow: Compose debug builds, local ADB, MCP-first handoff, best-effort
+source candidates, no cloud upload. See [Roadmap](docs/product/roadmap.md).
 
 ## License
 
-[MIT License](LICENSE). See also [`NOTICE`](NOTICE) for third-party attribution.
+[MIT](LICENSE). Third-party notices in [`NOTICE`](NOTICE).

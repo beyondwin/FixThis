@@ -1,8 +1,6 @@
 # FixThis — Claude Code Project Memory
 
-Entry point for Claude Code working in this repository. See
-[AGENTS.md](AGENTS.md) for the project overview, MCP setup, AI workflow, and
-constraints — those apply equally to Claude Code.
+Entry point for Claude Code in this repository. Follow [AGENTS.md](AGENTS.md).
 
 ## Pointers
 
