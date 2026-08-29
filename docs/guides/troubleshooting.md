@@ -279,8 +279,9 @@ refresh, and polling resume are safe. Save from a stale preview, dirty-draft
 session switch, stale force-save, claim, and resolve still need a current
 context or explicit confirmation.
 
-If a closed session blocks work, reopen an active session or create a new
-one.
+If a closed session blocks work with
+`Reopen the session or create a new active session before changing feedback`,
+open an active session from the history list or create a new session.
 
 ### I reopened the console and do not see my previous feedback
 

@@ -547,68 +547,34 @@ rather than the minified `app.js`.
 
 ### Readiness state catalog
 
-- `CAPTURE_UNAVAILABLE` — emitted by the server when `/api/preview` or
-  `/api/screenshot` returns 404 or the capture has only semantics with
-  no image bytes. The response stays HTTP 200 with
-  `payload.previewAvailable = false` and a `readiness` object built by
-  `FirstRunReadiness.captureUnavailable(cause, details)`
-  (`primaryAction: "Retry capture"`). Rendered by the console via the
-  existing connection-card readiness slot
-  (`#connectionReadiness`, populated by
-  `applyPreviewReadinessToConnectionCard` in `preview.js`).
+`CAPTURE_UNAVAILABLE` — `/api/preview` or `/api/screenshot` is 404, or
+capture has semantics but no image. HTTP 200 with
+`payload.previewAvailable = false`. Connection-card action: `Retry capture`.
 
 ### NotificationCenter surfaces
 
-| dedupeKey | surface | severity | Fired by |
+| dedupeKey | surface | severity | When |
 | --- | --- | --- | --- |
-| `reload_console_403` | banner | error | `surfaceReloadConsoleNotice(err)` in `state.js`, wired into `requestJson` catch in `api.js`. Triggered when `requestJson` throws a `ConsoleRequestError` with `action === 'reload_console'` (HTTP 403 from origin/token check). primaryAction "Reload console" calls `window.location.reload()`. |
-| `clipboard_fallback` | banner | warning | `copyPrompt` in `prompt.js` when `copyTextToClipboard` rejects. Detail tells the user to copy manually. Suppresses the legacy `showError` toast and short-circuits the handoff/`copied = true` flow. |
+| `reload_console_403` | banner | error | Mutating `/api/*` returned 403. Action: reload. |
+| `clipboard_fallback` | banner | warning | Clipboard copy failed. Copy manually. |
 
 ### Draft save conflict (`/api/items/batch`)
 
-The save endpoint now implements optimistic-etag concurrency:
-
-- Successful save → `200 OK` plus header `ETag: "<rev>"` (monotonic per
-  session, in-memory in `DraftSaveService.kt`).
-- Subsequent save → must include `If-Match: "<previous-rev>"`. Missing
-  or mismatched header → `412 Precondition Failed` with body
-  `{ "state": "STALE_PREVIEW", "readiness": <FirstRunReadiness>, "serverDraft": <current draft snapshot> }`.
-- Override sentinel — `If-Match: *` forces the save regardless of the
-  server revision (used by the "Keep mine (overwrite)" boundary
-  branch).
-
-Console handles 412 by opening the new `staleDraftConflict` boundary
-variant with three buttons:
-
-- Primary "Keep mine (overwrite)" → resends the save with
-  `If-Match: *`.
-- Secondary "Use server's version" → discards local pending state and
-  loads `serverDraft` into the workspace.
-- Cancel → keeps the local draft (pending pins preserved).
-
-No automatic three-way merge.
+Optimistic ETag: success is `200` plus `ETag: "<rev>"`. Later saves need
+`If-Match`. Mismatch is `412` with `state: STALE_PREVIEW`. `If-Match: *`
+overwrites. No three-way merge.
 
 ### Session-mismatch ignore
 
-`sse.js` (`dropStaleSse(msg, state)`) and
-`previewPoll.js` (`dropStalePreviewPoll(response, state)`) drop messages
-and poll responses whose `sessionId` does not match
-`state.session?.sessionId`. The drop emits a `console.warn` for
-diagnostics only — no state mutation, no NotificationCenter
-notification, no UI change. Tested by `scripts/sessionMismatchIgnore-test.mjs`.
+SSE and preview-poll messages whose `sessionId` does not match the active
+session are dropped. Warn in the console; no UI mutation.
 
 ### Bundle budgets
 
-The console bundle budget is intentionally enforced by
-`node scripts/build-console-assets.mjs --check`, but it carries working
-headroom so small console changes do not fail on byte-level churn:
+Enforced by `node scripts/build-console-assets.mjs --check`:
 
 - Gzip budget - `62,500 B`.
 - Raw budget - `247,000 B`.
-
-The `state.js` hotspot budget in `ArchitectureHotspotBudgetTest` was
-bumped from 440 → 470 lines to accept the
-`surfaceReloadConsoleNotice` helper.
 
 ## Session store error-code prefixes
 

@@ -5,6 +5,9 @@ GitHub Release summaries. `CHANGELOG.md` is the chronological log.
 Distributed through GitHub Releases, Homebrew, npm, MCP Registry, Maven
 Central, and the Gradle Plugin Portal.
 
+Tagged files (`vX.Y.Z.md`) are frozen copies of what shipped. Do not rewrite
+them as current docs. Record new work in [unreleased.md](unreleased.md).
+
 ## Releases
 
 - [Unreleased changes](unreleased.md) - next-cycle changes after v1.5.0,

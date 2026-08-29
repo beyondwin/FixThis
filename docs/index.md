@@ -70,6 +70,13 @@ Stable CLI, MCP, bridge, JSON, and console behavior:
 
 ## Historical Planning
 
-`docs/superpowers/`, `docs/specs/`, and `docs/plans/` explain why old work
-happened. They are not current contracts. Prefer `docs/reference/` and the
-code when they disagree.
+Frozen snapshots. Not current contracts. Each folder has a README:
+
+- [docs/superpowers/](superpowers/README.md) — old agent specs, plans, notes
+- [docs/specs/](specs/README.md) — older project specs
+- [docs/plans/](plans/README.md) — older implementation plans
+
+Prefer `docs/reference/` and the code when they disagree. Tagged GitHub
+Release notes under [docs/releases/](releases/README.md) are frozen copies
+of what shipped; edit [unreleased.md](releases/unreleased.md) for work after
+the latest tag.

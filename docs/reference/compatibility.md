@@ -25,68 +25,17 @@ that compiles" column is checked weekly (informational only — see
 
 ## Rationale per axis
 
-### Android Gradle Plugin
-
-- **Tested: 9.1.1.** AGP 9.x is the first major series with the new
-  Kotlin-multiplatform-friendly variant API surface that the sidekick build
-  scripts rely on. The Gradle plugin (`:fixthis-gradle-plugin`) targets the
-  `AndroidComponentsExtension` shape stabilised in AGP 9.
-- **Minimum 9.0.0.** AGP 9.0.x is the intended lower bound for today's
-  sources. The scheduled job is what will catch regressions in that claim once
-  the version-override plumbing is wired. AGP 8.x is explicitly out of scope
-  because variant API and namespace handling differ enough that the sidekick's
-  auto-wiring no longer applies.
-
-### Kotlin Gradle Plugin
-
-- **Tested: 2.2.21.** Project sources compile with the K2 frontend and use
-  language features pinned to Kotlin 2.2. The composite-build setup applies
-  the same Kotlin version across `:fixthis-compose-core`, `:fixthis-cli`,
-  `:fixthis-mcp`, `:fixthis-compose-sidekick`, and `:fixthis-gradle-plugin`.
-- **Minimum 2.2.0.** Kotlin 2.2 is the intended lower bound for Compose
-  compiler 1.10+ wiring with AGP 9. Older 2.1.x toolchains run into
-  compose-compiler / AGP matching constraints and are not part of the current
-  support window.
-- **Forward smoke: 2.3.20.** The scheduled compatibility workflow includes a
-  non-gating Kotlin 2.3.20 sample assemble. This records current Kotlin 2.3.x
-  coverage without changing the pinned PR-tested toolchain.
-
-### Compose BOM
-
-- **Tested: 2025.01.01.** Matches the BOM the sample app and `fixthis-compose-core`
-  resolve at build time.
-- **Minimum 2025.01.01.** This keeps FixThis on the Compose 1.7.x line so the
-  sidekick AAR can be consumed by apps still compiling with Android 14
-  (`compileSdk` 34). A lower `compileSdk` 33 floor was investigated, but
-  Compose 1.5.x pulls `androidx.emoji2:emoji2:1.4.0`, whose published AAR
-  metadata already requires `compileSdk` 34. Newer Compose releases are
-  supported through dependency resolution in the consuming app.
-
-### JDK toolchain
-
-- Both "Tested" and "Minimum" pin to JDK 21 (Temurin). Lower JDKs are
-  unsupported because AGP 9 itself requires JDK 17+ and the project's
-  toolchain configuration locks 21. The CI workflow uses
-  [`actions/setup-java@v5`](../../.github/workflows/ci.yml) with
-  `distribution: temurin` and `java-version: "21"`.
-
-### Android `minSdk`
-
-- `minSdk` 23 is supported. APIs introduced above 23 are guarded at runtime,
-  and the sidekick's debug-only `androidx.startup` dependency supports lower
-  API levels.
-
-### Android `compileSdk`
-
-- **Tested and minimum: 34.** The sidekick AAR is intentionally built with
-  `compileSdk` 34 so debug consumers already pinned to Android 14 do not have
-  to raise their project-wide `compileSdk` just to install FixThis. `targetSdk`
-  remains the consuming app's decision; FixThis does not require release builds
-  and is wired only through debug variants.
-- Google Play target API requirements apply to the consuming app's
-  `targetSdk`, not to FixThis's debug-only library `compileSdk`. Apps submitted
-  to Play should keep their own `targetSdk` at the currently required Play
-  level while consuming FixThis only in debug variants.
+- **AGP 9.1.1 / min 9.0.0.** Plugin uses the AGP 9 `AndroidComponentsExtension`.
+  AGP 8.x is out of scope.
+- **Kotlin 2.2.21 / min 2.2.0.** Same version across core, CLI, MCP, sidekick,
+  and the Gradle plugin. 2.1.x is outside the Compose-compiler / AGP window.
+  Nightly also smokes 2.3.20 without changing the pinned PR toolchain.
+- **Compose BOM 2025.01.01.** Compose 1.7.x so the sidekick AAR still installs
+  into `compileSdk` 34 apps. Newer Compose is the consuming app's resolution.
+- **JDK 21.** AGP 9 needs 17+; this repo locks 21.
+- **`minSdk` 23.** Newer APIs are runtime-guarded.
+- **`compileSdk` 34.** Debug consumers on Android 14 do not have to raise
+  compileSdk. Play `targetSdk` rules apply to the app, not this debug library.
 
 ## Scheduled validation
 
