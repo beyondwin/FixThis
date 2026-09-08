@@ -25,6 +25,10 @@ planning.
 - Classify the request: explanation, diagnosis, implementation, review, release,
   connected proof, or feedback work.
 - Do not turn diagnosis or review into code changes without authorization.
+- Complete authorized work without repeated approval. Resolve routine choices
+  from context; ask only when missing information affects correctness or scope.
+- User instructions take precedence over skill guidelines. If a skill blocks
+  work, identify the exact rule and explain why it applies.
 
 ## Change
 
@@ -46,6 +50,8 @@ planning.
 - Record PASS, FAIL, DEFERRED, or SKIPPED. The last two need a reason and
   residual risk.
 - Require fresh final-diff evidence before completion.
+- After required checks pass, repeat or expand only for new changes, failures,
+  or unresolved concerns.
 
 ## Finish
 
