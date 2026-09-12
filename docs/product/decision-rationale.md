@@ -40,6 +40,8 @@ The product is the debug app under development, not device-wide control.
 
 The browser console is the primary UX. The app shows `MCP waiting` /
 `MCP connected`. That keeps the sidekick small and the queue on the desktop.
+The old in-app overlay module is gone; see
+[ADR-0005](../architecture/adr/0005-overlay-mode-state-machine.md).
 
 ## Local-first
 

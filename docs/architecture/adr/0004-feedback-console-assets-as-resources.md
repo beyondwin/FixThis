@@ -3,21 +3,32 @@
 - Status: Accepted
 - Date: 2026-05-06
 
+## In short
+
+Console HTML, CSS, and JS are files on the classpath. Kotlin only loads
+them. Do not put the UI back into a giant string.
+
 ## Context
 
-The feedback console previously stored the HTML document, CSS, and JavaScript in one large Kotlin raw string. The implemented resource split places `index.html`, `styles.css`, and `app.js` under `fixthis-mcp/src/main/resources/console` and keeps a Kotlin loader responsible for assembly.
+The console used to store HTML, CSS, and JavaScript in one large Kotlin
+raw string. The split places `index.html`, `styles.css`, and `app.js` under
+`fixthis-mcp/src/main/resources/console`. A Kotlin loader assembles them.
 
 ## Decision
 
-Feedback console browser assets are classpath resources, and Kotlin code only loads and injects those resources into the served HTML.
+Browser assets are classpath resources. Kotlin code only loads and injects
+those resources into the served HTML.
 
 ## Consequences
 
 - HTML, CSS, and JavaScript diffs are reviewable as separate files.
-- Resource loading is covered by tests, including path traversal rejection.
-- The served console HTML contract remains assembled by MCP code.
+- Resource loading is tested, including path-traversal rejection.
+- MCP code still assembles the served HTML.
 
 ## Alternatives Considered
 
-- Keep the raw string in Kotlin. Rejected because large asset changes were difficult to review and maintain.
-- Serve separate static files from arbitrary file-system paths. Rejected because the current console server uses packaged resources and should not expose unmanaged paths.
+- Keep the raw string in Kotlin. Rejected: large asset changes were hard
+  to review.
+- Serve separate static files from arbitrary disk paths. Rejected: the
+  console server uses packaged resources and must not expose unmanaged
+  paths.

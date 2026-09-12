@@ -1,10 +1,12 @@
 # FixThis Docs
 
-FixThis is a debug-only sidekick for Jetpack Compose. Point at a UI in a local
+FixThis is a debug-only helper for Jetpack Compose. Point at a UI in a local
 browser console, write the change, and hand an agent a compact prompt with the
 target pinned.
 
-Start with the [README](../README.md) if you just want to try it.
+Start with the [README](../README.md) if you just want to try it. Terms such
+as sidekick, bridge, handoff, and source candidates:
+[architecture overview](architecture/overview.md#words-we-use).
 
 ## Start Here
 
@@ -24,6 +26,9 @@ The Android app shows connection status. Selection, annotation, and handoff
 happen in the desktop console. Desktop `fixthis-mcp` owns HTTP, MCP, session
 state, and `.fixthis/`.
 
+Short glossary and ownership map:
+[architecture overview](architecture/overview.md#words-we-use).
+
 Two handoff paths share the same evidence:
 
 - **Copy Prompt** — paste Markdown into any chat agent.
@@ -40,10 +45,11 @@ Do not commit `.fixthis/`.
 
 ## Architecture
 
+- [Overview](architecture/overview.md) — who owns what, glossary, runtime path
 - [Project map](guides/project-map.md) — modules, first files, checks
-- [Overview](architecture/overview.md) — runtime and console flow
-- [ADRs](architecture/adr/README.md) — durable decisions
-- [Console sync](architecture/console-state-sync-design.md) — SSE plus polling fallback
+- [Agent code compass](architecture/agent-code-compass.md) — task routes and boundaries
+- [ADRs](architecture/adr/README.md) — decisions that still constrain the code
+- [Console sync](architecture/console-state-sync-design.md) — live events, polling fallback
 - [Source-matching lab](guides/source-matching-fixture-lab.md) — local fixture evidence
 
 ## Contribute
@@ -70,7 +76,7 @@ Stable CLI, MCP, bridge, JSON, and console behavior:
 
 ## Historical Planning
 
-Frozen snapshots. Not current contracts. Each folder has a README:
+Frozen snapshots. Not current contracts. Do not implement from them.
 
 - [docs/superpowers/](superpowers/README.md) — old agent specs, plans, notes
 - [docs/specs/](specs/README.md) — older project specs

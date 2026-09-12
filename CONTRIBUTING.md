@@ -116,8 +116,9 @@ After editing `AGENTS.md`, nested `AGENTS.md`, `.agents/skills`,
 Local Gradle build cache is on. Configuration cache is still opt-in because
 `spotlessCheck` does not reuse it reliably.
 
-Architecture guardrails live in `:fixthis-mcp:test`. If a new dependency
-direction is needed, record it in `docs/architecture/adr/` first.
+Architecture guardrails live in `:fixthis-mcp:test`. Plain-language map:
+[`docs/architecture/overview.md`](docs/architecture/overview.md). If a new
+dependency direction is needed, record it in `docs/architecture/adr/` first.
 
 ### Local Evidence Profiles
 

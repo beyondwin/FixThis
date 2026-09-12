@@ -1,7 +1,8 @@
 # Fullstack / Tooling Handover
 
-Short maintainer map. For daily routing use the
-[project map](project-map.md) and
+Short maintainer map. Start with the
+[architecture overview](../architecture/overview.md) for terms and ownership.
+Daily routing: [project map](project-map.md) and
 [agent code compass](../architecture/agent-code-compass.md).
 
 ## What to open

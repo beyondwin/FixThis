@@ -248,6 +248,7 @@ export const ROUTES = Object.freeze([
       "fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/",
     ],
     docs: [
+      "docs/architecture/overview.md",
       "docs/architecture/adr/README.md",
       "docs/architecture/agent-code-compass.md",
     ],

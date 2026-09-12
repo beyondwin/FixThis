@@ -1,7 +1,11 @@
 # Agent Code Compass
 
-Routing guide for coding agents and maintainers. Contracts, ADRs, and current
-source still win. Use this to pick first files and checks.
+Task routes for coding agents: first files, must-not-depend rules, and
+focused checks.
+
+This is not a second architecture. For the human module map and glossary,
+start with the [overview](overview.md) and [project map](../guides/project-map.md).
+Contracts, ADRs, and current source still win.
 
 ## Source-Of-Truth Order
 
@@ -42,7 +46,7 @@ source still win. Use this to pick first files and checks.
 | Gradle plugin and source-index generation | `docs/reference/source-matching.md`, `docs/reference/compatibility.md` | `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/FixThisGradlePlugin.kt`, `fixthis-gradle-plugin/src/main/kotlin/io/github/beyondwin/fixthis/gradle/source/KotlinSourceScanner.kt` | Debug variant wiring only; generated assets stay under build output; no running-device state in the plugin. | `./gradlew :fixthis-gradle-plugin:test --no-daemon`, `npm run source-matching:fixtures:test` |
 | Repository agent guidance and routing | `AGENTS.md`, `docs/guides/project-map.md` | `scripts/agent-route-registry.mjs`, `scripts/agent-task-router.mjs`, `scripts/agent-guidance-contract-test.mjs` | Do not modify `~/.codex` or project `.codex`; keep installable-plugin and repo-skill audiences explicit. | `npm run agent:route:test`, `npm run docs:agent-guidance:test`, `npm run plugin:contract:test` |
 | Release readiness and evidence scripts | `docs/contributing/release-readiness.md`, `docs/contributing/required-checks.md`, `CONTRIBUTING.md` | `scripts/check-release-readiness.mjs`, `scripts/evidence-runner.mjs`, `scripts/release-gate.mjs`, `scripts/required-checks-observation.mjs`, `package.json` | Do not claim branch-protection admin changes from repo-only evidence; distinguish pass, deferred, fixture drift, and admin action pending. | `node scripts/check-release-readiness.mjs`, `npm run checks:observation -- --json`, `npm run release:check` |
-| Architecture and guardrails | `docs/architecture/adr/README.md`, `docs/architecture/adr/0001-use-clean-architecture-layering.md`, `docs/architecture/adr/0008-session-package-decomposition.md` | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` | Tighten rules when cleanup removes exceptions; add ADR text before allowing new exception directions. | `./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon`, `git diff --check` |
+| Architecture and guardrails | `docs/architecture/overview.md`, `docs/architecture/adr/README.md`, `docs/architecture/adr/0001-use-clean-architecture-layering.md`, `docs/architecture/adr/0008-session-package-decomposition.md` | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` | Tighten rules when cleanup removes exceptions; add ADR text before allowing new exception directions. | `./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon`, `git diff --check` |
 
 ## When A Boundary Test Fails
 

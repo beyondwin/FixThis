@@ -58,5 +58,5 @@ guaranteed exact source lines.
 - [Decisions](decision-rationale.md)
 - [Roadmap](roadmap.md)
 - [Handoff prompt](../design/handoff-prompt-rationale.md)
-- [Architecture](../architecture/overview.md)
+- [Architecture](../architecture/overview.md) — terms, ownership, runtime path
 - [Console contract](../reference/feedback-console-contract.md)

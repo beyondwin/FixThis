@@ -1,19 +1,33 @@
 # ADR-0005: Overlay Mode State Machine
 
-- Status: Superseded — overlay module retired (2026-05-10)
+- Status: Superseded — in-app overlay retired (2026-05-10)
 - Date: 2026-05-06
 
-> **2026-05-10 update.** The `fixthis-compose-overlay` module described below was retired before V1 ship. This ADR is preserved for the decision-trail history; no current module exposes the state machine documented here. Selection / commenting flow now lives in the desktop console (`fixthis-mcp`), and the in-app sidekick (`fixthis-compose-sidekick`) is reduced to a connection-status pill plus the bridge that the console talks to. See `docs/superpowers/specs/2026-05-10-project-cleanup-pass-design.md` for context.
+## In short
 
-## Context
+Do not implement this. The `fixthis-compose-overlay` module is gone.
+Selection and comments live in the desktop console (`fixthis-mcp`). The
+Android sidekick only shows `MCP waiting` / `MCP connected` and hosts the
+bridge.
 
-Overlay mode now represents the implemented user flow states explicitly: idle, menu open, selection, loading, selection review, commenting, exported, and error. The implemented `OverlayStateMachine` validates transitions among these modes so overlay callers do not encode mode changes as scattered conditional logic.
+This file is kept so the decision trail stays intact.
 
-## Decision
+## Historical record
 
-Overlay mode changes go through an explicit state machine that accepts only the currently supported transitions among idle, menu open, selection, loading, reviewing selection, commenting, exported, and error states.
+The rest of this page describes the retired in-app overlay. It is not the
+current product.
 
-The implemented transition model is:
+### Context
+
+Overlay mode represented user-flow states explicitly: idle, menu open,
+selection, loading, selection review, commenting, exported, and error.
+`OverlayStateMachine` validated transitions so callers did not encode mode
+changes as scattered conditionals.
+
+### Decision
+
+Overlay mode changes went through an explicit state machine that accepted
+only the supported transitions:
 
 | Current state | Allowed next states |
 | --- | --- |
@@ -26,13 +40,20 @@ The implemented transition model is:
 | Exported | Idle, Select |
 | Error | Idle; if recoverable, any non-Error state |
 
-## Consequences
+### Consequences
 
-- Overlay transition behavior is testable without Compose rendering.
-- Invalid mode changes fail at the state-machine boundary.
-- Callers need to route mode changes through the state-machine API.
+- Overlay transitions were testable without Compose rendering.
+- Invalid mode changes failed at the state-machine boundary.
+- Callers had to route mode changes through that API.
 
-## Alternatives Considered
+### Alternatives Considered
 
-- Keep direct mutable overlay mode updates in callers. Rejected because transition rules would remain implicit and duplicated.
-- Model overlay progress with unrelated booleans. Rejected because combinations of selection, loading, and error state would be easier to make inconsistent.
+- Keep direct mutable overlay mode updates in callers. Rejected: transition
+  rules would stay implicit and duplicated.
+- Model overlay progress with unrelated booleans. Rejected: selection,
+  loading, and error combinations would drift out of sync.
+
+### What replaced it
+
+Desktop MCP console first. See [ADR-0007](0007-feedback-console-connection-recovery.md)
+and the [architecture overview](../overview.md).

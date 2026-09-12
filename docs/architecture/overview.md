@@ -1,14 +1,48 @@
 # Architecture Overview
 
-Current-code onboarding. Product context:
+How FixThis is put together. Product context:
 [product](../product/README.md), [decisions](../product/decision-rationale.md),
 [handoff rationale](../design/handoff-prompt-rationale.md).
 
 ## One line
 
-A debug-only Compose sidekick captures semantics, screenshot, selection,
-source candidates, and comments locally, then hands them to an agent through
-the CLI / MCP / browser console.
+A debug-only Compose helper captures what you pointed at, then hands a local
+agent the screenshot, UI labels, likely source files, and your comments.
+
+## Words we use
+
+| Term | Meaning |
+| --- | --- |
+| Sidekick | Tiny debug-only code that runs inside the Compose app |
+| Bridge | Local socket between the desktop tools and the app |
+| Console / Studio | Local browser UI at `127.0.0.1` |
+| Annotation | One comment plus a selected UI target |
+| Handoff | The Markdown/JSON packet an agent reads |
+| Copy Prompt | Put that packet on the clipboard |
+| Save to MCP | Write the same packet into a local queue |
+| Source index | Generated map from composables to files |
+| Source candidates | Ranked likely files, not guaranteed hits |
+| Target evidence | What was selected: bounds, labels, occurrence |
+| Runtime evidence | Optional logcat / memory / frame snapshot |
+| Session | One console working set under `.fixthis/` |
+
+On disk and in MCP JSON, annotations are still stored as `items`. That name
+is a compatibility contract. See
+[ADR-0003](adr/0003-feedback-item-to-annotation-naming.md).
+
+The in-app overlay module is gone. Selection and comments live in the desktop
+console. The Android app only shows connection status.
+
+## Who owns what
+
+| Piece | Owner | Must not |
+| --- | --- | --- |
+| Connection status pill | Android sidekick | Host HTTP, MCP, or the console |
+| Selection, comments, handoff | Desktop console | Live inside the Android app |
+| HTTP, MCP, `.fixthis/` | `:fixthis-mcp` | Import Android UI |
+| Scoring, matching, redaction | `:fixthis-compose-core` | Know MCP, CLI, or `.fixthis/` paths |
+| ADB and CLI commands | `:fixthis-cli` | Own browser DOM |
+| Debug wiring and source index | Gradle plugin | Talk to a running device |
 
 ## Scope
 
@@ -26,7 +60,7 @@ the CLI / MCP / browser console.
 :app                         sample/ validation app
 :fixthis-compose-core        pure Kotlin domain
 :fixthis-compose-sidekick    debug runtime inside the target app
-fixthis-gradle-plugin/       debug DI and source-index generation
+fixthis-gradle-plugin/       debug wiring and source-index generation
 :fixthis-cli                 desktop CLI and ADB bridge client
 :fixthis-mcp                 MCP server, session store, local console
 ```
@@ -55,7 +89,8 @@ Runs inside the target debug app.
 - Availability fields drive the console blocked overlay: screen off, locked,
   backgrounded, PiP.
 
-See ADR `2026-05-14-bridge-server-concurrency` for the lifecycle mutex.
+See [ADR 2026-05-14](adr/2026-05-14-bridge-server-concurrency.md) for the
+lifecycle mutex.
 
 ### `fixthis-gradle-plugin`
 
@@ -184,7 +219,8 @@ Compose discovery. See
 
 ## Read Next
 
-1. [README](../../README.md)
-2. [Project map](../guides/project-map.md)
-3. [MCP tools](../reference/mcp-tools.md)
-4. [ADRs](adr/README.md)
+1. [Project map](../guides/project-map.md) — modules, first files, checks
+2. [Agent code compass](agent-code-compass.md) — task routes and boundaries
+3. [ADRs](adr/README.md) — decisions that still constrain the code
+4. [MCP tools](../reference/mcp-tools.md)
+5. [README](../../README.md)

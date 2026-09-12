@@ -1,11 +1,14 @@
 # FixThis Project Map
 
+Human map of modules, runtime path, and where to start.
+
 FixThis attaches a debug-only sidekick to a Jetpack Compose app, mirrors the
 UI into a local desktop console, and turns annotations into source-aware
 handoffs.
 
+Plain-language architecture: [overview](../architecture/overview.md).
+Task routes (first files and checks): [agent code compass](../architecture/agent-code-compass.md).
 Deep maintainer notes: [tooling handover](fullstack-tooling-handover.md).
-Task-by-task source routing: [agent code compass](../architecture/agent-code-compass.md).
 Stable contracts: [`docs/reference/`](../reference/).
 
 ## Source Of Truth
@@ -66,7 +69,7 @@ local HTTP console, MCP tools, session store, and `.fixthis/feedback-sessions/`.
 | Runtime evidence | `docs/reference/mcp-tools.md`, `docs/reference/output-schema.md`, `docs/reference/privacy.md` | `fixthis-cli/src/main/kotlin/io/github/beyondwin/fixthis/cli/runtime/AndroidRuntimeEvidenceCollector.kt`, `fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/session/runtime/RuntimeEvidenceCaptureCoordinator.kt`, `fixthis-mcp/src/main/console/runtimeEvidence.js` | `npm run runtime-evidence:smoke:test`, `npm run runtime-evidence:smoke -- --strict`, `npm run android:proof -- --strict` |
 | Agent routing | `AGENTS.md`, `docs/architecture/agent-code-compass.md` | `scripts/agent-route-registry.mjs`, `scripts/agent-task-router.mjs`, `scripts/agent-guidance-contract-test.mjs` | `npm run agent:route:test`, `npm run docs:agent-guidance:test`, `npm run plugin:contract:test` |
 | Release | `docs/contributing/release-readiness.md`, `docs/contributing/release-process.md`, `CONTRIBUTING.md` | `scripts/check-release-readiness.mjs`, `scripts/evidence-runner.mjs`, `scripts/release-gate.mjs`, `package.json` | `npm run release:check` |
-| Architecture | `docs/architecture/agent-code-compass.md`, `docs/architecture/adr/README.md`, `docs/architecture/adr/0008-session-package-decomposition.md` | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` | `./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon`, `git diff --check` |
+| Architecture | `docs/architecture/overview.md`, `docs/architecture/agent-code-compass.md`, `docs/architecture/adr/README.md`, `docs/architecture/adr/0008-session-package-decomposition.md` | `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ModuleBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/SessionPackageBoundaryTest.kt`, `fixthis-mcp/src/test/kotlin/io/github/beyondwin/fixthis/mcp/architecture/ArchitectureHotspotBudgetTest.kt` | `./gradlew :fixthis-mcp:test --tests '*architecture*' --no-daemon`, `git diff --check` |
 
 ## Artifact Boundaries
 

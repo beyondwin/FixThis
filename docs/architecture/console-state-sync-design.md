@@ -1,15 +1,17 @@
 # Console State Sync
 
-**Status:** SSE Phase 1 shipped. ETag-conditional session polling remains as
-fallback.
+**Status:** Live event stream shipped. Polling remains as fallback.
 **Owners:** `fixthis-mcp` (server + console JS)
+
+The browser must show the same session the server just saved. A live event
+stream is the main path. Polling is only for when that stream is down.
 
 ## What the browser keeps
 
 | Piece | Source | Drives |
 | --- | --- | --- |
 | `state.sessionSummaries` | SSE `snapshot` / `sessions-updated`, or fallback `GET /api/sessions` | History rows, working pips |
-| `state.session` | `GET /api/session` and mutating session routes | Inspector, overlay, Copy Prompt / Save to MCP |
+| `state.session` | `GET /api/session` and mutating session routes | Inspector, annotation markers, Copy Prompt / Save to MCP |
 
 Those two used to drift when a mutation refreshed summaries but not the
 active session.

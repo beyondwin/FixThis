@@ -1,6 +1,11 @@
 # v0.6 Release Evidence Template
 
-Paste this into the v0.6 release issue before tagging.
+Historical. Used for the tagged v0.6 release. Current releases use
+[release readiness](release-readiness.md) and
+[release process](release-process.md).
+
+Paste this into a v0.6-era release issue only if you are reconstructing that
+tag's evidence.
 
 ## Handoff Intelligence
 

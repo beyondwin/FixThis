@@ -110,9 +110,9 @@ Before tagging:
 
    Edit the copied file so it describes the tagged release, not current `main`.
 
-   For a v0.6 release, copy
-   [`v06-release-evidence-template.md`](v06-release-evidence-template.md) into the
-   release issue and fill every command result before finalizing release notes.
+   Current releases use [release-readiness.md](release-readiness.md). The
+   [`v06-release-evidence-template.md`](v06-release-evidence-template.md) is a
+   frozen checklist from the tagged v0.6 release, not the current procedure.
    Claims without evidence are removed or narrowed before tagging.
 
 3. Run the release-readiness checks:
