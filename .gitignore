@@ -71,6 +71,7 @@ fixthis-*-marker.png
 .codex-orchestrator/
 .remember/
 .superpowers/
+docs/superpowers/
 .playwright-cli/
 .playwright-mcp/
 .worktrees/
