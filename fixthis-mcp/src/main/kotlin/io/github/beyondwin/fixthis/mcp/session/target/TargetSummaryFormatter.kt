@@ -4,8 +4,8 @@ import io.github.beyondwin.fixthis.compose.core.model.FixThisNode
 import io.github.beyondwin.fixthis.compose.core.model.TargetReliabilityWarning
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationDto
 import io.github.beyondwin.fixthis.mcp.session.dto.AnnotationTargetDto
-import io.github.beyondwin.fixthis.mcp.session.handoff.compactQuotedValue
-import io.github.beyondwin.fixthis.mcp.session.handoff.inlineSafe
+import io.github.beyondwin.fixthis.mcp.session.dto.compactQuotedValue
+import io.github.beyondwin.fixthis.mcp.session.dto.inlineSafe
 
 internal object TargetSummaryFormatter {
     fun render(item: AnnotationDto, owner: TargetOwner? = null): String {

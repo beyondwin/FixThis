@@ -33,5 +33,6 @@ Daily routing: [project map](project-map.md) and
 4. Change the smallest surface the router names.
 5. Run the returned focused checks before the broad gate.
 
-Historical planning lives under `docs/superpowers/`, `docs/specs/`, and
-`docs/plans/`. Use it only when a maintained page or source file points there.
+Historical planning lives under `docs/specs/` and `docs/plans/`; removed
+planning files remain in Git history. Use it only when a maintained page or
+source file points there.

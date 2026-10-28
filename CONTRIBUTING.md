@@ -5,11 +5,11 @@
 | Tool | Minimum | Notes |
 |---|---|---|
 | JDK | 21 | Adoptium Temurin recommended. |
-| Android SDK + ADB | API 30+ | Needed for `:app:assembleDebug` and connected smoke. |
+| Android SDK + ADB | Compile SDK from `gradle/libs.versions.toml` | Needed for `:app:assembleDebug` and connected smoke. |
 | Node.js | 20.0.0 | Floor via `package.json` `engines` and `.npmrc engine-strict=true`. Node 20 reached upstream EOL on 2026-04-30; use Node 22 or 24 locally. CI keeps one Node 20 lane until the floor changes. |
-| Chromium | Bundled by Playwright 1.59 | `npx playwright install chromium` after `npm install`. |
+| Chromium | Version matched to `package-lock.json` | `npx playwright install chromium` after `npm ci`. |
 
-Run `npm install` and `npx playwright install chromium` once before any
+Run `npm ci` and `npx playwright install chromium` once before any
 `npm run console:*` script.
 
 ## Formatting
@@ -87,7 +87,14 @@ After editing `package.json`, README, AGENTS.md, or this file:
 
 ```bash
 node scripts/check-doc-consistency.mjs
+npm run docs:links:test
 ```
+
+The consistency check validates local files and heading anchors in maintained
+Markdown, including new untracked docs. Frozen specs/plans, tagged release
+notes, and `CHANGELOG.md` are excluded; their navigation READMEs and
+`docs/releases/unreleased.md` remain checked. The regression suite checks the
+link validator itself.
 
 After editing README.md, AGENTS.md, CLAUDE.md, MCP.md,
 `docs/getting-started/agent-install-snippet.md`, or CLI command/flag surface:
@@ -169,6 +176,11 @@ npm run console:harness
 npm run console:test:all
 ```
 
+`scripts/console-tests.json` owns the console test groups, including FSM,
+notification, reliability, and tooling tests. `console:test:all` runs every
+registered group, deduplicates shared files, and fails if a registered file
+is missing. Focused commands such as `console:fsm:test` use the same runner.
+
 Before pushing routine work:
 
 ```bash
@@ -186,7 +198,11 @@ npm run release:check
 
 That mirrors required CI gates. `npm run ci:local` is the same full gate.
 `npm run ci:local:fast` and `npm run ci:local:changed` are for targeted
-debugging. Whitespace checks ignore Markdown under `docs/superpowers/`.
+debugging. Changed-only selection includes committed, staged, unstaged, and
+untracked files. Kotlin, Android, Gradle, Detekt, and EditorConfig inputs
+trigger the Gradle gate. Git inspection failures stop verification rather
+than silently reducing its scope. Whitespace checks ignore Markdown under
+`docs/superpowers/`.
 
 Runtime-evidence changes, before the full release gate:
 
@@ -209,39 +225,16 @@ npm run hooks:install
 
 Bypass only for an emergency: `FIXTHIS_SKIP_PRE_PUSH=1 git push`.
 
-Full command set:
+Inspect the current command set without running it:
 
 ```bash
-node scripts/check-doc-consistency.mjs
-node scripts/check-release-readiness.mjs
-npm run release:v06:evidence:test
-npm run docs:agent-bootstrap:test
-npm run evidence:test
-npm run first-run:smoke:test
-npm run detekt:baseline:check
-npm run checks:observation:test
-node scripts/build-console-assets.mjs --check
-bash scripts/check-surface-zindex.sh
-node --check fixthis-mcp/src/main/resources/console/app.js
-npm run console:test:all
-node --test scripts/fixthis-smoke-test.mjs
-npm run release:package:test
-npm run perf:test
-./gradlew \
-  spotlessCheck \
-  detekt \
-  :fixthis-compose-core:test \
-  :fixthis-cli:test \
-  :fixthis-mcp:test \
-  :fixthis-compose-sidekick:testDebugUnitTest \
-  :fixthis-gradle-plugin:test \
-  :app:assembleDebug \
-  :fixthis-cli:installDist \
-  :fixthis-mcp:installDist \
-  --no-daemon
-node scripts/check-whitespace.mjs diff --check <base>..HEAD
-node scripts/check-whitespace.mjs diff --check
+npm run ci:local -- --list
+npm run ci:local:changed -- --list
+npm run ci:local:test
 ```
+
+`scripts/verify-ci-local.sh` defines the local gate. Its regression tests
+cover mode selection and run in CI with the documentation and console tests.
 
 If you edited `fixthis-mcp/src/main/console/`, rebundle first:
 

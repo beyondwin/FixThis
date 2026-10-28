@@ -39,9 +39,8 @@ class SessionPackageBoundaryTest {
         ),
         BoundaryRule(
             sourceGroup = "target",
-            forbiddenGroups = listOf("lifecycle\\.store", "preview", "connection"),
-            reason = "target evidence must stay independent of persistence, preview capture, and connection recovery",
-            allowedException = "ADR-0008 E2 currently tolerates target -> handoff formatting helpers only",
+            forbiddenGroups = listOf("lifecycle\\.store", "handoff", "preview", "connection"),
+            reason = "target evidence must stay independent of persistence, handoff rendering, preview capture, and connection recovery; shared display helpers belong in dto",
         ),
         BoundaryRule(
             sourceGroup = "source",

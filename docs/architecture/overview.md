@@ -134,11 +134,10 @@ MCP stdio server plus `127.0.0.1` HTTP console.
   `index.json` is a derived cache.
 - `/api/events` SSE is primary. Polling is fallback.
 
-MCP tools: `fixthis_status`, `fixthis_get_current_screen`,
-`fixthis_verify_ui_change`, `fixthis_open_feedback_console`,
-`fixthis_list_feedback_sessions`, `fixthis_capture_screen`,
-`fixthis_navigate_app`, `fixthis_list_feedback`, `fixthis_read_feedback`,
-`fixthis_claim_feedback`, `fixthis_resolve_feedback`.
+MCP tools cover device inspection, console/session access, feedback
+read/claim/verify/resolve, and bounded runtime evidence collection. The
+[MCP tool reference](../reference/mcp-tools.md#tools) owns the tool list and
+argument contracts, including optional verification receipts.
 
 Resources: `fixthis://session/current`, `fixthis://screen/current`,
 `fixthis://screenshot/latest/full.png`, `fixthis://screenshot/latest/crop.png`,

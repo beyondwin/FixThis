@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import {
   buildAgentRouteReport,
@@ -169,9 +172,10 @@ test("repository state preserves missing upstream and worktree count", () => {
 test("changed files union committed staged and working paths", () => {
   const outputs = new Map([
     ["merge-base HEAD origin/main", { status: 0, stdout: "base-sha\n", stderr: "" }],
-    ["diff --name-only base-sha..HEAD", { status: 0, stdout: "AGENTS.md\n", stderr: "" }],
-    ["diff --name-only --cached", { status: 0, stdout: "scripts/agent-task-router.mjs\n", stderr: "" }],
-    ["diff --name-only", { status: 0, stdout: "AGENTS.md\n", stderr: "" }],
+    ["diff --no-renames --name-only -z base-sha..HEAD", { status: 0, stdout: "AGENTS.md\0", stderr: "" }],
+    ["diff --no-renames --name-only -z --cached", { status: 0, stdout: "scripts/agent-task-router.mjs\0", stderr: "" }],
+    ["diff --no-renames --name-only -z", { status: 0, stdout: "AGENTS.md\0", stderr: "" }],
+    ["ls-files --others --exclude-standard -z", { status: 0, stdout: "", stderr: "" }],
   ]);
   const actual = collectChangedFiles({
     base: "origin/main",
@@ -186,9 +190,10 @@ test("changed files union committed staged and working paths", () => {
 test("missing parent revision returns a preflight warning", () => {
   const outputs = new Map([
     ["rev-parse --verify HEAD^", { status: 128, stdout: "", stderr: "no parent" }],
-    ["diff --name-only HEAD..HEAD", { status: 0, stdout: "", stderr: "" }],
-    ["diff --name-only --cached", { status: 0, stdout: "", stderr: "" }],
-    ["diff --name-only", { status: 0, stdout: "", stderr: "" }],
+    ["diff --no-renames --name-only -z HEAD..HEAD", { status: 0, stdout: "", stderr: "" }],
+    ["diff --no-renames --name-only -z --cached", { status: 0, stdout: "", stderr: "" }],
+    ["diff --no-renames --name-only -z", { status: 0, stdout: "", stderr: "" }],
+    ["ls-files --others --exclude-standard -z", { status: 0, stdout: "", stderr: "" }],
   ]);
   const changes = collectChangedFiles({
     runGit: (args) => outputs.get(args.join(" ")),
@@ -224,9 +229,11 @@ test("agent kit integration surfaces use the narrow guidance route", () => {
   for (const file of [
     "scripts/verify-ci-local.sh",
     "scripts/verify-ci-local-test.mjs",
+    "scripts/git-changed-files.mjs",
     "scripts/fixthis-plugin-contract-test.mjs",
     ".github/workflows/ci.yml",
     "package.json",
+    "package-lock.json",
   ]) {
     assert.deepEqual(
       selectRoutes({ changedFiles: [file] }).map((route) => route.id),
@@ -234,4 +241,44 @@ test("agent kit integration surfaces use the narrow guidance route", () => {
       file,
     );
   }
+});
+
+test("real Git inventory routes untracked, staged and moved Android files with non-ASCII paths", (t) => {
+  const cwd = mkdtempSync(path.join(tmpdir(), "fixthis-routes-"));
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  const git = (...args) => {
+    const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    return result;
+  };
+  git("init", "-q");
+  writeFileSync(path.join(cwd, ".gitignore"), "build/\n");
+  git("add", ".gitignore");
+  git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "Initial");
+  const file = "fixthis-compose-sidekick/src/main/새 파일.kt";
+  mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true });
+  writeFileSync(path.join(cwd, file), "// New source\n");
+  mkdirSync(path.join(cwd, "build"));
+  writeFileSync(path.join(cwd, "build/ignored.kt"), "// Generated\n");
+  const changes = collectChangedFiles({ cwd, base: "HEAD" });
+  assert.deepEqual(changes, { changedFiles: [file], warnings: [] });
+  assert.equal(buildAgentRouteReport({ ...changes, repositoryState: state }).connectedProof.required, true);
+  git("add", file);
+  assert.deepEqual(collectChangedFiles({ cwd, base: "HEAD" }), changes);
+  git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "Add source");
+  mkdirSync(path.join(cwd, "archive"));
+  const moved = "archive/새 파일.kt";
+  git("mv", file, moved);
+  for (const base of ["HEAD", "HEAD^"]) {
+    if (base === "HEAD^") git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "Move source");
+    const movedChanges = collectChangedFiles({ cwd, base });
+    assert.deepEqual(new Set(movedChanges.changedFiles), new Set([file, moved]));
+    assert.equal(buildAgentRouteReport({ ...movedChanges, repositoryState: state }).connectedProof.required, true);
+  }
+});
+
+test("invalid Git base fails the shared CLI instead of printing an empty change list", () => {
+  const result = spawnSync(process.execPath, ["scripts/git-changed-files.mjs", "--base", "refs/heads/missing-base-for-test"], { encoding: "utf8" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Unable to resolve|Git command failed/);
 });

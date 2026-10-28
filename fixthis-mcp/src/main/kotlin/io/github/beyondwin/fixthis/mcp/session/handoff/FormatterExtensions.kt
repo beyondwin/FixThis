@@ -1,6 +1,5 @@
 package io.github.beyondwin.fixthis.mcp.session.handoff
 
-import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 
@@ -17,23 +16,6 @@ internal fun SourceCandidate.fileWithLineAndOwner(): String {
 }
 
 internal fun SourceCandidate.staleMarkerSuffix(): String = if (stale == true) " ⚠ stale: ${staleReason ?: "unspecified"}" else ""
-
-internal fun FixThisRect.formatBounds(): String = "$left,$top,$right,$bottom"
-
-internal fun FixThisRect.formatBox(): String = "($left,$top)-($right,$bottom)"
-
-internal fun String.inlineSafe(): String = lineSequence().joinToString(" ").replace("`", "'")
-
-private const val COMPACT_TRUNCATION_SUFFIX = "..."
-
-internal fun String.compactQuotedValue(maxLength: Int = 80): String {
-    val normalized = inlineSafe().replace("\"", "'")
-    return if (normalized.length <= maxLength) {
-        normalized
-    } else {
-        normalized.take(maxLength - COMPACT_TRUNCATION_SUFFIX.length) + COMPACT_TRUNCATION_SUFFIX
-    }
-}
 
 /**
  * Computes the longest directory-boundary common prefix across all candidate file paths

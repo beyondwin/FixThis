@@ -21,9 +21,9 @@ When sources disagree:
 3. `CONTRIBUTING.md`, `docs/contributing/*`, and release docs for required
    checks and release state.
 4. `docs/guides/*`, `docs/architecture/*`, and `docs/product/*` for explanations.
-5. `docs/superpowers/*`, `docs/specs/*`, and `docs/plans/*` for historical
-   planning only. Each of those folders has a README saying they are not
-   current contracts. Tagged `docs/releases/vX.Y.Z.md` notes are frozen.
+5. `docs/specs/*` and `docs/plans/*` for historical planning only. Their
+   READMEs mark them as historical. Removed planning files remain in Git
+   history. Tagged `docs/releases/vX.Y.Z.md` notes are frozen.
 
 Historical files explain why work happened. They are not current contracts
 unless a maintained page or source file points to them.

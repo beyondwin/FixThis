@@ -5,6 +5,7 @@ import test from "node:test";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const script = path.join(repoRoot, "scripts/verify-ci-local.sh");
+const parentExists = spawnSync("git", ["rev-parse", "--verify", "HEAD^"], { cwd: repoRoot }).status === 0;
 
 function runVerify(args, env = {}) {
   return spawnSync("bash", [script, ...args], {
@@ -31,6 +32,8 @@ test("--fast lists the quick CI mirror without Gradle", () => {
   const commands = commandLines(result.stdout);
   assert.deepEqual(commands, [
     "node scripts/check-doc-consistency.mjs",
+    "npm run docs:links:test",
+    "npm run ci:local:test",
     "npm run agent:route:test",
     "npm run docs:agent-guidance:test",
     "npm run plugin:contract:test",
@@ -63,6 +66,7 @@ test("--prepush lists only formatting-adjacent and fast hygiene checks", () => {
   const commands = commandLines(result.stdout);
   assert.deepEqual(commands, [
     "node scripts/check-doc-consistency.mjs",
+    "npm run docs:links:test",
     "npm run agent:route:test",
     "npm run docs:agent-guidance:test",
     "npm run plugin:contract:test",
@@ -71,7 +75,9 @@ test("--prepush lists only formatting-adjacent and fast hygiene checks", () => {
     "bash scripts/check-surface-zindex.sh",
     "node --check fixthis-mcp/src/main/resources/console/app.js",
     "npm run console:test:fast",
-    "node scripts/check-whitespace.mjs diff --check HEAD^..HEAD",
+    parentExists
+      ? "node scripts/check-whitespace.mjs diff --check HEAD^..HEAD"
+      : "node scripts/check-whitespace.mjs diff-tree --check --root -r HEAD",
     "node scripts/check-whitespace.mjs diff --cached --check",
     "node scripts/check-whitespace.mjs diff --check",
   ]);
@@ -133,6 +139,26 @@ test("--changed-only includes Gradle for Kotlin or Gradle changes", () => {
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /RUN \.\/gradlew /);
+});
+
+test("--changed-only includes Gradle for static analysis and formatting inputs", () => {
+  for (const file of ["config/detekt/detekt.yml", "config/detekt/baseline-fixthis-cli.xml", ".editorconfig", "gradlew.bat"]) {
+    const result = runVerify(["--changed-only", "--list"], {
+      FIXTHIS_VERIFY_BASE: "HEAD",
+      FIXTHIS_VERIFY_CHANGED_FILES: file + "\n",
+    });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /RUN \.\/gradlew /, file + " must trigger Gradle");
+  }
+});
+
+test("invalid Git base fails instead of silently selecting a smaller gate", () => {
+  const result = runVerify(["--changed-only", "--list", "--base", "refs/heads/fixthis-missing-base"], {
+    FIXTHIS_VERIFY_CHANGED_FILES: "",
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Git command failed|Unable to resolve merge-base/);
+  assert.doesNotMatch(result.stdout, /^RUN /m);
 });
 
 test("unknown flags fail with usage", () => {

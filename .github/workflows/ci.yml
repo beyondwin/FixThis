@@ -38,6 +38,12 @@ jobs:
       - name: Doc consistency check
         run: node scripts/check-doc-consistency.mjs
 
+      - name: Run documentation link checker tests
+        run: npm run docs:links:test
+
+      - name: Run local CI selection tests
+        run: npm run ci:local:test
+
       - name: Run agent task router tests
         run: npm run agent:route:test
 

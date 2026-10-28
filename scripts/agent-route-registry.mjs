@@ -91,6 +91,7 @@ export const ROUTES = Object.freeze([
       "fixthis-mcp/src/main/resources/console/",
       "fixthis-mcp/src/main/kotlin/io/github/beyondwin/fixthis/mcp/console/",
       "scripts/console",
+      "scripts/run-console",
     ],
     docs: [
       "docs/reference/feedback-console-contract.md",
@@ -111,7 +112,7 @@ export const ROUTES = Object.freeze([
   {
     id: "cli-setup",
     tasks: ["cli", "setup", "install-agent", "doctor"],
-    pathPrefixes: ["fixthis-cli/"],
+    pathPrefixes: ["fixthis-cli/", "scripts/bootstrap-mcp.sh"],
     docs: [
       "docs/reference/cli.md",
       "docs/reference/agent-setup-schema.md",
@@ -275,10 +276,12 @@ export const ROUTES = Object.freeze([
       "fixthis-mcp/AGENTS.md",
       "scripts/AGENTS.md",
       "scripts/agent-",
+      "scripts/git-changed-files",
       "scripts/verify-ci-local",
       "scripts/fixthis-plugin-contract-test.mjs",
       ".github/workflows/ci.yml",
       "package.json",
+      "package-lock.json",
     ],
     docs: [
       "AGENTS.md",
@@ -307,6 +310,8 @@ export const ROUTES = Object.freeze([
       "CLAUDE.md",
       "CONTRIBUTING.md",
       ".codex-plugin/",
+      "scripts/check-doc-",
+      "scripts/perf/README.md",
     ],
     docs: [
       "docs/index.md",
@@ -319,6 +324,7 @@ export const ROUTES = Object.freeze([
     ],
     focusedChecks: [
       "node scripts/check-doc-consistency.mjs",
+      "npm run docs:links:test",
       "npm run docs:agent-bootstrap:test",
       "npm run plugin:contract:test",
     ],

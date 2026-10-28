@@ -10,10 +10,10 @@ instance. The wire protocol is unchanged (`1.3`).
 
 ## Context
 
-`BridgeServer` used `@Volatile` fields for lifecycle state. Concurrent
-start/stop sequences raced. Details:
-[`docs/superpowers/specs/2026-05-14-bridge-server-concurrency-design.md`](../../superpowers/specs/2026-05-14-bridge-server-concurrency-design.md)
-§1. That spec is historical; this ADR is the current rule.
+`BridgeServer` used separate `@Volatile` fields for lifecycle state.
+Concurrent start/stop sequences could observe different field values and
+race socket creation against shutdown. This ADR records the lifecycle rule
+that replaced those fields.
 
 ## Decision
 

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { selectConsoleTests } from './run-console-tests.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -27,7 +28,11 @@ function extractFunctionBody(sourceText, signature) {
 
 test('console:test:all includes the canonical group', () => {
   const pkg = JSON.parse(source('package.json'));
-  assert.match(pkg.scripts['console:test:all'], /canonical/);
+  const prefix = 'node scripts/run-console-tests.mjs ';
+  assert.ok(pkg.scripts['console:test:all'].startsWith(prefix));
+  const files = selectConsoleTests(pkg.scripts['console:test:all'].slice(prefix.length).split(/\s+/));
+  const groups = JSON.parse(source('scripts/console-tests.json'));
+  for (const file of groups.canonical) assert.ok(files.includes(file), file);
 });
 
 test('canonical group includes runtime contract test', () => {

@@ -14,8 +14,9 @@ Contracts, ADRs, and current source still win.
    compatibility, and console contracts.
 3. `docs/architecture/adr/*` for durable decisions.
 4. `docs/guides/project-map.md` and this compass for navigation.
-5. `docs/superpowers/*`, `docs/specs/*`, and `docs/plans/*` only as historical
-   planning unless a maintained doc, ADR, or source file points to them.
+5. `docs/specs/*`, `docs/plans/*`, and removed planning files in Git history
+   only as historical context unless a maintained doc, ADR, or source file
+   points to them.
 
 ## Global Boundaries
 

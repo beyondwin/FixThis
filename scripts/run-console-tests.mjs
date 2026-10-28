@@ -1,10 +1,28 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const groups = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/console-tests.json"), "utf8"));
+const defaultGroups = JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts/console-tests.json"), "utf8"));
+
+export function selectConsoleTests(requested, { groups = defaultGroups, root = repoRoot } = {}) {
+  if (requested.length === 0) {
+    throw new Error("Usage: node scripts/run-console-tests.mjs <all|group> [<group> ...]\nKnown groups: " + Object.keys(groups).join(", "));
+  }
+  const selectedGroups = requested.flatMap((group) => group === "all" ? Object.keys(groups) : [group]);
+  const files = new Set();
+  for (const group of selectedGroups) {
+    if (!Object.hasOwn(groups, group)) throw new Error(`Unknown group: ${group}`);
+    for (const file of groups[group]) {
+      if (!fs.existsSync(path.join(root, file)) || !fs.statSync(path.join(root, file)).isFile()) {
+        throw new Error(`Missing console test: ${file}`);
+      }
+      files.add(file);
+    }
+  }
+  return [...files];
+}
 
 function runConsoleContractGuards() {
   const detailSource = fs.readFileSync(
@@ -58,25 +76,24 @@ function runConsoleContractGuards() {
   }
 }
 
-const requested = process.argv.slice(2);
-if (requested.length === 0) {
-  console.error("Usage: node scripts/run-console-tests.mjs <group> [<group> ...]");
-  console.error("Known groups:", Object.keys(groups).join(", "));
-  process.exit(2);
-}
-const files = [];
-for (const g of requested) {
-  if (!(g in groups)) {
-    console.error(`Unknown group: ${g}`);
-    process.exit(2);
+function main() {
+  let files;
+  try {
+    files = selectConsoleTests(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    return 2;
   }
-  files.push(...groups[g]);
+  try {
+    runConsoleContractGuards();
+  } catch (error) {
+    console.error(error.message);
+    return 1;
+  }
+  const result = spawnSync(process.execPath, ["--test", ...files], { stdio: "inherit", cwd: repoRoot });
+  return result.status ?? 1;
 }
-try {
-  runConsoleContractGuards();
-} catch (error) {
-  console.error(error.message);
-  process.exit(1);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  process.exitCode = main();
 }
-const result = spawnSync(process.execPath, ["--test", ...files], { stdio: "inherit", cwd: repoRoot });
-process.exit(result.status ?? 1);

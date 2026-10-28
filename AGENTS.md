@@ -11,8 +11,9 @@ local desktop console.
 3. Run `npm run agent:route -- --task console` for an explicit route, or
    `npm run agent:route -- --changed --json` once paths are known.
 4. Read only the maintained docs and first source files the router returns.
-5. Treat `docs/superpowers/*`, `docs/specs/*`, and `docs/plans/*` as historical
-   context unless current source or maintained docs point there.
+5. Treat `docs/specs/*` and `docs/plans/*` as historical context unless
+   current source or maintained docs point there. Removed planning files
+   remain available in Git history.
 
 Current implementation wins over docs. `docs/reference/*` wins over historical
 planning.

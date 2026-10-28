@@ -3,12 +3,30 @@ package io.github.beyondwin.fixthis.mcp.session
 import io.github.beyondwin.fixthis.compose.core.model.FixThisRect
 import io.github.beyondwin.fixthis.compose.core.model.SelectionConfidence
 import io.github.beyondwin.fixthis.compose.core.model.SourceCandidate
-import io.github.beyondwin.fixthis.mcp.session.handoff.formatBox
+import io.github.beyondwin.fixthis.mcp.session.dto.compactQuotedValue
+import io.github.beyondwin.fixthis.mcp.session.dto.formatBounds
+import io.github.beyondwin.fixthis.mcp.session.dto.formatBox
+import io.github.beyondwin.fixthis.mcp.session.dto.inlineSafe
 import io.github.beyondwin.fixthis.mcp.session.handoff.staleMarkerSuffix
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class FormatterExtensionsTest {
+
+    @Test
+    fun sharedDisplayHelpersKeepBoundsAndInlineTextStable() {
+        val rect = FixThisRect(left = 28f, top = 212f, right = 692f, bottom = 419f)
+        assertEquals("28.0,212.0,692.0,419.0", rect.formatBounds())
+        assertEquals("Use 'tag' on 'Home'", "Use `tag`\r\non `Home`".inlineSafe())
+        assertEquals("Use 'tag' on 'Home'", "Use `tag`\non \"Home\"".compactQuotedValue())
+    }
+
+    @Test
+    fun compactQuotedValueKeepsBoundaryAndIncludesTruncationSuffixInLimit() {
+        assertEquals("abcde", "abcde".compactQuotedValue(maxLength = 5))
+        assertEquals("ab...", "abcdef".compactQuotedValue(maxLength = 5))
+        assertEquals("a".repeat(77) + "...", "a".repeat(81).compactQuotedValue())
+    }
 
     @Test
     fun formatBoxRendersExplicitShape() {

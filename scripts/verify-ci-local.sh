@@ -79,16 +79,12 @@ changed_files() {
         return
     fi
 
-    {
-        git diff --name-only "$BASE..HEAD"
-        git diff --name-only --cached
-        git diff --name-only
-    } | sed '/^$/d' | sort -u
+    node scripts/git-changed-files.mjs --base "$BASE"
 }
 
 needs_gradle() {
     local files="$1"
-    grep -Eq '(^|/)(build\.gradle\.kts|settings\.gradle\.kts|gradle\.properties|gradlew)$|^gradle/|^(app|sample|fixthis-(compose-core|compose-sidekick|gradle-plugin|cli|mcp))/src/' <<<"$files"
+    grep -Eq '(^|/)(build\.gradle\.kts|settings\.gradle\.kts|gradle\.properties|gradlew|gradlew\.bat|\.editorconfig)$|^(gradle|config/detekt)/|^(app|sample|fixthis-(compose-core|compose-sidekick|gradle-plugin|cli|mcp))/src/' <<<"$files"
 }
 
 run_step() {
@@ -132,6 +128,7 @@ esac
 
 if [[ "$MODE" == "prepush" ]]; then
     run_step "node scripts/check-doc-consistency.mjs"
+    run_step "npm run docs:links:test"
     run_step "npm run agent:route:test"
     run_step "npm run docs:agent-guidance:test"
     run_step "npm run plugin:contract:test"
@@ -142,6 +139,8 @@ if [[ "$MODE" == "prepush" ]]; then
     run_step "npm run console:test:fast"
 else
     run_step "node scripts/check-doc-consistency.mjs"
+    run_step "npm run docs:links:test"
+    run_step "npm run ci:local:test"
     run_step "npm run agent:route:test"
     run_step "npm run docs:agent-guidance:test"
     run_step "npm run plugin:contract:test"

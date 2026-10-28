@@ -13,9 +13,16 @@ the installed APK.
 
 ## Source Index Schema
 
-Current source-index `schemaVersion` is `1.2`. FixThis is pre-1.0, so this
-version is informational and does not promise forward compatibility with older
-assets.
+Current source-index `schemaVersion` is `1.3`. The Gradle plugin's
+`SourceIndexAsset` and the runtime's `SourceIndex` share this default.
+`schemaVersion` is metadata, not a version-negotiation gate: older assets
+with supported fields and signal kinds can still decode. Unknown fields are
+ignored; unknown signal enum values make the index unavailable. Keep plugin
+and runtime versions aligned.
+
+The root contains optional `sourceRoot` metadata, `testTagConventions`
+(configured regular expressions), and `entries`. Entry `file` paths are
+module-relative; `repoFile` supplies the repository-relative path when known.
 
 Each entry preserves the legacy field lists (`symbols`, `text`,
 `contentDescriptions`, `testTags`, `stringResources`, `roles`, and
@@ -31,8 +38,9 @@ Each entry preserves the legacy field lists (`symbols`, `text`,
   call-site entry, not on the XML resource entry.
 - `TEST_TAG`: a Compose `testTag(...)`.
 - `STRICT_COMP_TEST_TAG`: a strict test tag of the form `comp:<ComposableName>:...`,
-  `screen:<ComposableName>:...`, or dot-delimited `comp.<ComposableName>.<id>`, resolving
-  the named composable owner at the same medium confidence for all three forms.
+  `screen:<ComposableName>:...`, `comp.<ComposableName>.<id>`, or
+  `screen.<ComposableName>.<id>`, resolving the named composable owner at
+  medium confidence. Configured `testTagConventions` can add project patterns.
 - `CONTENT_DESCRIPTION`: a Compose semantics content description, including
   direct `contentDescription = stringResource(...)` calls and local variables
   assigned from `stringResource(...)` with or without an explicit Kotlin type.
@@ -42,12 +50,22 @@ Each entry preserves the legacy field lists (`symbols`, `text`,
   stronger UI signal.
 - `LAMBDA_OWNER_FUNCTION`: the simple name of the enclosing `@Composable fun`
   for indexed entries inside a composable body.
+- `LAZY_ITEM_OWNER`: a composable called inside a recognized lazy-item lambda.
+- `NAV_DESTINATION_OWNER`: a composable called inside a recognized navigation
+  destination lambda.
+- `MODIFIER_TARGET`: a literal semantics label used as a modifier-target hint.
 - `LAYOUT_RENDERER`: a `Layout(...)`, `SubcomposeLayout(...)`, or
   `SubcomposeLayout { ... }` renderer call inside a composable owner, or a
   content-slot wrapper composable — a `@Composable fun` that exposes a
   `content: @Composable (...) -> Unit` slot parameter — which emits the signal
   carrying the wrapper's own function name. This is used as call-site evidence;
   it does not by itself make a source candidate high confidence.
+- `SHARED_COMPONENT`: a composable definition with at least two detected call
+  sites; its value records the call-site count. This is a structural marker,
+  not a direct matching score.
+- `SHARED_COMPONENT_CALL_SITE`: bounded call-site context attached to a shared
+  definition, including file, line, and available enclosing-function / literal
+  argument hints. At most ten call sites are emitted per shared definition.
 
 For layout renderer signals, direct unqualified calls are indexed only when
 `Layout`, `SubcomposeLayout`, or a wildcard import comes from

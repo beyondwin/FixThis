@@ -1,12 +1,12 @@
 // Lightweight DX-docs drift detector.
 // Run with: node scripts/check-doc-consistency.mjs
 // Exit 0 on success; exit 1 with rule name on failure.
-// No dependencies; runs on Node >=18.
+// Uses the repository's Node dependencies and Git file inventory.
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import GithubSlugger from "github-slugger";
+import { validateDocLinks } from "./check-doc-links.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -66,28 +66,13 @@ check(
   "package.json missing engines.node field.",
 );
 
-// Rule 6: every *.md#anchor link in the DX docs resolves to an existing heading.
-const dxDocs = ["README.md", "AGENTS.md", "CONTRIBUTING.md", "CLAUDE.md"];
-const docFiles = new Map();
-for (const f of dxDocs) {
-  try { docFiles.set(f, read(f)); } catch {}
-}
-const anchorLink = /\[[^\]]+\]\(([^)\s]+\.md)#([^)\s]+)\)/g;
-for (const [src, content] of docFiles) {
-  for (const m of content.matchAll(anchorLink)) {
-    const [, targetPath, anchor] = m;
-    const targetKey = path.normalize(targetPath);
-    const target = docFiles.get(targetKey) ?? (fs.existsSync(path.join(repoRoot, targetPath)) ? read(targetPath) : null);
-    if (!target) continue; // skip external/missing files; R3 covers cross-file presence
-    const slugger = new GithubSlugger();
-    const headings = [...target.matchAll(/^#+\s+(.+)$/gm)].map((mm) => slugger.slug(mm[1].trim()));
-    check(
-      `R6.${src}->${targetPath}#${anchor}`,
-      headings.includes(anchor),
-      `${src} links to ${targetPath}#${anchor} but no matching heading exists.`,
-    );
-  }
-}
+// Rule 6: maintained Markdown links survive file moves and heading changes.
+const links = validateDocLinks(repoRoot);
+check(
+  "R6.maintained-local-links",
+  links.errors.length === 0,
+  links.errors.join("\n"),
+);
 
 // Rule 7: the shared project map is linked from the main navigation entry points.
 const docsIndex = read("docs/index.md");
@@ -111,8 +96,8 @@ check(
 // Rule 8: historical planning docs are labeled as context, not current contracts.
 check(
   "R8.historical-planning-label",
-  /docs\/superpowers[\s\S]{0,240}historical|historical[\s\S]{0,240}docs\/superpowers/i.test(`${agents}\n${docsIndex}`),
-  "AGENTS.md or docs/index.md must describe docs/superpowers as historical planning context.",
+  /historical/i.test(docsIndex) && ["specs/README.md", "plans/README.md"].every((file) => docsIndex.includes(file)),
+  "docs/index.md must label the remaining specs and plans as historical context.",
 );
 
 // Rule 9: docs/index.md keeps the contract and history navigation sections.

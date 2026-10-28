@@ -78,9 +78,11 @@ Stable CLI, MCP, bridge, JSON, and console behavior:
 
 Frozen snapshots. Not current contracts. Do not implement from them.
 
-- [docs/superpowers/](superpowers/README.md) — old agent specs, plans, notes
 - [docs/specs/](specs/README.md) — older project specs
 - [docs/plans/](plans/README.md) — older implementation plans
+
+Retired agent specs, plans, and work notes are available in Git history;
+they are no longer part of the working tree.
 
 Prefer `docs/reference/` and the code when they disagree. Tagged GitHub
 Release notes under [docs/releases/](releases/README.md) are frozen copies

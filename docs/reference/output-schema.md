@@ -270,13 +270,11 @@ Best-effort ranked hints.
 `LEGACY_FALLBACK` is the serialized token for untyped fallback evidence. It
 does not mean pre-v0.4 browser recovery is supported.
 
-Source-index `schemaVersion` `1.2` adds typed `signals` while keeping v1
-lists (`symbols`, `text`, `contentDescriptions`, `testTags`,
-`stringResources`, `roles`, `activityNames`). Signal kinds:
-`COMPOSABLE_SYMBOL`, `UI_TEXT`, `STRING_RESOURCE`,
-`STRING_RESOURCE_RESOLVED`, `TEST_TAG`, `STRICT_COMP_TEST_TAG`,
-`CONTENT_DESCRIPTION`, `ROLE`, `ACTIVITY_NAME`,
-`ARBITRARY_STRING_LITERAL`, `LAMBDA_OWNER_FUNCTION`, `LAYOUT_RENDERER`.
+The current source-index `schemaVersion` is `1.3`. It carries typed `signals`,
+root `testTagConventions`, and the original lists (`symbols`, `text`,
+`contentDescriptions`, `testTags`, `stringResources`, `roles`,
+`activityNames`). The [source-matching reference](source-matching.md#source-index-schema)
+defines the signal kinds and decoding behavior.
 
 Root metadata (`schemaVersion` ≥ `1.1`): `sourceRoot.kind`
 (`gradle-project`), `sourceRoot.gradlePath`, `sourceRoot.projectDir`,

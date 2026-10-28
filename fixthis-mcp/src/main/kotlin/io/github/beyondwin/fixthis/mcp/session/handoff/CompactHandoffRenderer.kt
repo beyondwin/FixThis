@@ -9,6 +9,8 @@ import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceCandidateDto
 import io.github.beyondwin.fixthis.mcp.session.dto.EditSurfaceKindDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SessionDto
 import io.github.beyondwin.fixthis.mcp.session.dto.SnapshotDto
+import io.github.beyondwin.fixthis.mcp.session.dto.formatBox
+import io.github.beyondwin.fixthis.mcp.session.dto.inlineSafe
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceAttachment
 import io.github.beyondwin.fixthis.mcp.session.runtime.RuntimeEvidenceType
 import io.github.beyondwin.fixthis.mcp.session.target.TargetBoundaryContextFormatter

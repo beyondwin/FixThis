@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Bootstrap FixThis MCP for a contributor's machine.
 # Combines: ./gradlew installDist + fixthis setup --write
-# See docs/superpowers/specs/2026-05-10-contributor-bootstrap-mcp-design.md
+# See docs/getting-started/connect-your-agent.md for the maintained setup guide.
 set -euo pipefail
 
 print_usage() {

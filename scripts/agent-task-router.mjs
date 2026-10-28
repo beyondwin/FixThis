@@ -1,3 +1,5 @@
+import { collectChangedFiles } from "./git-changed-files.mjs";
+export { collectChangedFiles };
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import {
@@ -30,47 +32,6 @@ export function parseArgs(argv) {
     }
   }
   return options;
-}
-
-function lines(text) {
-  return text.split("\n").map((line) => line.trim()).filter(Boolean);
-}
-
-export function collectChangedFiles({
-  cwd = process.cwd(),
-  base = null,
-  upstream = null,
-  runGit = defaultRunGit,
-} = {}) {
-  const warnings = [];
-  let target = base || upstream;
-  if (!target) {
-    const parent = runGit(["rev-parse", "--verify", "HEAD^"], cwd);
-    if (parent.status === 0) {
-      target = "HEAD^";
-    } else {
-      target = "HEAD";
-      warnings.push("Git parent revision is unavailable; using HEAD as the change base.");
-    }
-  }
-  let mergeBase = target;
-  if (target !== "HEAD" && target !== "HEAD^") {
-    const result = runGit(["merge-base", "HEAD", target], cwd);
-    if (result.status === 0) mergeBase = result.stdout.trim();
-    else warnings.push("Unable to resolve merge-base for " + target + ".");
-  }
-  const commands = [
-    ["diff", "--name-only", mergeBase + "..HEAD"],
-    ["diff", "--name-only", "--cached"],
-    ["diff", "--name-only"],
-  ];
-  const changedFiles = [];
-  for (const args of commands) {
-    const result = runGit(args, cwd);
-    if (result.status === 0) changedFiles.push(...lines(result.stdout));
-    else warnings.push("Git command failed: git " + args.join(" "));
-  }
-  return { changedFiles: orderedUnique(changedFiles), warnings };
 }
 
 export function collectRepositoryState({

@@ -1,8 +1,8 @@
 # Performance Measurement Harness
 
 This directory contains the build/test benchmark harness. See
-[`../../docs/superpowers/specs/2026-05-16-build-test-performance-measurement-design.md`](../../docs/superpowers/specs/2026-05-16-build-test-performance-measurement-design.md)
-for the design.
+[the maintained performance guide](../../docs/perf/README.md)
+for scenarios, comparison rules, and baseline interpretation.
 
 ## Quick start
 
