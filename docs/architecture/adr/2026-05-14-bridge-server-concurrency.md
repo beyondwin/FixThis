@@ -41,6 +41,9 @@ that replaced those fields.
   returned `Boolean` as a hint, not a synchronous result.
 - `state: StateFlow<BridgeServerState>` is an additive read-only surface.
 - `BridgeProtocol.VERSION` stays `1.3`.
-- A real-`LocalSocket` regression test cannot run under Robolectric. That
-  coverage is deferred to connected tests. Unit coverage is
-  `BridgeServerConcurrencyStressTest`.
+- `BridgeServerConcurrencyTest` uses test-only JVM loopback socket shadows
+  to drive the actual accept loop, protocol framing, and handler dispatch.
+  Its cancellation gate verifies that `stop()` waits for handler cleanup.
+  `BridgeServerConcurrencyStressTest` covers repeated lifecycle calls.
+  Android's native `LocalSocket` implementation remains a connected-device
+  boundary; loopback shadows do not establish native AF_UNIX behavior.

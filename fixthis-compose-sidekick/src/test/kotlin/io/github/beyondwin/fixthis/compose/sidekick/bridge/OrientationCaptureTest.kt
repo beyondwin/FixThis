@@ -4,18 +4,23 @@ import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import io.github.beyondwin.fixthis.compose.sidekick.lifecycle.FixThisActivityLifecycleCallbacks
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.LooperMode
+import java.io.File
+import java.lang.ref.WeakReference
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -59,41 +64,53 @@ class OrientationCaptureTest {
         assertEquals("FULLSCREEN", inferWindowMode(activity))
     }
 
-    @Ignore(
-        "Robolectric integration test hangs >10min due to AndroidBridgeEnvironment setup; " +
-            "pure-function tests above cover the mapping logic. Replace via EmulatorTestKit (Phase E RTI-1).",
-    )
-    @Test
+    @Test(timeout = 10_000)
+    @LooperMode(LooperMode.Mode.INSTRUMENTATION_TEST)
+    @Config(qualifiers = "w360dp-h640dp-port-mdpi")
     fun `captureScreenSnapshot populates orientation and display metrics from activity`() = runBlocking {
         val app = ApplicationProvider.getApplicationContext<Application>()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
         val lifecycle = FixThisActivityLifecycleCallbacks()
-        val controller = Robolectric.buildActivity(Activity::class.java).setup()
-        val activity = controller.get()
-        lifecycle.onActivityResumed(activity)
-
+        var controller: ActivityController<Activity>? = null
         val environment = AndroidBridgeEnvironment(
             context = app,
             sidekickVersion = "test",
             lifecycleCallbacks = lifecycle,
         )
-        environment.setCurrentActivity(java.lang.ref.WeakReference(activity))
+        try {
+            instrumentation.runOnMainSync {
+                controller = Robolectric.buildActivity(Activity::class.java).setup().visible()
+                val activity = checkNotNull(controller).get()
+                lifecycle.onActivityResumed(activity)
+                environment.setCurrentActivity(WeakReference(activity))
+            }
 
-        val snapshot = environment.captureScreenSnapshot()
+            // PixelCopy completes through a main-looper callback. Keep the real
+            // dispatcher/capturer and wait on the separate instrumentation test thread.
+            val snapshot = withTimeout(5_000) { environment.captureScreenSnapshot() }
 
-        assertNotNull("orientation must be populated", snapshot.orientation)
-        assertTrue(
-            "orientation must be PORTRAIT or LANDSCAPE",
-            snapshot.orientation == "PORTRAIT" || snapshot.orientation == "LANDSCAPE",
-        )
-        assertNotNull("widthPx must be populated", snapshot.widthPx)
-        assertNotNull("heightPx must be populated", snapshot.heightPx)
-        assertNotNull("densityDpi must be populated", snapshot.densityDpi)
-        assertTrue("widthPx must be positive", snapshot.widthPx!! > 0)
-        assertTrue("heightPx must be positive", snapshot.heightPx!! > 0)
-        assertTrue("densityDpi must be positive", snapshot.densityDpi!! > 0)
-        assertEquals("FULLSCREEN", snapshot.windowMode)
-        // B.5 fills these; for now they must stay null.
-        assertNull(snapshot.systemUiVisible)
-        assertNull(snapshot.systemUiKind)
+            assertEquals("PORTRAIT", snapshot.orientation)
+            assertEquals(360, snapshot.widthPx)
+            assertEquals(640, snapshot.heightPx)
+            assertEquals(160, snapshot.densityDpi)
+            assertEquals("FULLSCREEN", snapshot.windowMode)
+            assertEquals(false, snapshot.systemUiVisible)
+            assertNull(snapshot.systemUiKind)
+            assertNotNull(snapshot.screenshot)
+            assertNull(snapshot.screenshot?.captureFailedReason)
+            assertTrue(
+                "capture must write screenshot evidence",
+                File(checkNotNull(snapshot.screenshot?.fullPath)).length() > 0,
+            )
+            assertEquals(snapshot, withTimeout(5_000) { environment.getLastScreenSnapshot() })
+        } finally {
+            instrumentation.runOnMainSync {
+                controller?.let {
+                    environment.clearCurrentActivityIf(it.get())
+                    lifecycle.onActivityPaused(it.get())
+                    it.pause().stop().destroy()
+                }
+            }
+        }
     }
 }

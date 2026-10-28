@@ -3,26 +3,30 @@
 package io.github.beyondwin.fixthis.compose.sidekick.bridge
 
 import android.net.LocalServerSocket
-import android.net.LocalSocket
-import android.net.LocalSocketAddress
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadow.api.Shadow
 import sun.misc.Unsafe
 import java.io.File
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.seconds
@@ -48,46 +52,50 @@ class BridgeServerConcurrencyTest {
         }
     }
 
-    @Test
-    @Ignore(
-        "Reproduces §1.2 zombie-handler race; LocalSocket cannot bind under Robolectric. " +
-            "Move to androidTest/ in a follow-up — covered by Task 6 stress harness in the meantime.",
-    )
-    fun stopWaitsForInFlightHandlerToCompleteOverRealSocket(): Unit = runBlocking {
-        // T2 drives the REAL socket path (not handleRequestForTest) so the
-        // §1.2 zombie-handler race is actually reproduced. handleRequestForTest
-        // bypasses acceptLoop.launch { handleClient(...) } entirely.
-        val handlerEntered = CompletableDeferred<Unit>()
-        val gate = CompletableDeferred<Unit>()
-        val handlerFinished = CompletableDeferred<Unit>()
-        val server = newServerWithBlockingEnvironment(handlerEntered, gate, handlerFinished)
+    @Test(timeout = 15_000)
+    @Config(shadows = [JvmLoopbackServerSocketShadow::class, JvmLoopbackClientSocketShadow::class])
+    fun stopWaitsForAcceptedHandlerCancellationCleanup(): Unit = runBlocking {
+        // Substitute only the native socket boundary. The real accept loop,
+        // framing, authentication, router and handler coroutine still run.
+        val environment = BlockingBridgeEnvironment()
+        lateinit var listeningSocket: JvmLoopbackServerSocketShadow
+        val server = BridgeServer(
+            session = fixedSession(),
+            environment = environment,
+            socketFactory = { name ->
+                LocalServerSocket(name).also { listeningSocket = Shadow.extract(it) }
+            },
+        )
 
-        server.start()
-        val socketName = (server.state.value as BridgeServerState.Running).socketName
+        try {
+            assertTrue("the test listener must start", server.start())
+            Socket().use { client ->
+                client.connect(InetSocketAddress("127.0.0.1", listeningSocket.port), 2_000)
+                client.soTimeout = 10_000
+                val response = async(Dispatchers.IO) {
+                    BridgeProtocol.writeFrame(client.getOutputStream(), statusRequestPayload(server.session.token))
+                    BridgeProtocol.readFrame(client.getInputStream())
+                }
 
-        val clientJob = async(Dispatchers.IO) {
-            val client = LocalSocket()
-            client.connect(LocalSocketAddress(socketName))
-            client.outputStream.bufferedWriter().also {
-                it.write(statusRequestPayload(server.session.token))
-                it.newLine()
-                it.flush()
+                withTimeout(5.seconds) { environment.entered.await() }
+                val stopping = async { server.stop() }
+                withTimeout(5.seconds) { environment.cleanupEntered.await() }
+                assertFalse("pending work must have been cancelled", environment.releaseWork.isCompleted)
+                assertEquals(BridgeServerState.Stopping, server.state.value)
+                assertFalse("stop must join handler cleanup", stopping.isCompleted)
+                assertFalse(environment.finished.isCompleted)
+
+                environment.releaseCleanup.complete(Unit)
+                withTimeout(5.seconds) { stopping.await() }
+                assertTrue("handler cleanup must finish before stop returns", environment.finished.isCompleted)
+                assertEquals(BridgeServerState.Idle, server.state.value)
+                assertNull("cancelled handler must close its accepted client", withTimeout(5.seconds) { response.await() })
             }
-            // Block on response; will not return until handler completes.
-            client.inputStream.bufferedReader().readLine()
+        } finally {
+            environment.releaseWork.complete(Unit)
+            environment.releaseCleanup.complete(Unit)
+            withContext(NonCancellable) { server.stop() }
         }
-
-        // Wait until handler is actually inside status(); only then call stop().
-        withTimeout(5.seconds) { handlerEntered.await() }
-        val stopJob = async { server.stop() }
-        // Give stop() a chance to enter Stopping but not return.
-        delay(50)
-        assertEquals("stop() must wait for handler", false, stopJob.isCompleted)
-        gate.complete(Unit) // release the handler
-
-        withTimeout(5.seconds) { stopJob.await() }
-        assertEquals("handler must finish before stop returns", true, handlerFinished.isCompleted)
-        clientJob.await()
     }
 
     @Test
@@ -146,26 +154,32 @@ class BridgeServerConcurrencyTest {
 
     private fun fakeServerSocket(): LocalServerSocket = unsafe.allocateInstance(LocalServerSocket::class.java) as LocalServerSocket
 
-    private fun newServerWithBlockingEnvironment(
-        entered: CompletableDeferred<Unit>,
-        gate: CompletableDeferred<Unit>,
-        finished: CompletableDeferred<Unit>,
-    ): BridgeServer {
-        val session = fixedSession()
-        val env = object : BridgeEnvironment by StubBridgeEnvironment() {
-            override suspend fun status(): BridgeStatus {
-                entered.complete(Unit) // signal observation
-                gate.await() // hold until caller releases
+    private class BlockingBridgeEnvironment : BridgeEnvironment by StubBridgeEnvironment() {
+        val entered = CompletableDeferred<Unit>()
+        val releaseWork = CompletableDeferred<Unit>()
+        val cleanupEntered = CompletableDeferred<Unit>()
+        val releaseCleanup = CompletableDeferred<Unit>()
+        val finished = CompletableDeferred<Unit>()
+
+        override suspend fun status(): BridgeStatus {
+            entered.complete(Unit)
+            try {
+                releaseWork.await()
                 return BridgeStatus(
                     activity = null,
                     rootsCount = 0,
                     sidekickVersion = "test",
                     bridgeProtocolVersion = BridgeProtocol.VERSION,
                     sourceIndexAvailable = false,
-                ).also { finished.complete(Unit) }
+                )
+            } finally {
+                cleanupEntered.complete(Unit)
+                withContext(NonCancellable) {
+                    releaseCleanup.await()
+                    finished.complete(Unit)
+                }
             }
         }
-        return BridgeServer(session = session, environment = env)
     }
 
     private fun statusRequestPayload(token: String): String = """{"id":"1","method":"status","params":{},"token":"$token"}"""
